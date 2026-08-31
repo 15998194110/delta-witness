@@ -168,6 +168,7 @@ jobs:
 
   postman:
     needs: verify
+    if: ${{ vars.POSTMAN_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     env:
       POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
@@ -182,6 +183,7 @@ jobs:
 
   apify:
     needs: verify
+    if: ${{ vars.APIFY_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     env:
       APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
