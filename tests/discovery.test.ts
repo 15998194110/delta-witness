@@ -18,9 +18,10 @@ describe("OpenAPI paid discovery", () => {
     const document = openApi("https://delta.example", "0.6.1", { ...quote, product: "capture" }, quote) as any;
     for (const path of ["/v1/capture", "/v1/preflight"]) {
       expect(document.paths[path].post.responses["402"]).toBeDefined();
+      expect(document.paths[path].post.security).toEqual([]);
       expect(document.paths[path].post["x-payment-info"]).toEqual({
         price: { mode: "fixed", currency: "USD", amount: "0.03" },
-        protocols: ["x402"],
+        protocols: [{ x402: {} }],
         network: "eip155:8453",
       });
     }
