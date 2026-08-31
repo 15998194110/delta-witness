@@ -73,15 +73,35 @@ describe("payment hard gate", () => {
     expect(decoded.accepts[0].extra.paymentFlow).toBe("upfront");
   });
 
-  it("rejects an unsafe URL before payment or Browser Run", async () => {
+  it("returns a 402 challenge before validating a missing body", async () => {
     const browser = { quickAction: vi.fn() };
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url === "https://facilitator.test/supported") return Response.json(supported);
+      throw new Error(`unexpected fetch: ${url}`);
+    }));
+    const response = await app.request("https://delta.test/v1/capture", {
+      method: "POST",
+    }, runtime(browser));
+    expect(response.status).toBe(402);
+    expect(response.headers.get("payment-required")).toBeTruthy();
+    expect(browser.quickAction).not.toHaveBeenCalled();
+  });
+
+  it("returns a 402 challenge before validating an unsafe URL", async () => {
+    const browser = { quickAction: vi.fn() };
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url === "https://facilitator.test/supported") return Response.json(supported);
+      throw new Error(`unexpected fetch: ${url}`);
+    }));
     const response = await app.request("https://delta.test/v1/capture", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ url: "http://169.254.169.254/latest/meta-data" }),
     }, runtime(browser));
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(402);
     expect(browser.quickAction).not.toHaveBeenCalled();
-    expect(response.headers.get("payment-required")).toBeNull();
+    expect(response.headers.get("payment-required")).toBeTruthy();
   });
 });

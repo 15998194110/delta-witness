@@ -156,6 +156,18 @@ async function loadPriorManifest(env: RuntimeEnv, request: PreflightRequest): Pr
 
 async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Promise<Response | void> {
   if (c.req.method !== "POST") return next();
+  // Keep the paywall ahead of request validation. Discovery clients (including
+  // x402scan) are allowed to probe a paid route without knowing its body yet;
+  // they must receive a 402 challenge rather than a validation error. We still
+  // validate and reject the body before any paid fulfillment is attempted once
+  // a payment header is present.
+  const payment = getPaymentHeader(c.req.raw);
+  if (!payment) {
+    c.set("quote", await quoteProductWithOverride(c.env, product));
+    c.set("channel", referrerChannel(c.req.raw));
+    c.set("replayAuthorized", false);
+    return next();
+  }
   try {
     const value = await readJsonRequestBounded(
       c.req.raw,
@@ -183,8 +195,6 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
       success: true,
     });
 
-    const payment = getPaymentHeader(c.req.raw);
-    if (!payment) return next();
     const paymentFingerprint = await sha256(payment);
     const key = fulfillmentRecordKey(paymentFingerprint);
     c.set("paymentFingerprint", paymentFingerprint);
