@@ -173,7 +173,7 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
     c.set("channel", referrerChannel(c.req.raw));
     c.set("priorManifest", priorManifest);
     c.set("replayAuthorized", false);
-    recordEvent(c.env, {
+    await recordEvent(c.env, {
       event: "qualified_request",
       route: `/v1/${product}`,
       channel: c.var.channel,
@@ -193,7 +193,7 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
       return c.json({ error: "payment_already_used_for_different_request" }, 409);
     }
     if (stored.record.state === "complete" && stored.record.response) {
-      recordEvent(c.env, { event: "repeat_call", route: `/v1/${product}`, channel: c.var.channel, success: true });
+      await recordEvent(c.env, { event: "repeat_call", route: `/v1/${product}`, channel: c.var.channel, success: true });
       return noStore(c.json({ ...stored.record.response, idempotent_replay: true }));
     }
     if (isProcessingFresh(stored.record)) {
@@ -207,7 +207,7 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
     }
     c.set("claimedRecord", claimed);
     c.set("replayAuthorized", true);
-    recordEvent(c.env, { event: "repeat_call", route: `/v1/${product}`, channel: c.var.channel, success: true });
+    await recordEvent(c.env, { event: "repeat_call", route: `/v1/${product}`, channel: c.var.channel, success: true });
     return next();
   } catch (error) {
     const reason = message(error);
@@ -288,7 +288,7 @@ async function protectWithX402(product: PaidProduct, c: AppContext, next: Next):
   const middlewareResponse = await middleware(c, next);
   if (middlewareResponse instanceof Response) c.res = middlewareResponse;
   if (c.res.status === 402) {
-    recordEvent(c.env, {
+    await recordEvent(c.env, {
       event: getPaymentHeader(c.req.raw) ? "payment_required" : "payment_required",
       route,
       channel: c.var.channel,
@@ -338,7 +338,7 @@ async function executeFulfillment(input: {
     }
   }
 
-  recordEvent(env, {
+  await recordEvent(env, {
     event: input.paymentProtocol === "x402-v2-upfront" ? "payment_verified" : "partner_request",
     route,
     channel: input.channel,
@@ -346,7 +346,7 @@ async function executeFulfillment(input: {
     grossUsd: input.quote.grossPriceUsd,
     success: true,
   });
-  recordEvent(env, { event: "capture_started", route, channel: input.channel, partner: input.partner, success: true });
+  await recordEvent(env, { event: "capture_started", route, channel: input.channel, partner: input.partner, success: true });
 
   try {
     const artifacts = await capturePage({
@@ -391,7 +391,7 @@ async function executeFulfillment(input: {
     };
     await writeFulfillment(env, key, complete);
     const economics = artifacts.manifest.execution;
-    recordEvent(env, {
+    await recordEvent(env, {
       event: "capture_completed",
       route,
       channel: input.channel,
@@ -415,7 +415,7 @@ async function executeFulfillment(input: {
       error: reason,
       updated_at: new Date().toISOString(),
     });
-    recordEvent(env, {
+    await recordEvent(env, {
       event: "capture_failed",
       route,
       channel: input.channel,
@@ -476,7 +476,7 @@ app.get("/v1/quote", async (c) => {
   const product = c.req.query("product") === "preflight" ? "preflight" : "capture";
   const quote = await quoteProductWithOverride(c.env, product);
   const channel = referrerChannel(c.req.raw);
-  recordEvent(c.env, { event: "quote_issued", route: `/v1/${product}`, channel, grossUsd: quote.grossPriceUsd, success: true });
+  await recordEvent(c.env, { event: "quote_issued", route: `/v1/${product}`, channel, grossUsd: quote.grossPriceUsd, success: true });
   return c.json({
     ok: true,
     version: c.env.APP_VERSION,
@@ -602,7 +602,7 @@ app.get("/v1/proofs/:id", async (c) => {
   if (!object) return c.json({ error: "proof_not_found" }, 404);
   const manifest = await object.json<Record<string, unknown>>();
   const integrity = await verifyManifestIntegrity(manifest);
-  recordEvent(c.env, { event: "proof_opened", route: "/v1/proofs/:id", channel: referrerChannel(c.req.raw), success: integrity !== false });
+  await recordEvent(c.env, { event: "proof_opened", route: "/v1/proofs/:id", channel: referrerChannel(c.req.raw), success: integrity !== false });
   c.header("x-robots-tag", "noindex, nofollow, noarchive");
   return c.json(publicVerifier(manifest, integrity), integrity === false ? 422 : 200);
 });
@@ -616,7 +616,7 @@ app.get("/p/:id", async (c) => {
   const integrity = await verifyManifestIntegrity(manifest);
   const view = publicVerifier(manifest, integrity);
   c.header("x-robots-tag", "noindex, nofollow, noarchive");
-  recordEvent(c.env, { event: "proof_opened", route: "/p/:id", channel: referrerChannel(c.req.raw), success: integrity !== false });
+  await recordEvent(c.env, { event: "proof_opened", route: "/p/:id", channel: referrerChannel(c.req.raw), success: integrity !== false });
   return c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>DELTA proof ${escapeHtml(id)}</title><style>body{max-width:820px;margin:3rem auto;padding:0 1rem;font:16px/1.5 system-ui;color:#14243a}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#eef2f6;padding:1rem;border-radius:8px}</style></head><body><h1>DELTA observation proof</h1><p>Verifier status: <strong>${escapeHtml(view.integrity)}</strong>. Raw artifacts are private.</p><pre>${escapeHtml(JSON.stringify(view, null, 2))}</pre><p>DELTA proves what its capture system observed, not that the source statement is true.</p></body></html>`);
 });
 
@@ -626,16 +626,16 @@ app.get("/v1/demo", async (c) => {
   return app.fetch(new Request(`${origin(c.env)}/v1/proofs/${id}`, c.req.raw), c.env, c.executionCtx);
 });
 
-app.get("/", (c) => {
-  recordEvent(c.env, { event: "page_view", route: "/", channel: referrerChannel(c.req.raw), success: true });
+app.get("/", async (c) => {
+  await recordEvent(c.env, { event: "page_view", route: "/", channel: referrerChannel(c.req.raw), success: true });
   return c.html(landingHtml(origin(c.env), c.env.APP_VERSION));
 });
-app.get("/docs", (c) => {
-  recordEvent(c.env, { event: "page_view", route: "/docs", channel: referrerChannel(c.req.raw), success: true });
+app.get("/docs", async (c) => {
+  await recordEvent(c.env, { event: "page_view", route: "/docs", channel: referrerChannel(c.req.raw), success: true });
   return c.html(docsHtml(origin(c.env)));
 });
-app.get("/use-cases/agent-preflight", (c) => {
-  recordEvent(c.env, { event: "page_view", route: "/use-cases/agent-preflight", channel: referrerChannel(c.req.raw), success: true });
+app.get("/use-cases/agent-preflight", async (c) => {
+  await recordEvent(c.env, { event: "page_view", route: "/use-cases/agent-preflight", channel: referrerChannel(c.req.raw), success: true });
   return c.html(docsHtml(origin(c.env)));
 });
 

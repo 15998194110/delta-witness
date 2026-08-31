@@ -20,10 +20,11 @@
       "bucket_name": "delta-witness-proofs"
     }
   ],
-  "analytics_engine_datasets": [
+  "d1_databases": [
     {
-      "binding": "ANALYTICS",
-      "dataset": "delta_witness_events"
+      "binding": "ANALYTICS_DB",
+      "database_name": "delta-witness-analytics",
+      "database_id": "c9431b00-27c5-4609-9f3d-6af20cb162df"
     }
   ],
   "vars": {

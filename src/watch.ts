@@ -171,7 +171,7 @@ export async function registerWatch(input: {
     httpMetadata: { contentType: "application/json; charset=utf-8" },
   });
   if (!stored) return registerWatch(input);
-  recordEvent(input.env, {
+  await recordEvent(input.env, {
     event: "watch_registered",
     route: "/partner/watch",
     partner: record.partner,
@@ -224,7 +224,7 @@ async function sendWebhook(env: RuntimeEnv, record: WatchRecord, payload: Record
     signal: AbortSignal.timeout(10_000),
   });
   await response.body?.cancel();
-  recordEvent(env, {
+  await recordEvent(env, {
     event: "watch_webhook",
     route: "/watch/webhook",
     partner: record.partner,
@@ -319,7 +319,7 @@ async function processWatch(env: RuntimeEnv, key: string): Promise<void> {
   record.lease_until = undefined;
   record.last_result = payload;
   await env.PROOFS.put(key, JSON.stringify(record), { httpMetadata: { contentType: "application/json; charset=utf-8" } });
-  recordEvent(env, {
+  await recordEvent(env, {
     event: "watch_checked",
     route: "/watch/check",
     partner: record.partner,
@@ -335,7 +335,7 @@ async function processWatch(env: RuntimeEnv, key: string): Promise<void> {
   try {
     await sendWebhook(env, record, payload);
   } catch (error) {
-    recordEvent(env, {
+    await recordEvent(env, {
       event: "watch_webhook",
       route: "/watch/webhook",
       partner: record.partner,
