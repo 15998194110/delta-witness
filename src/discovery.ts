@@ -60,6 +60,15 @@ export function openApi(origin: string, version: string, capture: PricingQuote, 
     "413": error,
     "502": { description: "Settled observation failed; identical retry remains idempotent" },
   };
+  const paymentInfo = (quote: PricingQuote) => ({
+    price: {
+      mode: "fixed",
+      currency: "USD",
+      amount: quote.grossPriceUsd.toFixed(6).replace(/0+$/, "").replace(/\.$/, ""),
+    },
+    protocols: ["x402"],
+    network: "eip155:8453",
+  });
   return {
     openapi: "3.1.0",
     info: {
@@ -76,6 +85,7 @@ export function openApi(origin: string, version: string, capture: PricingQuote, 
           operationId: "capturePublicSource",
           summary: "Preserve what a public page says now",
           description: `x402 v2 upfront settlement. Current calculated price: $${capture.grossPriceUsd}.`,
+          "x-payment-info": paymentInfo(capture),
           requestBody: { required: true, content: { "application/json": { schema: CAPTURE_INPUT_SCHEMA } } },
           responses: paidResponses,
         },
@@ -85,6 +95,7 @@ export function openApi(origin: string, version: string, capture: PricingQuote, 
           operationId: "guardAutonomousAction",
           summary: "Observe a public source and compare it with a deterministic baseline",
           description: `Returns safe/changed/reason/diff plus a proof reference. Current calculated price: $${preflight.grossPriceUsd}.`,
+          "x-payment-info": paymentInfo(preflight),
           requestBody: { required: true, content: { "application/json": { schema: PREFLIGHT_INPUT_SCHEMA } } },
           responses: paidResponses,
         },
@@ -124,7 +135,7 @@ Read \`${origin}/openapi.json\` for exact schemas and \`${origin}/docs\` for cli
 }
 
 export function landingHtml(origin: string, version: string): string {
-  return `<!doctype html><html lang="en" itemscope itemtype="https://schema.org/SoftwareApplication"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DELTA Witness — Trust Layer for Autonomous Actions</title><meta name="description" content="Paid, machine-verifiable capture and preflight checks for public web sources."><meta itemprop="applicationCategory" content="DeveloperApplication"><meta itemprop="operatingSystem" content="Web API"><link rel="canonical" href="${origin}/"><style>body{max-width:760px;margin:4rem auto;padding:0 1.25rem;font:17px/1.55 system-ui;color:#132238}code,pre{background:#eef2f6;border-radius:6px}code{padding:.12rem .3rem}pre{padding:1rem;overflow:auto}a{color:#0759c7}.tag{color:#53657a}</style></head><body><p class="tag">DELTA Witness v${version}</p><h1 itemprop="name">Trust Layer for Autonomous Actions</h1><p itemprop="description">Observe a public source immediately before software takes a consequential action. DELTA returns timestamped content hashes and a public verifier while keeping raw capture artifacts private.</p><h2>Capture</h2><p>Preserve what a public page says now through <code>POST /v1/capture</code>.</p><h2>Guard / Preflight</h2><p>Compare a fresh observation with a prior DELTA proof, expected hashes, or explicit text rules through <code>POST /v1/preflight</code>. “Safe” means the supplied deterministic checks matched; it is not a truth claim.</p><pre>curl -i ${origin}/v1/preflight \\
+  return `<!doctype html><html lang="en" itemscope itemtype="https://schema.org/SoftwareApplication"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DELTA Witness — Trust Layer for Autonomous Actions</title><meta name="description" content="Paid, machine-verifiable capture and preflight checks for public web sources."><meta itemprop="applicationCategory" content="DeveloperApplication"><meta itemprop="operatingSystem" content="Web API"><link rel="canonical" href="${origin}/"><link rel="icon" href="/favicon.ico"><style>body{max-width:760px;margin:4rem auto;padding:0 1.25rem;font:17px/1.55 system-ui;color:#132238}code,pre{background:#eef2f6;border-radius:6px}code{padding:.12rem .3rem}pre{padding:1rem;overflow:auto}a{color:#0759c7}.tag{color:#53657a}</style></head><body><p class="tag">DELTA Witness v${version}</p><h1 itemprop="name">Trust Layer for Autonomous Actions</h1><p itemprop="description">Observe a public source immediately before software takes a consequential action. DELTA returns timestamped content hashes and a public verifier while keeping raw capture artifacts private.</p><h2>Capture</h2><p>Preserve what a public page says now through <code>POST /v1/capture</code>.</p><h2>Guard / Preflight</h2><p>Compare a fresh observation with a prior DELTA proof, expected hashes, or explicit text rules through <code>POST /v1/preflight</code>. “Safe” means the supplied deterministic checks matched; it is not a truth claim.</p><pre>curl -i ${origin}/v1/preflight \\
   -H "content-type: application/json" \\
   -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}'</pre><p>The HTTP 402 response contains x402 v2 payment requirements for Base mainnet USDC.</p><p><a href="/docs">API guide</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/.well-known/x402">Machine discovery</a> · <a href="/v1/demo">Example proof</a></p></body></html>`;
 }

@@ -29,12 +29,16 @@ try {
   }
 
   const mcpUrl = pathToFileURL(join(directory, "node_modules", "delta-witness-mcp", "dist", "index.js")).href;
-  const tools = await listMcpTools(mcpUrl);
+  const mcp = await inspectMcp(mcpUrl);
+  const tools = mcp.tools;
   const required = ["delta_quote", "delta_capture", "delta_preflight", "delta_verify_proof"];
   for (const name of required) {
     if (!tools.includes(name)) throw new Error(`Public MCP package is missing ${name}`);
   }
-  console.log(JSON.stringify({ ok: true, version, quote: quote.price, challenge: challenge.status, tools }));
+  if (mcp.quote.version !== version || mcp.quote.network !== "eip155:8453") {
+    throw new Error(`Unexpected public MCP quote: ${JSON.stringify(mcp.quote)}`);
+  }
+  console.log(JSON.stringify({ ok: true, version, quote: quote.price, challenge: challenge.status, tools, mcp_quote: mcp.quote.price }));
 } finally {
   await rm(directory, { recursive: true, force: true });
 }
@@ -47,7 +51,7 @@ async function run(command, args, cwd) {
   });
 }
 
-async function listMcpTools(moduleUrl) {
+async function inspectMcp(moduleUrl) {
   const code = `import(${JSON.stringify(moduleUrl)}).then(m => m.main()).catch(e => { console.error(e); process.exit(1); })`;
   const child = spawn(process.execPath, ["--input-type=module", "-e", code], { stdio: ["pipe", "pipe", "pipe"] });
   let buffer = "";
@@ -55,6 +59,7 @@ async function listMcpTools(moduleUrl) {
   let initialized = false;
   return await new Promise((resolve, reject) => {
     const timer = setTimeout(() => finish(new Error(`MCP smoke timed out: ${stderr}`)), 15_000);
+    let tools;
     const finish = (error, value) => {
       clearTimeout(timer);
       child.kill();
@@ -75,7 +80,15 @@ async function listMcpTools(moduleUrl) {
           child.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }) + "\n");
           child.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }) + "\n");
         } else if (message.id === 2 && message.result?.tools) {
-          return finish(undefined, message.result.tools.map((tool) => tool.name));
+          tools = message.result.tools.map((tool) => tool.name);
+          child.stdin.write(JSON.stringify({
+            jsonrpc: "2.0",
+            id: 3,
+            method: "tools/call",
+            params: { name: "delta_quote", arguments: { product: "preflight" } },
+          }) + "\n");
+        } else if (message.id === 3 && message.result?.structuredContent) {
+          return finish(undefined, { tools, quote: message.result.structuredContent });
         } else if (message.error) {
           return finish(new Error(`MCP error: ${JSON.stringify(message.error)}`));
         }

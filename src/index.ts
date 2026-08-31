@@ -628,6 +628,12 @@ app.get("/v1/demo", async (c) => {
   return app.fetch(new Request(`${origin(c.env)}/v1/proofs/${id}`, c.req.raw), c.env, c.executionCtx);
 });
 
+app.get("/favicon.ico", (c) => c.body(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#132238"/><path d="M16 18h20c9 0 16 7 16 16S45 50 36 50H16V18zm10 9v14h10a7 7 0 0 0 0-14H26z" fill="#63d3c7"/></svg>',
+  200,
+  { "content-type": "image/svg+xml", "cache-control": "public, max-age=86400" },
+));
+
 app.get("/", async (c) => {
   await recordEvent(c.env, { event: "page_view", route: "/", channel: referrerChannel(c.req.raw), success: true });
   return c.html(landingHtml(origin(c.env), c.env.APP_VERSION));

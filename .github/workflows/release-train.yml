@@ -73,6 +73,19 @@ jobs:
           curl --fail https://delta-witness-api.ruphussten.workers.dev/.well-known/x402
           curl --fail https://delta-witness-api.ruphussten.workers.dev/openapi.json
           curl --fail https://delta-witness-api.ruphussten.workers.dev/v1/proofs/56347db8-1aa5-447f-a0e4-3bb052d7aa89
+      - name: Verify Watch prepaid floor without registration
+        run: |
+          status="$(curl --silent --show-error --output /tmp/delta-watch-floor.json --write-out '%{http_code}' \
+            --request POST https://delta-witness-api.ruphussten.workers.dev/internal/partner/watch \
+            --header "x-delta-core-secret: $DELTA_PARTNER_GATEWAY_SECRET" \
+            --header 'x-delta-partner: internal-ci' \
+            --header 'x-delta-channel: internal-ci' \
+            --header 'x-delta-gross-usd: 0' \
+            --header "idempotency-key: internal-ci-watch-${GITHUB_RUN_ID}" \
+            --header 'content-type: application/json' \
+            --data '{"url":"https://example.com","checks":1,"interval_seconds":900}')"
+          test "$status" = "402"
+          grep --quiet '"watch_prepaid_amount_below_floor"' /tmp/delta-watch-floor.json
 
   partner-gateway:
     needs: [verify, core-cloudflare]
@@ -106,6 +119,31 @@ jobs:
             --data '{"url":"https://example.com","checks":0,"interval_seconds":900}')"
           test "$status" = "400"
           grep --quiet '"invalid_checks"' /tmp/delta-gateway-smoke.json
+
+  x402-discovery:
+    needs: core-cloudflare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v5
+        with: { node-version: "22" }
+      - name: Audit deployed x402 discovery
+        run: npx -y @agentcash/discovery@1.7.5 discover https://delta-witness-api.ruphussten.workers.dev --json > /tmp/delta-x402-discovery.json
+      - name: Require callable Capture and Guard resources
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const result = JSON.parse(fs.readFileSync('/tmp/delta-x402-discovery.json', 'utf8'));
+          if (!result.ok || result.selectedStage !== 'openapi') throw new Error(JSON.stringify(result));
+          for (const path of ['/v1/capture', '/v1/preflight']) {
+            const resource = result.resources.find((item) => item.method === 'POST' && item.path === path);
+            if (!resource || !resource.protocols?.includes('x402') || !resource.priceHint) {
+              throw new Error(`Missing callable x402 resource ${path}: ${JSON.stringify(result)}`);
+            }
+          }
+          const errors = result.warnings.filter((warning) => warning.severity === 'error');
+          if (errors.length) throw new Error(`x402 discovery errors: ${JSON.stringify(errors)}`);
+          console.log(JSON.stringify({ ok: true, resources: result.resources.length, warnings: result.warnings.length }));
+          NODE
 
   base-app:
     needs: verify
