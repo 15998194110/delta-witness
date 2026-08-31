@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: delta-production-release
@@ -118,6 +117,9 @@ jobs:
   npm-client:
     needs: verify
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     defaults: { run: { working-directory: packages/js-client } }
     steps:
       - uses: actions/checkout@v6
@@ -139,6 +141,9 @@ jobs:
   npm-mcp:
     needs: verify
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     defaults: { run: { working-directory: packages/mcp-server } }
     steps:
       - uses: actions/checkout@v6
@@ -158,6 +163,9 @@ jobs:
   pypi-client:
     needs: verify
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     defaults: { run: { working-directory: packages/python-client } }
     steps:
       - uses: actions/checkout@v6
@@ -169,6 +177,9 @@ jobs:
   mcp-registry:
     runs-on: ubuntu-latest
     needs: npm-mcp
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
