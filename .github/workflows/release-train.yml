@@ -197,6 +197,28 @@ jobs:
           ./mcp-publisher login github-oidc
           ./mcp-publisher publish server.json
 
+  public-npm-smoke:
+    needs: [npm-client, npm-mcp, mcp-registry]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with: { node-version: "24", package-manager-cache: false }
+      - run: node scripts/public-npm-smoke.mjs
+
+  public-pypi-smoke:
+    needs: pypi-client
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - name: Install and call the public PyPI client
+        run: |
+          VERSION=$(python -c "import json; print(json.load(open('package.json'))['version'])")
+          python -m pip install --no-cache-dir "delta-witness-ruphussten==$VERSION"
+          python scripts/public-pypi-smoke.py
+
   postman:
     needs: verify
     if: ${{ vars.POSTMAN_ENABLED == 'true' }}
