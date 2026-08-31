@@ -10,5 +10,5 @@
   "keywords": ["x402", "web-proof", "provenance", "ai-agent", "osint", "web-archive"],
   "license": "MIT",
   "publishConfig": { "access": "public", "provenance": true },
-  "repository": { "type": "git", "url": "https://github.com/OWNER/delta-witness" }
+  "repository": { "type": "git", "url": "https://github.com/15998194110/delta-witness" }
 }
