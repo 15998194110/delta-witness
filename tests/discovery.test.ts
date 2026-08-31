@@ -16,6 +16,7 @@ const quote: PricingQuote = {
 describe("OpenAPI paid discovery", () => {
   it("advertises Capture and Guard with x402scan-compatible fixed pricing", () => {
     const document = openApi("https://delta.example", "0.6.1", { ...quote, product: "capture" }, quote) as any;
+    expect(document.info.contact.email).toBe("ruphussten@163.com");
     for (const path of ["/v1/capture", "/v1/preflight"]) {
       expect(document.paths[path].post.responses["402"]).toBeDefined();
       expect(document.paths[path].post.security).toEqual([]);
