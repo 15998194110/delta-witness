@@ -27,6 +27,7 @@
 - Base app, robots, sitemap, CSP, live floor-aware quote, and public IndexNow ownership file return HTTP 200.
 - IndexNow returned HTTP 202 for both hosts, meaning the first submissions were received pending key verification.
 - PayAI Bazaar scan covered all 27,862 listed resources and found zero DELTA matches. No paid canary was used to force cataloging.
+- Resume drift check (2026-08-31): Core, gateway, Base App, existing proof, x402 metadata, and MCP metadata remained healthy; unpaid Guard remained HTTP 402 and a loopback target remained HTTP 400 before payment. R2 remained 5 objects / 22.6 kB. Current telemetry contains only discovery/quote/unpaid-proof-open activity (`page_view` 17, `quote_issued` 29, `qualified_request` 8, `payment_required` 8, `proof_opened` 14); no `payment_verified`, `capture_completed`, `watch_checked`, or paid `partner_request` events.
 
 ## Revenue and acquisition state
 
