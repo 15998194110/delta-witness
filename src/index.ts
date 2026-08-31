@@ -676,7 +676,7 @@ for (const alias of ["/.well-known/x402.json", "/x402.json", "/.well-known/x402/
 app.get("/.well-known/api-catalog", (c) => c.json({ name: "DELTA Witness", version: c.env.APP_VERSION, openapi: `${origin(c.env)}/openapi.json`, skill: `${origin(c.env)}/SKILL.md` }));
 app.get("/SKILL.md", (c) => c.text(skillMarkdown(origin(c.env)), 200, { "content-type": "text/markdown; charset=utf-8" }));
 app.get("/AGENTS.md", (c) => c.text("# DELTA Witness\n\nUse /v1/preflight before consequential actions that depend on public web content. DELTA proves observation/change, not truth.\n", 200, { "content-type": "text/markdown; charset=utf-8" }));
-app.get("/llms.txt", (c) => c.text(`# DELTA Witness\n\n> Trust Layer for Autonomous Actions\n\n- [API guide](${origin(c.env)}/docs)\n- [OpenAPI](${origin(c.env)}/openapi.json)\n- [Agent skill](${origin(c.env)}/SKILL.md)\n- [x402 discovery](${origin(c.env)}/.well-known/x402)\n- [Agent preflight](${origin(c.env)}/use-cases/agent-preflight)\n- [Terms before purchase](${origin(c.env)}/use-cases/terms-before-purchase)\n- [Source change monitoring](${origin(c.env)}/use-cases/source-change-monitoring)\n`));
+app.get("/llms.txt", (c) => c.text(`# DELTA Witness\n\n> Trust Layer for Autonomous Actions\n\n- [API guide](${origin(c.env)}/docs)\n- [OpenAPI](${origin(c.env)}/openapi.json)\n- [Agent skill](${origin(c.env)}/SKILL.md)\n- [x402 discovery](${origin(c.env)}/.well-known/x402)\n- [Agent preflight](${origin(c.env)}/use-cases/agent-preflight)\n- [Terms before purchase](${origin(c.env)}/use-cases/terms-before-purchase)\n- [Source change monitoring](${origin(c.env)}/use-cases/source-change-monitoring)\n- [Base app](https://delta-witness-app.pages.dev/)\n`));
 app.get("/llms-full.txt", (c) => app.fetch(new Request(`${origin(c.env)}/llms.txt`, c.req.raw), c.env, c.executionCtx));
 app.get("/postman.json", (c) => c.json(postmanCollection(origin(c.env))));
 app.get("/distribution.json", (c) => c.json({
@@ -694,11 +694,19 @@ app.get("/distribution.json", (c) => c.json({
     mcp: { identifier: "delta-witness-mcp", version: c.env.APP_VERSION, command: `npx -y delta-witness-mcp@${c.env.APP_VERSION}` },
     pypi: { identifier: "delta-witness-ruphussten", version: c.env.APP_VERSION },
   },
+  channels: {
+    base_app: {
+      url: "https://delta-witness-app.pages.dev/",
+      manifest: "https://delta-witness-app.pages.dev/.well-known/farcaster.json",
+      billing: "x402-v2-upfront",
+    },
+  },
   discovery: {
     openapi: `${origin(c.env)}/openapi.json`,
     x402: `${origin(c.env)}/.well-known/x402`,
     skill: `${origin(c.env)}/SKILL.md`,
     postman: `${origin(c.env)}/postman.json`,
+    mcp_registry: "https://registry.modelcontextprotocol.io/",
   },
 }));
 app.get("/.well-known/mcp/server.json", (c) => c.json({
