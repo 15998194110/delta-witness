@@ -194,8 +194,12 @@ jobs:
           URL="https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${PLATFORM}.tar.gz"
           curl --fail --location --retry 5 --retry-all-errors --retry-delay 3 "$URL" | tar xz mcp-publisher
           ./mcp-publisher validate server.json
-          ./mcp-publisher login github-oidc
-          ./mcp-publisher publish server.json
+          if node scripts/check-mcp-registry.mjs server.json; then
+            echo "MCP Registry version already active; skipping publish"
+          else
+            ./mcp-publisher login github-oidc
+            ./mcp-publisher publish server.json
+          fi
 
   public-npm-smoke:
     needs: [npm-client, npm-mcp, mcp-registry]
