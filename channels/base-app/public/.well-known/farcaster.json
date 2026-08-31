@@ -1,0 +1,31 @@
+{
+  "accountAssociation": {
+    "header": "",
+    "payload": "",
+    "signature": ""
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "DELTA Witness",
+    "iconUrl": "https://delta-witness-app.pages.dev/icon.png",
+    "homeUrl": "https://delta-witness-app.pages.dev/",
+    "imageUrl": "https://delta-witness-app.pages.dev/hero.png",
+    "buttonTitle": "Open DELTA",
+    "splashImageUrl": "https://delta-witness-app.pages.dev/splash.png",
+    "splashBackgroundColor": "#08111f",
+    "subtitle": "Verify before acting",
+    "description": "Paid, machine-verifiable capture and preflight checks for public web sources.",
+    "screenshotUrls": [
+      "https://delta-witness-app.pages.dev/screenshot.png"
+    ],
+    "primaryCategory": "developer-tools",
+    "tags": ["proof", "preflight", "x402", "base"],
+    "heroImageUrl": "https://delta-witness-app.pages.dev/hero.png",
+    "tagline": "Verify before you act",
+    "ogTitle": "DELTA Witness",
+    "ogDescription": "Verify a public source before an autonomous action.",
+    "ogImageUrl": "https://delta-witness-app.pages.dev/hero.png",
+    "requiredChains": ["eip155:8453"],
+    "requiredCapabilities": ["wallet.getEthereumProvider"]
+  }
+}

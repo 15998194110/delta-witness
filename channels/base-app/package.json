@@ -8,7 +8,9 @@
     "build": "tsc --noEmit -p tsconfig.app.json && vite build",
     "check": "tsc --noEmit -p tsconfig.app.json --pretty false",
     "test": "vitest run",
-    "verify": "npm run check && npm test && npm run build",
+    "verify": "npm run validate-manifest && npm run check && npm test && npm run build",
+    "generate-assets": "node ../../scripts/generate-base-assets.mjs",
+    "validate-manifest": "node ../../scripts/validate-base-manifest.mjs",
     "deploy": "wrangler pages deploy dist --project-name delta-witness-app"
   },
   "dependencies": {

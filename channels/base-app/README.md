@@ -17,3 +17,7 @@ npm run verify
 ```
 
 The production Pages project is `delta-witness-app`. Register its deployed URL in Base.dev after the one-time account/developer-agreement bootstrap.
+
+## Mini App manifest
+
+The static Farcaster/Base-compatible manifest is served at `/.well-known/farcaster.json` and is checked by `npm run validate-manifest`. Its `accountAssociation` is intentionally blank until the owner signs the exact production domain. After the Pages deploy is live, use the official [Farcaster Mini App Manifest Tool](https://farcaster.xyz/~/developers/mini-apps/manifest), enter `delta-witness-app.pages.dev`, sign with the Farcaster custody wallet, paste the returned `accountAssociation` object into the manifest, and rerun the release train. Never put a seed phrase or private key in the repository or chat.
