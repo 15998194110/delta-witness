@@ -1,4 +1,4 @@
-# DELTA Witness v0.4 — Omnidistribution Matrix
+# DELTA Witness v0.6 — Omnidistribution Matrix
 
 Priority is fully-automated or marketplace-native acquisition. Human-maintained social posting is intentionally secondary.
 
@@ -14,7 +14,7 @@ Priority is fully-automated or marketplace-native acquisition. Human-maintained 
 5. Official MCP Registry — publish an adapter package to npm then register metadata.
 6. Smithery + Glama — publish/claim the same MCP adapter for additional agent distribution.
 7. Postman API Network — import /postman.json and publish a public workspace.
-8. Base Dashboard / Base App mini app — register a human checkout wrapper; Base provides app discovery and builder attribution.
+8. Base.dev — the deployed standard web app provides Paste URL → quote → injected-wallet x402 payment → proof; Base.dev registration and builder attribution require one-time account/developer approval.
 9. Apify Store — publish DELTA capture as a pay-per-event Actor; after KYC, eligible Actors can be discovered and paid by agents via x402/Skyfire.
 10. RapidAPI — list a card-payment/API-key wrapper for conventional developers; use marketplace billing rather than x402.
 

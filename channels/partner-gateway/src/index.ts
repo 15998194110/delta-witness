@@ -11,6 +11,49 @@ type Gateway = { Bindings: GatewayEnv };
 type GatewayContext = Context<Gateway>;
 const app = new Hono<Gateway>();
 
+function gatewayOpenApi(origin: string, version: string): Record<string, unknown> {
+  const authenticatedResponses = {
+    "400": { description: "Invalid request or idempotency identity" },
+    "401": { description: "Marketplace proxy was not authenticated" },
+    "402": { description: "Partner net price or prepaid amount is below DELTA's live margin floor" },
+    "429": { description: "Partner or end-user rate limit exceeded" },
+    "502": { description: "Observation failed; retry with the same idempotency identity" },
+  };
+  return {
+    openapi: "3.1.0",
+    info: {
+      title: "DELTA Witness Partner Gateway",
+      version,
+      description: "Authenticated reseller rail for DELTA Capture, Guard, and finite prepaid Watch. Marketplace billing must complete before calling this gateway.",
+    },
+    servers: [{ url: origin }],
+    security: [{ PartnerProxySecret: [] }],
+    components: {
+      securitySchemes: {
+        PartnerProxySecret: {
+          type: "apiKey",
+          in: "header",
+          name: "x-delta-partner-secret",
+          description: "Provider-managed secret. Never expose it to marketplace end users.",
+        },
+      },
+    },
+    paths: {
+      "/health": { get: { security: [], responses: { "200": { description: "Healthy" } } } },
+      "/capture": { post: { operationId: "partnerCapture", responses: { "200": { description: "Proof delivered" }, ...authenticatedResponses } } },
+      "/preflight": { post: { operationId: "partnerGuard", responses: { "200": { description: "Guard decision and proof delivered" }, ...authenticatedResponses } } },
+      "/watch": { post: { operationId: "partnerRegisterWatch", responses: { "201": { description: "Finite prepaid watch registered" }, ...authenticatedResponses } } },
+      "/watch/{watch_id}": {
+        get: {
+          operationId: "partnerGetWatch",
+          parameters: [{ name: "watch_id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+          responses: { "200": { description: "Watch quota and latest state" }, "401": authenticatedResponses["401"], "404": { description: "Watch not found" } },
+        },
+      },
+    },
+  };
+}
+
 function exactBuffer(bytes: Uint8Array): ArrayBuffer {
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
@@ -69,7 +112,10 @@ async function authorized(c: GatewayContext, next: Next): Promise<Response | voi
   if (!c.env.PARTNER_SECRET || !c.env.CORE_SERVICE_SECRET) return c.json({ error: "gateway_not_configured" }, 503);
   const presented = c.req.header("x-delta-partner-secret") ?? c.req.header("x-rapidapi-proxy-secret") ?? "";
   if (!(await equalSecret(presented, c.env.PARTNER_SECRET))) return c.json({ error: "unauthorized_partner" }, 401);
-  const rateIdentity = c.req.header("x-rapidapi-user") ?? c.req.header("cf-connecting-ip") ?? "anonymous";
+  const rateIdentity = c.req.header("x-rapidapi-user")
+    ?? c.req.header("x-delta-partner-user")
+    ?? c.req.header("cf-connecting-ip")
+    ?? "anonymous";
   const outcome = await c.env.PARTNER_RATE_LIMITER.limit({ key: await sha256(`${c.env.PARTNER_ID}\n${rateIdentity}`) });
   if (!outcome.success) {
     c.header("retry-after", "60");
@@ -84,6 +130,8 @@ app.use("/watch", authorized);
 app.use("/watch/*", authorized);
 
 app.get("/health", (c) => c.json({ ok: true, version: c.env.APP_VERSION, channel: "partner-gateway", core: "service-binding" }));
+app.get("/openapi.json", (c) => c.json(gatewayOpenApi(new URL(c.req.url).origin, c.env.APP_VERSION)));
+app.get("/robots.txt", (c) => c.text("User-agent: *\nDisallow: /\n"));
 
 async function forward(product: "capture" | "preflight" | "watch", c: GatewayContext): Promise<Response> {
   try {

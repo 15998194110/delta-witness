@@ -7,9 +7,11 @@ dist/
 build/
 *.tgz
 *.log
+*.tsbuildinfo
 server.json
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
-
+channels/base-app/vite.config.js
+channels/base-app/vite.config.d.ts

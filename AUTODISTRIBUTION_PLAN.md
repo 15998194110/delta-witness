@@ -1,4 +1,4 @@
-# DELTA v0.5 — Autonomous Distribution Architecture
+# DELTA v0.6 — Autonomous Distribution Architecture
 
 ## Principle
 

@@ -1,4 +1,4 @@
-# DELTA Acquisition Engine v0.4
+# DELTA Acquisition Engine v0.6
 
 North star: first stranger payment, then repeatable CAC ≈ 0 channels.
 
@@ -8,7 +8,7 @@ Formula:
 
 The system expands Discovery Surface without adding sales labor.
 
-## Runtime acquisition added in v0.4
+## Runtime acquisition in v0.6
 
 - `/SKILL.md` — agent-consumable purchase instructions.
 - `/distribution.json` — machine-readable distribution manifest.
@@ -19,4 +19,4 @@ The system expands Discovery Surface without adding sales labor.
 
 ## Bootstrap rule
 
-Agentic Market/Bazaar discovery may require a successful verify+settle before cataloging. A project-owned $0.01 canary transaction is allowed as infrastructure bootstrap but must never be counted as stranger revenue.
+Agentic Market/Bazaar discovery requires a successful settle before cataloging. One explicitly labeled canary may be used only if that bootstrap remains necessary after every free publication surface is live; it must never be counted as stranger revenue.

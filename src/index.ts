@@ -57,6 +57,8 @@ import {
   openApi,
   postmanCollection,
   skillMarkdown,
+  USE_CASE_SLUGS,
+  useCaseHtml,
 } from "./discovery";
 import { getWatch, parseWatchRegistration, registerWatch, runDueWatches } from "./watch";
 
@@ -634,10 +636,13 @@ app.get("/docs", async (c) => {
   await recordEvent(c.env, { event: "page_view", route: "/docs", channel: referrerChannel(c.req.raw), success: true });
   return c.html(docsHtml(origin(c.env)));
 });
-app.get("/use-cases/agent-preflight", async (c) => {
-  await recordEvent(c.env, { event: "page_view", route: "/use-cases/agent-preflight", channel: referrerChannel(c.req.raw), success: true });
-  return c.html(docsHtml(origin(c.env)));
-});
+for (const slug of USE_CASE_SLUGS) {
+  app.get("/use-cases/" + slug, async (c) => {
+    const route = "/use-cases/" + slug;
+    await recordEvent(c.env, { event: "page_view", route, channel: referrerChannel(c.req.raw), success: true });
+    return c.html(useCaseHtml(origin(c.env), slug));
+  });
+}
 
 app.get("/openapi.json", async (c) => c.json(openApi(
   origin(c.env),
@@ -665,7 +670,8 @@ for (const alias of ["/.well-known/x402.json", "/x402.json", "/.well-known/x402/
 app.get("/.well-known/api-catalog", (c) => c.json({ name: "DELTA Witness", version: c.env.APP_VERSION, openapi: `${origin(c.env)}/openapi.json`, skill: `${origin(c.env)}/SKILL.md` }));
 app.get("/SKILL.md", (c) => c.text(skillMarkdown(origin(c.env)), 200, { "content-type": "text/markdown; charset=utf-8" }));
 app.get("/AGENTS.md", (c) => c.text("# DELTA Witness\n\nUse /v1/preflight before consequential actions that depend on public web content. DELTA proves observation/change, not truth.\n", 200, { "content-type": "text/markdown; charset=utf-8" }));
-app.get("/llms.txt", (c) => c.text(`# DELTA Witness\n\n> Trust Layer for Autonomous Actions\n\n- [API guide](${origin(c.env)}/docs)\n- [OpenAPI](${origin(c.env)}/openapi.json)\n- [Agent skill](${origin(c.env)}/SKILL.md)\n- [x402 discovery](${origin(c.env)}/.well-known/x402)\n`));
+app.get("/llms.txt", (c) => c.text(`# DELTA Witness\n\n> Trust Layer for Autonomous Actions\n\n- [API guide](${origin(c.env)}/docs)\n- [OpenAPI](${origin(c.env)}/openapi.json)\n- [Agent skill](${origin(c.env)}/SKILL.md)\n- [x402 discovery](${origin(c.env)}/.well-known/x402)\n- [Agent preflight](${origin(c.env)}/use-cases/agent-preflight)\n- [Terms before purchase](${origin(c.env)}/use-cases/terms-before-purchase)\n- [Source change monitoring](${origin(c.env)}/use-cases/source-change-monitoring)\n`));
+app.get("/llms-full.txt", (c) => app.fetch(new Request(`${origin(c.env)}/llms.txt`, c.req.raw), c.env, c.executionCtx));
 app.get("/postman.json", (c) => c.json(postmanCollection(origin(c.env))));
 app.get("/distribution.json", (c) => c.json({
   name: "DELTA Witness",
@@ -696,8 +702,11 @@ app.get("/.well-known/mcp/server.json", (c) => c.json({
   packages: [{ registryType: "npm", identifier: "delta-witness-mcp", version: c.env.APP_VERSION, transport: { type: "stdio" } }],
 }));
 app.get("/robots.txt", (c) => c.text(`User-agent: *\nAllow: /\nDisallow: /p/\nDisallow: /v1/proofs/\nDisallow: /internal/\nSitemap: ${origin(c.env)}/sitemap.xml\n`));
-app.get("/sitemap.xml", (c) => c.text(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${origin(c.env)}/</loc></url><url><loc>${origin(c.env)}/docs</loc></url><url><loc>${origin(c.env)}/use-cases/agent-preflight</loc></url><url><loc>${origin(c.env)}/distribution.json</loc></url></urlset>`, 200, { "content-type": "application/xml; charset=utf-8" }));
-app.get("/:key.txt", (c, next) => c.env.INDEXNOW_KEY && c.req.param("key") === c.env.INDEXNOW_KEY ? c.text(c.env.INDEXNOW_KEY) : next());
+app.get("/sitemap.xml", (c) => c.text(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${origin(c.env)}/</loc></url><url><loc>${origin(c.env)}/docs</loc></url>${USE_CASE_SLUGS.map((slug) => `<url><loc>${origin(c.env)}/use-cases/${slug}</loc></url>`).join("")}<url><loc>${origin(c.env)}/distribution.json</loc></url></urlset>`, 200, { "content-type": "application/xml; charset=utf-8" }));
+app.get("*", (c, next) => {
+  const requestedKey = c.req.path.endsWith(".txt") ? c.req.path.slice(1, -".txt".length) : "";
+  return c.env.INDEXNOW_KEY && requestedKey === c.env.INDEXNOW_KEY ? c.text(c.env.INDEXNOW_KEY) : next();
+});
 
 app.post("/internal/indexnow", async (c) => {
   if (!c.env.INDEXNOW_ADMIN_SECRET) return c.json({ error: "indexnow_admin_not_configured" }, 503);
@@ -728,7 +737,7 @@ async function submitIndexNow(env: RuntimeEnv): Promise<Response> {
       host: new URL(base).hostname,
       key: env.INDEXNOW_KEY,
       keyLocation: `${base}/${env.INDEXNOW_KEY}.txt`,
-      urlList: [`${base}/`, `${base}/docs`, `${base}/use-cases/agent-preflight`, `${base}/openapi.json`, `${base}/SKILL.md`],
+      urlList: [`${base}/`, `${base}/docs`, ...USE_CASE_SLUGS.map((slug) => `${base}/use-cases/${slug}`), `${base}/openapi.json`, `${base}/SKILL.md`],
     }),
   });
 }

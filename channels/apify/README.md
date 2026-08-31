@@ -1,6 +1,6 @@
 # DELTA on Apify
 
-This Actor is deliberately thin: Apify handles discovery and marketplace billing; the Actor forwards Capture or Guard to the authenticated DELTA Partner Gateway and charges one `proof-created` pay-per-event only after DELTA has made the result available. It verifies `chargedCount` before returning the result.
+This Actor is deliberately thin: Apify handles discovery and marketplace billing; the Actor forwards Capture or Guard to the authenticated DELTA Partner Gateway and charges one `proof-created` pay-per-event only after DELTA has made the result available. Before invoking DELTA it verifies that PPE is enabled, the event price is at least `DELTA_MIN_GROSS_EVENT_USD` (default `$0.04`), and the run budget can fund one event. It then verifies `chargedCount` before returning the result.
 
 One-time platform setup:
 

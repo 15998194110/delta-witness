@@ -10,6 +10,7 @@ jobs:
     env:
       DELTA_INDEXNOW_ADMIN_SECRET: ${{ secrets.DELTA_INDEXNOW_ADMIN_SECRET }}
     steps:
+      - uses: actions/checkout@v6
       - name: Verify machine discovery surfaces
         run: |
           set -e
@@ -23,6 +24,8 @@ jobs:
           curl -fsS "$BASE/distribution.json" >/dev/null
           curl -fsS "$BASE/.well-known/mcp/server.json" >/dev/null
           curl -fsS "$BASE/v1/proofs/56347db8-1aa5-447f-a0e4-3bb052d7aa89" >/dev/null
+          curl -fsS https://delta-witness-app.pages.dev/ >/dev/null
+          curl -fsS https://delta-witness-app.pages.dev/delta-witness-2026-8f0c5a3d6e7b91ac.txt >/dev/null
           STATUS=$(curl -sS -o /tmp/delta-preflight.json -D /tmp/delta-preflight.headers -w '%{http_code}' -X POST "$BASE/v1/preflight" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
           test "$STATUS" = "402"
           grep -qi '^payment-required:' /tmp/delta-preflight.headers
@@ -30,3 +33,6 @@ jobs:
         run: |
           test -n "$DELTA_INDEXNOW_ADMIN_SECRET"
           curl -fsS -X POST https://delta-witness-api.ruphussten.workers.dev/internal/indexnow -H "authorization: Bearer $DELTA_INDEXNOW_ADMIN_SECRET"
+          node scripts/indexnow-app.mjs
+      - name: Check PayAI Bazaar visibility
+        run: node scripts/check-bazaar.mjs

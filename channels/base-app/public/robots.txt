@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://delta-witness-app.pages.dev/sitemap.xml

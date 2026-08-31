@@ -37,6 +37,15 @@ function runtime(browser: { quickAction: ReturnType<typeof vi.fn> }): RuntimeEnv
 afterEach(() => vi.unstubAllGlobals());
 
 describe("payment hard gate", () => {
+  it("serves only the configured IndexNow ownership key", async () => {
+    const env = runtime({ quickAction: vi.fn() });
+    const valid = await app.request("https://delta.test/test-key.txt", {}, env);
+    const invalid = await app.request("https://delta.test/not-the-key.txt", {}, env);
+    expect(valid.status).toBe(200);
+    expect(await valid.text()).toBe("test-key");
+    expect(invalid.status).toBe(404);
+  });
+
   it("returns 402 without ever invoking Browser Run", async () => {
     const browser = { quickAction: vi.fn() };
     vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {

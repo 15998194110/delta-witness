@@ -11,6 +11,19 @@ try {
   const secret = process.env.DELTA_PARTNER_SECRET;
   if (!gateway || !secret) throw new Error("Actor is not configured");
 
+  if (Actor.isAtHome()) {
+    const charging = Actor.getChargingManager();
+    const pricing = charging.getPricingInfo();
+    const eventPrice = Number(pricing.perEventPrices["proof-created"]);
+    const minimumGross = Number(process.env.DELTA_MIN_GROSS_EVENT_USD || "0.04");
+    if (!pricing.isPayPerEvent || !Number.isFinite(eventPrice) || eventPrice < minimumGross) {
+      throw new Error(`proof-created PPE price must be configured at or above $${minimumGross.toFixed(2)}`);
+    }
+    if (charging.calculateMaxEventChargeCountWithinLimit("proof-created") < 1) {
+      throw new Error("Run spending limit does not authorize one proof-created event");
+    }
+  }
+
   const runId = Actor.getEnv().actorRunId ?? crypto.randomUUID();
   const payload = product === "preflight"
     ? { url, expected: input.expected, prior_proof_id: input.prior_proof_id, external_request_id: runId }
@@ -29,7 +42,7 @@ try {
   const result = await response.json();
   if (!response.ok) throw new Error(`DELTA gateway error ${response.status}: ${JSON.stringify(result)}`);
 
-  const charge = await Actor.charge({ eventName: "proof-created", count: 1 });
+  const charge = await Actor.charge({ eventName: "proof-created" });
   if (charge.chargedCount !== 1) throw new Error("Apify spending limit did not authorize the result charge");
   await Actor.pushData(result);
   console.log(JSON.stringify(result, null, 2));

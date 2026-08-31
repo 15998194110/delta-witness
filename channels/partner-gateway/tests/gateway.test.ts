@@ -16,6 +16,15 @@ function env(coreFetch: (request: Request) => Promise<Response> = vi.fn(async ()
 }
 
 describe("thin partner gateway", () => {
+  it("publishes a machine-readable contract without exposing a secret", async () => {
+    const response = await app.request("https://gateway.test/openapi.json", {}, env());
+    expect(response.status).toBe(200);
+    const body = await response.json<Record<string, any>>();
+    expect(body.info.version).toBe("0.6.0");
+    expect(body.paths["/watch"]).toBeTruthy();
+    expect(JSON.stringify(body)).not.toContain('"partner-secret"');
+  });
+
   it("rejects unauthenticated requests without calling core", async () => {
     const core = vi.fn();
     const response = await app.request("https://gateway.test/capture", {
@@ -65,5 +74,23 @@ describe("thin partner gateway", () => {
       body: JSON.stringify({ url: "https://example.com" }),
     }, runtime);
     expect(response.status).toBe(429);
+  });
+
+  it("uses the downstream partner user for the rate-limit identity", async () => {
+    const runtime = env();
+    const limiter = vi.fn(async (_input: { key: string }) => ({ success: true }));
+    runtime.PARTNER_RATE_LIMITER = { limit: limiter } as unknown as RateLimit;
+    await app.request("https://gateway.test/capture", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-delta-partner-secret": "partner-secret",
+        "x-delta-partner-user": "buyer-42",
+        "idempotency-key": "request-123",
+      },
+      body: JSON.stringify({ url: "https://example.com" }),
+    }, runtime);
+    expect(limiter).toHaveBeenCalledOnce();
+    expect(limiter.mock.calls[0]?.[0].key).toMatch(/^[0-9a-f]{64}$/);
   });
 });

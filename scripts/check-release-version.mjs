@@ -5,6 +5,7 @@ const expected = root.version;
 const jsonPackages = [
   "channels/partner-gateway/package.json",
   "channels/apify/package.json",
+  "channels/base-app/package.json",
   "packages/js-client/package.json",
   "packages/mcp-server/package.json",
 ];

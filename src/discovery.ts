@@ -140,6 +140,51 @@ export function docsHtml(origin: string): string {
 }</pre><p>Use the returned <code>safe</code>, <code>changed</code>, <code>reason</code>, and <code>diff</code> fields as a deterministic gate. A proof reference is always returned for a completed paid observation.</p><h2>Safety and privacy</h2><p>Only public HTTP(S) targets on ports 80/443 are accepted. Local, private, link-local, metadata, credential-bearing, unsafe redirect, and private-DNS targets are rejected. Raw HTML, Markdown, and screenshots remain private; verifier routes publish metadata and hashes.</p><h2>Recurring Watch</h2><p>Watch is available through authenticated marketplace/reseller gateways as prepaid finite quota. Checks run no more often than every 15 minutes, pause when the prepaid unit price falls below DELTA's live cost floor, and can deliver HMAC-signed webhooks.</p><p><a href="${origin}/openapi.json">OpenAPI 3.1</a> · <a href="${origin}/SKILL.md">Agent skill</a> · <a href="${origin}/postman.json">Postman collection</a> · <a href="${origin}/distribution.json">Distribution manifest</a></p></body></html>`;
 }
 
+export const USE_CASE_SLUGS = [
+  "agent-preflight",
+  "terms-before-purchase",
+  "source-change-monitoring",
+] as const;
+
+type UseCaseSlug = typeof USE_CASE_SLUGS[number];
+
+const USE_CASE_COPY: Record<UseCaseSlug, { title: string; description: string; problem: string; workflow: string; boundary: string }> = {
+  "agent-preflight": {
+    title: "Preflight public inputs before an autonomous action",
+    description: "Guard an agent workflow by observing the source URL immediately before buying, publishing, deploying, or submitting.",
+    problem: "An agent may plan from cached search results or an earlier page state. If price, eligibility, instructions, or terms change before execution, the action can be validly formed but based on stale input.",
+    workflow: "Call DELTA Guard with the public URL and deterministic expectations. Continue only when safe is true; otherwise inspect changed, reason, diff, and the proof reference. Retries of the same settled request are idempotent.",
+    boundary: "DELTA certifies what its capture system observed and whether supplied rules matched. It does not certify that the publisher is honest or that a statement is legally correct.",
+  },
+  "terms-before-purchase": {
+    title: "Record public terms immediately before a purchase",
+    description: "Capture price, refund, cancellation, or service terms before software authorizes a consequential purchase.",
+    problem: "Checkout automation often depends on public terms that can change independently of the buyer's workflow. A later screenshot cannot establish which page state the automation actually evaluated.",
+    workflow: "Use Guard with explicit required and forbidden text, or compare against a prior DELTA proof. The returned timestamp, hashes, observed status, and deterministic diff can travel with the purchasing system's audit record.",
+    boundary: "A matching observation is not legal advice, merchant endorsement, or proof that off-page promises will be honored. It is a bounded record of the public source DELTA observed.",
+  },
+  "source-change-monitoring": {
+    title: "Detect and certify changes to a public source",
+    description: "Use finite prepaid Watch checks to observe a public policy, specification, price page, or machine-readable source on a controlled schedule.",
+    problem: "Unbounded free polling creates open-ended cost and weak incentives. Teams still need a reliable signal when a source that controls downstream actions changes.",
+    workflow: "A billing platform or reseller prepays a finite quota through the authenticated partner gateway. DELTA checks no more often than every 15 minutes, sends HMAC-signed webhooks, decrements quota, and pauses when the prepaid unit price falls below the live cost floor.",
+    boundary: "Watch reports observed change, not real-world truth. Raw HTML, Markdown, and screenshots remain private; public verifier pages expose metadata and hashes only.",
+  },
+};
+
+export function useCaseHtml(origin: string, slug: UseCaseSlug): string {
+  const copy = USE_CASE_COPY[slug];
+  return '<!doctype html><html lang="en" itemscope itemtype="https://schema.org/TechArticle"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'
+    + copy.title + ' — DELTA Witness</title><meta name="description" content="' + copy.description
+    + '"><link rel="canonical" href="' + origin + '/use-cases/' + slug
+    + '"><style>body{max-width:820px;margin:3rem auto;padding:0 1.25rem;font:16px/1.6 system-ui;color:#14243a}code,pre{background:#eef2f6;border-radius:6px}code{padding:.12rem .3rem}pre{padding:1rem;overflow:auto}a{color:#0759c7}.eyebrow{color:#53657a}</style></head><body><p class="eyebrow">DELTA Witness · Trust Layer for Autonomous Actions</p><h1 itemprop="headline">'
+    + copy.title + '</h1><p itemprop="description">' + copy.description
+    + '</p><h2>The failure mode</h2><p>' + copy.problem + '</p><h2>Machine workflow</h2><p>' + copy.workflow
+    + '</p><pre>POST ' + origin + '/v1/preflight&#10;content-type: application/json&#10;&#10;{"url":"https://example.com/terms","expected":{"contains":["Refund window: 30 days"]}}</pre><h2>Evidence boundary</h2><p>'
+    + copy.boundary + '</p><p><a href="' + origin + '/docs">Read the API guide</a> · <a href="' + origin
+    + '/openapi.json">OpenAPI 3.1</a> · <a href="' + origin + '/v1/quote?product=preflight">Live Guard quote</a></p></body></html>';
+}
+
 export function postmanCollection(origin: string): Record<string, unknown> {
   return {
     info: {
