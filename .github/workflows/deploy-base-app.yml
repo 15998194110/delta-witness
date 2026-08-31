@@ -1,0 +1,49 @@
+name: DELTA Base App Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["master"]
+    paths:
+      - "channels/base-app/**"
+      - ".github/workflows/deploy-base-app.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: delta-base-app-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    defaults:
+      run:
+        working-directory: channels/base-app
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Require Cloudflare credentials
+        run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - run: npm ci
+      - run: npm run build
+      - name: Deploy Cloudflare Pages
+        run: npx wrangler pages deploy dist --project-name delta-witness-app --branch master
+      - name: Verify manifest account association
+        run: |
+          curl --fail --retry 8 --retry-delay 5 https://delta-witness-app.pages.dev/.well-known/farcaster.json -o /tmp/farcaster.json
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const m = JSON.parse(fs.readFileSync('/tmp/farcaster.json', 'utf8'));
+          const a = m.accountAssociation || {};
+          if (!a.header || !a.payload || !a.signature) {
+            throw new Error(`Account association still empty: ${JSON.stringify(a)}`);
+          }
+          console.log('Farcaster account association deployed.');
+          NODE
