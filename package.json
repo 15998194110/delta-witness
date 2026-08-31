@@ -11,6 +11,7 @@
     "build": "wrangler deploy --dry-run --outdir dist",
     "test": "vitest run",
     "funnel": "node scripts/query-funnel.mjs",
+    "bazaar": "node scripts/check-bazaar.mjs",
     "verify": "npm run types && npm run check && npm test && npm run build"
   },
   "dependencies": {

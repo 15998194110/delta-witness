@@ -28,7 +28,10 @@ Never place the treasury private key in Worker, CI, source, or chat.
 ```powershell
 npm ci
 npm run verify
+npm run bazaar
 ```
+
+`npm run bazaar` performs a read-only scan of the public Bazaar catalog and reports whether DELTA's x402 resource is indexed. It never submits a payment or changes catalog state.
 
 The partner gateway, SDKs, MCP server, and Apify adapter have their own verification commands. The tagged release workflow verifies every artifact, applies D1 migrations, records the current Worker version, deploys core and gateway, then publishes authorized registries.
 
