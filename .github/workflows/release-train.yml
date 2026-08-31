@@ -127,7 +127,14 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
       - run: node ../../scripts/prepare-npm-publish.mjs
-      - run: npm publish --access public
+      - name: Publish JS client when version is new
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "delta-witness-ruphussten@$VERSION" version >/dev/null 2>&1; then
+            echo "delta-witness-ruphussten@$VERSION already published; skipping"
+          else
+            npm publish --access public
+          fi
 
   npm-mcp:
     needs: verify
@@ -139,7 +146,14 @@ jobs:
         with: { node-version: "24", registry-url: "https://registry.npmjs.org", package-manager-cache: false }
       - run: npm ci
       - run: node ../../scripts/prepare-npm-publish.mjs
-      - run: npm publish --access public --provenance
+      - name: Publish MCP package when version is new
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "delta-witness-mcp@$VERSION" version >/dev/null 2>&1; then
+            echo "delta-witness-mcp@$VERSION already published; skipping"
+          else
+            npm publish --access public --provenance
+          fi
 
   pypi-client:
     needs: verify
