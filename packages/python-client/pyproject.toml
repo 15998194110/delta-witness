@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "delta-witness-ruphussten"
-version = "0.6.0"
+version = "0.6.1"
 description = "Client for DELTA Witness Capture and Guard API"
 readme = "README.md"
 requires-python = ">=3.10"

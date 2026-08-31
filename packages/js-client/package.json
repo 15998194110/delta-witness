@@ -1,14 +1,34 @@
 {
   "name": "delta-witness-ruphussten",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Client for DELTA Witness Capture and Guard with x402 payment discovery",
   "type": "module",
   "main": "./src/index.js",
   "exports": "./src/index.js",
-  "files": ["src", "README.md"],
-  "scripts": { "test": "node --test", "check": "node --check src/index.js", "prepack": "npm run check && npm test" },
-  "keywords": ["x402", "web-proof", "provenance", "ai-agent", "osint", "web-archive"],
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/index.js",
+    "prepack": "npm run check && npm test"
+  },
+  "keywords": [
+    "x402",
+    "web-proof",
+    "provenance",
+    "ai-agent",
+    "osint",
+    "web-archive"
+  ],
   "license": "MIT",
-  "publishConfig": { "access": "public", "provenance": true },
-  "repository": { "type": "git", "url": "https://github.com/15998194110/delta-witness" }
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/15998194110/delta-witness"
+  }
 }

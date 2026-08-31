@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: DELTA Witness Trust Layer
-  version: 0.6.0
+  version: 0.6.1
   description: Capture, Guard, and prepaid Watch for public sources. The marketplace handles subscriber billing; DELTA returns observation metadata and cryptographic fingerprints.
 servers:
   - url: https://delta-witness-partner-gateway.ruphussten.workers.dev

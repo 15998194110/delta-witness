@@ -7,7 +7,7 @@ Local stdio MCP server exposing free quote/proof tools and paid Capture + Guard 
   "mcpServers": {
     "delta-witness": {
       "command": "npx",
-      "args": ["-y", "delta-witness-mcp@0.6.0"],
+      "args": ["-y", "delta-witness-mcp@0.6.1"],
       "env": {
         "EVM_PRIVATE_KEY": "stored locally by your MCP host",
         "DELTA_MAX_USD_PER_CALL": "0.10"

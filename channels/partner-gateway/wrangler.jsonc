@@ -20,7 +20,7 @@
     }
   ],
   "vars": {
-    "APP_VERSION": "0.6.0",
+    "APP_VERSION": "0.6.1",
     "PARTNER_ID": "marketplace",
     "PARTNER_NET_CAPTURE_USD": "0.03",
     "PARTNER_NET_PREFLIGHT_USD": "0.03",
