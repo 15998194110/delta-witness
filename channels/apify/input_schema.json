@@ -3,10 +3,30 @@
   "type": "object",
   "schemaVersion": 1,
   "properties": {
+    "product": {
+      "title": "Product",
+      "type": "string",
+      "description": "Capture preserves a source; Preflight compares deterministic expectations before an action.",
+      "enum": ["capture", "preflight"],
+      "default": "preflight",
+      "editor": "select"
+    },
     "url": {
       "title": "Public webpage URL",
       "type": "string",
-      "description": "Public http/https webpage to capture",
+      "description": "Public http/https source to observe",
+      "editor": "textfield"
+    },
+    "expected": {
+      "title": "Guard expectations",
+      "type": "object",
+      "description": "Optional html_sha256, markdown_sha256, contains, or excludes checks for Preflight.",
+      "editor": "json"
+    },
+    "prior_proof_id": {
+      "title": "Prior DELTA proof ID",
+      "type": "string",
+      "description": "Optional hash baseline for Preflight.",
       "editor": "textfield"
     }
   },

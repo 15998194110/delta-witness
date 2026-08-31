@@ -9,104 +9,161 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: delta-production-release
+  cancel-in-progress: false
+
 jobs:
-  core-cloudflare:
+  verify:
     runs-on: ubuntu-latest
-    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
-        with: { node-version: '22' }
+        with: { node-version: "22" }
+      - run: node scripts/check-release-version.mjs
       - run: npm ci
+      - run: npm run verify
+      - name: Verify partner gateway
+        working-directory: channels/partner-gateway
+        run: npm ci && npm run verify
+      - name: Verify JS client
+        working-directory: packages/js-client
+        run: npm run check && npm test && npm pack --dry-run
+      - name: Verify MCP server
+        working-directory: packages/mcp-server
+        run: npm ci && npm run prepack && npm pack --dry-run
+      - name: Verify Apify actor
+        working-directory: channels/apify
+        run: npm ci && npm run check
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - name: Verify Python distribution
+        working-directory: packages/python-client
+        run: python -m pip install build && python -m compileall -q delta_witness && python -m build
+
+  core-cloudflare:
+    needs: verify
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DELTA_PARTNER_GATEWAY_SECRET: ${{ secrets.DELTA_PARTNER_GATEWAY_SECRET }}
+      DELTA_INDEXNOW_ADMIN_SECRET: ${{ secrets.DELTA_INDEXNOW_ADMIN_SECRET }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: "22" }
+      - name: Require Cloudflare bootstrap
+        run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID" && test -n "$DELTA_PARTNER_GATEWAY_SECRET" && test -n "$DELTA_INDEXNOW_ADMIN_SECRET"
+      - run: npm ci
+      - name: Record rollback version
+        run: npx wrangler versions list
+      - name: Install core secrets
+        run: |
+          printf '%s' "$DELTA_PARTNER_GATEWAY_SECRET" | npx wrangler secret put PARTNER_GATEWAY_SECRET
+          printf '%s' "$DELTA_INDEXNOW_ADMIN_SECRET" | npx wrangler secret put INDEXNOW_ADMIN_SECRET
       - run: npx wrangler deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Verify production discovery and existing proof
+        run: |
+          curl --fail --retry 5 --retry-delay 5 https://delta-witness-api.ruphussten.workers.dev/health
+          curl --fail https://delta-witness-api.ruphussten.workers.dev/.well-known/x402
+          curl --fail https://delta-witness-api.ruphussten.workers.dev/openapi.json
+          curl --fail https://delta-witness-api.ruphussten.workers.dev/v1/proofs/56347db8-1aa5-447f-a0e4-3bb052d7aa89
 
   partner-gateway:
+    needs: [verify, core-cloudflare]
     runs-on: ubuntu-latest
-    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' && secrets.DELTA_PARTNER_SECRET != '' }}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
+      DELTA_PARTNER_GATEWAY_SECRET: ${{ secrets.DELTA_PARTNER_GATEWAY_SECRET }}
     defaults: { run: { working-directory: channels/partner-gateway } }
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
-        with: { node-version: '22' }
+        with: { node-version: "22" }
+      - name: Require gateway bootstrap
+        run: test -n "$DELTA_PARTNER_SECRET" && test -n "$DELTA_PARTNER_GATEWAY_SECRET"
       - run: npm ci
-      - run: printf '%s' "$DELTA_PARTNER_SECRET" | npx wrangler secret put PARTNER_SECRET
-        env:
-          DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Install gateway secrets
+        run: |
+          printf '%s' "$DELTA_PARTNER_SECRET" | npx wrangler secret put PARTNER_SECRET
+          printf '%s' "$DELTA_PARTNER_GATEWAY_SECRET" | npx wrangler secret put CORE_SERVICE_SECRET
       - run: npx wrangler deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - run: curl --fail --retry 5 --retry-delay 5 https://delta-witness-partner-gateway.ruphussten.workers.dev/health
 
   npm-client:
+    needs: verify
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: packages/js-client } }
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
-        with: { node-version: '22', registry-url: 'https://registry.npmjs.org' }
-      - run: npm publish --access public
-        # Configure npm Trusted Publishing for this workflow once; no long-lived token required.
+        with: { node-version: "22", registry-url: "https://registry.npmjs.org" }
+      - run: npm publish --access public --provenance
+
+  npm-mcp:
+    needs: verify
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: packages/mcp-server } }
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: "22", registry-url: "https://registry.npmjs.org" }
+      - run: npm ci
+      - run: npm publish --access public --provenance
 
   pypi-client:
+    needs: verify
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: packages/python-client } }
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
-        with: { python-version: '3.12' }
-      - run: python -m pip install build
-      - run: python -m build
+        with: { python-version: "3.12" }
+      - run: python -m pip install build && python -m build
       - uses: pypa/gh-action-pypi-publish@release/v1
-        # Configure PyPI Trusted Publishing for this repository/workflow once.
 
   mcp-registry:
     runs-on: ubuntu-latest
-    needs: [npm-client]
+    needs: npm-mcp
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
-        with: { node-version: '22' }
+        with: { node-version: "22" }
       - run: node scripts/render-mcp-server.mjs
       - run: |
-          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          curl --fail --location "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
           ./mcp-publisher validate server.json
           ./mcp-publisher login github-oidc
           ./mcp-publisher publish server.json
 
   postman:
+    needs: verify
     runs-on: ubuntu-latest
-    if: ${{ secrets.POSTMAN_API_KEY != '' }}
+    env:
+      POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+      POSTMAN_WORKSPACE_ID: ${{ vars.POSTMAN_WORKSPACE_ID }}
+      POSTMAN_COLLECTION_ID: ${{ vars.POSTMAN_COLLECTION_ID }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
-        with: { node-version: '22' }
+        with: { node-version: "22" }
+      - run: test -n "$POSTMAN_API_KEY"
       - run: node scripts/postman-sync.mjs
-        env:
-          POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
-          POSTMAN_WORKSPACE_ID: ${{ vars.POSTMAN_WORKSPACE_ID }}
 
   apify:
+    needs: verify
     runs-on: ubuntu-latest
-    if: ${{ secrets.APIFY_TOKEN != '' }}
+    env:
+      APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
     defaults: { run: { working-directory: channels/apify } }
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
-        with: { node-version: '22' }
+        with: { node-version: "22" }
+      - run: test -n "$APIFY_TOKEN"
       - run: npm ci
-      - run: npm install -g apify-cli
+      - run: npm install --global apify-cli
       - run: apify push
-        env:
-          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
-
-  chrome-extension:
-    runs-on: ubuntu-latest
-    if: ${{ secrets.CHROME_WEBSTORE_ACCESS_TOKEN != '' && vars.CHROME_EXTENSION_ID != '' }}
-    steps:
-      - uses: actions/checkout@v6
-      - run: echo "Chrome package is intentionally gated until DELTA has a human checkout UX. Enable after channels/chrome-extension is added and the initial store listing/privacy setup is complete."

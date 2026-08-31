@@ -1,8 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.__OWNER__/delta-witness",
-  "description": "Fresh, tamper-evident observations of public webpages with x402 payment and proof manifests.",
-  "version": "0.5.0",
+  "description": "Paid Capture and Guard tools for public-source observations before autonomous actions.",
+  "version": "0.6.0",
   "repository": {
     "url": "https://github.com/__OWNER__/delta-witness",
     "source": "github"
@@ -10,8 +10,8 @@
   "packages": [
     {
       "registryType": "npm",
-      "identifier": "delta-witness-ruphussten",
-      "version": "0.5.0",
+      "identifier": "delta-witness-mcp",
+      "version": "0.6.0",
       "transport": { "type": "stdio" }
     }
   ]

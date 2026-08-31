@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
-  title: DELTA Witness Web Proof
-  version: 0.5.0
-  description: Fresh tamper-evident public-web captures. RapidAPI handles subscriber authentication and billing; DELTA returns proof metadata and cryptographic fingerprints.
+  title: DELTA Witness Trust Layer
+  version: 0.6.0
+  description: Capture, Guard, and prepaid Watch for public sources. The marketplace handles subscriber billing; DELTA returns observation metadata and cryptographic fingerprints.
 servers:
   - url: https://delta-witness-partner-gateway.ruphussten.workers.dev
 paths:
@@ -32,3 +32,65 @@ paths:
           description: Marketplace proxy was not authenticated
         '502':
           description: Capture failed
+  /preflight:
+    post:
+      summary: Guard an autonomous action with a fresh deterministic observation
+      operationId: guardAutonomousAction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url: { type: string, format: uri }
+                prior_proof_id: { type: string, format: uuid }
+                expected:
+                  type: object
+                  properties:
+                    html_sha256: { type: string }
+                    markdown_sha256: { type: string }
+                    contains: { type: array, items: { type: string }, maxItems: 10 }
+                    excludes: { type: array, items: { type: string }, maxItems: 10 }
+                freshness_seconds: { type: integer, minimum: 0, maximum: 2592000 }
+                external_request_id: { type: string }
+      responses:
+        '200': { description: Observation, deterministic diff, and proof delivered }
+        '401': { description: Marketplace proxy was not authenticated }
+        '402': { description: Configured partner net price is below DELTA's margin floor }
+        '502': { description: Observation failed; retry with the same idempotency identity }
+  /watch:
+    post:
+      summary: Register a prepaid bounded public-source watch
+      operationId: registerWatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, checks, interval_seconds]
+              properties:
+                url: { type: string, format: uri }
+                checks: { type: integer, minimum: 1, maximum: 1000 }
+                interval_seconds: { type: integer, minimum: 900, maximum: 2592000 }
+                webhook_url: { type: string, format: uri }
+                expected: { type: object }
+                prior_proof_id: { type: string, format: uuid }
+                external_request_id: { type: string }
+      responses:
+        '201': { description: Prepaid watch registered; webhook signing secret is returned once }
+        '402': { description: Prepaid total is below DELTA's current per-check margin floor }
+  /watch/{watch_id}:
+    get:
+      summary: Read prepaid watch status
+      operationId: getWatch
+      parameters:
+        - in: path
+          name: watch_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Watch quota and latest observation state }
+        '404': { description: Watch not found for this authenticated partner }

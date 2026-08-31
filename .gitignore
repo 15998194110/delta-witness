@@ -1,0 +1,15 @@
+node_modules/
+.wrangler/
+.dev.vars*
+.env*
+!.env.example
+dist/
+build/
+*.tgz
+*.log
+server.json
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+

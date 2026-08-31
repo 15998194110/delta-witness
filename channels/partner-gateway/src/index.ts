@@ -1,181 +1,160 @@
-import { Hono } from "hono";
+import { Hono, type Context, type Next } from "hono";
 
-type BrowserRunBinding = {
-  quickAction(action: string, options: Record<string, unknown>): Promise<Response>;
+const MAX_BODY_BYTES = 12_288;
+
+export type GatewayEnv = Env & {
+  PARTNER_SECRET?: string;
+  CORE_SERVICE_SECRET?: string;
 };
 
-interface Env {
-  BROWSER: BrowserRunBinding;
-  PROOFS: R2Bucket;
-  PARTNER_SECRET: string;
-  PUBLIC_ORIGIN: string;
+type Gateway = { Bindings: GatewayEnv };
+type GatewayContext = Context<Gateway>;
+const app = new Hono<Gateway>();
+
+function exactBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
 
-type SnapshotResult = {
-  result?: { screenshot?: string; content?: string; markdown?: string };
-  meta?: { status?: number; title?: string; url?: string };
-};
-
-const app = new Hono<{ Bindings: Env }>();
-const MAX_URL_LENGTH = 2048;
-const MAX_HTML_BYTES = 2_000_000;
-const MAX_MARKDOWN_BYTES = 1_000_000;
-const MAX_SCREENSHOT_BYTES = 8_000_000;
-
-function bytesToHex(bytes: Uint8Array): string {
-  return [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+async function sha256(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", exactBuffer(new TextEncoder().encode(value)));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function sha256(input: string | Uint8Array): Promise<string> {
-  const data = typeof input === "string" ? new TextEncoder().encode(input) : input;
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return `sha256:${bytesToHex(new Uint8Array(digest))}`;
+async function equalSecret(presented: string, expected: string): Promise<boolean> {
+  const [left, right] = await Promise.all([sha256(presented), sha256(expected)]);
+  return left === right;
 }
 
-function base64ToBytes(value: string): Uint8Array {
-  const binary = atob(value);
-  const out = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
-  return out;
-}
-
-function isPrivateIpv4(host: string): boolean {
-  const parts = host.split(".").map(Number);
-  if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return false;
-  const [a, b] = parts;
-  return a === 0 || a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || a >= 224;
-}
-
-function isPrivateIpv6(host: string): boolean {
-  const h = host.toLowerCase().replace(/^\[|\]$/g, "");
-  return h === "::" || h === "::1" || h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe8") || h.startsWith("fe9") || h.startsWith("fea") || h.startsWith("feb") || h.startsWith("ff");
-}
-
-function validateTarget(raw: string): URL {
-  if (raw.length > MAX_URL_LENGTH) throw new Error("url_too_long");
-  let url: URL;
-  try { url = new URL(raw); } catch { throw new Error("invalid_url"); }
-  if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error("unsupported_scheme");
-  if (url.username || url.password) throw new Error("userinfo_not_allowed");
-  if (url.port && url.port !== "80" && url.port !== "443") throw new Error("nonstandard_port_not_allowed");
-  const host = url.hostname.toLowerCase();
-  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host === "0.0.0.0" || isPrivateIpv4(host) || (host.includes(":") && isPrivateIpv6(host))) throw new Error("private_target_not_allowed");
-  return url;
-}
-
-async function assertPublicDns(host: string): Promise<void> {
-  if (isPrivateIpv4(host) || (host.includes(":") && isPrivateIpv6(host))) throw new Error("private_target_not_allowed");
-  if (isPrivateIpv4(host) || host.includes(":")) return;
-  let sawAddress = false;
-  for (const type of ["A", "AAAA"]) {
-    const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=${type}`, { headers: { accept: "application/dns-json" } });
-    if (!response.ok) continue;
-    const data = await response.json() as { Answer?: Array<{ type?: number; data?: string }> };
-    for (const answer of data.Answer ?? []) {
-      if (answer.type === 1 && answer.data) { sawAddress = true; if (isPrivateIpv4(answer.data)) throw new Error("private_dns_target_not_allowed"); }
-      if (answer.type === 28 && answer.data) { sawAddress = true; if (isPrivateIpv6(answer.data)) throw new Error("private_dns_target_not_allowed"); }
-    }
+async function boundedBody(request: Request): Promise<Uint8Array> {
+  const declared = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) throw new Error("request_too_large");
+  if (request.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase() !== "application/json") {
+    throw new Error("content_type_must_be_application_json");
   }
-  if (!sawAddress) throw new Error("dns_resolution_failed");
-}
-
-function authorized(req: Request, env: Env): boolean {
-  if (!env.PARTNER_SECRET) return false;
-  const presented = req.headers.get("x-delta-partner-secret") ?? req.headers.get("x-rapidapi-proxy-secret") ?? "";
-  return presented.length > 0 && presented === env.PARTNER_SECRET;
-}
-
-app.get("/health", (c) => c.json({ ok: true, version: "0.5.0", channel: "partner-gateway" }));
-
-app.post("/capture", async (c) => {
-  if (!authorized(c.req.raw, c.env)) return c.json({ error: "unauthorized_partner" }, 401);
-  const contentLength = Number(c.req.header("content-length") ?? 0);
-  if (contentLength > 4096) return c.json({ error: "request_too_large" }, 413);
-
-  let body: { url?: string; external_request_id?: string };
-  try { body = await c.req.json(); } catch { return c.json({ error: "invalid_json" }, 400); }
-  if (!body.url) return c.json({ error: "url_required" }, 400);
-
-  let target: URL;
+  const reader = request.body?.getReader();
+  if (!reader) return new Uint8Array();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
   try {
-    target = validateTarget(body.url);
-    await assertPublicDns(target.hostname.toLowerCase());
-  } catch (error) {
-    return c.json({ error: error instanceof Error ? error.message : "invalid_target" }, 400);
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_BODY_BYTES) {
+        void reader.cancel("body_too_large");
+        throw new Error("request_too_large");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
   }
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return result;
+}
 
-  const partnerUser = c.req.header("x-rapidapi-user") ?? c.req.header("x-delta-partner-user") ?? "anonymous";
-  const partnerPlan = c.req.header("x-rapidapi-subscription") ?? c.req.header("x-delta-partner-plan") ?? "unknown";
-  const requestId = body.external_request_id ?? crypto.randomUUID();
-  const idempotencyKey = await sha256(`${partnerUser}\n${requestId}\n${target.toString()}`);
-  const recordKey = `partner-requests/${idempotencyKey.replace(/^sha256:/, "")}.json`;
-  const existing = await c.env.PROOFS.get(recordKey);
-  if (existing) return c.json({ ...(await existing.json() as Record<string, unknown>), idempotent_replay: true });
+function requestId(request: Request, body: Record<string, unknown>): string | null {
+  const value = request.headers.get("idempotency-key")
+    ?? request.headers.get("x-rapidapi-request-id")
+    ?? (typeof body.external_request_id === "string" ? body.external_request_id : null);
+  return value && /^[A-Za-z0-9._:-]{8,128}$/.test(value) ? value : null;
+}
 
-  const startedAt = new Date().toISOString();
-  const snapshotResponse = await c.env.BROWSER.quickAction("snapshot", {
-    url: target.toString(),
-    formats: ["content", "screenshot", "markdown"],
-    screenshotOptions: { fullPage: true },
-    viewport: { width: 1440, height: 1000, deviceScaleFactor: 1 },
-    gotoOptions: { waitUntil: "networkidle2", timeout: 30000 }
+async function authorized(c: GatewayContext, next: Next): Promise<Response | void> {
+  if (!c.env.PARTNER_SECRET || !c.env.CORE_SERVICE_SECRET) return c.json({ error: "gateway_not_configured" }, 503);
+  const presented = c.req.header("x-delta-partner-secret") ?? c.req.header("x-rapidapi-proxy-secret") ?? "";
+  if (!(await equalSecret(presented, c.env.PARTNER_SECRET))) return c.json({ error: "unauthorized_partner" }, 401);
+  const rateIdentity = c.req.header("x-rapidapi-user") ?? c.req.header("cf-connecting-ip") ?? "anonymous";
+  const outcome = await c.env.PARTNER_RATE_LIMITER.limit({ key: await sha256(`${c.env.PARTNER_ID}\n${rateIdentity}`) });
+  if (!outcome.success) {
+    c.header("retry-after", "60");
+    return c.json({ error: "rate_limit_exceeded" }, 429);
+  }
+  return next();
+}
+
+app.use("/capture", authorized);
+app.use("/preflight", authorized);
+app.use("/watch", authorized);
+app.use("/watch/*", authorized);
+
+app.get("/health", (c) => c.json({ ok: true, version: c.env.APP_VERSION, channel: "partner-gateway", core: "service-binding" }));
+
+async function forward(product: "capture" | "preflight" | "watch", c: GatewayContext): Promise<Response> {
+  try {
+    const bytes = await boundedBody(c.req.raw);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(new TextDecoder().decode(bytes));
+    } catch {
+      return c.json({ error: "invalid_json" }, 400);
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return c.json({ error: "invalid_request_body" }, 400);
+    const body = parsed as Record<string, unknown>;
+    const idempotencyKey = requestId(c.req.raw, body);
+    if (!idempotencyKey) return c.json({ error: "valid_idempotency_key_required" }, 400);
+    const { external_request_id: _externalRequestId, ...coreBody } = body;
+    let netPrice = product === "capture" ? Number(c.env.PARTNER_NET_CAPTURE_USD) : Number(c.env.PARTNER_NET_PREFLIGHT_USD);
+    if (product === "watch") {
+      const checks = Number(coreBody.checks);
+      if (!Number.isInteger(checks) || checks < 1 || checks > 1_000) return c.json({ error: "invalid_checks" }, 400);
+      netPrice = Number(c.env.PARTNER_NET_WATCH_CHECK_USD) * checks;
+    }
+    if (!Number.isFinite(netPrice) || netPrice <= 0) return c.json({ error: "invalid_partner_net_price" }, 503);
+    const response = await c.env.CORE.fetch(new Request(`https://delta.internal/internal/partner/${product}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-delta-core-secret": c.env.CORE_SERVICE_SECRET!,
+        "x-delta-partner": c.env.PARTNER_ID,
+        "x-delta-channel": c.env.PARTNER_ID,
+        "x-delta-gross-usd": netPrice.toFixed(6),
+        "idempotency-key": idempotencyKey,
+      },
+      body: JSON.stringify(coreBody),
+    }));
+    const headers = new Headers({
+      "content-type": response.headers.get("content-type") ?? "application/json; charset=utf-8",
+      "cache-control": "private, no-store",
+      "x-content-type-options": "nosniff",
+    });
+    const retryAfter = response.headers.get("retry-after");
+    if (retryAfter) headers.set("retry-after", retryAfter);
+    return new Response(response.body, { status: response.status, headers });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "internal_error";
+    return c.json({ error: reason }, reason === "request_too_large" ? 413 : 500);
+  }
+}
+
+app.post("/capture", (c) => forward("capture", c));
+app.post("/preflight", (c) => forward("preflight", c));
+app.post("/watch", (c) => forward("watch", c));
+app.get("/watch/:id", async (c) => {
+  const id = c.req.param("id");
+  if (!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(id)) return c.json({ error: "invalid_watch_id" }, 400);
+  const response = await c.env.CORE.fetch(new Request(`https://delta.internal/internal/partner/watch/${id}`, {
+    headers: {
+      "x-delta-core-secret": c.env.CORE_SERVICE_SECRET!,
+      "x-delta-partner": c.env.PARTNER_ID,
+    },
+  }));
+  return new Response(response.body, {
+    status: response.status,
+    headers: { "content-type": response.headers.get("content-type") ?? "application/json; charset=utf-8", "cache-control": "private, no-store" },
   });
-  const browserMsRaw = snapshotResponse.headers.get("X-Browser-Ms-Used");
-  const browserMsUsed = browserMsRaw ? Number.parseInt(browserMsRaw, 10) : null;
-  if (!snapshotResponse.ok) return c.json({ error: "capture_failed", upstream_status: snapshotResponse.status }, 502);
-
-  const snapshot = await snapshotResponse.json() as SnapshotResult;
-  const html = snapshot.result?.content ?? "";
-  const markdown = snapshot.result?.markdown ?? "";
-  const screenshotB64 = snapshot.result?.screenshot ?? "";
-  if (!html || !screenshotB64) return c.json({ error: "capture_incomplete" }, 502);
-  const screenshot = base64ToBytes(screenshotB64);
-  const htmlBytes = new TextEncoder().encode(html).byteLength;
-  const markdownBytes = new TextEncoder().encode(markdown).byteLength;
-  if (htmlBytes > MAX_HTML_BYTES || markdownBytes > MAX_MARKDOWN_BYTES || screenshot.byteLength > MAX_SCREENSHOT_BYTES) return c.json({ error: "capture_too_large" }, 413);
-
-  const completedAt = new Date().toISOString();
-  const proofId = crypto.randomUUID();
-  const htmlHash = await sha256(html);
-  const markdownHash = await sha256(markdown);
-  const screenshotHash = await sha256(screenshot);
-  const bundleRoot = await sha256(JSON.stringify({ requested_url: target.toString(), captured_at: completedAt, html_sha256: htmlHash, markdown_sha256: markdownHash, screenshot_sha256: screenshotHash }));
-
-  const manifest = {
-    schema: "delta-proof-bundle/v0.5.0",
-    proof_id: proofId,
-    requested_url: target.toString(),
-    capture_started_at: startedAt,
-    capture_completed_at: completedAt,
-    observed_http_status: snapshot.meta?.status ?? null,
-    observed_title: snapshot.meta?.title ?? null,
-    observed_final_url: snapshot.meta?.url ?? null,
-    hashes: { html: htmlHash, markdown: markdownHash, screenshot_png: screenshotHash, bundle_root: bundleRoot },
-    artifact_sizes: { html_bytes: htmlBytes, markdown_bytes: markdownBytes, screenshot_png_bytes: screenshot.byteLength },
-    execution: { browser_ms_used: Number.isFinite(browserMsUsed) ? browserMsUsed : null },
-    storage: { html: `${proofId}/page.html`, markdown: `${proofId}/page.md`, screenshot: `${proofId}/screenshot.png`, manifest: `${proofId}/manifest.json` },
-    payment: { protocol: "partner-marketplace", partner_user: partnerUser, partner_plan: partnerPlan, note: "Billing is handled by the upstream marketplace; the gateway accepts only authenticated marketplace traffic." },
-    attestation: { status: "hash_only" },
-    disclaimer: "DELTA proves what its capture system observed and stored at a time; it does not prove that statements on the source page are factually true or legally admissible in every jurisdiction."
-  };
-
-  await Promise.all([
-    c.env.PROOFS.put(`${proofId}/page.html`, html, { httpMetadata: { contentType: "text/html; charset=utf-8" } }),
-    c.env.PROOFS.put(`${proofId}/page.md`, markdown, { httpMetadata: { contentType: "text/markdown; charset=utf-8" } }),
-    c.env.PROOFS.put(`${proofId}/screenshot.png`, screenshot, { httpMetadata: { contentType: "image/png" } }),
-    c.env.PROOFS.put(`${proofId}/manifest.json`, JSON.stringify(manifest, null, 2), { httpMetadata: { contentType: "application/json; charset=utf-8" } })
-  ]);
-
-  const origin = c.env.PUBLIC_ORIGIN.replace(/\/$/, "");
-  const response = { ok: true, proof_id: proofId, manifest_url: `${origin}/v1/proofs/${proofId}`, public_proof_url: `${origin}/p/${proofId}`, bundle_root: bundleRoot, captured_at: completedAt, channel: "partner-marketplace" };
-  await c.env.PROOFS.put(recordKey, JSON.stringify(response), { httpMetadata: { contentType: "application/json; charset=utf-8" } });
-  console.log(JSON.stringify({ event: "partner_capture_delivered", proof_id: proofId, partner_user: partnerUser, partner_plan: partnerPlan, browser_ms_used: browserMsUsed, captured_at: completedAt }));
-  return c.json(response);
 });
 
-app.onError((err, c) => {
-  console.error(err);
+app.notFound((c) => c.json({ error: "not_found" }, 404));
+app.onError((error, c) => {
+  console.error(JSON.stringify({ event: "partner_gateway_error", path: c.req.path, message: error.message }));
   return c.json({ error: "internal_error" }, 500);
 });
 
-export default { fetch: app.fetch };
+export { app };
+export default { fetch: app.fetch } satisfies ExportedHandler<GatewayEnv>;

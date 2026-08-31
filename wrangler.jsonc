@@ -3,7 +3,13 @@
   "name": "delta-witness-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-31",
+  "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "invocation_logs": true },
+    "traces": { "enabled": true, "head_sampling_rate": 0.05 }
+  },
   "browser": {
     "binding": "BROWSER",
     "remote": true
@@ -14,16 +20,34 @@
       "bucket_name": "delta-witness-proofs"
     }
   ],
+  "analytics_engine_datasets": [
+    {
+      "binding": "ANALYTICS",
+      "dataset": "delta_witness_events"
+    }
+  ],
   "vars": {
+    "APP_VERSION": "0.6.0",
     "PAY_TO": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
     "NETWORK": "eip155:8453",
-    "CAPTURE_PRICE": "$0.01",
+    "CAPTURE_BASE_PRICE_USD": "0.03",
+    "PREFLIGHT_BASE_PRICE_USD": "0.03",
+    "BROWSER_COST_PER_HOUR_USD": "0.09",
+    "FACILITATOR_FEE_USD": "0.001",
+    "FAILURE_ALLOWANCE_USD": "0.001",
+    "WORKER_ALLOWANCE_USD": "0.0001",
+    "R2_WRITE_COST_PER_MILLION_USD": "4.5",
+    "R2_STORAGE_GB_MONTH_USD": "0.015",
+    "PRICING_BROWSER_MS": "25000",
+    "PRICING_STORAGE_BYTES": "9000000",
+    "TARGET_MARGIN_BPS": "6500",
     "FACILITATOR_URL": "https://facilitator.payai.network",
     "DEMO_PROOF_ID": "56347db8-1aa5-447f-a0e4-3bb052d7aa89",
     "PUBLIC_ORIGIN": "https://delta-witness-api.ruphussten.workers.dev",
+    "PARTNER_GATEWAY_ORIGIN": "https://delta-witness-partner-gateway.ruphussten.workers.dev",
     "INDEXNOW_KEY": "delta-witness-2026-8f0c5a3d6e7b91ac"
   },
   "triggers": {
-    "crons": ["17 3 * * *"]
+    "crons": ["*/15 * * * *"]
   }
 }

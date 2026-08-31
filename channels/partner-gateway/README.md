@@ -1,22 +1,12 @@
 # DELTA Partner Gateway
 
-A second billing rail for marketplaces that collect payment themselves (RapidAPI, Apify, future API marketplaces). It does **not** expose x402. Marketplace traffic must present a server-side secret, then the gateway uses the same Cloudflare Browser Run and the same private R2 bucket as the core DELTA worker.
+Thin reseller rail for marketplaces that bill the buyer themselves. It performs partner authentication, rate limiting, idempotency normalization, and price attribution, then calls the one DELTA core Worker through a Cloudflare service binding. It has no Browser Run or R2 binding and cannot fork capture logic.
 
-## Security
+## Required secrets
 
-Set `PARTNER_SECRET` with `wrangler secret put PARTNER_SECRET`. Never put it in `wrangler.jsonc` or a public marketplace listing.
+- `PARTNER_SECRET`: marketplace-facing proxy secret (`x-delta-partner-secret` or RapidAPI's proxy-secret header).
+- `CORE_SERVICE_SECRET`: gateway-to-core secret. Store the same value as the core Worker's `PARTNER_GATEWAY_SECRET`.
 
-Supported authentication headers:
+Set each with `wrangler secret put`; never place either value in source or `wrangler.jsonc`.
 
-- `x-delta-partner-secret`
-- `x-rapidapi-proxy-secret`
-
-The gateway rejects traffic if the value does not exactly match `PARTNER_SECRET`.
-
-## Deploy
-
-```bash
-npm install
-npx wrangler secret put PARTNER_SECRET
-npm run deploy
-```
+Every write needs `Idempotency-Key`, `x-rapidapi-request-id`, or `external_request_id`. Supported routes are `POST /capture`, `POST /preflight`, `POST /watch`, and `GET /watch/:id`. Watch is prepaid and quota-bounded. The configured `PARTNER_NET_*_USD` values represent DELTA's net revenue after platform fees; the core rejects values below its current contribution-margin floor.

@@ -1,9 +1,9 @@
 {
   "actorSpecification": 1,
-  "name": "delta-witness-web-proof",
-  "title": "DELTA Witness — Web Proof",
-  "description": "Create a fresh, tamper-evident observation of a public webpage and return a proof manifest with SHA-256 fingerprints.",
-  "version": "0.5",
+  "name": "delta-witness-guard",
+  "title": "DELTA Witness — Capture & Guard",
+  "description": "Observe a public source or compare deterministic expectations before an autonomous action; receive proof hashes and verifier metadata.",
+  "version": "0.6",
   "buildTag": "latest",
   "input": "./input_schema.json",
   "dockerfile": "./Dockerfile"

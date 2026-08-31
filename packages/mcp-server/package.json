@@ -1,0 +1,32 @@
+{
+  "name": "delta-witness-mcp",
+  "version": "0.6.0",
+  "description": "MCP tools for paid DELTA Witness Capture and Guard preflight observations",
+  "type": "module",
+  "bin": { "delta-witness-mcp": "dist/index.js" },
+  "files": ["dist", "README.md", "LICENSE"],
+  "exports": "./dist/index.js",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "prepack": "npm run check && npm test && npm run build"
+  },
+  "keywords": ["mcp", "x402", "agents", "web-proof", "preflight"],
+  "license": "Apache-2.0",
+  "publishConfig": { "access": "public", "provenance": true },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@x402/core": "^2.24.0",
+    "@x402/evm": "^2.24.0",
+    "@x402/fetch": "^2.24.0",
+    "viem": "^2.38.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}

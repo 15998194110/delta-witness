@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "DELTA Witness",
-    "description": "Pay-per-capture tamper-evident web observations using x402 v2 and USDC on Base.",
+    "description": "Capture and Guard observations using x402 v2 and USDC on Base mainnet.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -48,6 +48,22 @@
         },
         "url": "{{baseUrl}}/v1/capture",
         "description": "Initial request returns HTTP 402. Complete x402 v2 payment and retry with PAYMENT-SIGNATURE."
+      }
+    },
+    {
+      "name": "Guard / Preflight",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-delta-channel", "value": "postman" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"url\":\"https://example.com\",\"expected\":{\"contains\":[\"Example Domain\"]}}"
+        },
+        "url": "{{baseUrl}}/v1/preflight",
+        "description": "Initial request returns HTTP 402. The paid response returns deterministic safe/changed/reason/diff fields and a proof reference. DELTA proves observation/change, not truth."
       }
     }
   ]

@@ -3,18 +3,27 @@
   "name": "delta-witness-partner-gateway",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-31",
+  "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
-  "browser": {
-    "binding": "BROWSER",
-    "remote": true
-  },
-  "r2_buckets": [
+  "observability": { "enabled": true },
+  "services": [
     {
-      "binding": "PROOFS",
-      "bucket_name": "delta-witness-proofs"
+      "binding": "CORE",
+      "service": "delta-witness-api"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "PARTNER_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 60, "period": 60 }
     }
   ],
   "vars": {
-    "PUBLIC_ORIGIN": "https://delta-witness-api.ruphussten.workers.dev"
+    "APP_VERSION": "0.6.0",
+    "PARTNER_ID": "marketplace",
+    "PARTNER_NET_CAPTURE_USD": "0.03",
+    "PARTNER_NET_PREFLIGHT_USD": "0.03",
+    "PARTNER_NET_WATCH_CHECK_USD": "0.03"
   }
 }
