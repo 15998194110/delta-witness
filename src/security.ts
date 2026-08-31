@@ -105,11 +105,15 @@ export async function assertPublicDns(
       `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(normalized)}&type=${type}`,
       {
         headers: { accept: "application/dns-json" },
-        redirect: "error",
+        redirect: "manual",
         signal: AbortSignal.timeout(5_000),
         cf: { cacheTtl: 60, cacheEverything: true },
       },
     );
+    if (response.status >= 300 && response.status < 400) {
+      await response.body?.cancel();
+      throw new Error("dns_resolver_redirect_not_allowed");
+    }
     if (!response.ok) continue;
     const body = (await readJsonResponseBounded(response, 64_000)) as {
       Status?: number;

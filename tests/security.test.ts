@@ -43,6 +43,22 @@ describe("public URL policy", () => {
     }) as unknown as typeof fetch;
     await expect(assertPublicDns("rebinding.example", fetchImpl)).rejects.toThrow("private_dns_target_not_allowed");
   });
+
+  it("uses a Workers-compatible manual redirect policy for DNS resolution", async () => {
+    const fetchImpl = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+      expect(init?.redirect).toBe("manual");
+      return Response.json({ Status: 0, Answer: [{ type: 1, data: "93.184.216.34" }] });
+    }) as unknown as typeof fetch;
+    await expect(assertPublicDns("example.com", fetchImpl)).resolves.toBeUndefined();
+  });
+
+  it("rejects DNS resolver redirects rather than following them", async () => {
+    const fetchImpl = vi.fn(async () => new Response(null, {
+      status: 302,
+      headers: { location: "https://resolver.invalid/dns-query" },
+    })) as unknown as typeof fetch;
+    await expect(assertPublicDns("example.com", fetchImpl)).rejects.toThrow("dns_resolver_redirect_not_allowed");
+  });
 });
 
 describe("redirect and payload bounds", () => {

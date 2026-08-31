@@ -213,7 +213,7 @@ async function sendWebhook(env: RuntimeEnv, record: WatchRecord, payload: Record
   const signature = await hmacSha256(record.webhook_secret, `${timestamp}.${raw}`);
   const response = await fetch(url, {
     method: "POST",
-    redirect: "error",
+    redirect: "manual",
     headers: {
       "content-type": "application/json",
       "x-delta-timestamp": timestamp,
