@@ -55,3 +55,11 @@ Every 404 body above was the same 13-byte `404 Not Found` response with SHA-256
 - Known proof UUID and all existing R2 objects must be preserved.
 - No deployment, object deletion, or object-publicity change was performed while
   capturing this baseline.
+
+## Cloudflare rollback and storage checkpoint
+
+- Worker version before v0.6 deployment: `63ce8c38-f92b-4d70-a820-254a3c8bb01c` (created 2026-08-31T01:14:58.964Z).
+- R2 bucket: `delta-witness-proofs`, created 2026-08-31T01:13:51.098Z, WNAM, Standard.
+- Pre-deployment R2 object count: 4.
+- Pre-deployment R2 bucket size: 22.6 kB.
+- Pre-deployment Worker secret names: none.
