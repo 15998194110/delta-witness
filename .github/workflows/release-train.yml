@@ -96,6 +96,16 @@ jobs:
           printf '%s' "$DELTA_PARTNER_GATEWAY_SECRET" | npx wrangler secret put CORE_SERVICE_SECRET
       - run: npx wrangler deploy
       - run: curl --fail --retry 5 --retry-delay 5 https://delta-witness-partner-gateway.ruphussten.workers.dev/health
+      - name: Verify authenticated gateway without fulfillment
+        run: |
+          status="$(curl --silent --show-error --output /tmp/delta-gateway-smoke.json --write-out '%{http_code}' \
+            --request POST https://delta-witness-partner-gateway.ruphussten.workers.dev/watch \
+            --header "x-delta-partner-secret: $DELTA_PARTNER_SECRET" \
+            --header "idempotency-key: internal-ci-auth-${GITHUB_RUN_ID}" \
+            --header 'content-type: application/json' \
+            --data '{"url":"https://example.com","checks":0,"interval_seconds":900}')"
+          test "$status" = "400"
+          grep --quiet '"invalid_checks"' /tmp/delta-gateway-smoke.json
 
   base-app:
     needs: verify
