@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "delta-witness-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-31",
+  "workers_dev": true,
+  "browser": {
+    "binding": "BROWSER",
+    "remote": true
+  },
+  "r2_buckets": [
+    {
+      "binding": "PROOFS",
+      "bucket_name": "delta-witness-proofs"
+    }
+  ],
+  "vars": {
+    "PAY_TO": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "NETWORK": "eip155:8453",
+    "CAPTURE_PRICE": "$0.01",
+    "FACILITATOR_URL": "https://facilitator.payai.network",
+    "DEMO_PROOF_ID": "56347db8-1aa5-447f-a0e4-3bb052d7aa89",
+    "PUBLIC_ORIGIN": "https://delta-witness-api.ruphussten.workers.dev",
+    "INDEXNOW_KEY": "delta-witness-2026-8f0c5a3d6e7b91ac"
+  },
+  "triggers": {
+    "crons": ["17 3 * * *"]
+  }
+}

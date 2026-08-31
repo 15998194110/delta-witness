@@ -1,0 +1,12 @@
+{
+  "name": "delta-witness-ruphussten",
+  "version": "0.5.0",
+  "description": "Tiny client for DELTA Witness web-proof API and x402 payment discovery",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": "./src/index.js",
+  "files": ["src", "README.md"],
+  "keywords": ["x402", "web-proof", "provenance", "ai-agent", "osint", "web-archive"],
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/OWNER/delta-witness" }
+}

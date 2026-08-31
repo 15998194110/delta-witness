@@ -1,0 +1,54 @@
+{
+  "info": {
+    "name": "DELTA Witness",
+    "description": "Pay-per-capture tamper-evident web observations using x402 v2 and USDC on Base.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://delta-witness-api.ruphussten.workers.dev"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      }
+    },
+    {
+      "name": "Quote",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/v1/quote"
+      }
+    },
+    {
+      "name": "Demo",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/v1/demo"
+      }
+    },
+    {
+      "name": "Capture Fresh Web Proof",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"url\":\"https://example.com\"}"
+        },
+        "url": "{{baseUrl}}/v1/capture",
+        "description": "Initial request returns HTTP 402. Complete x402 v2 payment and retry with PAYMENT-SIGNATURE."
+      }
+    }
+  ]
+}

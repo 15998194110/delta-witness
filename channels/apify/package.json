@@ -1,0 +1,12 @@
+{
+  "name": "delta-witness-apify-actor",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "apify": "^3.4.0"
+  },
+  "scripts": {
+    "start": "node main.mjs"
+  }
+}

@@ -1,0 +1,22 @@
+name: DELTA Discovery Pulse
+on:
+  schedule:
+    - cron: '21 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify machine discovery surfaces
+        run: |
+          set -e
+          BASE=https://delta-witness-api.ruphussten.workers.dev
+          curl -fsS "$BASE/health"
+          curl -fsS "$BASE/.well-known/x402" >/dev/null
+          curl -fsS "$BASE/openapi.json" >/dev/null
+          curl -fsS "$BASE/llms.txt" >/dev/null
+          curl -fsS "$BASE/sitemap.xml" >/dev/null
+      - name: Push IndexNow
+        run: |
+          curl -fsS -X POST https://delta-witness-api.ruphussten.workers.dev/internal/indexnow || true

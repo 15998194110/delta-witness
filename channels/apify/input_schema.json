@@ -1,0 +1,14 @@
+{
+  "title": "DELTA Witness input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "url": {
+      "title": "Public webpage URL",
+      "type": "string",
+      "description": "Public http/https webpage to capture",
+      "editor": "textfield"
+    }
+  },
+  "required": ["url"]
+}
