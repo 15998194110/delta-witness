@@ -110,14 +110,14 @@ jobs:
           }
           SOL
 
-      - name: Compile with Solidity 0.8.30
+      - name: Compile and bundle runtime
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/chisa-compiler
           cd /tmp/chisa-compiler
           npm init -y >/dev/null 2>&1
-          npm install --ignore-scripts --no-audit --no-fund solc@0.8.30
+          npm install --ignore-scripts --no-audit --no-fund solc@0.8.30 ethers@6.17.0
           node <<'NODE'
           const fs = require('node:fs');
           const crypto = require('node:crypto');
@@ -156,11 +156,15 @@ jobs:
           console.log('bytecodeBytes=' + ((artifact.bytecode.length - 2) / 2));
           console.log('artifactSha256=' + crypto.createHash('sha256').update(data).digest('hex'));
           NODE
+          cp node_modules/ethers/dist/ethers.umd.min.js /tmp/ethers.umd.min.js
+          test -s /tmp/ethers.umd.min.js
 
       - name: Upload CHISA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: chisa-testnet-artifact
-          path: /tmp/chisa-artifact.json
+          name: chisa-testnet-offline-bundle
+          path: |
+            /tmp/chisa-artifact.json
+            /tmp/ethers.umd.min.js
           if-no-files-found: error
           retention-days: 1
