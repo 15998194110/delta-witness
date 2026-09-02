@@ -29,10 +29,27 @@ jobs:
           STATUS=$(curl -sS -o /tmp/delta-preflight.json -D /tmp/delta-preflight.headers -w '%{http_code}' -X POST "$BASE/v1/preflight" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
           test "$STATUS" = "402"
           grep -qi '^payment-required:' /tmp/delta-preflight.headers
-      - name: Push IndexNow
+      - name: Push core IndexNow
+        id: indexnow-core
+        continue-on-error: true
+        run: node scripts/indexnow-pulse.mjs core
+      - name: Push Base app IndexNow
+        id: indexnow-base-app
+        continue-on-error: true
+        run: node scripts/indexnow-pulse.mjs base-app
+      - name: Record IndexNow diagnostics
+        if: always()
+        env:
+          CORE_OUTCOME: ${{ steps.indexnow-core.outcome }}
+          BASE_APP_OUTCOME: ${{ steps.indexnow-base-app.outcome }}
         run: |
-          test -n "$DELTA_INDEXNOW_ADMIN_SECRET"
-          curl -fsS -X POST https://delta-witness-api.ruphussten.workers.dev/internal/indexnow -H "authorization: Bearer $DELTA_INDEXNOW_ADMIN_SECRET"
-          node scripts/indexnow-app.mjs
+          {
+            echo '### IndexNow pulse'
+            echo "- Core: \`$CORE_OUTCOME\`"
+            echo "- Base app: \`$BASE_APP_OUTCOME\`"
+            echo ''
+            echo 'IndexNow is retried and diagnostic-only. A provider outage does not fail machine-discovery or Bazaar checks.'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Check PayAI Bazaar visibility
+        if: always()
         run: node scripts/check-bazaar.mjs

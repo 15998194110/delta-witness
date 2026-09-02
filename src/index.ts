@@ -273,11 +273,13 @@ async function protectWithX402(product: PaidProduct, c: AppContext, next: Next):
         }],
         resource: `${origin(c.env)}${route}`,
         description: product === "capture"
-          ? "Preserve what a public webpage says now with timestamped artifact hashes"
-          : "Guard an autonomous action by comparing a fresh public-source observation with deterministic expectations",
+          ? "Browser verification and page state proof: preserve what a public webpage says now with timestamped artifact hashes"
+          : "Preflight an autonomous action by comparing a fresh public-source observation with deterministic expectations",
         mimeType: "application/json",
         serviceName: "delta-witness",
-        tags: ["web", "proof", product, "autonomous-agents"],
+        tags: product === "capture"
+          ? ["web", "proof", "capture", "browser-verification", "page-state-proof", "autonomous-agents"]
+          : ["web", "proof", "preflight", "browser-verification", "autonomous-action", "agent-guard"],
         extensions: {
           ...discoveryFor(product),
           [PAYMENT_IDENTIFIER]: declarePaymentIdentifierExtension(false),
@@ -736,8 +738,24 @@ app.post("/internal/indexnow", async (c) => {
   if (!c.env.INDEXNOW_ADMIN_SECRET) return c.json({ error: "indexnow_admin_not_configured" }, 503);
   const presented = c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
   if (!(await timingSafeEqualSecret(presented, c.env.INDEXNOW_ADMIN_SECRET))) return c.json({ error: "unauthorized" }, 401);
-  const response = await submitIndexNow(c.env);
-  return c.json({ ok: response.ok, status: response.status }, response.ok ? 200 : 502);
+  try {
+    const response = await submitIndexNow(c.env);
+    const responseBody = (await response.text()).replace(/\s+/g, " ").trim().slice(0, 1_000);
+    return c.json({
+      ok: response.ok,
+      status: response.status,
+      retryable: response.status === 408 || response.status === 425 || response.status === 429 || response.status >= 500,
+      upstream_response: responseBody || null,
+    }, response.ok ? 200 : 502);
+  } catch (error) {
+    return c.json({
+      ok: false,
+      status: null,
+      retryable: true,
+      error: "indexnow_transport_error",
+      detail: message(error).slice(0, 1_000),
+    }, 502);
+  }
 });
 
 app.notFound((c) => c.json({ error: "not_found" }, 404));

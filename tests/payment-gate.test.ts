@@ -36,6 +36,24 @@ function runtime(browser: { quickAction: ReturnType<typeof vi.fn> }): RuntimeEnv
 
 afterEach(() => vi.unstubAllGlobals());
 
+function stubTimingSafeEqual(): void {
+  const nativeCrypto = crypto;
+  vi.stubGlobal("crypto", {
+    ...nativeCrypto,
+    subtle: {
+      digest: nativeCrypto.subtle.digest.bind(nativeCrypto.subtle),
+      timingSafeEqual(left: ArrayBuffer, right: ArrayBuffer): boolean {
+        const leftBytes = new Uint8Array(left);
+        const rightBytes = new Uint8Array(right);
+        if (leftBytes.byteLength !== rightBytes.byteLength) return false;
+        let difference = 0;
+        for (let index = 0; index < leftBytes.byteLength; index += 1) difference |= leftBytes[index] ^ rightBytes[index];
+        return difference === 0;
+      },
+    },
+  });
+}
+
 describe("payment hard gate", () => {
   it("serves only the configured IndexNow ownership key", async () => {
     const env = runtime({ quickAction: vi.fn() });
@@ -44,6 +62,45 @@ describe("payment hard gate", () => {
     expect(valid.status).toBe(200);
     expect(await valid.text()).toBe("test-key");
     expect(invalid.status).toBe(404);
+  });
+
+  it("records retryable IndexNow upstream failures without exposing the admin secret", async () => {
+    stubTimingSafeEqual();
+    const env = runtime({ quickAction: vi.fn() });
+    env.INDEXNOW_ADMIN_SECRET = "indexnow-admin-secret";
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("temporary upstream outage", { status: 503 })));
+    const response = await app.request("https://delta.test/internal/indexnow", {
+      method: "POST",
+      headers: { authorization: "Bearer indexnow-admin-secret" },
+    }, env);
+    const body = await response.json<Record<string, unknown>>();
+    expect(response.status).toBe(502);
+    expect(body).toEqual({
+      ok: false,
+      status: 503,
+      retryable: true,
+      upstream_response: "temporary upstream outage",
+    });
+    expect(JSON.stringify(body)).not.toContain("indexnow-admin-secret");
+  });
+
+  it("reports IndexNow transport failures as retryable diagnostics", async () => {
+    stubTimingSafeEqual();
+    const env = runtime({ quickAction: vi.fn() });
+    env.INDEXNOW_ADMIN_SECRET = "indexnow-admin-secret";
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("connection reset"); }));
+    const response = await app.request("https://delta.test/internal/indexnow", {
+      method: "POST",
+      headers: { authorization: "Bearer indexnow-admin-secret" },
+    }, env);
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({
+      ok: false,
+      status: null,
+      retryable: true,
+      error: "indexnow_transport_error",
+      detail: "connection reset",
+    });
   });
 
   it("returns 402 without ever invoking Browser Run", async () => {

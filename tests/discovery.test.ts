@@ -26,5 +26,8 @@ describe("OpenAPI paid discovery", () => {
         network: "eip155:8453",
       });
     }
+    expect(JSON.stringify(document.paths["/v1/capture"].post).toLowerCase()).toContain("browser verification");
+    expect(JSON.stringify(document.paths["/v1/capture"].post).toLowerCase()).toContain("page state proof");
+    expect(JSON.stringify(document.paths["/v1/preflight"].post).toLowerCase()).toContain("preflight autonomous action");
   });
 });

@@ -160,7 +160,9 @@ jobs:
       - run: npm run build
       - run: npx wrangler pages deploy dist --project-name delta-witness-app --branch master
       - run: curl --fail --retry 5 --retry-delay 5 https://delta-witness-app.pages.dev/
-      - run: node ../../scripts/indexnow-app.mjs
+      - name: Push Base app IndexNow (diagnostic only)
+        continue-on-error: true
+        run: node ../../scripts/indexnow-pulse.mjs base-app
 
   npm-client:
     needs: verify
