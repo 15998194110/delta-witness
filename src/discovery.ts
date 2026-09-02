@@ -84,7 +84,7 @@ export function openApi(origin: string, version: string, capture: PricingQuote, 
       "/v1/quote": { get: { operationId: "quote", security: [], parameters: [{ name: "product", in: "query", schema: { enum: ["capture", "preflight"] } }], responses: { "200": { description: "Current floor-aware quote" } } } },
       "/v1/capture": {
         post: {
-          operationId: "capturePublicSource",
+          operationId: "browserVerificationPageStateProof",
           summary: "Browser verification and page-state proof for a public URL",
           description: `Capture what a public page says now and return timestamped proof metadata and hashes. Useful for browser verification and page state proof. x402 v2 upfront settlement. Current calculated price: $${capture.grossPriceUsd}.`,
           tags: ["browser verification", "page state proof", "web capture"],
@@ -96,7 +96,7 @@ export function openApi(origin: string, version: string, capture: PricingQuote, 
       },
       "/v1/preflight": {
         post: {
-          operationId: "guardAutonomousAction",
+          operationId: "preflightAutonomousAction",
           summary: "Preflight a public source before an autonomous action",
           description: `Verify page state before an agent executes a consequential autonomous action. Returns safe/changed/reason/diff plus a proof reference. Current calculated price: $${preflight.grossPriceUsd}.`,
           tags: ["preflight autonomous action", "browser verification", "agent guard"],

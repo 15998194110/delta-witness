@@ -29,5 +29,7 @@ describe("OpenAPI paid discovery", () => {
     expect(JSON.stringify(document.paths["/v1/capture"].post).toLowerCase()).toContain("browser verification");
     expect(JSON.stringify(document.paths["/v1/capture"].post).toLowerCase()).toContain("page state proof");
     expect(JSON.stringify(document.paths["/v1/preflight"].post).toLowerCase()).toContain("preflight autonomous action");
+    expect(document.paths["/v1/capture"].post.operationId).toBe("browserVerificationPageStateProof");
+    expect(document.paths["/v1/preflight"].post.operationId).toBe("preflightAutonomousAction");
   });
 });
