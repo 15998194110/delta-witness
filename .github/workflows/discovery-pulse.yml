@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DELTA_INDEXNOW_ADMIN_SECRET: ${{ secrets.DELTA_INDEXNOW_ADMIN_SECRET }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v6
       - name: Verify machine discovery surfaces
@@ -29,6 +31,8 @@ jobs:
           STATUS=$(curl -sS -o /tmp/delta-preflight.json -D /tmp/delta-preflight.headers -w '%{http_code}' -X POST "$BASE/v1/preflight" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
           test "$STATUS" = "402"
           grep -qi '^payment-required:' /tmp/delta-preflight.headers
+      - name: Audit paid funnel candidates
+        run: node scripts/query-revenue-candidates.mjs
       - name: Push core IndexNow
         id: indexnow-core
         continue-on-error: true
