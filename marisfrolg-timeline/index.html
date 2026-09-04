@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>MARISFROLG｜项目总控时间轴</title>
+<meta name="description" content="MARISFROLG 项目最终执行时间版｜手机端只读预览" />
+<style>
+:root{--bg:#f5f5f3;--card:#fff;--ink:#171717;--muted:#777;--line:#deded8;--accent:#1f1f1f;--green:#2f6b55;--purple:#6c5c8e;--blue:#526c86;--amber:#9a7441;--soft:#ecece7}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif;line-height:1.55}
+.wrap{max-width:880px;margin:0 auto;padding:20px 14px 72px}.hero{padding:28px 18px 22px;background:#171717;color:#fff;border-radius:22px;margin-bottom:14px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.kicker{font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.62}.hero h1{font-size:28px;line-height:1.15;margin:10px 0 8px}.hero p{margin:0;color:#cfcfcf;font-size:14px}.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}.badge{font-size:12px;padding:7px 10px;border-radius:999px;background:#2a2a2a;color:#efefef}.badge strong{color:#fff}
+.summary{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0}.metric{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}.metric b{display:block;font-size:18px}.metric span{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+.section-title{display:flex;align-items:end;justify-content:space-between;margin:26px 4px 12px}.section-title h2{font-size:18px;margin:0}.section-title span{font-size:11px;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:7px;margin:0 2px 12px}.legend span{font-size:11px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 9px}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.timeline{position:relative;margin-left:7px;padding-left:22px}.timeline:before{content:"";position:absolute;left:5px;top:12px;bottom:12px;width:1px;background:#cfcfc8}.phase{position:relative;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px 15px 14px;margin:0 0 11px;box-shadow:0 4px 14px rgba(0,0,0,.025)}.phase:before{content:"";position:absolute;left:-22px;top:22px;width:11px;height:11px;border-radius:50%;background:#222;border:3px solid var(--bg)}
+.phase.fixed:before{background:var(--blue)}.phase.window:before{background:var(--purple)}.phase.relative:before{background:var(--green)}.phase.dynamic:before{background:var(--amber)}
+.row{display:flex;gap:12px;justify-content:space-between;align-items:flex-start}.title{font-size:15px;font-weight:700}.date{font-size:12px;font-weight:650;white-space:nowrap;color:#333;background:var(--soft);padding:5px 8px;border-radius:999px}.phase p{font-size:13px;color:#555;margin:8px 0 0}.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.tag{font-size:10px;padding:5px 7px;border-radius:7px;background:#f3f3ef;color:#555;border:1px solid #e8e8e1}.tag.pay{background:#f7f1e8;color:#765528;border-color:#eadbc8}.tag.status{background:#edf4f0;color:#315c4c;border-color:#d8e7df}
+.detail{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden}.detail-head{padding:15px 16px;background:#1d1d1d;color:#fff}.detail-head b{font-size:15px}.detail-head span{display:block;color:#bbb;font-size:11px;margin-top:3px}.detail-row{display:grid;grid-template-columns:95px 1fr;border-top:1px solid #ecece7}.detail-row:first-child{border-top:0}.detail-date{padding:13px 12px;background:#fafaf8;font-size:12px;font-weight:700}.detail-main{padding:12px 13px}.detail-main b{font-size:13px}.detail-main p{font-size:12px;color:#666;margin:4px 0 0}.holiday{color:#8b6741}.review{color:#625277}
+.note{margin-top:18px;background:#ecece7;border-radius:16px;padding:14px 15px;font-size:12px;color:#555}.note b{color:#222}.footer{padding:24px 4px 0;text-align:center;color:#999;font-size:10px}
+@media(min-width:700px){.wrap{padding-top:34px}.summary{grid-template-columns:repeat(4,1fr)}.hero h1{font-size:36px}.phase{padding:17px}.detail-row{grid-template-columns:140px 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <div class="kicker">MARISFROLG · MASTER TIMELINE</div>
+    <h1>项目总控时间轴</h1>
+    <p>最终执行时间版｜手机端只读预览</p>
+    <div class="badges">
+      <div class="badge">当前基准：<strong>2026年9月版</strong></div>
+      <div class="badge">正式制作：<strong>9月24日启动</strong></div>
+      <div class="badge">第一阶段：<strong>10个工作日</strong></div>
+    </div>
+  </section>
+
+  <div class="summary">
+    <div class="metric"><b>¥600,000</b><span>合同总额（含税）</span></div>
+    <div class="metric"><b>60–86</b><span>整体预计工作日</span></div>
+    <div class="metric"><b>5</b><span>正式执行阶段</span></div>
+    <div class="metric"><b>20%</b><span>第一阶段退出节点</span></div>
+  </div>
+
+  <div class="section-title"><h2>总控排期</h2><span>FINAL TIME VERSION</span></div>
+  <div class="legend">
+    <span><i class="dot" style="background:#526c86"></i>固定日期</span>
+    <span><i class="dot" style="background:#6c5c8e"></i>汇报窗口</span>
+    <span><i class="dot" style="background:#2f6b55"></i>相对节点</span>
+    <span><i class="dot" style="background:#9a7441"></i>动态计划基准</span>
+  </div>
+
+  <div class="timeline">
+    <article class="phase fixed">
+      <div class="row"><div class="title">Pre-production｜项目资料整理与视觉预研</div><div class="date">9月3日–9月9日</div></div>
+      <p>项目资料整理、需求锁定、Reference 与视觉预研。作为正式制作前的内部准备，不计入合同第一阶段正式制作周期。</p>
+      <div class="meta"><span class="tag">内部准备</span><span class="tag">不作为正式交付</span></div>
+    </article>
+
+    <article class="phase fixed">
+      <div class="row"><div class="title">既定海外档期｜韩国＋日本</div><div class="date">9月10日–9月23日</div></div>
+      <p>既定海外团队档期，仅保留必要沟通；不安排正式汇报，不进入连续修改，不计入项目正式制作周期。</p>
+      <div class="meta"><span class="tag">外部档期</span><span class="tag">非正式制作周期</span></div>
+    </article>
+
+    <article class="phase fixed">
+      <div class="row"><div class="title">Phase 01｜20% Exit Stage｜展厅二前期静态美术</div><div class="date">9月24日–10月14日</div></div>
+      <p>第一阶段正式制作。完成展厅二整体静态美术创意与体验流程、主背景静态美术及关键视觉、建筑单体造型 / 材质 / 色彩 / 静态视觉表现。</p>
+      <div class="meta"><span class="tag status">正式制作阶段</span><span class="tag pay">20%｜¥120,000</span><span class="tag">7–10个工作日</span></div>
+    </article>
+
+    <article class="phase window">
+      <div class="row"><div class="title">20% EXIT REVIEW｜第一阶段正式汇报</div><div class="date">10月14日–10月15日</div></div>
+      <p>第一阶段汇报窗口，目标 10 月 14 日完成正式汇报。甲方据此进行 Continue / Exit 判断。</p>
+      <div class="meta"><span class="tag">目标汇报日：10月14日</span><span class="tag">Continue / Exit</span></div>
+    </article>
+
+    <article class="phase relative">
+      <div class="row"><div class="title">Client Review｜甲方统一反馈</div><div class="date">正式汇报后6个工作日</div></div>
+      <p>甲方原则上在收到阶段成果后 6 个工作日内一次性提交完整书面反馈。实际汇报日若顺延，反馈窗口及后续阶段同步顺延。</p>
+      <div class="meta"><span class="tag status">相对节点</span><span class="tag">等待书面确认</span></div>
+    </article>
+
+    <article class="phase dynamic">
+      <div class="row"><div class="title">Phase 02｜双厅完整美术设计</div><div class="date">确认继续后｜15–20个工作日</div></div>
+      <p>完成双厅完整视觉、UI视觉、动效美术、3D美术、CG背景美术、纸张模板、拍摄方案及交互桌造型设计。技术交互与程序实现不在本阶段。</p>
+      <div class="meta"><span class="tag pay">30%｜¥180,000</span><span class="tag">书面确认继续后启动</span><span class="tag">计划基准：10/23–11/19</span></div>
+    </article>
+
+    <article class="phase dynamic">
+      <div class="row"><div class="title">Phase 03｜展厅一园区实景主拍</div><div class="date">第二笔30%到账后｜5–8个工作日</div></div>
+      <p>围绕 24 组全景视频内容完成园区主拍，提交拍摄预览及音乐方向建议。受付款、天气、园区及现场条件影响动态调整。</p>
+      <div class="meta"><span class="tag pay">对应第三笔10%｜¥60,000</span><span class="tag">拍摄前须第二笔30%到账</span><span class="tag">计划基准：11/20–11/27</span></div>
+    </article>
+
+    <article class="phase dynamic">
+      <div class="row"><div class="title">Phase 04｜技术交互、程序开发与内容整合</div><div class="date">前序确认后｜28–40个工作日</div></div>
+      <p>完成双厅技术交互、软件程序、作品生成与上墙、影像后期及内容整合，并进行电脑端主要流程模拟测试。</p>
+      <div class="meta"><span class="tag pay">25%｜¥150,000</span><span class="tag">25–35个工作日开发</span><span class="tag">＋3–5个工作日模拟</span><span class="tag">计划基准至2027/1/22</span></div>
+    </article>
+
+    <article class="phase dynamic">
+      <div class="row"><div class="title">Phase 05｜现场部署、测试与验收</div><div class="date">Phase 04完成后｜5–8个工作日</div></div>
+      <p>完成现场部署、系统测试及验收，以现场硬件、网络、施工及第三方配合条件全部具备为前提。</p>
+      <div class="meta"><span class="tag pay">15%｜¥90,000</span><span class="tag">动态现场节点</span><span class="tag">计划基准：2027/1/25–2/3</span></div>
+    </article>
+
+    <article class="phase relative">
+      <div class="row"><div class="title">FINAL DELIVERY｜最终工程文件移交</div><div class="date">全部合同款到账后5个工作日内</div></div>
+      <p>条件触发节点，不预设固定日期。全部合同款项到账后，完成最终项目工程文件移交。</p>
+      <div class="meta"><span class="tag status">条件触发</span><span class="tag">无固定日期</span></div>
+    </article>
+  </div>
+
+  <div class="section-title"><h2>Phase 01｜第一阶段详细排期</h2><span>10 WORKING DAYS</span></div>
+  <section class="detail">
+    <div class="detail-head"><b>第一阶段：9月24日–10月14日</b><span>静态美术正式制作周期｜首笔20%实际到账后启动</span></div>
+    <div class="detail-row"><div class="detail-date">9月24日</div><div class="detail-main"><b>PROJECT RESTART｜正式启动</b><p>项目恢复正式推进；复核全部前期成果；锁定 Phase 01 任务。Day 1。</p></div></div>
+    <div class="detail-row"><div class="detail-date holiday">9月25日–27日</div><div class="detail-main"><b class="holiday">中秋假期｜非工作日</b><p>项目暂停正式计时，无正式交付。</p></div></div>
+    <div class="detail-row"><div class="detail-date">9月28日–30日</div><div class="detail-main"><b>Sprint 01｜Day 2–4</b><p>整体创意、主背景、建筑视觉体系、材质与色彩。</p></div></div>
+    <div class="detail-row"><div class="detail-date holiday">10月1日–7日</div><div class="detail-main"><b class="holiday">国庆假期｜非工作日</b><p>不安排正式项目工作及客户汇报。</p></div></div>
+    <div class="detail-row"><div class="detail-date">10月8日–10日</div><div class="detail-main"><b>Sprint 02｜Day 5–7</b><p>主背景深化、建筑单体统一、关键视觉、整体审美收口。10 月 10 日为官方调休工作日。</p></div></div>
+    <div class="detail-row"><div class="detail-date">10月12日–14日</div><div class="detail-main"><b>Finalization｜Day 8–10</b><p>最终效果图、方案逻辑、Presentation 整理与内部审核。</p></div></div>
+    <div class="detail-row"><div class="detail-date review">10月14日–15日</div><div class="detail-main"><b class="review">20% EXIT REVIEW｜汇报窗口</b><p>第一阶段正式汇报；目标 10 月 14 日。进入 Continue / Exit 判断。</p></div></div>
+  </section>
+
+  <div class="note"><b>排期说明：</b> Phase 01 为当前锁定的正式时间版；Phase 02–05 为在前序确认、付款、拍摄、硬件及现场条件成立情况下的计划基准。若实际汇报、书面反馈或付款节点顺延，后续阶段同步顺延。2027 年法定节假日尚未纳入最终动态调整。</div>
+  <div class="footer">RUPHUS STEN STUDIO × MARISFROLG · PROJECT CONTROL TIMELINE</div>
+</div>
+</body>
+</html>
