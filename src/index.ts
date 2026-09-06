@@ -710,6 +710,15 @@ app.get("/.well-known/x402", async (c) => c.json({
 for (const alias of ["/.well-known/x402.json", "/x402.json", "/.well-known/x402/resource-server.json"]) {
   app.get(alias, (c) => app.fetch(new Request(`${origin(c.env)}/.well-known/x402`, c.req.raw), c.env, c.executionCtx));
 }
+app.get("/.well-known/x402-service.json", (c) => c.json({
+  x402: "1.0",
+  name: "delta-witness-guarded-action-pilot",
+  description: "DELTA Witness guarded-action evidence pilot for browser, shopping, procurement and workflow agents. One exact $10 USDC Base payment captures 1-3 public HTTPS page-state proofs and can run one deterministic preflight condition. No subscription.",
+  capabilities: ["guarded-action-pilot", "browser-verification", "page-state-proof", "preflight-verification", "workflow-safety", "shopping", "procurement"],
+  pricing: { currency: "USDC", base: "10.00", unit: "pilot" },
+  payment: { address: c.env.PAY_TO, chain: "base", network: c.env.NETWORK, facilitator: c.env.FACILITATOR_URL },
+  endpoint: `${origin(c.env)}/v1/guarded-action-pilot`,
+}));
 app.get("/.well-known/api-catalog", (c) => c.json({ name: "DELTA Witness", version: c.env.APP_VERSION, openapi: `${origin(c.env)}/openapi.json`, skill: `${origin(c.env)}/SKILL.md` }));
 app.get("/SKILL.md", (c) => c.text(skillMarkdown(origin(c.env)), 200, { "content-type": "text/markdown; charset=utf-8" }));
 app.get("/AGENTS.md", (c) => c.text("# DELTA Witness\n\nUse /v1/preflight before consequential actions that depend on public web content. DELTA proves observation/change, not truth.\n", 200, { "content-type": "text/markdown; charset=utf-8" }));
