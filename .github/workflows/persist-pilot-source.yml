@@ -65,6 +65,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git add src tests wrangler.jsonc package.json channels packages distribution/mcp/server.template.json .github/scripts
+          git add src tests wrangler.jsonc package.json channels packages distribution/mcp/server.template.json
           git commit -m 'revenue: persist $10 guarded-action pilot source'
           git push origin HEAD:master
