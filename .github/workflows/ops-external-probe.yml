@@ -1,43 +1,54 @@
-name: DELTA external channel probe
+name: DELTA SwarmBazaar free listing
 
 on:
   push:
     paths:
       - '.github/workflows/ops-external-probe.yml'
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  probe:
+  submit:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
     steps:
-      - name: Inspect SwarmBazaar submission handler
+      - name: Submit free DELTA listing
         shell: bash
-        continue-on-error: true
         run: |
-          set +e
-          curl -L --retry 3 --retry-all-errors --max-time 20 -sS https://swarmbazaar.com/onboard.html -o /tmp/swarm.html
+          set -euo pipefail
+          cat >/tmp/payload.json <<'JSON'
+          {
+            "name":"DELTA Witness",
+            "url":"https://delta-witness-api.ruphussten.workers.dev",
+            "tagline":"Page-state proof and deterministic preflight for autonomous browser actions",
+            "category":"seller",
+            "protocols":"x402, MCP",
+            "offering_title":"Page-state witness + browser preflight",
+            "offering_detail":"Public URL evidence receipts and expected-condition checks for browser/workflow agents",
+            "offering_price":"$0.03/call · USDC on Base",
+            "logo":"",
+            "featured_plan":"none",
+            "endpoint":"https://delta-witness-api.ruphussten.workers.dev/.well-known/x402",
+            "email":"ruphussten85@gmail.com",
+            "website2":""
+          }
+          JSON
+          code=$(curl -L --retry 3 --retry-all-errors --max-time 20 -sS -o /tmp/response.json -w '%{http_code}' \
+            -X POST 'https://swarmbazaar.com/api/onboard' \
+            -H 'content-type: application/json' \
+            --data-binary @/tmp/payload.json)
+          echo "SWARMBAZAAR_HTTP=$code"
+          cat /tmp/response.json
+          test "$code" -ge 200 -a "$code" -lt 300
           python3 - <<'PY'
-          import re
-          s=open('/tmp/swarm.html',errors='ignore').read()
-          for pat in [r'fetch\([^\n]{0,500}', r'onboard-form.{0,2000}', r'/api/[^\"\'\s<]{1,100}', r'FormData\([^\n]{0,500}']:
-              print('PATTERN',pat)
-              for m in re.finditer(pat,s,re.I|re.S):
-                  a=max(0,m.start()-600); b=min(len(s),m.end()+1400)
-                  print(s[a:b].replace('\n',' ')[:3000])
-                  print('---')
+          import json
+          d=json.load(open('/tmp/response.json'))
+          if d.get('payment'):
+              raise SystemExit('Unexpected payment requested despite featured_plan=none')
+          print('SWARMBAZAAR_FREE_SUBMISSION_ACCEPTED')
           PY
-      - name: PayanAgent open requests isolated
-        shell: bash
-        continue-on-error: true
-        run: |
-          set +e
-          code=$(curl -L --retry 4 --retry-all-errors --max-time 20 -sS -o /tmp/payan.json -w '%{http_code}' 'https://payanagent.com/api/v1/requests?status=open&limit=100')
-          echo "PAYAN_HTTP=$code"
-      - name: Base Treasury reconciliation independent
+      - name: Independent Treasury check
         shell: bash
         run: |
           set -euo pipefail
