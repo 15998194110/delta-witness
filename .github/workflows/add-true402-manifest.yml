@@ -1,0 +1,104 @@
+name: Expose DELTA true402 Canonical Manifest
+
+on:
+  push:
+    paths:
+      - '.github/workflows/add-true402-manifest.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Add canonical true402 service manifest without touching paid routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/index.ts')
+          s=p.read_text()
+          route='/.well-known/x402-service.json'
+          if route in s:
+              print('manifest route already present')
+              raise SystemExit(0)
+          marker='app.get("/.well-known/api-catalog",'
+          if marker not in s:
+              raise SystemExit('api catalog marker missing')
+          block='''app.get("/.well-known/x402-service.json", (c) => c.json({
+            x402: "1.0",
+            name: "delta-witness-guarded-action-pilot",
+            description: "DELTA Witness guarded-action evidence pilot for browser, shopping, procurement and workflow agents. One exact $10 USDC Base payment captures 1-3 public HTTPS page-state proofs and can run one deterministic preflight condition. No subscription.",
+            capabilities: ["guarded-action-pilot", "browser-verification", "page-state-proof", "preflight-verification", "workflow-safety", "shopping", "procurement"],
+            pricing: { currency: "USDC", base: "10.00", unit: "pilot" },
+            payment: { address: c.env.PAY_TO, chain: "base", network: c.env.NETWORK, facilitator: c.env.FACILITATOR_URL },
+            endpoint: `${origin(c.env)}/v1/guarded-action-pilot`,
+          }));
+          '''
+          s=s.replace(marker, block+marker, 1)
+          p.write_text(s)
+          PY
+          npm ci
+          npm run check
+          npm test
+      - name: Persist additive manifest source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'DELTA Autonomous Growth'
+          git config user.email 'actions@users.noreply.github.com'
+          if git diff --quiet -- src/index.ts; then
+            echo 'No source change required'
+          else
+            git add src/index.ts
+            git commit -m 'growth: publish canonical true402 service manifest'
+            git pull --rebase origin master
+            git push origin HEAD:master
+          fi
+      - name: Deploy canonical manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx wrangler deploy
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          curl --fail --retry 5 --retry-all-errors --retry-delay 3 "$BASE/.well-known/x402-service.json" -o /tmp/manifest.json
+          jq -e '.name=="delta-witness-guarded-action-pilot" and .pricing.base=="10.00" and .payment.address=="0x1990e21bc219696ff7fbc26527dbaed335ac6367" and .payment.network=="eip155:8453" and .endpoint=="https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot"' /tmp/manifest.json >/dev/null
+          echo 'TRUE402_CANONICAL_MANIFEST=live_verified'
+      - name: Ask true402 to recrawl existing URL
+        shell: bash
+        run: |
+          set +e
+          API='https://true402.dev/api/v1/services'
+          code='000'
+          for n in 1 2 3 4; do
+            code="$(curl -sS --max-time 35 -o /tmp/true402.body -w '%{http_code}' -X POST "$API" -H 'content-type: application/json' --data '{"url":"https://delta-witness-api.ruphussten.workers.dev"}' || true)"
+            [[ "$code" =~ ^2 ]] && break
+            sleep $((n*2))
+          done
+          echo "TRUE402_RECRAWL_HTTP=$code"
+          cat /tmp/true402.body 2>/dev/null || true
+          echo
+          sleep 3
+          curl -sS --max-time 25 "$API" -o /tmp/catalog.json || true
+          if grep -qiE 'delta-witness-guarded-action-pilot|guarded-action-pilot' /tmp/catalog.json 2>/dev/null; then
+            echo 'TRUE402_PILOT_STATUS=live_in_catalog'
+          elif [[ "$code" =~ ^2 ]]; then
+            echo 'TRUE402_PILOT_STATUS=recrawl_accepted_propagating'
+          else
+            echo 'TRUE402_PILOT_STATUS=canonical_manifest_live_recrawl_degraded'
+          fi
+          exit 0
