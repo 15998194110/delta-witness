@@ -1,0 +1,69 @@
+name: DELTA growth probe
+
+on:
+  push:
+    paths:
+      - '.github/workflows/delta-growth-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Paywitness machine surfaces
+        shell: bash
+        run: |
+          set -u
+          for u in \
+            https://paywitness.ai/llms.txt \
+            https://paywitness.ai/openapi.json \
+            https://paywitness.ai/.well-known/openapi.json \
+            https://paywitness.ai/; do
+            echo "=== $u ==="
+            curl -L --max-time 20 -sS "$u" | grep -E -i -C 3 'POST /list|/list|self.?list|register' | head -80 || true
+          done
+      - name: PayanAgent funded compatible requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sS --fail --retry 3 'https://payanagent.com/api/v1/requests?status=open&limit=100' -o requests.json
+          python3 - <<'PY'
+          import json,re
+          d=json.load(open('requests.json'))
+          rows=d.get('requests',d if isinstance(d,list) else [])
+          terms=re.compile(r'(browser|url|web|verify|verification|evidence|preflight|audit|proof|page|shopping|procurement|workflow)',re.I)
+          out=[]
+          for r in rows:
+              text=' '.join(str(r.get(k,'')) for k in ('title','description','inputPayload'))
+              if terms.search(text):
+                  out.append({k:r.get(k) for k in ('id','title','budgetMaxCents','escrow','status','createdAt')})
+          print(json.dumps({'open_count':len(rows),'compatible':out[:30]},ensure_ascii=False))
+          PY
+      - name: Base Treasury USDC transfers
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL='https://base.blockscout.com/api/v2/addresses/0x1990e21bc219696ff7fbc26527dbaed335ac6367/token-transfers?type=ERC-20'
+          curl -sS --fail --retry 3 "$URL" -o transfers.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('transfers.json'))
+          items=d.get('items',[])
+          usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+          addr='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          out=[]
+          for x in items:
+              token=x.get('token') or {}
+              ta=(token.get('address_hash') or token.get('address') or '').lower()
+              to=((x.get('to') or {}).get('hash') if isinstance(x.get('to'),dict) else x.get('to') or '').lower()
+              if ta==usdc and to==addr:
+                  dec=int(token.get('decimals') or 6)
+                  raw=x.get('total',{}).get('value') if isinstance(x.get('total'),dict) else x.get('value')
+                  try: amount=int(raw)/(10**dec)
+                  except: amount=raw
+                  out.append({'tx_hash':x.get('transaction_hash'),'timestamp':x.get('timestamp'),'from':(x.get('from') or {}).get('hash') if isinstance(x.get('from'),dict) else x.get('from'),'amount_usdc':amount})
+          print(json.dumps({'latest_incoming_usdc':out[:20]},ensure_ascii=False))
+          PY
