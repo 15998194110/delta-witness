@@ -1,0 +1,104 @@
+name: Publish DELTA Guarded Pilot Free Surfaces
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-guarded-pilot-free-surfaces.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: x402 Arena guarded pilot registration
+        shell: bash
+        run: |
+          set +e
+          API='https://core.x402arena.gg/register'
+          payload='{"name":"delta-witness-guarded-action-pilot","endpoint":"https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot","method":"POST","niche":"workflow-safety","description":"Exact $10 USDC guarded-action pilot for browser, shopping, procurement and workflow agents: capture 1-3 public HTTPS page-state proofs and optionally run one deterministic preflight condition before a consequential action. No subscription; same-day bounded evidence package.","walletAddress":"0x1990e21bc219696ff7fbc26527dbaed335ac6367","resourceType":"http"}'
+          code='000'
+          for n in 1 2 3 4; do
+            code="$(curl -sS --max-time 35 -o /tmp/arena.body -w '%{http_code}' -X POST "$API" -H 'content-type: application/json' --data "$payload" || true)"
+            [[ "$code" =~ ^2 ]] && break
+            sleep $((n*2))
+          done
+          echo "ARENA_REGISTER_HTTP=$code"
+          cat /tmp/arena.body 2>/dev/null || true
+          echo
+          sleep 5
+          verify="$(curl -sS --max-time 30 -o /tmp/arena-agents.json -w '%{http_code}' 'https://core.x402arena.gg/operator/agents' || true)"
+          echo "ARENA_VERIFY_HTTP=$verify"
+          if grep -q 'delta-witness-guarded-action-pilot' /tmp/arena-agents.json 2>/dev/null; then
+            echo 'ARENA_PILOT_STATUS=live_in_registry'
+            python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/arena-agents.json'))
+          def walk(x):
+              if isinstance(x,dict):
+                  if x.get('name')=='delta-witness-guarded-action-pilot': print(json.dumps(x,ensure_ascii=False))
+                  for v in x.values(): walk(v)
+              elif isinstance(x,list):
+                  for v in x: walk(v)
+          walk(d)
+          PY
+          elif [[ "$code" =~ ^2 ]]; then
+            echo 'ARENA_PILOT_STATUS=accepted_propagating'
+          else
+            echo 'ARENA_PILOT_STATUS=degraded_or_rejected'
+          fi
+          exit 0
+
+      - name: true402 guarded pilot registration
+        shell: bash
+        run: |
+          set +e
+          API='https://true402.dev/api/v1/services'
+          payload=$(jq -cn '{url:"https://delta-witness-api.ruphussten.workers.dev",manifest:{x402:"1.0",name:"delta-witness-guarded-action-pilot",capabilities:["guarded-action-pilot","browser-verification","page-state-proof","preflight-verification","workflow-safety","shopping","procurement"],pricing:{currency:"USDC",base:"10.00",unit:"pilot"},payment:{address:"0x1990e21bc219696ff7fbc26527dbaed335ac6367",chain:"base",facilitator:"https://facilitator.payai.network"},endpoint:"https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot"}}')
+          code='000'
+          for n in 1 2 3 4; do
+            code="$(curl -sS --max-time 35 -o /tmp/true402.body -w '%{http_code}' -X POST "$API" -H 'content-type: application/json' --data "$payload" || true)"
+            [[ "$code" =~ ^2 ]] && break
+            sleep $((n*2))
+          done
+          echo "TRUE402_PILOT_REGISTER_HTTP=$code"
+          cat /tmp/true402.body 2>/dev/null || true
+          echo
+          sleep 2
+          curl -sS --max-time 25 "$API" -o /tmp/true402-after.json || true
+          if grep -qi 'delta-witness-guarded-action-pilot' /tmp/true402-after.json 2>/dev/null; then
+            echo 'TRUE402_PILOT_STATUS=live_in_catalog'
+          elif [[ "$code" =~ ^2 ]]; then
+            echo 'TRUE402_PILOT_STATUS=accepted_propagating'
+          else
+            echo 'TRUE402_PILOT_STATUS=degraded_or_rejected'
+          fi
+          exit 0
+
+      - name: Agent402 refresh and premium route discovery
+        shell: bash
+        run: |
+          set +e
+          ORIGIN='https://delta-witness-api.ruphussten.workers.dev'
+          code='000'
+          for n in 1 2 3 4; do
+            code="$(curl -sS --max-time 35 -o /tmp/agent402-register.json -w '%{http_code}' -X POST 'https://agent402.tools/api/index/register' -H 'content-type: application/json' --data "{\"origin\":\"$ORIGIN\"}" || true)"
+            [[ "$code" =~ ^2 ]] && break
+            sleep $((n*2))
+          done
+          echo "AGENT402_REFRESH_HTTP=$code"
+          cat /tmp/agent402-register.json 2>/dev/null || true
+          echo
+          sleep 3
+          curl -sS --max-time 30 'https://agent402.tools/api/find?q=guarded-action%20pilot%20page-state%20proof%20workflow' -o /tmp/agent402-find.json || true
+          if grep -qiE 'guardedActionPilot|guarded-action-pilot|/v1/guarded-action-pilot' /tmp/agent402-find.json 2>/dev/null; then
+            echo 'AGENT402_PILOT_STATUS=discoverable'
+            grep -ioE '.{0,240}(guardedActionPilot|guarded-action-pilot|/v1/guarded-action-pilot).{0,800}' /tmp/agent402-find.json | head -10 || true
+          else
+            echo 'AGENT402_PILOT_STATUS=refresh_accepted_index_propagating_or_parser_excluded'
+            head -c 2000 /tmp/agent402-find.json 2>/dev/null || true
+            echo
+          fi
+          exit 0
