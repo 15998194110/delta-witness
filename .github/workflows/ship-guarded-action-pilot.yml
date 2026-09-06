@@ -35,6 +35,15 @@ jobs:
           git fetch origin guarded-action-pilot-v070
           git checkout -B guarded-action-pilot-v070 origin/guarded-action-pilot-v070
           git merge --no-edit origin/master
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/scripts/apply-guarded-action-pilot.py')
+          s=p.read_text()
+          tick=chr(92)+'`'
+          s=s.replace('`POST ${origin}/v1/preflight`', tick+'POST ${origin}/v1/preflight'+tick)
+          s=s.replace('`POST ${origin}/v1/guarded-action-pilot`', tick+'POST ${origin}/v1/guarded-action-pilot'+tick)
+          p.write_text(s)
+          PY
           python3 .github/scripts/apply-guarded-action-pilot.py
       - name: Verify core and release surfaces
         shell: bash
