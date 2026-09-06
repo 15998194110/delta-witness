@@ -1,0 +1,791 @@
+name: Ship DELTA Guarded-Action Pilot
+
+on:
+  push:
+    paths:
+      - '.github/workflows/ship-guarded-action-pilot.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: delta-guarded-action-pilot-ship
+  cancel-in-progress: false
+
+jobs:
+  ship:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Add guarded-action pilot implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > src/guarded-pilot.ts <<'TS'
+          import type { Context, Next } from "hono";
+          import { paymentMiddleware } from "@x402/hono";
+          import { HTTPFacilitatorClient, x402ResourceServer } from "@x402/core/server";
+          import { registerExactEvmScheme } from "@x402/evm/exact/server";
+          import { bazaarResourceServerExtension, declareDiscoveryExtension } from "@x402/extensions/bazaar";
+          import {
+            PAYMENT_IDENTIFIER,
+            declarePaymentIdentifierExtension,
+            paymentIdentifierResourceServerExtension,
+          } from "@x402/extensions/payment-identifier";
+          import type { RuntimeEnv } from "./env";
+          import { sha256, stableJson } from "./crypto";
+          import {
+            getPaymentHeader,
+            readJsonRequestBounded,
+            referrerChannel,
+            resolvePublicRedirects,
+            validateTarget,
+            type RedirectResolution,
+          } from "./security";
+          import { capturePage, storeCapture, type CaptureArtifacts } from "./capture";
+          import { evaluatePreflight, parsePreflightRequest, type PreflightRequest } from "./fulfillment";
+          import { estimateVariableCost } from "./pricing";
+          import { recordEvent } from "./telemetry";
+          import { GUARDED_ACTION_PILOT_INPUT_SCHEMA, GUARDED_ACTION_PILOT_OUTPUT_SCHEMA } from "./discovery";
+
+          export const GUARDED_ACTION_PILOT_PRICE_USD = 10;
+          const PILOT_ROUTE = "/v1/guarded-action-pilot";
+          const MAX_PILOT_BODY_BYTES = 16_384;
+          const PROCESSING_LEASE_MS = 90_000;
+
+          export type GuardedPilotInput = {
+            urls: string[];
+            preflight?: {
+              url_index: number;
+              expected: NonNullable<PreflightRequest["expected"]>;
+            };
+          };
+
+          type PilotProof = {
+            url: string;
+            proof_id: string;
+            manifest_url: string;
+            public_proof_url: string;
+            bundle_root: string;
+            observed_at: string;
+            allocated_price_usd: number;
+          };
+
+          type PilotResponse = {
+            ok: true;
+            product: "guarded_action_pilot";
+            price_usd: 10;
+            proofs: PilotProof[];
+            preflight?: {
+              url_index: number;
+              url: string;
+              safe: boolean | null;
+              changed: boolean | null;
+              reason: string;
+              diff: Record<string, unknown>;
+            };
+            economics: {
+              variable_cost_usd: number;
+              contribution_margin_usd: number;
+            };
+            idempotent_replay?: boolean;
+          };
+
+          type PilotRecord = {
+            schema: "delta-guarded-action-pilot/v1";
+            state: "processing" | "retryable_failure" | "complete";
+            route: typeof PILOT_ROUTE;
+            request_hash: string;
+            payment_fingerprint: string;
+            attempts: number;
+            created_at: string;
+            updated_at: string;
+            error?: string;
+            response?: PilotResponse;
+          };
+
+          type StoredPilotRecord = { record: PilotRecord; etag: string };
+
+          function isPlainObject(value: unknown): value is Record<string, unknown> {
+            return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+          }
+
+          function assertOnlyKeys(value: Record<string, unknown>, allowed: string[]): void {
+            if (Object.keys(value).some((key) => !allowed.includes(key))) throw new Error("unknown_request_field");
+          }
+
+          export function parseGuardedPilotInput(value: unknown): GuardedPilotInput {
+            if (!isPlainObject(value)) throw new Error("invalid_request_body");
+            assertOnlyKeys(value, ["urls", "preflight"]);
+            if (!Array.isArray(value.urls) || value.urls.length < 1 || value.urls.length > 3) throw new Error("invalid_urls");
+            const urls = value.urls.map((item) => {
+              if (typeof item !== "string") throw new Error("invalid_urls");
+              return validateTarget(item).toString();
+            });
+            const result: GuardedPilotInput = { urls };
+            if (value.preflight !== undefined) {
+              if (!isPlainObject(value.preflight)) throw new Error("invalid_preflight");
+              assertOnlyKeys(value.preflight, ["url_index", "expected"]);
+              const index = value.preflight.url_index;
+              if (!Number.isInteger(index) || Number(index) < 0 || Number(index) >= urls.length) throw new Error("invalid_preflight_url_index");
+              const parsed = parsePreflightRequest({ url: urls[Number(index)], expected: value.preflight.expected });
+              if (!parsed.expected) throw new Error("empty_expected");
+              result.preflight = { url_index: Number(index), expected: parsed.expected };
+            }
+            return result;
+          }
+
+          export function guardedPilotEconomics(env: RuntimeEnv): Record<string, number | string> {
+            const expectedVariableCostUsd = estimateVariableCost(env, 75_000, 27_000_000, 15);
+            return {
+              product: "guarded_action_pilot",
+              grossPriceUsd: GUARDED_ACTION_PILOT_PRICE_USD,
+              expectedVariableCostUsd,
+              estimatedContributionMarginUsd: GUARDED_ACTION_PILOT_PRICE_USD - expectedVariableCostUsd,
+              maxUrls: 3,
+            };
+          }
+
+          function pilotRecordKey(fingerprint: string): string {
+            return `guarded-pilot/${fingerprint.replace(/^sha256:/, "")}.json`;
+          }
+
+          async function readPilotRecord(env: RuntimeEnv, key: string): Promise<StoredPilotRecord | null> {
+            const object = await env.PROOFS.get(key);
+            if (!object) return null;
+            const record = await object.json<PilotRecord>();
+            if (record.schema !== "delta-guarded-action-pilot/v1") throw new Error("invalid_pilot_record");
+            return { record, etag: object.etag };
+          }
+
+          async function writePilotRecord(env: RuntimeEnv, key: string, record: PilotRecord): Promise<void> {
+            await env.PROOFS.put(key, JSON.stringify(record), { httpMetadata: { contentType: "application/json; charset=utf-8" } });
+          }
+
+          function isProcessingFresh(record: PilotRecord): boolean {
+            return record.state === "processing" && Date.now() - Date.parse(record.updated_at) < PROCESSING_LEASE_MS;
+          }
+
+          function noStore(response: Response): Response {
+            response.headers.set("cache-control", "private, no-store");
+            return response;
+          }
+
+          export async function guardedPilotPrevalidate(c: Context<any>, next: Next): Promise<Response | void> {
+            if (c.req.method !== "POST") return next();
+            const payment = getPaymentHeader(c.req.raw);
+            const channel = referrerChannel(c.req.raw);
+            c.set("pilotChannel", channel);
+            c.set("pilotReplayAuthorized", false);
+            if (!payment) return next();
+            try {
+              const raw = await readJsonRequestBounded(c.req.raw, MAX_PILOT_BODY_BYTES);
+              const body = parseGuardedPilotInput(raw);
+              const targets = await Promise.all(body.urls.map((url) => resolvePublicRedirects(url)));
+              const requestHash = await sha256(`${PILOT_ROUTE}\n${stableJson(body)}`);
+              const paymentFingerprint = await sha256(payment);
+              const key = pilotRecordKey(paymentFingerprint);
+              c.set("pilotBody", body);
+              c.set("pilotTargets", targets);
+              c.set("pilotRequestHash", requestHash);
+              c.set("pilotPaymentFingerprint", paymentFingerprint);
+              c.set("pilotRecordKey", key);
+              await recordEvent(c.env as RuntimeEnv, {
+                event: "qualified_request",
+                route: PILOT_ROUTE,
+                channel,
+                grossUsd: GUARDED_ACTION_PILOT_PRICE_USD,
+                success: true,
+              });
+              const stored = await readPilotRecord(c.env as RuntimeEnv, key);
+              if (!stored) return next();
+              if (stored.record.request_hash !== requestHash) return c.json({ error: "payment_already_used_for_different_request" }, 409);
+              if (stored.record.state === "complete" && stored.record.response) {
+                await recordEvent(c.env as RuntimeEnv, { event: "repeat_call", route: PILOT_ROUTE, channel, success: true });
+                return noStore(c.json({ ...stored.record.response, idempotent_replay: true }));
+              }
+              if (isProcessingFresh(stored.record)) {
+                c.header("retry-after", "5");
+                return c.json({ ok: false, state: "processing", retryable: true }, 202);
+              }
+              const claimed: PilotRecord = {
+                ...stored.record,
+                state: "processing",
+                attempts: stored.record.attempts + 1,
+                updated_at: new Date().toISOString(),
+                error: undefined,
+              };
+              const result = await (c.env as RuntimeEnv).PROOFS.put(key, JSON.stringify(claimed), {
+                onlyIf: { etagMatches: stored.etag },
+                httpMetadata: { contentType: "application/json; charset=utf-8" },
+              });
+              if (!result) {
+                c.header("retry-after", "5");
+                return c.json({ ok: false, state: "processing", retryable: true }, 202);
+              }
+              c.set("pilotRecord", claimed);
+              c.set("pilotReplayAuthorized", true);
+              await recordEvent(c.env as RuntimeEnv, { event: "repeat_call", route: PILOT_ROUTE, channel, success: true });
+              return next();
+            } catch (error) {
+              const reason = error instanceof Error ? error.message : "invalid_request";
+              const status = reason === "request_too_large" || reason === "body_too_large" ? 413 : 400;
+              return c.json({ error: reason }, status);
+            }
+          }
+
+          export async function guardedPilotProtect(c: Context<any>, next: Next): Promise<Response | void> {
+            if (c.get("pilotReplayAuthorized")) return next();
+            const env = c.env as RuntimeEnv;
+            const facilitator = new HTTPFacilitatorClient({ url: env.FACILITATOR_URL });
+            const server = new x402ResourceServer(facilitator);
+            registerExactEvmScheme(server);
+            server.registerExtension(bazaarResourceServerExtension);
+            server.registerExtension(paymentIdentifierResourceServerExtension);
+            const middleware = paymentMiddleware(
+              {
+                [`POST ${PILOT_ROUTE}`]: {
+                  accepts: [{
+                    scheme: "exact",
+                    price: "$10",
+                    network: env.NETWORK as `eip155:${string}`,
+                    payTo: env.PAY_TO,
+                    maxTimeoutSeconds: 300,
+                    extra: { paymentFlow: "upfront" },
+                  }],
+                  resource: `${(env.PUBLIC_ORIGIN || "https://delta-witness-api.ruphussten.workers.dev").replace(/\/+$/, "")}${PILOT_ROUTE}`,
+                  description: "One $10 guarded-action pilot: capture 1-3 public URLs as page-state evidence and optionally run one deterministic preflight check before a browser, shopping, procurement, coding, or workflow action.",
+                  mimeType: "application/json",
+                  serviceName: "delta-witness",
+                  tags: [
+                    "guarded-action-pilot",
+                    "browser-agent-pilot",
+                    "page-state-evidence-bundle",
+                    "preflight-verification",
+                    "shopping",
+                    "procurement",
+                    "workflow-safety",
+                  ],
+                  extensions: {
+                    ...declareDiscoveryExtension({
+                      bodyType: "json",
+                      input: { urls: ["https://example.com"], preflight: { url_index: 0, expected: { contains: ["Example Domain"] } } },
+                      inputSchema: GUARDED_ACTION_PILOT_INPUT_SCHEMA,
+                      output: {
+                        example: {
+                          ok: true,
+                          product: "guarded_action_pilot",
+                          price_usd: 10,
+                          proofs: [{
+                            url: "https://example.com/",
+                            proof_id: "7d9d12f7-8f91-5f41-9f0c-5ef257d9ea5d",
+                            manifest_url: "https://delta-witness-api.ruphussten.workers.dev/v1/proofs/7d9d12f7-8f91-5f41-9f0c-5ef257d9ea5d",
+                            public_proof_url: "https://delta-witness-api.ruphussten.workers.dev/p/7d9d12f7-8f91-5f41-9f0c-5ef257d9ea5d",
+                            bundle_root: `sha256:${"0".repeat(64)}`,
+                            observed_at: "2026-09-07T00:00:00.000Z",
+                            allocated_price_usd: 10,
+                          }],
+                        },
+                        schema: GUARDED_ACTION_PILOT_OUTPUT_SCHEMA,
+                      },
+                    }),
+                    [PAYMENT_IDENTIFIER]: declarePaymentIdentifierExtension(false),
+                  },
+                  unpaidResponseBody: () => ({
+                    contentType: "application/json",
+                    body: {
+                      error: "payment_required",
+                      product: "guarded_action_pilot",
+                      price_usd: GUARDED_ACTION_PILOT_PRICE_USD,
+                      network: env.NETWORK,
+                      asset: "USDC",
+                      payment_flow: "upfront",
+                      max_urls: 3,
+                    },
+                  }),
+                },
+              },
+              server,
+            );
+            const middlewareResponse = await middleware(c, next);
+            if (middlewareResponse instanceof Response) c.res = middlewareResponse;
+            if (c.res.status === 402) {
+              await recordEvent(env, {
+                event: "payment_required",
+                route: PILOT_ROUTE,
+                channel: c.get("pilotChannel") || referrerChannel(c.req.raw),
+                grossUsd: GUARDED_ACTION_PILOT_PRICE_USD,
+                success: false,
+              });
+            }
+            return c.res;
+          }
+
+          export async function guardedPilotHandler(c: Context<any>): Promise<Response> {
+            const env = c.env as RuntimeEnv;
+            const body = c.get("pilotBody") as GuardedPilotInput | undefined;
+            const targets = c.get("pilotTargets") as RedirectResolution[] | undefined;
+            const requestHash = c.get("pilotRequestHash") as string | undefined;
+            const paymentFingerprint = c.get("pilotPaymentFingerprint") as string | undefined;
+            const key = c.get("pilotRecordKey") as string | undefined;
+            const channel = (c.get("pilotChannel") as string | undefined) || referrerChannel(c.req.raw);
+            if (!body || !targets || !requestHash || !paymentFingerprint || !key) return c.json({ error: "settled_payment_identity_missing" }, 500);
+
+            let record = c.get("pilotRecord") as PilotRecord | undefined;
+            let firstAttempt = false;
+            if (!record) {
+              firstAttempt = true;
+              const now = new Date().toISOString();
+              record = {
+                schema: "delta-guarded-action-pilot/v1",
+                state: "processing",
+                route: PILOT_ROUTE,
+                request_hash: requestHash,
+                payment_fingerprint: paymentFingerprint,
+                attempts: 1,
+                created_at: now,
+                updated_at: now,
+              };
+              const created = await env.PROOFS.put(key, JSON.stringify(record), {
+                onlyIf: { etagDoesNotMatch: "*" },
+                httpMetadata: { contentType: "application/json; charset=utf-8" },
+              });
+              if (!created) {
+                const existing = await readPilotRecord(env, key);
+                if (!existing || existing.record.request_hash !== requestHash) return c.json({ error: "fulfillment_key_conflict" }, 409);
+                if (existing.record.state === "complete" && existing.record.response) {
+                  return noStore(c.json({ ...existing.record.response, idempotent_replay: true }));
+                }
+                c.header("retry-after", "5");
+                return c.json({ ok: false, state: "processing", retryable: true }, 202);
+              }
+            }
+
+            if (firstAttempt) {
+              await recordEvent(env, {
+                event: "payment_verified",
+                route: PILOT_ROUTE,
+                channel,
+                grossUsd: GUARDED_ACTION_PILOT_PRICE_USD,
+                success: true,
+              });
+            }
+            await recordEvent(env, { event: "capture_started", route: PILOT_ROUTE, channel, success: true });
+
+            try {
+              const captures: CaptureArtifacts[] = [];
+              const proofs: PilotProof[] = [];
+              let browserMs = 0;
+              let storageBytes = 0;
+              let variableCostUsd = 0;
+              const unit = Math.floor((GUARDED_ACTION_PILOT_PRICE_USD / targets.length) * 1_000_000) / 1_000_000;
+              const origin = (env.PUBLIC_ORIGIN || "https://delta-witness-api.ruphussten.workers.dev").replace(/\/+$/, "");
+              for (let index = 0; index < targets.length; index += 1) {
+                const allocatedPrice = index === targets.length - 1
+                  ? GUARDED_ACTION_PILOT_PRICE_USD - unit * (targets.length - 1)
+                  : unit;
+                const fulfillmentFingerprint = await sha256(`${paymentFingerprint}\n${requestHash}\n${index}`);
+                const artifacts = await capturePage({
+                  env,
+                  product: "capture",
+                  target: targets[index],
+                  fulfillmentFingerprint,
+                  grossPriceUsd: allocatedPrice,
+                  paymentProtocol: "x402-v2-upfront",
+                  channel,
+                });
+                await storeCapture(env, artifacts);
+                captures.push(artifacts);
+                browserMs += artifacts.manifest.execution.browser_ms_used;
+                storageBytes += artifacts.manifest.artifact_sizes.total_bytes;
+                variableCostUsd += artifacts.manifest.execution.estimated_variable_cost_usd;
+                proofs.push({
+                  url: body.urls[index],
+                  proof_id: artifacts.manifest.proof_id,
+                  manifest_url: `${origin}/v1/proofs/${artifacts.manifest.proof_id}`,
+                  public_proof_url: `${origin}/p/${artifacts.manifest.proof_id}`,
+                  bundle_root: artifacts.manifest.hashes.bundle_root,
+                  observed_at: artifacts.manifest.capture_completed_at,
+                  allocated_price_usd: allocatedPrice,
+                });
+              }
+
+              let preflight: PilotResponse["preflight"];
+              if (body.preflight) {
+                const index = body.preflight.url_index;
+                const evaluation = evaluatePreflight(
+                  { url: body.urls[index], expected: body.preflight.expected },
+                  captures[index].manifest,
+                  captures[index].markdown,
+                );
+                preflight = {
+                  url_index: index,
+                  url: body.urls[index],
+                  safe: evaluation.safe,
+                  changed: evaluation.changed,
+                  reason: evaluation.reason,
+                  diff: evaluation.diff,
+                };
+              }
+              const response: PilotResponse = {
+                ok: true,
+                product: "guarded_action_pilot",
+                price_usd: 10,
+                proofs,
+                preflight,
+                economics: {
+                  variable_cost_usd: variableCostUsd,
+                  contribution_margin_usd: GUARDED_ACTION_PILOT_PRICE_USD - variableCostUsd,
+                },
+              };
+              await writePilotRecord(env, key, {
+                ...record,
+                state: "complete",
+                updated_at: new Date().toISOString(),
+                error: undefined,
+                response,
+              });
+              await recordEvent(env, {
+                event: "capture_completed",
+                route: PILOT_ROUTE,
+                channel,
+                success: true,
+                grossUsd: GUARDED_ACTION_PILOT_PRICE_USD,
+                browserMs,
+                storageBytes,
+                variableCostUsd,
+                contributionMarginUsd: GUARDED_ACTION_PILOT_PRICE_USD - variableCostUsd,
+              });
+              return noStore(c.json(response));
+            } catch (error) {
+              const reason = (error instanceof Error ? error.message : "pilot_capture_failed").slice(0, 160);
+              await writePilotRecord(env, key, {
+                ...record,
+                state: "retryable_failure",
+                error: reason,
+                updated_at: new Date().toISOString(),
+              });
+              await recordEvent(env, {
+                event: "capture_failed",
+                route: PILOT_ROUTE,
+                channel,
+                grossUsd: GUARDED_ACTION_PILOT_PRICE_USD,
+                success: false,
+                reason,
+              });
+              return noStore(c.json({ error: "guarded_action_pilot_failed", reason, retryable: true, payment_will_not_be_charged_again: true }, 502));
+            }
+          }
+          TS
+
+          cat > tests/guarded-pilot.test.ts <<'TS'
+          import { describe, expect, it } from "vitest";
+          import type { RuntimeEnv } from "../src/env";
+          import {
+            GUARDED_ACTION_PILOT_PRICE_USD,
+            guardedPilotEconomics,
+            parseGuardedPilotInput,
+          } from "../src/guarded-pilot";
+
+          describe("guarded action pilot", () => {
+            it("keeps the package at exactly ten dollars", () => {
+              const economics = guardedPilotEconomics({} as RuntimeEnv);
+              expect(GUARDED_ACTION_PILOT_PRICE_USD).toBe(10);
+              expect(economics.grossPriceUsd).toBe(10);
+              expect(Number(economics.estimatedContributionMarginUsd)).toBeGreaterThan(9);
+            });
+
+            it("accepts one to three public targets with one deterministic preflight", () => {
+              const parsed = parseGuardedPilotInput({
+                urls: ["https://example.com", "https://example.org/path"],
+                preflight: { url_index: 1, expected: { contains: ["Example"] } },
+              });
+              expect(parsed.urls).toHaveLength(2);
+              expect(parsed.preflight?.url_index).toBe(1);
+              expect(parsed.preflight?.expected.contains).toEqual(["Example"]);
+            });
+
+            it("rejects packages larger than three URLs", () => {
+              expect(() => parseGuardedPilotInput({
+                urls: ["https://a.example", "https://b.example", "https://c.example", "https://d.example"],
+              })).toThrow("invalid_urls");
+            });
+          });
+          TS
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one match, got {count}: {old[:100]!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          # Discovery schemas and machine-readable pilot path.
+          replace_once(
+              "src/discovery.ts",
+              "export const DELIVERY_SCHEMA = {",
+              '''export const GUARDED_ACTION_PILOT_INPUT_SCHEMA = {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              urls: {
+                type: "array",
+                minItems: 1,
+                maxItems: 3,
+                items: { type: "string", pattern: "^https://", description: "Public HTTPS webpage to witness." },
+              },
+              preflight: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  url_index: { type: "integer", minimum: 0, maximum: 2 },
+                  expected: PREFLIGHT_INPUT_SCHEMA.properties.expected,
+                },
+                required: ["url_index", "expected"],
+              },
+            },
+            required: ["urls"],
+          } as const;
+
+          export const GUARDED_ACTION_PILOT_OUTPUT_SCHEMA = {
+            type: "object",
+            required: ["ok", "product", "price_usd", "proofs", "economics"],
+            properties: {
+              ok: { const: true },
+              product: { const: "guarded_action_pilot" },
+              price_usd: { const: 10 },
+              proofs: {
+                type: "array",
+                minItems: 1,
+                maxItems: 3,
+                items: {
+                  type: "object",
+                  required: ["url", "proof_id", "manifest_url", "public_proof_url", "bundle_root", "observed_at", "allocated_price_usd"],
+                  properties: {
+                    url: { type: "string" },
+                    proof_id: { type: "string" },
+                    manifest_url: { type: "string" },
+                    public_proof_url: { type: "string" },
+                    bundle_root: { type: "string" },
+                    observed_at: { type: "string" },
+                    allocated_price_usd: { type: "number" },
+                  },
+                },
+              },
+              preflight: { type: "object" },
+              economics: { type: "object" },
+              idempotent_replay: { type: "boolean" },
+            },
+          } as const;
+
+          export const DELIVERY_SCHEMA = {'''
+          )
+          replace_once(
+              "src/discovery.ts",
+              '      "x-guidance": "Call GET /v1/quote before budgeting. Capture preserves a public observation; Guard compares one with deterministic expectations. Runtime HTTP 402 payment requirements are authoritative.",',
+              '      "x-guidance": "Call GET /v1/quote before budgeting. Capture preserves a public observation; Guard compares one with deterministic expectations; Guarded-Action Pilot bundles 1-3 public URL proofs for exactly $10. Runtime HTTP 402 payment requirements are authoritative.",'
+          )
+          replace_once(
+              "src/discovery.ts",
+              '      "/v1/quote": { get: { operationId: "quote", security: [], parameters: [{ name: "product", in: "query", schema: { enum: ["capture", "preflight"] } }], responses: { "200": { description: "Current floor-aware quote" } } } },',
+              '      "/v1/quote": { get: { operationId: "quote", security: [], parameters: [{ name: "product", in: "query", schema: { enum: ["capture", "preflight", "guarded-action-pilot"] } }], responses: { "200": { description: "Current floor-aware quote or exact pilot package quote" } } } },'
+          )
+          replace_once(
+              "src/discovery.ts",
+              '      "/v1/proofs/{proof_id}": {',
+              '''      "/v1/guarded-action-pilot": {
+                post: {
+                  operationId: "guardedActionPilot",
+                  summary: "Buy one guarded-action evidence pilot for exactly $10",
+                  description: "Capture 1-3 public HTTPS pages as timestamped DELTA proofs and optionally run one deterministic preflight check. One x402 v2 upfront payment of exactly $10 USDC on Base covers the package.",
+                  tags: ["guarded-action-pilot", "browser-agent-pilot", "page-state-evidence-bundle", "preflight-verification", "shopping", "procurement", "workflow-safety"],
+                  security: [],
+                  "x-payment-info": {
+                    price: { mode: "fixed", currency: "USD", amount: "10" },
+                    protocols: [{ x402: {} }],
+                    network: "eip155:8453",
+                  },
+                  requestBody: { required: true, content: { "application/json": { schema: GUARDED_ACTION_PILOT_INPUT_SCHEMA } } },
+                  responses: {
+                    "200": { description: "Guarded-action evidence package delivered", content: { "application/json": { schema: GUARDED_ACTION_PILOT_OUTPUT_SCHEMA } } },
+                    "202": { description: "Identical settled fulfillment already in progress" },
+                    "400": error,
+                    "402": { description: "Exact $10 x402 v2 payment required" },
+                    "409": { description: "Payment replay attempted with a different request" },
+                    "413": error,
+                    "502": { description: "Settled pilot failed; identical retry remains idempotent" },
+                  },
+                },
+              },
+              "/v1/proofs/{proof_id}": {'''
+          )
+          replace_once(
+              "src/discovery.ts",
+              '- Guard: `POST ${origin}/v1/preflight` with a URL plus a prior proof, expected hash, or textual expectations.\n',
+              '- Guard: `POST ${origin}/v1/preflight` with a URL plus a prior proof, expected hash, or textual expectations.\n- $10 Guarded-Action Pilot: `POST ${origin}/v1/guarded-action-pilot` with 1-3 public HTTPS URLs and an optional deterministic preflight on one URL. No subscription.\n'
+          )
+          replace_once(
+              "src/discovery.ts",
+              '<p>One core service exposes Capture and Guard. Both accept JSON, issue an x402 v2 challenge, settle USDC on Base mainnet before Browser Run, and return proof metadata.</p>',
+              '<p>One core service exposes Capture, Guard, and a $10 Guarded-Action Pilot. All accept JSON, issue an x402 v2 challenge, settle USDC on Base mainnet before Browser Run, and return proof metadata.</p><h2>$10 Guarded-Action Pilot</h2><p>Submit 1-3 public HTTPS URLs and optionally one deterministic preflight rule. A single exact $10 USDC payment returns a bounded evidence bundle with independent proof references for every URL. No subscription.</p>'
+          )
+          replace_once(
+              "src/discovery.ts",
+              '''      {
+                name: "Guard / Preflight",
+                request: { method: "POST", header: [{ key: "Content-Type", value: "application/json" }], body: { mode: "raw", raw: "{\\"url\\":\\"https://example.com\\",\\"expected\\":{\\"contains\\":[\\"Example Domain\\"]}}" }, url: "{{baseUrl}}/v1/preflight" },
+              },''',
+              '''      {
+                name: "Guard / Preflight",
+                request: { method: "POST", header: [{ key: "Content-Type", value: "application/json" }], body: { mode: "raw", raw: "{\\"url\\":\\"https://example.com\\",\\"expected\\":{\\"contains\\":[\\"Example Domain\\"]}}" }, url: "{{baseUrl}}/v1/preflight" },
+              },
+              {
+                name: "$10 Guarded-Action Pilot",
+                request: { method: "POST", header: [{ key: "Content-Type", value: "application/json" }], body: { mode: "raw", raw: "{\\"urls\\":[\\"https://example.com\\"],\\"preflight\\":{\\"url_index\\":0,\\"expected\\":{\\"contains\\":[\\"Example Domain\\"]}}}" }, url: "{{baseUrl}}/v1/guarded-action-pilot" },
+              },'''
+          )
+
+          # Core route wiring, quote, and discovery surfaces.
+          replace_once(
+              "src/index.ts",
+              '  PREFLIGHT_INPUT_SCHEMA,\n',
+              '  PREFLIGHT_INPUT_SCHEMA,\n  GUARDED_ACTION_PILOT_INPUT_SCHEMA,\n'
+          )
+          replace_once(
+              "src/index.ts",
+              'import { getWatch, parseWatchRegistration, registerWatch, runDueWatches } from "./watch";',
+              'import { getWatch, parseWatchRegistration, registerWatch, runDueWatches } from "./watch";\nimport { guardedPilotEconomics, guardedPilotHandler, guardedPilotPrevalidate, guardedPilotProtect } from "./guarded-pilot";'
+          )
+          replace_once(
+              "src/index.ts",
+              '''app.get("/v1/quote", async (c) => {
+            const product = c.req.query("product") === "preflight" ? "preflight" : "capture";''',
+              '''app.get("/v1/quote", async (c) => {
+            const requestedProduct = c.req.query("product");
+            if (requestedProduct === "guarded-action-pilot" || requestedProduct === "guarded_action_pilot") {
+              const channel = referrerChannel(c.req.raw);
+              const economics = guardedPilotEconomics(c.env);
+              await recordEvent(c.env, { event: "quote_issued", route: "/v1/guarded-action-pilot", channel, grossUsd: 10, success: true });
+              return c.json({
+                ok: true,
+                version: c.env.APP_VERSION,
+                product: "guarded_action_pilot",
+                price: "$10",
+                network: c.env.NETWORK,
+                asset: "USDC",
+                pay_to: c.env.PAY_TO,
+                payment_flow: "upfront",
+                max_urls: 3,
+                economics,
+              });
+            }
+            const product = requestedProduct === "preflight" ? "preflight" : "capture";'''
+          )
+          replace_once(
+              "src/index.ts",
+              '''app.post("/v1/preflight", (c) => paidHandler("preflight", c));
+
+          async function partnerAuthorized''',
+              '''app.post("/v1/preflight", (c) => paidHandler("preflight", c));
+
+          app.use("/v1/guarded-action-pilot", (c, next) => guardedPilotPrevalidate(c, next));
+          app.use("/v1/guarded-action-pilot", (c, next) => guardedPilotProtect(c, next));
+          app.post("/v1/guarded-action-pilot", (c) => guardedPilotHandler(c));
+
+          async function partnerAuthorized'''
+          )
+          replace_once(
+              "src/index.ts",
+              '    { method: "POST", path: "/v1/preflight", product: "guard", inputSchema: PREFLIGHT_INPUT_SCHEMA },\n',
+              '    { method: "POST", path: "/v1/preflight", product: "guard", inputSchema: PREFLIGHT_INPUT_SCHEMA },\n    { method: "POST", path: "/v1/guarded-action-pilot", product: "guarded_action_pilot", price_usd: 10, inputSchema: GUARDED_ACTION_PILOT_INPUT_SCHEMA },\n'
+          )
+          replace_once(
+              "src/index.ts",
+              '- [Agent preflight](${origin(c.env)}/use-cases/agent-preflight)\\n',
+              '- [Agent preflight](${origin(c.env)}/use-cases/agent-preflight)\\n- [$10 Guarded-Action Pilot](${origin(c.env)}/v1/quote?product=guarded-action-pilot)\\n'
+          )
+          replace_once(
+              "src/index.ts",
+              '    guard: { endpoint: `${origin(c.env)}/v1/preflight`, billing: "x402-v2-upfront" },\n',
+              '    guard: { endpoint: `${origin(c.env)}/v1/preflight`, billing: "x402-v2-upfront" },\n    guarded_action_pilot: { endpoint: `${origin(c.env)}/v1/guarded-action-pilot`, price_usd: 10, max_urls: 3, billing: "x402-v2-upfront" },\n'
+          )
+
+          # Production release acceptance: exact pilot 402 and unchanged micro-SKUs.
+          replace_once(
+              ".github/workflows/release-train.yml",
+              '''          curl --fail https://delta-witness-api.ruphussten.workers.dev/v1/proofs/56347db8-1aa5-447f-a0e4-3bb052d7aa89
+''',
+              '''          curl --fail https://delta-witness-api.ruphussten.workers.dev/v1/proofs/56347db8-1aa5-447f-a0e4-3bb052d7aa89
+          for route in capture preflight; do
+            status="$(curl --silent --show-error --output "/tmp/delta-${route}-quote.json" --dump-header "/tmp/delta-${route}-quote.headers" --write-out '%{http_code}' --request POST "https://delta-witness-api.ruphussten.workers.dev/v1/${route}" --header 'content-type: application/json' --data '{"url":"https://example.com"}')"
+            test "$status" = "402"
+            grep --quiet -i '^payment-required:' "/tmp/delta-${route}-quote.headers"
+            node -e 'const x=JSON.parse(require("fs").readFileSync(process.argv[1])); if(x.price_usd!==0.03) throw new Error(JSON.stringify(x))' "/tmp/delta-${route}-quote.json"
+          done
+          pilot_status="$(curl --silent --show-error --output /tmp/delta-pilot-quote.json --dump-header /tmp/delta-pilot-quote.headers --write-out '%{http_code}' --request POST https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot --header 'content-type: application/json' --data '{"urls":["https://example.com"],"preflight":{"url_index":0,"expected":{"contains":["Example Domain"]}}}')"
+          test "$pilot_status" = "402"
+          grep --quiet -i '^payment-required:' /tmp/delta-pilot-quote.headers
+          node -e 'const x=JSON.parse(require("fs").readFileSync(process.argv[1])); if(x.price_usd!==10 || x.product!=="guarded_action_pilot") throw new Error(JSON.stringify(x))' /tmp/delta-pilot-quote.json
+'''
+          )
+          replace_once(
+              ".github/workflows/release-train.yml",
+              "          for (const path of ['/v1/capture', '/v1/preflight']) {",
+              "          for (const path of ['/v1/capture', '/v1/preflight', '/v1/guarded-action-pilot']) {"
+          )
+
+          # Version all release surfaces together for the new revenue SKU.
+          version = "0.7.0"
+          for file in [
+              "package.json",
+              "channels/partner-gateway/package.json",
+              "channels/apify/package.json",
+              "channels/base-app/package.json",
+              "packages/js-client/package.json",
+              "packages/mcp-server/package.json",
+          ]:
+              p = Path(file)
+              data = json.loads(p.read_text())
+              data["version"] = version
+              p.write_text(json.dumps(data, indent=2) + "\n")
+          replace_once("wrangler.jsonc", '"APP_VERSION": "0.6.1"', '"APP_VERSION": "0.7.0"')
+          replace_once("packages/python-client/pyproject.toml", 'version = "0.6.1"', 'version = "0.7.0"')
+          replace_once("distribution/mcp/server.template.json", '"version": "0.6.1"', '"version": "0.7.0"')
+          PY
+
+      - name: Verify release surfaces and tests
+        run: |
+          set -euo pipefail
+          npm ci
+          GITHUB_REF_NAME=v0.7.0 node scripts/check-release-version.mjs
+          npm run verify
+          cd channels/partner-gateway && npm ci && npm run verify
+          cd ../apify && npm ci && npm run check
+          cd ../base-app && npm ci && npm run verify
+          cd ../../packages/js-client && npm run check && npm test && npm pack --dry-run
+          cd ../mcp-server && npm ci && npm run prepack && npm pack --dry-run
+          python3 -m compileall -q ../python-client/delta_witness
+
+      - name: Commit verified SKU and trigger release train
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "DELTA Autonomous Growth"
+          git config user.email "actions@users.noreply.github.com"
+          git rm .github/workflows/ship-guarded-action-pilot.yml
+          git add src tests .github/workflows/release-train.yml wrangler.jsonc package.json channels packages distribution/mcp/server.template.json
+          git commit -m "revenue: ship $10 guarded-action pilot"
+          git push origin HEAD:master
+          git tag -a v0.7.0 -m "DELTA v0.7.0 guarded-action pilot"
+          git push origin v0.7.0
