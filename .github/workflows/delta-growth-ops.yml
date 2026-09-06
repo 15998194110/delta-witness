@@ -1,0 +1,139 @@
+name: DELTA growth ops
+
+on:
+  push:
+    paths:
+      - '.github/workflows/delta-growth-ops.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Core production integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          curl -fsS --retry 3 --retry-all-errors "$BASE/health" >/dev/null
+          code=$(curl -sS --retry 3 --retry-all-errors -o /tmp/preflight.json -D /tmp/preflight.headers -w '%{http_code}' \
+            -X POST "$BASE/v1/preflight" -H 'content-type: application/json' \
+            -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
+          test "$code" = '402'
+          grep -qi '^payment-required:' /tmp/preflight.headers
+          echo "DELTA core OK: unpaid preflight=$code"
+
+      - name: Agent402 free index registration
+        shell: bash
+        run: |
+          set +e
+          body='{"origin":"https://delta-witness-api.ruphussten.workers.dev"}'
+          for i in 1 2 3; do
+            code=$(curl -sS -o /tmp/a402-register.json -w '%{http_code}' \
+              -X POST 'https://agent402.tools/api/index/register' \
+              -H 'content-type: application/json' -d "$body")
+            echo "Agent402 register attempt=$i http=$code"
+            cat /tmp/a402-register.json 2>/dev/null || true
+            echo
+            if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then break; fi
+            sleep $((i*3))
+          done
+          echo '--- Agent402 index lookup ---'
+          curl -sS --retry 3 --retry-all-errors 'https://agent402.tools/api/index' -o /tmp/a402-index.json || true
+          python3 - <<'PY'
+          import json
+          p='/tmp/a402-index.json'
+          try:
+              d=json.load(open(p))
+          except Exception as e:
+              print({'agent402_index_parse_error':str(e)})
+              raise SystemExit(0)
+          needle='delta-witness-api.ruphussten.workers.dev'
+          def walk(x):
+              if isinstance(x,dict):
+                  if needle in json.dumps(x).lower():
+                      yield x
+                  for v in x.values(): yield from walk(v)
+              elif isinstance(x,list):
+                  for v in x: yield from walk(v)
+          hits=[]
+          seen=set()
+          for h in walk(d):
+              s=json.dumps(h,sort_keys=True)
+              if s not in seen:
+                  seen.add(s); hits.append(h)
+          print(json.dumps({'agent402_matches':hits[:10]},ensure_ascii=False))
+          PY
+          exit 0
+
+      - name: PayanAgent open funded requests
+        shell: bash
+        run: |
+          set +e
+          ok=0
+          for i in 1 2 3 4; do
+            code=$(curl -sS -o /tmp/payan-requests.json -w '%{http_code}' \
+              'https://payanagent.com/api/v1/requests?status=open&limit=100')
+            echo "PayanAgent request attempt=$i http=$code"
+            if [ "$code" = '200' ]; then ok=1; break; fi
+            sleep $((i*3))
+          done
+          if [ "$ok" = '1' ]; then
+            python3 - <<'PY'
+          import json,re
+          d=json.load(open('/tmp/payan-requests.json'))
+          rows=d.get('requests',d if isinstance(d,list) else [])
+          terms=re.compile(r'(browser|url|web|verify|verification|evidence|preflight|audit|proof|page|shopping|procurement|workflow)',re.I)
+          out=[]
+          for r in rows:
+              text=' '.join(str(r.get(k,'')) for k in ('title','description','inputPayload'))
+              if terms.search(text):
+                  out.append({k:r.get(k) for k in ('id','title','budgetMaxCents','escrow','status','createdAt','bidCount')})
+          print(json.dumps({'open_count':len(rows),'compatible':out[:30]},ensure_ascii=False))
+          PY
+          else
+            echo '{"channel":"PayanAgent","status":"degraded","reason":"open requests API unavailable after retries"}'
+          fi
+          exit 0
+
+      - name: Base Treasury incoming USDC
+        shell: bash
+        run: |
+          set +e
+          URL='https://base.blockscout.com/api/v2/addresses/0x1990e21bc219696ff7fbc26527dbaed335ac6367/token-transfers?type=ERC-20'
+          ok=0
+          for i in 1 2 3 4; do
+            code=$(curl -sS -o /tmp/transfers.json -w '%{http_code}' "$URL")
+            echo "Blockscout attempt=$i http=$code"
+            if [ "$code" = '200' ]; then ok=1; break; fi
+            sleep $((i*3))
+          done
+          if [ "$ok" = '1' ]; then
+            python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/transfers.json'))
+          items=d.get('items',[])
+          usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+          addr='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          out=[]
+          for x in items:
+              token=x.get('token') or {}
+              ta=(token.get('address_hash') or token.get('address') or '').lower()
+              to=((x.get('to') or {}).get('hash') if isinstance(x.get('to'),dict) else x.get('to') or '').lower()
+              if ta==usdc and to==addr:
+                  dec=int(token.get('decimals') or 6)
+                  total=x.get('total') or {}
+                  raw=total.get('value') if isinstance(total,dict) else x.get('value')
+                  try: amount=int(raw)/(10**dec)
+                  except Exception: amount=raw
+                  fr=(x.get('from') or {}).get('hash') if isinstance(x.get('from'),dict) else x.get('from')
+                  out.append({'tx_hash':x.get('transaction_hash'),'timestamp':x.get('timestamp'),'from':fr,'amount_usdc':amount})
+          print(json.dumps({'latest_incoming_usdc':out[:20]},ensure_ascii=False))
+          PY
+          else
+            echo '{"channel":"Base Blockscout","status":"degraded","reason":"token transfer API unavailable after retries"}'
+          fi
+          exit 0
