@@ -1,0 +1,203 @@
+name: DELTA zero-cost distribution sweep
+
+on:
+  push:
+    paths:
+      - '.github/workflows/autorun-zero-cost-sweep.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: DELTA core unpaid 402 integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          code=$(curl -sS -o /tmp/preflight.body -D /tmp/preflight.headers -w '%{http_code}' --max-time 20 \
+            -X POST "$BASE/v1/preflight" -H 'content-type: application/json' \
+            -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
+          echo "preflight_http=$code"
+          test "$code" = "402"
+          grep -qi '^payment-required:' /tmp/preflight.headers
+          echo 'DELTA core 402 integrity: PASS'
+
+      - name: true402 free registry
+        shell: bash
+        run: |
+          set +e
+          ORIGIN='https://delta-witness-api.ruphussten.workers.dev'
+          echo '--- current catalog lookup ---'
+          curl -sS --max-time 20 'https://true402.dev/api/v1/services' -o /tmp/true402-services.json
+          if grep -qiE 'delta-witness|ruphussten' /tmp/true402-services.json; then
+            echo 'TRUE402_STATUS=already_listed'
+            grep -ioE '.{0,180}(delta-witness|ruphussten).{0,320}' /tmp/true402-services.json | head -5
+            exit 0
+          fi
+          echo '--- registering official URL-only seller record ---'
+          status=$(curl -sS --max-time 30 -o /tmp/true402-register.body -w '%{http_code}' \
+            -X POST 'https://true402.dev/api/v1/services' \
+            -H 'content-type: application/json' \
+            -d '{"url":"https://delta-witness-api.ruphussten.workers.dev"}')
+          echo "TRUE402_REGISTER_HTTP=$status"
+          cat /tmp/true402-register.body || true
+          echo
+          if [[ "$status" =~ ^2 ]]; then echo 'TRUE402_STATUS=registration_accepted'; else echo 'TRUE402_STATUS=registration_not_accepted'; fi
+          exit 0
+
+      - name: Tollbooth free registrations
+        shell: bash
+        run: |
+          set +e
+          API='https://www.trytollbooth.com/api/services'
+          echo '--- current search ---'
+          curl -sS --max-time 20 "$API?q=DELTA" -o /tmp/tollbooth-search.json
+          cat /tmp/tollbooth-search.json | head -c 5000; echo
+          register_one () {
+            local slug="$1" name="$2" endpoint="$3" desc="$4"
+            if grep -qi "$endpoint" /tmp/tollbooth-search.json; then
+              echo "TOLLBOOTH_${slug}=already_listed"
+              return
+            fi
+            payload=$(python3 - "$name" "$endpoint" "$desc" <<'PY'
+import json,sys
+print(json.dumps({
+  'name':sys.argv[1],
+  'endpoint':sys.argv[2],
+  'category':'developer-tools',
+  'priceUsdc':0.03,
+  'wallet':'0x1990e21bc219696ff7fbc26527dbaed335ac6367',
+  'chain':'base',
+  'description':sys.argv[3]
+}))
+PY
+)
+            code=$(curl -sS --max-time 45 -o "/tmp/tollbooth-${slug}.body" -w '%{http_code}' \
+              -X POST "$API" -H 'content-type: application/json' -d "$payload")
+            echo "TOLLBOOTH_${slug}_HTTP=$code"
+            cat "/tmp/tollbooth-${slug}.body"; echo
+            if [[ "$code" =~ ^2 ]]; then echo "TOLLBOOTH_${slug}=registration_accepted"; else echo "TOLLBOOTH_${slug}=registration_not_accepted"; fi
+          }
+          register_one capture 'DELTA Witness — Page State Proof' \
+            'https://delta-witness-api.ruphussten.workers.dev/v1/capture' \
+            'Verifiable browser page-state capture for autonomous agents before or after irreversible web actions. Returns proof/receipt output for browser, shopping, procurement and workflow verification.'
+          register_one preflight 'DELTA Guard — Preflight Verification' \
+            'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' \
+            'Deterministic preflight verification for autonomous browser and workflow actions before irreversible execution.'
+          exit 0
+
+      - name: Agent402 routing verification
+        shell: bash
+        run: |
+          set +e
+          for q in 'DELTA Witness' 'page-state proof' 'preflight verification'; do
+            echo "--- q=$q ---"
+            curl -sS --max-time 20 --get 'https://agent402.tools/api/route' \
+              --data-urlencode "q=$q" --data 'include=external' | head -c 6000
+            echo
+          done
+          exit 0
+
+      - name: SwarmBazaar review visibility
+        shell: bash
+        run: |
+          set +e
+          for u in 'https://swarmbazaar.com/index.json' 'https://swarmbazaar.com/llms.txt'; do
+            echo "--- $u ---"
+            curl -sS --max-time 20 "$u" -o /tmp/swarm.out
+            grep -iE -C 2 'DELTA Witness|delta-witness|ruphussten' /tmp/swarm.out | head -80 || true
+          done
+          exit 0
+
+      - name: PayanAgent funded request inventory
+        shell: bash
+        run: |
+          set +e
+          url='https://payanagent.com/api/v1/requests?status=open&limit=100'
+          for delay in 0 2 5; do
+            sleep "$delay"
+            code=$(curl -sS --max-time 25 -o /tmp/payan.body -w '%{http_code}' "$url")
+            echo "PAYAN_HTTP=$code"
+            if [[ "$code" =~ ^2 ]]; then
+              python3 - <<'PY'
+import json,re
+p='/tmp/payan.body'
+try: d=json.load(open(p))
+except Exception as e:
+ print('PAYAN_PARSE_ERROR',e); raise SystemExit
+rows=d.get('requests',d if isinstance(d,list) else [])
+terms=re.compile(r'(browser|url|web|verify|verification|evidence|preflight|audit|proof|page|shopping|procurement|workflow)',re.I)
+out=[]
+for r in rows:
+ text=' '.join(str(r.get(k,'')) for k in ('title','description','inputPayload'))
+ if terms.search(text):
+  out.append({k:r.get(k) for k in ('id','title','budgetMaxCents','escrow','status','createdAt')})
+print(json.dumps({'open_count':len(rows),'compatible':out[:30]},ensure_ascii=False))
+PY
+              exit 0
+            fi
+            head -c 1500 /tmp/payan.body; echo
+          done
+          echo 'PAYAN_STATUS=degraded_after_retries'
+          exit 0
+
+      - name: Paywitness documented self-list schema discovery
+        shell: bash
+        run: |
+          set +e
+          for u in 'https://paywitness.ai/openapi.json' 'https://paywitness.ai/llms.txt' 'https://paywitness.ai/'; do
+            echo "--- $u ---"
+            curl -sS -L --max-time 25 "$u" -o /tmp/payw.out
+            grep -E -i -C 5 'POST /list|"/list"|self.?list|listRequest|resource.*url' /tmp/payw.out | head -120 || true
+          done
+          exit 0
+
+      - name: Base Treasury incoming USDC reconciliation
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          URL='https://base.blockscout.com/api/v2/addresses/0x1990e21bc219696ff7fbc26527dbaed335ac6367/token-transfers?type=ERC-20'
+          ok=0
+          for delay in 0 2 5; do
+            sleep "$delay"
+            code=$(curl -sS --max-time 25 -o /tmp/transfers.json -w '%{http_code}' "$URL")
+            echo "BLOCKSCOUT_HTTP=$code"
+            if [[ "$code" =~ ^2 ]]; then ok=1; break; fi
+          done
+          if [ "$ok" != 1 ]; then
+            echo 'TREASURY_RECONCILIATION=unavailable_after_retries'
+            exit 0
+          fi
+          python3 - <<'PY'
+import json
+D=json.load(open('/tmp/transfers.json'))
+items=D.get('items',[])
+usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+addr='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+out=[]
+for x in items:
+ token=x.get('token') or {}
+ ta=(token.get('address_hash') or token.get('address') or '').lower()
+ to=x.get('to') or {}
+ tov=(to.get('hash') if isinstance(to,dict) else to or '').lower()
+ if ta!=usdc or tov!=addr: continue
+ dec=int(token.get('decimals') or 6)
+ total=x.get('total') or {}
+ raw=total.get('value') if isinstance(total,dict) else x.get('value')
+ try: amount=int(raw)/(10**dec)
+ except: amount=raw
+ fr=x.get('from') or {}
+ out.append({
+   'tx_hash':x.get('transaction_hash'),
+   'timestamp':x.get('timestamp'),
+   'from':fr.get('hash') if isinstance(fr,dict) else fr,
+   'amount_usdc':amount,
+ })
+print(json.dumps({'latest_incoming_usdc':out[:25]},ensure_ascii=False))
+PY
+          exit 0
