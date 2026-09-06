@@ -12,32 +12,42 @@ jobs:
     steps:
       - name: Inspect x402 service listing surface
         shell: bash
+        continue-on-error: true
         run: |
-          set +e
-          curl -L --max-time 20 -sS https://agentpaystore.com/list-service -o /tmp/page.html
-          echo '=== relevant page source ==='
-          grep -Eo 'src="[^"]+\.js[^" ]*"|fetch\([^)]*\)|/[^"'"' ]*api[^"'"' ]*' /tmp/page.html | head -120 || true
-          echo '=== scripts ==='
-          grep -Eo 'src="[^"]+\.js[^" ]*"' /tmp/page.html | sed 's/^src="//;s/"$//' | while read -r s; do
-            case "$s" in
-              http*) u="$s" ;;
-              /*) u="https://agentpaystore.com$s" ;;
-              *) u="https://agentpaystore.com/$s" ;;
-            esac
-            echo "--- $u ---"
-            curl -L --max-time 20 -sS "$u" | tr ';' '\n' | grep -E -i -C 2 'list-service|service.*submit|submit.*service|fetch\(|/api/|endpoint_url|payment_address|contact_email' | head -200 || true
-          done
-          exit 0
-      - name: Reconcile Base Treasury independently
-        shell: bash
-        run: |
-          set +e
-          URL='https://base.blockscout.com/api/v2/addresses/0x1990e21bc219696ff7fbc26527dbaed335ac6367/token-transfers?type=ERC-20'
-          curl -sS --fail --retry 4 --retry-all-errors "$URL" -o /tmp/transfers.json
           python3 - <<'PY'
-          import json
+          import re, urllib.request
+          base='https://agentpaystore.com'
           try:
-              d=json.load(open('/tmp/transfers.json'))
+              html=urllib.request.urlopen(base+'/list-service',timeout=20).read().decode('utf-8','replace')
+              print('=== inline candidates ===')
+              for m in re.findall(r'(?:fetch\([^\n]{0,300}|/[^\"\'\s]{0,100}api[^\"\'\s]{0,100})', html, flags=re.I):
+                  print(m[:400])
+              scripts=re.findall(r'<script[^>]+src=[\"\']([^\"\']+)[\"\']',html,flags=re.I)
+              print('=== scripts',len(scripts),'===')
+              for s in scripts:
+                  u=s if s.startswith('http') else base+s if s.startswith('/') else base+'/'+s
+                  print('---',u,'---')
+                  try:
+                      txt=urllib.request.urlopen(u,timeout=20).read().decode('utf-8','replace')
+                  except Exception as e:
+                      print('SCRIPT_FETCH_DEGRADED',repr(e)); continue
+                  hits=[]
+                  for pat in [r'fetch\([^\n]{0,500}',r'/[A-Za-z0-9_./:-]*api[A-Za-z0-9_./:-]*',r'list-service',r'submit.{0,120}service',r'service.{0,120}submit',r'endpoint_url',r'payment_address',r'contact_email']:
+                      hits.extend(re.findall(pat,txt,flags=re.I|re.S))
+                  for h in hits[:120]: print(str(h)[:700].replace('\n',' '))
+          except Exception as e:
+              print('AGENTPAYSTORE_PROBE_DEGRADED',repr(e))
+          PY
+      - name: Reconcile Base Treasury independently
+        if: always()
+        shell: bash
+        continue-on-error: true
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request
+          url='https://base.blockscout.com/api/v2/addresses/0x1990e21bc219696ff7fbc26527dbaed335ac6367/token-transfers?type=ERC-20'
+          try:
+              d=json.load(urllib.request.urlopen(url,timeout=20))
           except Exception as e:
               print('TREASURY_QUERY_DEGRADED',repr(e)); raise SystemExit(0)
           usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
@@ -57,4 +67,3 @@ jobs:
               out.append({'tx_hash':x.get('transaction_hash'),'timestamp':x.get('timestamp'),'from':fr,'amount_usdc':amount})
           print('TREASURY_RESULT='+json.dumps(out[:20],ensure_ascii=False))
           PY
-          exit 0
