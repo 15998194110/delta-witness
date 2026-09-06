@@ -1,0 +1,70 @@
+name: Persist DELTA Pilot Source
+
+on:
+  push:
+    paths:
+      - '.github/workflows/persist-pilot-source.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  persist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Reproduce verified source tree without workflow diffs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'DELTA Autonomous Growth'
+          git config user.email 'actions@users.noreply.github.com'
+          git fetch origin guarded-action-pilot-v070
+          git checkout -B guarded-action-pilot-v070 origin/guarded-action-pilot-v070
+          git merge --no-edit origin/master
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/scripts/apply-guarded-action-pilot.py')
+          s=p.read_text()
+          tick=chr(92)+'`'
+          s=s.replace('`POST ${origin}/v1/preflight`', tick+'POST ${origin}/v1/preflight'+tick)
+          s=s.replace('`POST ${origin}/v1/guarded-action-pilot`', tick+'POST ${origin}/v1/guarded-action-pilot'+tick)
+          old='replace_once("distribution/mcp/server.template.json", \'"version": "0.6.1"\', \'"version": "0.7.0"\')'
+          new='p = Path("distribution/mcp/server.template.json")\np.write_text(p.read_text().replace(\'"version": "0.6.1"\', \'"version": "0.7.0"\'))'
+          if old not in s:
+              raise SystemExit('version patch anchor missing')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+          python3 .github/scripts/apply-guarded-action-pilot.py
+          git checkout -- .github/workflows/release-train.yml
+          git rm -f .github/scripts/apply-guarded-action-pilot.py
+      - name: Reconfirm implementation and production contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run check
+          npm test
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          for route in capture preflight; do
+            status="$(curl -sS -o "/tmp/${route}.json" -D "/tmp/${route}.headers" -w '%{http_code}' -X POST "$BASE/v1/${route}" -H 'content-type: application/json' -d '{"url":"https://example.com"}')"
+            test "$status" = '402'
+            node -e 'const x=JSON.parse(require("fs").readFileSync(process.argv[1])); if(x.price_usd!==0.03) throw new Error(JSON.stringify(x));' "/tmp/${route}.json"
+          done
+          status="$(curl -sS -o /tmp/pilot.json -D /tmp/pilot.headers -w '%{http_code}' -X POST "$BASE/v1/guarded-action-pilot" -H 'content-type: application/json' -d '{"urls":["https://example.com"]}')"
+          test "$status" = '402'
+          node -e 'const x=JSON.parse(require("fs").readFileSync("/tmp/pilot.json")); if(x.price_usd!==10 || x.product!=="guarded_action_pilot" || x.network!=="eip155:8453") throw new Error(JSON.stringify(x));'
+      - name: Push source-only fast-forward
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add src tests wrangler.jsonc package.json channels packages distribution/mcp/server.template.json
+          git commit -m 'revenue: persist $10 guarded-action pilot source'
+          git push origin HEAD:master

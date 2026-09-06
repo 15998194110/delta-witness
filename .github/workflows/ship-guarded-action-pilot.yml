@@ -1,0 +1,140 @@
+name: Ship DELTA Guarded-Action Pilot
+
+on:
+  push:
+    paths:
+      - '.github/workflows/ship-guarded-action-pilot.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: delta-guarded-action-pilot-ship
+  cancel-in-progress: false
+
+jobs:
+  ship:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Merge prepared implementation and render release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'DELTA Autonomous Growth'
+          git config user.email 'actions@users.noreply.github.com'
+          git fetch origin guarded-action-pilot-v070
+          git checkout -B guarded-action-pilot-v070 origin/guarded-action-pilot-v070
+          git merge --no-edit origin/master
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/scripts/apply-guarded-action-pilot.py')
+          s=p.read_text()
+          tick=chr(92)+'`'
+          s=s.replace('`POST ${origin}/v1/preflight`', tick+'POST ${origin}/v1/preflight'+tick)
+          s=s.replace('`POST ${origin}/v1/guarded-action-pilot`', tick+'POST ${origin}/v1/guarded-action-pilot'+tick)
+          old='replace_once("distribution/mcp/server.template.json", \'"version": "0.6.1"\', \'"version": "0.7.0"\')'
+          new='p = Path("distribution/mcp/server.template.json")\np.write_text(p.read_text().replace(\'"version": "0.6.1"\', \'"version": "0.7.0"\'))'
+          if old not in s:
+              raise SystemExit('version patch anchor missing')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+          python3 .github/scripts/apply-guarded-action-pilot.py
+      - name: Verify core and release surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          GITHUB_REF_NAME=v0.7.0 node scripts/check-release-version.mjs
+          npm run verify
+          (cd channels/partner-gateway && npm ci && npm run verify)
+          (cd channels/apify && npm ci && npm run check)
+          (cd channels/base-app && npm ci && npm run verify)
+          (cd packages/js-client && npm run check && npm test && npm pack --dry-run)
+          (cd packages/mcp-server && npm ci && npm run prepack && npm pack --dry-run)
+          python3 -m compileall -q packages/python-client/delta_witness
+      - name: Deploy core production
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx wrangler deploy
+      - name: Verify exact production economics and discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          curl --fail --retry 5 --retry-all-errors --retry-delay 3 "$BASE/health" >/tmp/delta-health.json
+          for route in capture preflight; do
+            status="$(curl --silent --show-error --retry 4 --retry-all-errors --output "/tmp/${route}.json" --dump-header "/tmp/${route}.headers" --write-out '%{http_code}' --request POST "$BASE/v1/${route}" --header 'content-type: application/json' --data '{"url":"https://example.com"}')"
+            test "$status" = '402'
+            grep --quiet -i '^payment-required:' "/tmp/${route}.headers"
+            node -e 'const x=JSON.parse(require("fs").readFileSync(process.argv[1])); if(x.price_usd!==0.03) throw new Error(JSON.stringify(x));' "/tmp/${route}.json"
+          done
+          status="$(curl --silent --show-error --retry 4 --retry-all-errors --output /tmp/pilot.json --dump-header /tmp/pilot.headers --write-out '%{http_code}' --request POST "$BASE/v1/guarded-action-pilot" --header 'content-type: application/json' --data '{"urls":["https://example.com"],"preflight":{"url_index":0,"expected":{"contains":["Example Domain"]}}}')"
+          test "$status" = '402'
+          grep --quiet -i '^payment-required:' /tmp/pilot.headers
+          node -e 'const x=JSON.parse(require("fs").readFileSync("/tmp/pilot.json")); if(x.price_usd!==10 || x.product!=="guarded_action_pilot" || x.network!=="eip155:8453") throw new Error(JSON.stringify(x));'
+          curl --fail "$BASE/.well-known/x402" > /tmp/x402.json
+          curl --fail "$BASE/openapi.json" > /tmp/openapi.json
+          curl --fail "$BASE/distribution.json" > /tmp/distribution.json
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/x402.json'));
+          const o=JSON.parse(fs.readFileSync('/tmp/openapi.json'));
+          const d=JSON.parse(fs.readFileSync('/tmp/distribution.json'));
+          if(!x.resources?.some(r=>r.path==='/v1/guarded-action-pilot')) throw new Error('pilot missing from x402 discovery');
+          if(!o.paths?.['/v1/guarded-action-pilot']) throw new Error('pilot missing from OpenAPI');
+          if(!d.products?.guarded_action_pilot || d.products.guarded_action_pilot.price_usd!==10) throw new Error('pilot missing from distribution');
+          console.log(JSON.stringify({ok:true,pilot:true,micro_prices_preserved:true}));
+          NODE
+      - name: Reconcile Base Treasury independently
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -u
+          URL='https://base.blockscout.com/api/v2/addresses/0x1990e21bc219696ff7fbc26527dbaed335ac6367/token-transfers?type=ERC-20'
+          if curl --silent --show-error --fail --retry 5 --retry-all-errors --retry-delay 3 "$URL" -o /tmp/transfers.json; then
+            python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/transfers.json'))
+          usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+          treasury='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          out=[]
+          for x in d.get('items',[]):
+              token=x.get('token') or {}
+              ta=(token.get('address_hash') or token.get('address') or '').lower()
+              to=((x.get('to') or {}).get('hash') if isinstance(x.get('to'),dict) else x.get('to') or '').lower()
+              if ta!=usdc or to!=treasury: continue
+              raw=(x.get('total') or {}).get('value') if isinstance(x.get('total'),dict) else x.get('value')
+              dec=int(token.get('decimals') or 6)
+              try: amount=int(raw)/(10**dec)
+              except Exception: amount=raw
+              fr=(x.get('from') or {}).get('hash') if isinstance(x.get('from'),dict) else x.get('from')
+              out.append({'tx_hash':x.get('transaction_hash'),'timestamp':x.get('timestamp'),'from':fr,'amount_usdc':amount})
+          print(json.dumps({'latest_incoming_canonical_usdc':out[:20]},separators=(',',':')))
+          PY
+          else
+            echo '{"treasury_probe":"degraded","retry":"next run"}'
+          fi
+      - name: Commit verified implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/ship-guarded-action-pilot.yml .github/scripts/apply-guarded-action-pilot.py
+          git add src tests .github/workflows/release-train.yml wrangler.jsonc package.json channels packages distribution/mcp/server.template.json
+          git commit -m 'revenue: ship $10 guarded-action pilot'
+          git push origin HEAD:master
+          git tag -a v0.7.0 -m 'DELTA v0.7.0 guarded-action pilot'
+          git push origin v0.7.0
