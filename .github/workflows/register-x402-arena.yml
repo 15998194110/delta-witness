@@ -1,0 +1,50 @@
+name: Register DELTA on x402 Arena
+
+on:
+  push:
+    paths:
+      - '.github/workflows/register-x402-arena.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Register capture
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --retry 3 --retry-all-errors \
+            -X POST 'https://core.x402arena.gg/register' \
+            -H 'content-type: application/json' \
+            --data '{"name":"delta-witness-page-state-proof","endpoint":"https://delta-witness-api.ruphussten.workers.dev/v1/capture","method":"POST","niche":"web-verification","description":"Verifiable public webpage state capture with timestamped proof artifacts and hashes for browser agents, procurement, shopping and workflow evidence.","walletAddress":"0x1990e21bc219696ff7fbc26527dbaed335ac6367","resourceType":"http"}' \
+            | tee capture-register.json
+      - name: Register preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --retry 3 --retry-all-errors \
+            -X POST 'https://core.x402arena.gg/register' \
+            -H 'content-type: application/json' \
+            --data '{"name":"delta-witness-preflight-verification","endpoint":"https://delta-witness-api.ruphussten.workers.dev/v1/preflight","method":"POST","niche":"workflow-safety","description":"Preflight verification for autonomous web actions against deterministic expectations before irreversible execution.","walletAddress":"0x1990e21bc219696ff7fbc26527dbaed335ac6367","resourceType":"http"}' \
+            | tee preflight-register.json
+      - name: Verify public registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 8
+          curl --fail-with-body --retry 3 --retry-all-errors 'https://core.x402arena.gg/operator/agents' -o agents.json
+          python3 - <<'PY'
+          import json
+          data=json.load(open('agents.json'))
+          text=json.dumps(data)
+          names=['delta-witness-page-state-proof','delta-witness-preflight-verification']
+          missing=[n for n in names if n not in text]
+          print(json.dumps({'found':[n for n in names if n in text], 'missing':missing}))
+          if missing:
+              raise SystemExit(1)
+          PY
