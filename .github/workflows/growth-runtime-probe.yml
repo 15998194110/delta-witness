@@ -43,8 +43,8 @@ jobs:
         shell: bash
         run: |
           set -u
-          npm view delta-witness-mcp version --json 2>&1 | sed 's/^/NPM_MCP=/' || true
-          npm view delta-witness-ruphussten version --json 2>&1 | sed 's/^/NPM_JS=/' || true
+          echo "NPM_MCP=$(npm view delta-witness-mcp version 2>/dev/null || true)"
+          echo "NPM_JS=$(npm view delta-witness-ruphussten version 2>/dev/null || true)"
       - name: Official MCP Registry status
         shell: bash
         run: |
