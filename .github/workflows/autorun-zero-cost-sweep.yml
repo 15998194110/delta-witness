@@ -18,31 +18,25 @@ jobs:
         run: |
           set -euo pipefail
           BASE='https://delta-witness-api.ruphussten.workers.dev'
-          code=$(curl -sS -o /tmp/preflight.body -D /tmp/preflight.headers -w '%{http_code}' --max-time 20 \
-            -X POST "$BASE/v1/preflight" -H 'content-type: application/json' \
-            -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
+          code=$(curl -sS -o /tmp/preflight.body -D /tmp/preflight.headers -w '%{http_code}' --max-time 20 -X POST "$BASE/v1/preflight" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
           echo "preflight_http=$code"
           test "$code" = "402"
           grep -qi '^payment-required:' /tmp/preflight.headers
-          echo 'DELTA core 402 integrity: PASS'
+          echo 'DELTA_CORE_402=pass'
 
       - name: true402 free registry
         shell: bash
         run: |
           set +e
           ORIGIN='https://delta-witness-api.ruphussten.workers.dev'
-          echo '--- current catalog lookup ---'
-          curl -sS --max-time 20 'https://true402.dev/api/v1/services' -o /tmp/true402-services.json
-          if grep -qiE 'delta-witness|ruphussten' /tmp/true402-services.json; then
+          code=$(curl -sS --max-time 20 -o /tmp/true402-services.json -w '%{http_code}' 'https://true402.dev/api/v1/services')
+          echo "TRUE402_CATALOG_HTTP=$code"
+          if [ -s /tmp/true402-services.json ] && grep -qiE 'delta-witness|ruphussten' /tmp/true402-services.json; then
             echo 'TRUE402_STATUS=already_listed'
-            grep -ioE '.{0,180}(delta-witness|ruphussten).{0,320}' /tmp/true402-services.json | head -5
+            grep -ioE '.{0,180}(delta-witness|ruphussten).{0,320}' /tmp/true402-services.json | head -5 || true
             exit 0
           fi
-          echo '--- registering official URL-only seller record ---'
-          status=$(curl -sS --max-time 30 -o /tmp/true402-register.body -w '%{http_code}' \
-            -X POST 'https://true402.dev/api/v1/services' \
-            -H 'content-type: application/json' \
-            -d '{"url":"https://delta-witness-api.ruphussten.workers.dev"}')
+          status=$(curl -sS --max-time 30 -o /tmp/true402-register.body -w '%{http_code}' -X POST 'https://true402.dev/api/v1/services' -H 'content-type: application/json' -d '{"url":"https://delta-witness-api.ruphussten.workers.dev"}')
           echo "TRUE402_REGISTER_HTTP=$status"
           cat /tmp/true402-register.body || true
           echo
@@ -54,40 +48,28 @@ jobs:
         run: |
           set +e
           API='https://www.trytollbooth.com/api/services'
-          echo '--- current search ---'
-          curl -sS --max-time 20 "$API?q=DELTA" -o /tmp/tollbooth-search.json
-          cat /tmp/tollbooth-search.json | head -c 5000; echo
-          register_one () {
-            local slug="$1" name="$2" endpoint="$3" desc="$4"
-            if grep -qi "$endpoint" /tmp/tollbooth-search.json; then
-              echo "TOLLBOOTH_${slug}=already_listed"
-              return
-            fi
-            payload=$(python3 - "$name" "$endpoint" "$desc" <<'PY'
-import json,sys
-print(json.dumps({
-  'name':sys.argv[1],
-  'endpoint':sys.argv[2],
-  'category':'developer-tools',
-  'priceUsdc':0.03,
-  'wallet':'0x1990e21bc219696ff7fbc26527dbaed335ac6367',
-  'chain':'base',
-  'description':sys.argv[3]
-}))
-PY
-)
-            code=$(curl -sS --max-time 45 -o "/tmp/tollbooth-${slug}.body" -w '%{http_code}' \
-              -X POST "$API" -H 'content-type: application/json' -d "$payload")
-            echo "TOLLBOOTH_${slug}_HTTP=$code"
-            cat "/tmp/tollbooth-${slug}.body"; echo
-            if [[ "$code" =~ ^2 ]]; then echo "TOLLBOOTH_${slug}=registration_accepted"; else echo "TOLLBOOTH_${slug}=registration_not_accepted"; fi
-          }
-          register_one capture 'DELTA Witness — Page State Proof' \
-            'https://delta-witness-api.ruphussten.workers.dev/v1/capture' \
-            'Verifiable browser page-state capture for autonomous agents before or after irreversible web actions. Returns proof/receipt output for browser, shopping, procurement and workflow verification.'
-          register_one preflight 'DELTA Guard — Preflight Verification' \
-            'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' \
-            'Deterministic preflight verification for autonomous browser and workflow actions before irreversible execution.'
+          code=$(curl -sS --max-time 20 -o /tmp/tollbooth-search.json -w '%{http_code}' "$API?q=DELTA")
+          echo "TOLLBOOTH_SEARCH_HTTP=$code"
+          cat /tmp/tollbooth-search.json 2>/dev/null | head -c 5000 || true
+          echo
+          if grep -q 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' /tmp/tollbooth-search.json 2>/dev/null; then
+            echo 'TOLLBOOTH_capture=already_listed'
+          else
+            payload=$(jq -cn --arg n 'DELTA Witness - Page State Proof' --arg e 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' --arg d 'Verifiable browser page-state capture for autonomous agents before or after irreversible web actions. Returns proof and receipt output for browser, shopping, procurement and workflow verification.' '{name:$n,endpoint:$e,category:"developer-tools",priceUsdc:0.03,wallet:"0x1990e21bc219696ff7fbc26527dbaed335ac6367",chain:"base",description:$d}')
+            c=$(curl -sS --max-time 45 -o /tmp/tollbooth-capture.body -w '%{http_code}' -X POST "$API" -H 'content-type: application/json' -d "$payload")
+            echo "TOLLBOOTH_capture_HTTP=$c"
+            cat /tmp/tollbooth-capture.body || true
+            echo
+          fi
+          if grep -q 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' /tmp/tollbooth-search.json 2>/dev/null; then
+            echo 'TOLLBOOTH_preflight=already_listed'
+          else
+            payload=$(jq -cn --arg n 'DELTA Guard - Preflight Verification' --arg e 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' --arg d 'Deterministic preflight verification for autonomous browser and workflow actions before irreversible execution.' '{name:$n,endpoint:$e,category:"developer-tools",priceUsdc:0.03,wallet:"0x1990e21bc219696ff7fbc26527dbaed335ac6367",chain:"base",description:$d}')
+            c=$(curl -sS --max-time 45 -o /tmp/tollbooth-preflight.body -w '%{http_code}' -X POST "$API" -H 'content-type: application/json' -d "$payload")
+            echo "TOLLBOOTH_preflight_HTTP=$c"
+            cat /tmp/tollbooth-preflight.body || true
+            echo
+          fi
           exit 0
 
       - name: Agent402 routing verification
@@ -95,9 +77,8 @@ PY
         run: |
           set +e
           for q in 'DELTA Witness' 'page-state proof' 'preflight verification'; do
-            echo "--- q=$q ---"
-            curl -sS --max-time 20 --get 'https://agent402.tools/api/route' \
-              --data-urlencode "q=$q" --data 'include=external' | head -c 6000
+            echo "AGENT402_QUERY=$q"
+            curl -sS --max-time 20 --get 'https://agent402.tools/api/route' --data-urlencode "q=$q" --data 'include=external' | head -c 6000
             echo
           done
           exit 0
@@ -107,7 +88,7 @@ PY
         run: |
           set +e
           for u in 'https://swarmbazaar.com/index.json' 'https://swarmbazaar.com/llms.txt'; do
-            echo "--- $u ---"
+            echo "SWARM_URL=$u"
             curl -sS --max-time 20 "$u" -o /tmp/swarm.out
             grep -iE -C 2 'DELTA Witness|delta-witness|ruphussten' /tmp/swarm.out | head -80 || true
           done
@@ -118,31 +99,20 @@ PY
         run: |
           set +e
           url='https://payanagent.com/api/v1/requests?status=open&limit=100'
+          ok=0
           for delay in 0 2 5; do
             sleep "$delay"
             code=$(curl -sS --max-time 25 -o /tmp/payan.body -w '%{http_code}' "$url")
             echo "PAYAN_HTTP=$code"
-            if [[ "$code" =~ ^2 ]]; then
-              python3 - <<'PY'
-import json,re
-p='/tmp/payan.body'
-try: d=json.load(open(p))
-except Exception as e:
- print('PAYAN_PARSE_ERROR',e); raise SystemExit
-rows=d.get('requests',d if isinstance(d,list) else [])
-terms=re.compile(r'(browser|url|web|verify|verification|evidence|preflight|audit|proof|page|shopping|procurement|workflow)',re.I)
-out=[]
-for r in rows:
- text=' '.join(str(r.get(k,'')) for k in ('title','description','inputPayload'))
- if terms.search(text):
-  out.append({k:r.get(k) for k in ('id','title','budgetMaxCents','escrow','status','createdAt')})
-print(json.dumps({'open_count':len(rows),'compatible':out[:30]},ensure_ascii=False))
-PY
-              exit 0
-            fi
-            head -c 1500 /tmp/payan.body; echo
+            if [[ "$code" =~ ^2 ]]; then ok=1; break; fi
+            head -c 1200 /tmp/payan.body 2>/dev/null || true
+            echo
           done
-          echo 'PAYAN_STATUS=degraded_after_retries'
+          if [ "$ok" = 1 ]; then
+            jq -c '[((.requests // .)[]?) | select((((.title // "") + " " + (.description // "") + " " + ((.inputPayload // "")|tostring))) | test("browser|url|web|verify|verification|evidence|preflight|audit|proof|page|shopping|procurement|workflow";"i")) | {id,title,budgetMaxCents,escrow,status,createdAt}]' /tmp/payan.body || cat /tmp/payan.body
+          else
+            echo 'PAYAN_STATUS=degraded_after_retries'
+          fi
           exit 0
 
       - name: Paywitness documented self-list schema discovery
@@ -150,7 +120,7 @@ PY
         run: |
           set +e
           for u in 'https://paywitness.ai/openapi.json' 'https://paywitness.ai/llms.txt' 'https://paywitness.ai/'; do
-            echo "--- $u ---"
+            echo "PAYWITNESS_URL=$u"
             curl -sS -L --max-time 25 "$u" -o /tmp/payw.out
             grep -E -i -C 5 'POST /list|"/list"|self.?list|listRequest|resource.*url' /tmp/payw.out | head -120 || true
           done
@@ -173,31 +143,5 @@ PY
             echo 'TREASURY_RECONCILIATION=unavailable_after_retries'
             exit 0
           fi
-          python3 - <<'PY'
-import json
-D=json.load(open('/tmp/transfers.json'))
-items=D.get('items',[])
-usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
-addr='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-out=[]
-for x in items:
- token=x.get('token') or {}
- ta=(token.get('address_hash') or token.get('address') or '').lower()
- to=x.get('to') or {}
- tov=(to.get('hash') if isinstance(to,dict) else to or '').lower()
- if ta!=usdc or tov!=addr: continue
- dec=int(token.get('decimals') or 6)
- total=x.get('total') or {}
- raw=total.get('value') if isinstance(total,dict) else x.get('value')
- try: amount=int(raw)/(10**dec)
- except: amount=raw
- fr=x.get('from') or {}
- out.append({
-   'tx_hash':x.get('transaction_hash'),
-   'timestamp':x.get('timestamp'),
-   'from':fr.get('hash') if isinstance(fr,dict) else fr,
-   'amount_usdc':amount,
- })
-print(json.dumps({'latest_incoming_usdc':out[:25]},ensure_ascii=False))
-PY
+          jq -c --arg usdc '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' --arg addr '0x1990e21bc219696ff7fbc26527dbaed335ac6367' '[.items[]? | select((((.token.address_hash // .token.address // "") | ascii_downcase) == $usdc) and (((.to.hash // .to // "") | ascii_downcase) == $addr)) | {tx_hash:.transaction_hash,timestamp:.timestamp,from:(.from.hash // .from),raw_value:(.total.value // .value),decimals:(.token.decimals // 6)}] | {latest_incoming_usdc:.}' /tmp/transfers.json
           exit 0
