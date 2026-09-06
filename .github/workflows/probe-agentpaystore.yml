@@ -15,26 +15,16 @@ jobs:
         continue-on-error: true
         run: |
           python3 - <<'PY'
-          import re, urllib.request
+          import urllib.request
           base='https://agentpaystore.com'
           try:
-              html=urllib.request.urlopen(base+'/list-service',timeout=20).read().decode('utf-8','replace')
-              print('=== inline candidates ===')
-              for m in re.findall(r'(?:fetch\([^\n]{0,300}|/[^\"\'\s]{0,100}api[^\"\'\s]{0,100})', html, flags=re.I):
-                  print(m[:400])
-              scripts=re.findall(r'<script[^>]+src=[\"\']([^\"\']+)[\"\']',html,flags=re.I)
-              print('=== scripts',len(scripts),'===')
-              for s in scripts:
-                  u=s if s.startswith('http') else base+s if s.startswith('/') else base+'/'+s
-                  print('---',u,'---')
-                  try:
-                      txt=urllib.request.urlopen(u,timeout=20).read().decode('utf-8','replace')
-                  except Exception as e:
-                      print('SCRIPT_FETCH_DEGRADED',repr(e)); continue
-                  hits=[]
-                  for pat in [r'fetch\([^\n]{0,500}',r'/[A-Za-z0-9_./:-]*api[A-Za-z0-9_./:-]*',r'list-service',r'submit.{0,120}service',r'service.{0,120}submit',r'endpoint_url',r'payment_address',r'contact_email']:
-                      hits.extend(re.findall(pat,txt,flags=re.I|re.S))
-                  for h in hits[:120]: print(str(h)[:700].replace('\n',' '))
+              req=urllib.request.Request(base+'/list-service',headers={'User-Agent':'Mozilla/5.0 DELTA-growth-probe'})
+              html=urllib.request.urlopen(req,timeout=20).read().decode('utf-8','replace')
+              marker="/api/list-service"
+              i=html.find(marker)
+              print('AGENTPAYSTORE_MARKER_INDEX',i)
+              if i>=0:
+                  print(html[max(0,i-1800):i+900].replace('\n',' '))
           except Exception as e:
               print('AGENTPAYSTORE_PROBE_DEGRADED',repr(e))
           PY
@@ -43,27 +33,24 @@ jobs:
         shell: bash
         continue-on-error: true
         run: |
+          set +e
+          URL='https://base.blockscout.com/api/v2/addresses/0x1990e21bc219696ff7fbc26527dbaed335ac6367/token-transfers?type=ERC-20'
+          curl -sS --fail --retry 4 --retry-all-errors -A 'DELTA-Witness-Growth/1.0' "$URL" -o /tmp/transfers.json
+          if [ ! -s /tmp/transfers.json ]; then echo 'TREASURY_QUERY_DEGRADED empty'; exit 0; fi
           python3 - <<'PY'
-          import json, urllib.request
-          url='https://base.blockscout.com/api/v2/addresses/0x1990e21bc219696ff7fbc26527dbaed335ac6367/token-transfers?type=ERC-20'
-          try:
-              d=json.load(urllib.request.urlopen(url,timeout=20))
-          except Exception as e:
-              print('TREASURY_QUERY_DEGRADED',repr(e)); raise SystemExit(0)
-          usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
-          addr='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-          out=[]
+          import json
+          try: d=json.load(open('/tmp/transfers.json'))
+          except Exception as e: print('TREASURY_QUERY_DEGRADED',repr(e)); raise SystemExit(0)
+          usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'; addr='0x1990e21bc219696ff7fbc26527dbaed335ac6367'; out=[]
           for x in d.get('items',[]):
-              token=x.get('token') or {}
-              ta=(token.get('address_hash') or token.get('address') or '').lower()
+              token=x.get('token') or {}; ta=(token.get('address_hash') or token.get('address') or '').lower()
               to=((x.get('to') or {}).get('hash') if isinstance(x.get('to'),dict) else x.get('to') or '').lower()
               if ta!=usdc or to!=addr: continue
-              dec=int(token.get('decimals') or 6)
-              total=x.get('total') or {}
-              raw=total.get('value') if isinstance(total,dict) else x.get('value')
+              dec=int(token.get('decimals') or 6); total=x.get('total') or {}; raw=total.get('value') if isinstance(total,dict) else x.get('value')
               try: amount=int(raw)/(10**dec)
               except: amount=raw
               fr=(x.get('from') or {}).get('hash') if isinstance(x.get('from'),dict) else x.get('from')
               out.append({'tx_hash':x.get('transaction_hash'),'timestamp':x.get('timestamp'),'from':fr,'amount_usdc':amount})
           print('TREASURY_RESULT='+json.dumps(out[:20],ensure_ascii=False))
           PY
+          exit 0
