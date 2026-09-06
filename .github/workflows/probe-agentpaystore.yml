@@ -1,0 +1,60 @@
+name: DELTA AgentPayStore probe
+on:
+  push:
+    paths:
+      - '.github/workflows/probe-agentpaystore.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect x402 service listing surface
+        shell: bash
+        run: |
+          set +e
+          curl -L --max-time 20 -sS https://agentpaystore.com/list-service -o /tmp/page.html
+          echo '=== relevant page source ==='
+          grep -Eo 'src="[^"]+\.js[^" ]*"|fetch\([^)]*\)|/[^"'"' ]*api[^"'"' ]*' /tmp/page.html | head -120 || true
+          echo '=== scripts ==='
+          grep -Eo 'src="[^"]+\.js[^" ]*"' /tmp/page.html | sed 's/^src="//;s/"$//' | while read -r s; do
+            case "$s" in
+              http*) u="$s" ;;
+              /*) u="https://agentpaystore.com$s" ;;
+              *) u="https://agentpaystore.com/$s" ;;
+            esac
+            echo "--- $u ---"
+            curl -L --max-time 20 -sS "$u" | tr ';' '\n' | grep -E -i -C 2 'list-service|service.*submit|submit.*service|fetch\(|/api/|endpoint_url|payment_address|contact_email' | head -200 || true
+          done
+          exit 0
+      - name: Reconcile Base Treasury independently
+        shell: bash
+        run: |
+          set +e
+          URL='https://base.blockscout.com/api/v2/addresses/0x1990e21bc219696ff7fbc26527dbaed335ac6367/token-transfers?type=ERC-20'
+          curl -sS --fail --retry 4 --retry-all-errors "$URL" -o /tmp/transfers.json
+          python3 - <<'PY'
+          import json
+          try:
+              d=json.load(open('/tmp/transfers.json'))
+          except Exception as e:
+              print('TREASURY_QUERY_DEGRADED',repr(e)); raise SystemExit(0)
+          usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+          addr='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          out=[]
+          for x in d.get('items',[]):
+              token=x.get('token') or {}
+              ta=(token.get('address_hash') or token.get('address') or '').lower()
+              to=((x.get('to') or {}).get('hash') if isinstance(x.get('to'),dict) else x.get('to') or '').lower()
+              if ta!=usdc or to!=addr: continue
+              dec=int(token.get('decimals') or 6)
+              total=x.get('total') or {}
+              raw=total.get('value') if isinstance(total,dict) else x.get('value')
+              try: amount=int(raw)/(10**dec)
+              except: amount=raw
+              fr=(x.get('from') or {}).get('hash') if isinstance(x.get('from'),dict) else x.get('from')
+              out.append({'tx_hash':x.get('transaction_hash'),'timestamp':x.get('timestamp'),'from':fr,'amount_usdc':amount})
+          print('TREASURY_RESULT='+json.dumps(out[:20],ensure_ascii=False))
+          PY
+          exit 0
