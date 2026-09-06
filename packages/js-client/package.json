@@ -1,6 +1,6 @@
 {
   "name": "delta-witness-ruphussten",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Client for DELTA Witness Capture and Guard with x402 payment discovery",
   "type": "module",
   "main": "./src/index.js",

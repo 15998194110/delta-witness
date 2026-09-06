@@ -52,6 +52,7 @@ import {
   CAPTURE_INPUT_SCHEMA,
   DELIVERY_SCHEMA,
   PREFLIGHT_INPUT_SCHEMA,
+  GUARDED_ACTION_PILOT_INPUT_SCHEMA,
   docsHtml,
   landingHtml,
   openApi,
@@ -61,6 +62,7 @@ import {
   useCaseHtml,
 } from "./discovery";
 import { getWatch, parseWatchRegistration, registerWatch, runDueWatches } from "./watch";
+import { guardedPilotEconomics, guardedPilotHandler, guardedPilotPrevalidate, guardedPilotProtect } from "./guarded-pilot";
 
 type PaidProduct = "capture" | "preflight";
 type PriorManifest = Pick<ProofManifest, "proof_id" | "requested_url" | "capture_completed_at" | "hashes">;
@@ -487,7 +489,25 @@ app.options("/v1/*", (c) => {
 app.get("/health", (c) => c.json({ ok: true, version: c.env.APP_VERSION, network: c.env.NETWORK, ts: new Date().toISOString() }));
 
 app.get("/v1/quote", async (c) => {
-  const product = c.req.query("product") === "preflight" ? "preflight" : "capture";
+  const requestedProduct = c.req.query("product");
+  if (requestedProduct === "guarded-action-pilot" || requestedProduct === "guarded_action_pilot") {
+    const channel = referrerChannel(c.req.raw);
+    const economics = guardedPilotEconomics(c.env);
+    await recordEvent(c.env, { event: "quote_issued", route: "/v1/guarded-action-pilot", channel, grossUsd: 10, success: true });
+    return c.json({
+      ok: true,
+      version: c.env.APP_VERSION,
+      product: "guarded_action_pilot",
+      price: "$10",
+      network: c.env.NETWORK,
+      asset: "USDC",
+      pay_to: c.env.PAY_TO,
+      payment_flow: "upfront",
+      max_urls: 3,
+      economics,
+    });
+  }
+  const product = requestedProduct === "preflight" ? "preflight" : "capture";
   const quote = await quoteProductWithOverride(c.env, product);
   const channel = referrerChannel(c.req.raw);
   await recordEvent(c.env, { event: "quote_issued", route: `/v1/${product}`, channel, grossUsd: quote.grossPriceUsd, success: true });
@@ -510,6 +530,10 @@ app.post("/v1/capture", (c) => paidHandler("capture", c));
 app.use("/v1/preflight", (c, next) => prevalidate("preflight", c, next));
 app.use("/v1/preflight", (c, next) => protectWithX402("preflight", c, next));
 app.post("/v1/preflight", (c) => paidHandler("preflight", c));
+
+app.use("/v1/guarded-action-pilot", (c, next) => guardedPilotPrevalidate(c, next));
+app.use("/v1/guarded-action-pilot", (c, next) => guardedPilotProtect(c, next));
+app.post("/v1/guarded-action-pilot", (c) => guardedPilotHandler(c));
 
 async function partnerAuthorized(c: AppContext, next: Next): Promise<Response | void> {
   if (!c.env.PARTNER_GATEWAY_SECRET) return c.json({ error: "partner_gateway_not_configured" }, 503);
@@ -679,6 +703,7 @@ app.get("/.well-known/x402", async (c) => c.json({
   resources: [
     { method: "POST", path: "/v1/capture", product: "capture", inputSchema: CAPTURE_INPUT_SCHEMA },
     { method: "POST", path: "/v1/preflight", product: "guard", inputSchema: PREFLIGHT_INPUT_SCHEMA },
+    { method: "POST", path: "/v1/guarded-action-pilot", product: "guarded_action_pilot", price_usd: 10, inputSchema: GUARDED_ACTION_PILOT_INPUT_SCHEMA },
   ],
   openapi: `${origin(c.env)}/openapi.json`,
 }));
@@ -688,7 +713,7 @@ for (const alias of ["/.well-known/x402.json", "/x402.json", "/.well-known/x402/
 app.get("/.well-known/api-catalog", (c) => c.json({ name: "DELTA Witness", version: c.env.APP_VERSION, openapi: `${origin(c.env)}/openapi.json`, skill: `${origin(c.env)}/SKILL.md` }));
 app.get("/SKILL.md", (c) => c.text(skillMarkdown(origin(c.env)), 200, { "content-type": "text/markdown; charset=utf-8" }));
 app.get("/AGENTS.md", (c) => c.text("# DELTA Witness\n\nUse /v1/preflight before consequential actions that depend on public web content. DELTA proves observation/change, not truth.\n", 200, { "content-type": "text/markdown; charset=utf-8" }));
-app.get("/llms.txt", (c) => c.text(`# DELTA Witness\n\n> Trust Layer for Autonomous Actions\n\n- [API guide](${origin(c.env)}/docs)\n- [OpenAPI](${origin(c.env)}/openapi.json)\n- [Agent skill](${origin(c.env)}/SKILL.md)\n- [x402 discovery](${origin(c.env)}/.well-known/x402)\n- [Agent preflight](${origin(c.env)}/use-cases/agent-preflight)\n- [Terms before purchase](${origin(c.env)}/use-cases/terms-before-purchase)\n- [Source change monitoring](${origin(c.env)}/use-cases/source-change-monitoring)\n- [Base app](https://delta-witness-app.pages.dev/)\n`));
+app.get("/llms.txt", (c) => c.text(`# DELTA Witness\n\n> Trust Layer for Autonomous Actions\n\n- [API guide](${origin(c.env)}/docs)\n- [OpenAPI](${origin(c.env)}/openapi.json)\n- [Agent skill](${origin(c.env)}/SKILL.md)\n- [x402 discovery](${origin(c.env)}/.well-known/x402)\n- [Agent preflight](${origin(c.env)}/use-cases/agent-preflight)\n- [$10 Guarded-Action Pilot](${origin(c.env)}/v1/quote?product=guarded-action-pilot)\n- [Terms before purchase](${origin(c.env)}/use-cases/terms-before-purchase)\n- [Source change monitoring](${origin(c.env)}/use-cases/source-change-monitoring)\n- [Base app](https://delta-witness-app.pages.dev/)\n`));
 app.get("/llms-full.txt", (c) => app.fetch(new Request(`${origin(c.env)}/llms.txt`, c.req.raw), c.env, c.executionCtx));
 app.get("/postman.json", (c) => c.json(postmanCollection(origin(c.env))));
 app.get("/distribution.json", (c) => c.json({
@@ -699,6 +724,7 @@ app.get("/distribution.json", (c) => c.json({
   products: {
     capture: { endpoint: `${origin(c.env)}/v1/capture`, billing: "x402-v2-upfront" },
     guard: { endpoint: `${origin(c.env)}/v1/preflight`, billing: "x402-v2-upfront" },
+    guarded_action_pilot: { endpoint: `${origin(c.env)}/v1/guarded-action-pilot`, price_usd: 10, max_urls: 3, billing: "x402-v2-upfront" },
     watch: { endpoint: `${c.env.PARTNER_GATEWAY_ORIGIN}/watch`, billing: "authenticated-partner-prepaid-quota" },
   },
   packages: {

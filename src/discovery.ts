@@ -30,6 +30,60 @@ export const PREFLIGHT_INPUT_SCHEMA = {
   required: ["url"],
 } as const;
 
+export const GUARDED_ACTION_PILOT_INPUT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    urls: {
+      type: "array",
+      minItems: 1,
+      maxItems: 3,
+      items: { type: "string", pattern: "^https://", description: "Public HTTPS webpage to witness." },
+    },
+    preflight: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        url_index: { type: "integer", minimum: 0, maximum: 2 },
+        expected: PREFLIGHT_INPUT_SCHEMA.properties.expected,
+      },
+      required: ["url_index", "expected"],
+    },
+  },
+  required: ["urls"],
+} as const;
+
+export const GUARDED_ACTION_PILOT_OUTPUT_SCHEMA = {
+  type: "object",
+  required: ["ok", "product", "price_usd", "proofs", "economics"],
+  properties: {
+    ok: { const: true },
+    product: { const: "guarded_action_pilot" },
+    price_usd: { const: 10 },
+    proofs: {
+      type: "array",
+      minItems: 1,
+      maxItems: 3,
+      items: {
+        type: "object",
+        required: ["url", "proof_id", "manifest_url", "public_proof_url", "bundle_root", "observed_at", "allocated_price_usd"],
+        properties: {
+          url: { type: "string" },
+          proof_id: { type: "string" },
+          manifest_url: { type: "string" },
+          public_proof_url: { type: "string" },
+          bundle_root: { type: "string" },
+          observed_at: { type: "string" },
+          allocated_price_usd: { type: "number" },
+        },
+      },
+    },
+    preflight: { type: "object" },
+    economics: { type: "object" },
+    idempotent_replay: { type: "boolean" },
+  },
+} as const;
+
 export const DELIVERY_SCHEMA = {
   type: "object",
   required: ["ok", "product", "proof_id", "manifest_url", "public_proof_url", "bundle_root", "observed_at"],
@@ -76,12 +130,12 @@ export function openApi(origin: string, version: string, capture: PricingQuote, 
       version,
       description: "Browser verification and page-state proof for public sources, plus deterministic preflight checks before an autonomous action. DELTA proves observation and change, not truth.",
       contact: { name: "DELTA Witness", email: "ruphussten@163.com", url: `${origin}/docs` },
-      "x-guidance": "Call GET /v1/quote before budgeting. Capture preserves a public observation; Guard compares one with deterministic expectations. Runtime HTTP 402 payment requirements are authoritative.",
+      "x-guidance": "Call GET /v1/quote before budgeting. Capture preserves a public observation; Guard compares one with deterministic expectations; Guarded-Action Pilot bundles 1-3 public URL proofs for exactly $10. Runtime HTTP 402 payment requirements are authoritative.",
     },
     servers: [{ url: origin }],
     paths: {
       "/health": { get: { operationId: "health", security: [], responses: { "200": { description: "Healthy" } } } },
-      "/v1/quote": { get: { operationId: "quote", security: [], parameters: [{ name: "product", in: "query", schema: { enum: ["capture", "preflight"] } }], responses: { "200": { description: "Current floor-aware quote" } } } },
+      "/v1/quote": { get: { operationId: "quote", security: [], parameters: [{ name: "product", in: "query", schema: { enum: ["capture", "preflight", "guarded-action-pilot"] } }], responses: { "200": { description: "Current floor-aware quote or exact pilot package quote" } } } },
       "/v1/capture": {
         post: {
           operationId: "browserVerificationPageStateProof",
@@ -104,6 +158,30 @@ export function openApi(origin: string, version: string, capture: PricingQuote, 
           "x-payment-info": paymentInfo(preflight),
           requestBody: { required: true, content: { "application/json": { schema: PREFLIGHT_INPUT_SCHEMA } } },
           responses: paidResponses,
+        },
+      },
+      "/v1/guarded-action-pilot": {
+        post: {
+          operationId: "guardedActionPilot",
+          summary: "Buy one guarded-action evidence pilot for exactly $10",
+          description: "Capture 1-3 public HTTPS pages as timestamped DELTA proofs and optionally run one deterministic preflight check. One x402 v2 upfront payment of exactly $10 USDC on Base covers the package.",
+          tags: ["guarded-action-pilot", "browser-agent-pilot", "page-state-evidence-bundle", "preflight-verification", "shopping", "procurement", "workflow-safety"],
+          security: [],
+          "x-payment-info": {
+            price: { mode: "fixed", currency: "USD", amount: "10" },
+            protocols: [{ x402: {} }],
+            network: "eip155:8453",
+          },
+          requestBody: { required: true, content: { "application/json": { schema: GUARDED_ACTION_PILOT_INPUT_SCHEMA } } },
+          responses: {
+            "200": { description: "Guarded-action evidence package delivered", content: { "application/json": { schema: GUARDED_ACTION_PILOT_OUTPUT_SCHEMA } } },
+            "202": { description: "Identical settled fulfillment already in progress" },
+            "400": error,
+            "402": { description: "Exact $10 x402 v2 payment required" },
+            "409": { description: "Payment replay attempted with a different request" },
+            "413": error,
+            "502": { description: "Settled pilot failed; identical retry remains idempotent" },
+          },
         },
       },
       "/v1/proofs/{proof_id}": {
@@ -133,6 +211,7 @@ Use DELTA when an action depends on what a public source says now.
 
 - Capture: \`POST ${origin}/v1/capture\` with \`{"url":"https://example.com"}\`.
 - Guard: \`POST ${origin}/v1/preflight\` with a URL plus a prior proof, expected hash, or textual expectations.
+- $10 Guarded-Action Pilot: \`POST ${origin}/v1/guarded-action-pilot\` with 1-3 public HTTPS URLs and an optional deterministic preflight on one URL. No subscription.
 - Watch: available only through authenticated prepaid partner gateways; quota is finite and every scheduled check must remain margin-positive.
 - Payment: x402 v2 on Base mainnet USDC, settled before capture work.
 - Semantics: \`safe\` means supplied deterministic expectations matched. DELTA proves observation/change, not source truth.
@@ -148,7 +227,7 @@ export function landingHtml(origin: string, version: string): string {
 }
 
 export function docsHtml(origin: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DELTA Witness API</title><meta name="robots" content="index,follow"><style>body{max-width:820px;margin:3rem auto;padding:0 1.25rem;font:16px/1.55 system-ui;color:#14243a}code,pre{background:#eef2f6;border-radius:6px}code{padding:.12rem .3rem}pre{padding:1rem;overflow:auto}a{color:#0759c7}</style></head><body><h1>DELTA Witness API</h1><p>One core service exposes Capture and Guard. Both accept JSON, issue an x402 v2 challenge, settle USDC on Base mainnet before Browser Run, and return proof metadata.</p><h2>Guard request</h2><pre>{
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DELTA Witness API</title><meta name="robots" content="index,follow"><style>body{max-width:820px;margin:3rem auto;padding:0 1.25rem;font:16px/1.55 system-ui;color:#14243a}code,pre{background:#eef2f6;border-radius:6px}code{padding:.12rem .3rem}pre{padding:1rem;overflow:auto}a{color:#0759c7}</style></head><body><h1>DELTA Witness API</h1><p>One core service exposes Capture, Guard, and a $10 Guarded-Action Pilot. All accept JSON, issue an x402 v2 challenge, settle USDC on Base mainnet before Browser Run, and return proof metadata.</p><h2>$10 Guarded-Action Pilot</h2><p>Submit 1-3 public HTTPS URLs and optionally one deterministic preflight rule. A single exact $10 USDC payment returns a bounded evidence bundle with independent proof references for every URL. No subscription.</p><h2>Guard request</h2><pre>{
   "url": "https://example.com/terms",
   "prior_proof_id": "optional UUID",
   "expected": {
@@ -222,6 +301,10 @@ export function postmanCollection(origin: string): Record<string, unknown> {
       {
         name: "Guard / Preflight",
         request: { method: "POST", header: [{ key: "Content-Type", value: "application/json" }], body: { mode: "raw", raw: "{\"url\":\"https://example.com\",\"expected\":{\"contains\":[\"Example Domain\"]}}" }, url: "{{baseUrl}}/v1/preflight" },
+      },
+      {
+        name: "$10 Guarded-Action Pilot",
+        request: { method: "POST", header: [{ key: "Content-Type", value: "application/json" }], body: { mode: "raw", raw: "{\"urls\":[\"https://example.com\"],\"preflight\":{\"url_index\":0,\"expected\":{\"contains\":[\"Example Domain\"]}}}" }, url: "{{baseUrl}}/v1/guarded-action-pilot" },
       },
     ],
   };

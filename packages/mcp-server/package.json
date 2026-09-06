@@ -1,6 +1,6 @@
 {
   "name": "delta-witness-mcp",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "mcpName": "io.github.15998194110/delta-witness",
   "description": "MCP tools for paid DELTA Witness Capture and Guard preflight observations",
   "type": "module",
