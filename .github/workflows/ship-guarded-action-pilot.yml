@@ -42,6 +42,11 @@ jobs:
           tick=chr(92)+'`'
           s=s.replace('`POST ${origin}/v1/preflight`', tick+'POST ${origin}/v1/preflight'+tick)
           s=s.replace('`POST ${origin}/v1/guarded-action-pilot`', tick+'POST ${origin}/v1/guarded-action-pilot'+tick)
+          old='replace_once("distribution/mcp/server.template.json", \'"version": "0.6.1"\', \'"version": "0.7.0"\')'
+          new='p = Path("distribution/mcp/server.template.json")\np.write_text(p.read_text().replace(\'"version": "0.6.1"\', \'"version": "0.7.0"\'))'
+          if old not in s:
+              raise SystemExit('version patch anchor missing')
+          s=s.replace(old,new,1)
           p.write_text(s)
           PY
           python3 .github/scripts/apply-guarded-action-pilot.py
