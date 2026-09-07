@@ -1,0 +1,39 @@
+name: DELTA agent-tools distribution 20260907-0914
+on:
+  push:
+    paths:
+      - '.github/workflows/automation-agent-tools-20260907-0914.yml'
+permissions:
+  contents: read
+jobs:
+  distribute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Submit DELTA x402 services to agent-tools.cloud
+        shell: bash
+        run: |
+          set -u
+          submit () {
+            name="$1"; url="$2"; desc="$3"; price="$4"
+            echo "=== SUBMIT $name ==="
+            code=$(curl -sS -o /tmp/out.json -w '%{http_code}' --max-time 25 \
+              -X POST 'https://agent-tools.cloud/api/v1/submit' \
+              -H 'content-type: application/json' \
+              --data-binary "$(python3 -c 'import json,sys; print(json.dumps({\"name\":sys.argv[1],\"url\":sys.argv[2],\"description\":sys.argv[3],\"category\":\"agent-verification-security\",\"chains\":[\"base\"],\"price_usdc\":float(sys.argv[4]),\"contact\":\"ruphussten85@gmail.com\"}))' "$name" "$url" "$desc" "$price")") || code='transport_error'
+            echo "HTTP=$code"
+            cat /tmp/out.json 2>/dev/null || true
+            echo
+          }
+          submit 'DELTA Witness — Page-State Capture' 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 'Browser-rendered page-state evidence and timestamped proof for autonomous agents; Base x402 USDC.' '0.03'
+          submit 'DELTA Witness — Preflight Verification' 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 'Pre-action verification against deterministic page expectations for autonomous browser workflows; Base x402 USDC.' '0.03'
+          submit 'DELTA Witness — Guarded Action Pilot' 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot' 'Higher-value guarded-action witness pilot for consequential autonomous actions; Base x402 USDC.' '10'
+      - name: Query directory after submission
+        shell: bash
+        run: |
+          set -u
+          for q in 'DELTA Witness' 'delta-witness-api.ruphussten.workers.dev'; do
+            echo "=== SEARCH $q ==="
+            curl -sS --max-time 25 --get 'https://agent-tools.cloud/api/v1/search' --data-urlencode "q=$q" --data-urlencode 'limit=20' || true
+            echo
+          done
