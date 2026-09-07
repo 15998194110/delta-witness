@@ -1,0 +1,90 @@
+name: DELTA Autonomous Growth Verification
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/tmp-autonomous-growth-run.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-register:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Reconcile Base Treasury
+        shell: bash
+        run: |
+          set -euo pipefail
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+          URL="https://base.blockscout.com/api/v2/addresses/${TREASURY}/token-transfers?type=ERC-20"
+          body=''
+          for n in 1 2 3 4; do
+            if body=$(curl --retry 2 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "$URL"); then break; fi
+            sleep $((n*2))
+          done
+          test -n "$body"
+          echo "$body" > /tmp/transfers.json
+          jq --arg t "${TREASURY,,}" --arg u "${USDC,,}" '
+            [(.items // [])[]
+              | select(((.to.hash // .to // "") | ascii_downcase) == $t)
+              | select(((.token.address_hash // .token.address // .token.contract_address_hash // "") | ascii_downcase) == $u)
+              | {
+                  hash: (.transaction_hash // .tx_hash // .hash),
+                  from: (.from.hash // .from),
+                  to: (.to.hash // .to),
+                  token: (.token.address_hash // .token.address // .token.contract_address_hash),
+                  value_raw: (.total.value // .value),
+                  decimals: ((.token.decimals // 6) | tonumber),
+                  timestamp: (.timestamp // .block_timestamp)
+                }
+            ]' /tmp/transfers.json > /tmp/incoming-usdc.json
+          echo 'TREASURY_RESULT_BEGIN'
+          cat /tmp/incoming-usdc.json
+          echo 'TREASURY_RESULT_END'
+
+      - name: Register DELTA on AIProx free registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat >/tmp/aiprox.json <<'JSON'
+          {
+            "name": "delta-witness",
+            "description": "Independent browser/action preflight witness for agents. Capture page state, verify expected conditions, and guard high-consequence actions before execution with x402 settlement on Base.",
+            "capability": "agent-commerce",
+            "rail": "x402",
+            "endpoint": "https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot",
+            "price_per_call": 10,
+            "price_unit": "USDC",
+            "payment_address": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+            "health_endpoint": "https://delta-witness-api.ruphussten.workers.dev/health"
+          }
+          JSON
+          do_post() {
+            local path="$1"
+            curl --retry 2 --retry-delay 2 --retry-all-errors -sS --max-time 30 \
+              -o /tmp/aiprox-response.json -D /tmp/aiprox-headers.txt -w '%{http_code}' \
+              -X POST "https://aiprox.dev${path}" \
+              -H 'content-type: application/json' \
+              --data-binary @/tmp/aiprox.json
+          }
+          code=$(do_post '/api/agents/register') || code=000
+          if [[ "$code" == 000 || "$code" == 404 || "$code" == 405 || "$code" == 422 || "$code" == 500 || "$code" == 502 || "$code" == 503 || "$code" == 504 ]]; then
+            code=$(do_post '/api/agents/register/external') || code=000
+          fi
+          echo "AIPROX_REGISTER_HTTP=$code"
+          echo 'AIPROX_REGISTER_BODY_BEGIN'
+          cat /tmp/aiprox-response.json || true
+          echo
+          echo 'AIPROX_REGISTER_BODY_END'
+          # Registration may be pending verification. Public readback is authoritative for live visibility.
+          for url in \
+            'https://aiprox.dev/api/agents/delta-witness' \
+            'https://aiprox.dev/api/agents?rail=x402'; do
+            echo "AIPROX_READBACK_URL=$url"
+            curl --retry 2 --retry-delay 2 --retry-all-errors -sS --max-time 30 "$url" || true
+            echo
+          done
