@@ -1,0 +1,74 @@
+name: DELTA Growth Arena Temp
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_arena_20260907_2137.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify DELTA production integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS "$BASE/health" | tee /tmp/health.json
+          for path in /v1/capture /v1/preflight /v1/guarded-action-pilot; do
+            code=$(curl --retry 3 --retry-delay 2 --retry-all-errors -sS -o /tmp/resp.json -D /tmp/resp.h -w '%{http_code}' -X POST "$BASE$path" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' || true)
+            echo "DELTA_PROBE path=$path code=$code"
+            test "$code" = "402"
+            grep -qi '^payment-required:' /tmp/resp.h || grep -qi '^x-payment-required:' /tmp/resp.h
+          done
+      - name: Attempt free x402 Arena registrations without authorizing payment
+        shell: bash
+        run: |
+          set -euo pipefail
+          API='https://core.x402arena.gg/register'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          register() {
+            local name="$1" endpoint="$2" niche="$3" description="$4" body="$5"
+            jq -n --arg name "$name" --arg endpoint "$endpoint" --arg niche "$niche" --arg description "$description" --arg wallet "$TREASURY" --argjson inputSchema "$body" '{name:$name,endpoint:$endpoint,niche:$niche,description:$description,walletAddress:$wallet,method:"POST",inputSchema:$inputSchema,resourceType:"http"}' >/tmp/register.json
+            code=$(curl --retry 3 --retry-delay 2 --retry-all-errors -sS -D /tmp/arena.h -o /tmp/arena.json -w '%{http_code}' -X POST "$API" -H 'content-type: application/json' --data-binary @/tmp/register.json || true)
+            echo "ARENA_REGISTER name=$name code=$code"
+            cat /tmp/arena.json || true
+            echo
+            if [ "$code" = "402" ]; then
+              echo "ARENA_REGISTRATION_REQUIRES_PAYMENT_SKIP_NO_AUTHORIZATION name=$name"
+            fi
+          }
+          register 'delta-witness-capture' 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 'web-intelligence' 'Timestamped browser verification and public page-state proof for autonomous agents.' '{"type":"object","required":["url"],"properties":{"url":{"type":"string","format":"uri"}}}'
+          register 'delta-witness-preflight' 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 'agent-trust' 'Deterministic preflight verification of public-source state before autonomous actions.' '{"type":"object","required":["url"],"properties":{"url":{"type":"string","format":"uri"},"expected":{"type":"object"}}}'
+          register 'delta-witness-guarded-action-pilot' 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot' 'agent-security' 'Higher-value guarded-action pilot for evidence-backed autonomous action checks.' '{"type":"object","properties":{"urls":{"type":"array","items":{"type":"string","format":"uri"}}}}'
+          echo 'ARENA_LEADERBOARD_READBACK_BEGIN'
+          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS 'https://core.x402arena.gg/leaderboard' | tee /tmp/leaderboard.json
+          echo
+          echo 'ARENA_LEADERBOARD_READBACK_END'
+          echo 'ARENA_OPERATOR_AGENTS_DELTA_BEGIN'
+          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS 'https://core.x402arena.gg/operator/agents' | jq '[.[]? | select(((.name // .id // "")|ascii_downcase|contains("delta-witness")) or ((.endpoint // "")|contains("delta-witness-api.ruphussten.workers.dev")))]' || true
+          echo 'ARENA_OPERATOR_AGENTS_DELTA_END'
+      - name: Reconcile Base Treasury independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+          FIRST='0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3'
+          curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "https://base.blockscout.com/api/v2/addresses/${TREASURY}/token-transfers?type=ERC-20" >/tmp/transfers.json
+          jq --arg t "${TREASURY,,}" --arg u "${USDC,,}" --arg first "${FIRST,,}" '[.items[]? | select(((.to.hash // .to // "")|ascii_downcase)==$t) | select(((.token.address_hash // .token.address // "")|ascii_downcase)==$u) | {timestamp,tx:(.transaction_hash // .tx_hash),from:(.from.hash // .from),to:(.to.hash // .to),value_raw:.total.value,decimals:.total.decimals}] | {all_incoming:., new_since_first:[.[] | select((.tx|ascii_downcase)!=$first)]}' /tmp/transfers.json
+      - name: Reconcile DELTA telemetry independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB='c9431b00-27c5-4609-9f3d-6af20cb162df'
+          SQL="SELECT id,created_at,event,route,channel,partner,success,reason,gross_usd,browser_ms,storage_bytes,variable_cost_usd,contribution_margin_usd FROM telemetry_events WHERE created_at >= datetime('now','-3 hours') ORDER BY id DESC LIMIT 250"
+          jq -n --arg sql "$SQL" '{sql:$sql}' >/tmp/query.json
+          curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${DB}/query" -H "authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'content-type: application/json' --data-binary @/tmp/query.json | jq '{success,errors,result:[.result[]|{success,results:[.results[]|select(.event=="payment_verified" or .event=="capture_completed" or .event=="proof_opened" or .event=="payment_required" or .event=="qualified_request")]}]}'
