@@ -4,42 +4,123 @@ on:
     paths:
       - '.github/workflows/_temp_growth_arena_20260907_2137.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
-  inspect:
+  inspect-register:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
-      - name: Read and identify DELTA registrations
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - name: Inspect Arena and register unique DELTA services if absent
         shell: bash
         run: |
           set -euo pipefail
-          URL='https://core.x402arena.gg/operator/agents'
-          curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "$URL" >/tmp/agents.json
-          echo 'ARENA_TYPE_BEGIN'
-          jq 'if type=="object" then {type:type,keys:keys} else {type:type,length:length} end' /tmp/agents.json
-          echo 'ARENA_TYPE_END'
-          echo 'ARENA_DELTA_MATCHES_BEGIN'
+          API='https://core.x402arena.gg'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          mkdir -p docs/evidence
           python - <<'PY'
-          import json
-          d=json.load(open('/tmp/agents.json'))
-          hits=[]
-          def walk(x,path='$'):
+          import json, os, subprocess, time, urllib.request, urllib.error
+          API='https://core.x402arena.gg'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          host='delta-witness-api.ruphussten.workers.dev'
+          evidence={
+            'observed_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+            'channel': 'x402 Arena',
+            'source': API,
+            'treasury': TREASURY,
+            'preexisting_matches': [],
+            'registration_attempts': [],
+            'final_matches': [],
+            'notes': ['No listing fee or wallet authorization is permitted by this workflow. HTTP 402/fee requirements are recorded and not paid.']
+          }
+          def get_json(url):
+            last=None
+            for delay in (0,2,5,9):
+              if delay: time.sleep(delay)
+              try:
+                req=urllib.request.Request(url, headers={'User-Agent':'DELTA-Witness-Growth/0.7.0','Accept':'application/json'})
+                with urllib.request.urlopen(req, timeout=30) as r:
+                  raw=r.read().decode('utf-8','replace')
+                  return r.status, json.loads(raw)
+              except Exception as e: last=e
+            raise last
+          def post_json(url,payload):
+            data=json.dumps(payload).encode()
+            last=None
+            for delay in (0,2,5):
+              if delay: time.sleep(delay)
+              try:
+                req=urllib.request.Request(url,data=data,method='POST',headers={'User-Agent':'DELTA-Witness-Growth/0.7.0','Accept':'application/json','Content-Type':'application/json'})
+                with urllib.request.urlopen(req, timeout=30) as r:
+                  raw=r.read().decode('utf-8','replace')
+                  try: body=json.loads(raw)
+                  except: body={'raw':raw[:2000]}
+                  return r.status,body,dict(r.headers)
+              except urllib.error.HTTPError as e:
+                raw=e.read().decode('utf-8','replace')
+                try: body=json.loads(raw)
+                except: body={'raw':raw[:2000]}
+                if e.code in (429,500,502,503,504): last=(e.code,body,dict(e.headers)); continue
+                return e.code,body,dict(e.headers)
+              except Exception as e: last=e
+            if isinstance(last,tuple): return last
+            return 0,{'error':repr(last)},{}
+          def matches(d):
+            out=[]; seen=set()
+            def walk(x):
               if isinstance(x,dict):
-                  text=json.dumps(x,sort_keys=True).lower()
-                  if 'delta-witness' in text or 'delta-witness-api.ruphussten.workers.dev' in text:
-                      hits.append((path,x))
-                  for k,v in x.items(): walk(v,f'{path}.{k}')
+                text=json.dumps(x,sort_keys=True).lower()
+                if 'delta-witness' in text or host in text:
+                  # Keep only compact public listing-like records.
+                  keys=('id','agentId','agent_id','name','endpoint','url','walletAddress','wallet_address','niche','description','method','resourceType','status','active','verified','createdAt','created_at')
+                  item={k:x[k] for k in keys if k in x}
+                  if item:
+                    s=json.dumps(item,sort_keys=True)
+                    if s not in seen: seen.add(s); out.append(item)
+                for v in x.values(): walk(v)
               elif isinstance(x,list):
-                  for i,v in enumerate(x): walk(v,f'{path}[{i}]')
-          walk(d)
-          seen=set()
-          for path,obj in hits:
-              s=json.dumps(obj,sort_keys=True)
-              if s in seen: continue
-              seen.add(s)
-              print(path)
-              print(json.dumps(obj,indent=2,sort_keys=True))
-          print('MATCH_COUNT',len(seen))
+                for v in x: walk(v)
+            walk(d)
+            return out
+          try:
+            status,agents=get_json(API+'/operator/agents')
+            evidence['operator_agents_http']=status
+            evidence['preexisting_matches']=matches(agents)
+          except Exception as e:
+            evidence['operator_agents_error']=repr(e)
+            agents={}
+          if not evidence['preexisting_matches']:
+            specs=[
+              ('delta-witness-capture-v070','https://delta-witness-api.ruphussten.workers.dev/v1/capture','web-intelligence','Timestamped browser verification and public page-state proof for autonomous agents.',{'type':'object','required':['url'],'properties':{'url':{'type':'string','format':'uri'}}}),
+              ('delta-witness-preflight-v070','https://delta-witness-api.ruphussten.workers.dev/v1/preflight','agent-trust','Deterministic preflight verification of public-source state before autonomous actions.',{'type':'object','required':['url'],'properties':{'url':{'type':'string','format':'uri'},'expected':{'type':'object'}}}),
+              ('delta-witness-guarded-action-pilot-v070','https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot','agent-security','Evidence-backed guarded-action pilot for higher-value autonomous action checks.',{'type':'object','properties':{'urls':{'type':'array','items':{'type':'string','format':'uri'}}}})
+            ]
+            for name,endpoint,niche,desc,schema in specs:
+              payload={'name':name,'endpoint':endpoint,'niche':niche,'description':desc,'walletAddress':TREASURY,'method':'POST','inputSchema':schema,'resourceType':'http'}
+              code,body,headers=post_json(API+'/register',payload)
+              attempt={'name':name,'endpoint':endpoint,'http':code,'body':body}
+              # Never follow/authorize payment challenges.
+              if code==402: attempt['decision']='skipped_payment_required'
+              elif 200 <= code < 300: attempt['decision']='submitted_or_registered'
+              elif code==409: attempt['decision']='already_exists_or_conflict'
+              else: attempt['decision']='degraded_or_rejected'
+              evidence['registration_attempts'].append(attempt)
+          try:
+            status2,agents2=get_json(API+'/operator/agents')
+            evidence['operator_agents_final_http']=status2
+            evidence['final_matches']=matches(agents2)
+          except Exception as e:
+            evidence['operator_agents_final_error']=repr(e)
+          with open('docs/evidence/x402-arena-check-2026-09-07.json','w') as f:
+            json.dump(evidence,f,indent=2,sort_keys=True)
           PY
-          echo 'ARENA_DELTA_MATCHES_END'
+          cat docs/evidence/x402-arena-check-2026-09-07.json
+          git config user.name 'DELTA Autonomous Operator'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/evidence/x402-arena-check-2026-09-07.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'evidence: record x402 Arena registration state'
+            git push origin HEAD:master
+          fi
