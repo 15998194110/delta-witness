@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  reconcile:
+  classify:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -18,47 +18,30 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v6
-      - name: Audit paid funnel candidates
-        run: node scripts/query-revenue-candidates.mjs
-      - name: Reconcile Base Treasury receipt
+      - name: Read exact DELTA telemetry rows
         shell: bash
         run: |
           set -euo pipefail
-          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-          TARGET_TX='0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3'
-          TARGET_PAYER='0x7E6b6556322c4e26c567a867964aC793f5eE2b1c'
-          URL="https://base.blockscout.com/api/v2/addresses/${TREASURY}/token-transfers?type=ERC-20"
-          curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "$URL" >/tmp/transfers.json
-          jq --arg tx "${TARGET_TX,,}" --arg payer "${TARGET_PAYER,,}" --arg t "${TREASURY,,}" --arg u "${USDC,,}" '
-            [(.items // [])[]
-              | select(((.transaction_hash // .tx_hash // .hash // "") | ascii_downcase) == $tx)
-              | select(((.from.hash // .from // "") | ascii_downcase) == $payer)
-              | select(((.to.hash // .to // "") | ascii_downcase) == $t)
-              | select(((.token.address_hash // .token.address // .token.contract_address_hash // "") | ascii_downcase) == $u)
-            ]' /tmp/transfers.json
+          DB='c9431b00-27c5-4609-9f3d-6af20cb162df'
+          SQL="SELECT id,created_at,app_version,event,route,channel,partner,success,reason,network,gross_usd,browser_ms,storage_bytes,variable_cost_usd,contribution_margin_usd FROM telemetry_events WHERE created_at >= '2026-09-07 05:41:30' AND created_at <= '2026-09-07 05:43:30' ORDER BY id ASC"
+          jq -n --arg sql "$SQL" '{sql:$sql}' >/tmp/query.json
+          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --max-time 30 \
+            -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${DB}/query" \
+            -H "authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'content-type: application/json' \
+            --data-binary @/tmp/query.json | jq '{success,errors,result:[.result[]|{success,results}]}'
 
-      - name: Retry AIProx free registry with canonical name
+      - name: Inspect payer activity and target transaction
         shell: bash
         run: |
-          set -u
-          cat >/tmp/aiprox.json <<'JSON'
-          {
-            "name": "DELTA Witness",
-            "description": "Independent browser and action preflight witness for agents",
-            "capability": "agent-commerce",
-            "rail": "x402",
-            "endpoint": "https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot",
-            "price_per_call": 10,
-            "price_unit": "USDC",
-            "payment_address": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
-            "health_endpoint": "https://delta-witness-api.ruphussten.workers.dev/health"
-          }
-          JSON
-          for path in /api/agents/register /api/agents/register/external; do
-            code=$(curl --retry 2 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o /tmp/aiprox-response.json -w '%{http_code}' -X POST "https://aiprox.dev${path}" -H 'content-type: application/json' --data-binary @/tmp/aiprox.json || echo 000)
-            echo "AIPROX_PATH=$path HTTP=$code"
-            cat /tmp/aiprox-response.json 2>/dev/null || true
-            echo
-            if [[ "$code" =~ ^20[0-9]$ ]]; then break; fi
-          done
+          set -euo pipefail
+          PAYER='0x7E6b6556322c4e26c567a867964aC793f5eE2b1c'
+          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+          TX='0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3'
+          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --max-time 30 \
+            "https://base.blockscout.com/api/v2/addresses/${PAYER}/token-transfers?type=ERC-20" >/tmp/payer.json
+          echo 'PAYER_RECENT_USDC_BEGIN'
+          jq --arg p "${PAYER,,}" --arg u "${USDC,,}" '[.items[] | select(((.from.hash // .from // "")|ascii_downcase)==$p) | select(((.token.address_hash // .token.address // "")|ascii_downcase)==$u) | {timestamp,transaction_hash,to:(.to.hash // .to),value_raw:.total.value,decimals:.total.decimals,method}] | .[:50]' /tmp/payer.json
+          echo 'PAYER_RECENT_USDC_END'
+          echo 'TARGET_TX_BEGIN'
+          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "https://base.blockscout.com/api/v2/transactions/${TX}" | jq '{hash,status,timestamp,from,to,method,decoded_input,token_transfers}'
+          echo 'TARGET_TX_END'
