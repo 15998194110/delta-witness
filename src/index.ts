@@ -33,6 +33,7 @@ import {
   parsePreflightRequest,
   readFulfillment,
   reserveInitialFulfillment,
+  settledRetryPrice,
   writeFulfillment,
   type DeliveryResponse,
   type FulfillmentRecord,
@@ -216,6 +217,8 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
       c.header("retry-after", "5");
       return c.json({ ok: false, state: "processing", retryable: true }, 202);
     }
+    const paidPrice = settledRetryPrice(stored.record, payment);
+    c.set("quote", { ...quote, grossPriceUsd: paidPrice, estimatedContributionMarginUsd: paidPrice - quote.expectedVariableCostUsd });
     const claimed = await claimRetry(c.env, key, stored);
     if (!claimed) {
       c.header("retry-after", "5");
@@ -352,6 +355,7 @@ async function executeFulfillment(input: {
       requestedUrl: input.body.url,
       fulfillmentFingerprint: fingerprint,
       paymentFingerprint: input.paymentProtocol === "x402-v2-upfront" ? fingerprint : undefined,
+      paidPriceUsd: input.quote.grossPriceUsd,
       partner: input.partner,
     });
     if (!(await reserveInitialFulfillment(env, key, record))) {
@@ -366,7 +370,7 @@ async function executeFulfillment(input: {
     }
   }
 
-  await recordEvent(env, {
+  if (!input.existingClaim) await recordEvent(env, {
     event: input.paymentProtocol === "x402-v2-upfront" ? "payment_verified" : "partner_request",
     route,
     channel: input.channel,
@@ -604,8 +608,12 @@ app.post("/internal/partner/:product", async (c) => {
       product === "preflight" ? loadPriorManifest(c.env, body as PreflightRequest) : Promise.resolve(undefined),
     ]);
     const gross = Number(c.req.header("x-delta-gross-usd"));
-    if (!Number.isFinite(gross) || gross < quote.grossPriceUsd) {
-      return c.json({ error: "partner_price_below_floor", minimum_price_usd: quote.grossPriceUsd }, 402);
+    // Public Preflight repricing does not renegotiate existing prepaid channels.
+    const partnerFloor = product === "preflight"
+      ? Math.max(Number(c.env.PARTNER_PREFLIGHT_BASE_PRICE_USD || "0.03"), quote.minimumPriceUsd)
+      : quote.grossPriceUsd;
+    if (!Number.isFinite(gross) || gross < partnerFloor) {
+      return c.json({ error: "partner_price_below_floor", minimum_price_usd: partnerFloor }, 402);
     }
     const fingerprint = await sha256(`partner\n${partner}\n${idempotencyKey}`);
     const key = fulfillmentRecordKey(fingerprint);

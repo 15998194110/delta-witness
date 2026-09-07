@@ -5,11 +5,21 @@ import {
   initialFulfillment,
   parsePreflightRequest,
   reserveInitialFulfillment,
+  settledRetryPrice,
 } from "../src/fulfillment";
 import type { ProofManifest } from "../src/capture";
 import type { RuntimeEnv } from "../src/env";
 
 describe("payment replay and idempotency", () => {
+  it("retains settled prices across a later public price change, including legacy records", () => {
+    const base = { route: "/v1/preflight", requestHash: "sha256:a", requestedUrl: "https://example.com/", fulfillmentFingerprint: "sha256:b" };
+    const legacy = initialFulfillment(base);
+    const header = Buffer.from(JSON.stringify({ x402Version: 2, accepted: { amount: "30000" } })).toString("base64");
+    expect(settledRetryPrice(legacy, header)).toBe(0.03);
+    expect(settledRetryPrice(initialFulfillment({ ...base, paidPriceUsd: 1 }), header)).toBe(1);
+    const invalid = Buffer.from(JSON.stringify({ accepted: { amount: "NaN" } })).toString("base64");
+    expect(() => settledRetryPrice(legacy, invalid)).toThrow();
+  });
   it("atomically reserves a fulfillment key once", async () => {
     let stored = false;
     const bucket = {

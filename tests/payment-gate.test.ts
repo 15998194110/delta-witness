@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { app } from "../src/index";
 import type { RuntimeEnv } from "../src/env";
+import { sha256 } from "../src/crypto";
+import { fulfillmentRecordKey, initialFulfillment, paidRequestHash } from "../src/fulfillment";
 
 const supported = {
   kinds: [{ x402Version: 2, scheme: "exact", network: "eip155:8453" }],
@@ -55,6 +57,75 @@ function stubTimingSafeEqual(): void {
 }
 
 describe("payment hard gate", () => {
+  it("preserves an existing partner Preflight replay at its original prepaid price", async () => {
+    stubTimingSafeEqual();
+    const browser = { quickAction: vi.fn() };
+    const env = runtime(browser);
+    Object.assign(env, { PREFLIGHT_BASE_PRICE_USD: "1", PARTNER_PREFLIGHT_BASE_PRICE_USD: "0.03", PARTNER_GATEWAY_SECRET: "partner-secret" });
+    const body = { url: "https://example.com/" };
+    const fingerprint = await sha256("partner\nexisting\noriginal-order");
+    const record = initialFulfillment({ route: "/partner/preflight", requestHash: await paidRequestHash("/partner/preflight", body), requestedUrl: body.url, fulfillmentFingerprint: fingerprint });
+    const delivery = { ok: true, proof_id: "existing-partner-proof" };
+    env.PROOFS.get = vi.fn(async (key: string) => key === fulfillmentRecordKey(fingerprint) ? { json: async () => ({ ...record, state: "complete", response: delivery }), etag: "old" } : null) as unknown as R2Bucket["get"];
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.startsWith("https://cloudflare-dns.com/")) return Response.json(new URL(url).searchParams.get("type") === "A" ? { Status: 0, Answer: [{ type: 1, data: "93.184.216.34" }] } : { Status: 0, Answer: [] });
+      if (url === body.url) return new Response("", { status: 200 });
+      throw new Error(`Unexpected call: ${url}`);
+    }));
+    const response = await app.request("https://delta.test/internal/partner/preflight", { method: "POST", headers: { "content-type": "application/json", "x-delta-core-secret": "partner-secret", "x-delta-partner": "existing", "idempotency-key": "original-order", "x-delta-gross-usd": "0.03" }, body: JSON.stringify(body) }, env);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ...delivery, idempotent_replay: true });
+    expect(browser.quickAction).not.toHaveBeenCalled();
+  });
+  it.each([["capture", "30000"], ["preflight", "1000000"], ["guarded-action-pilot", "10000000"]])(
+    "publishes the approved %s price consistently without executing or settling",
+    async (product, amount) => {
+      const browser = { quickAction: vi.fn() };
+      const env = runtime(browser);
+      Object.assign(env, { CAPTURE_BASE_PRICE_USD: "0.03", PREFLIGHT_BASE_PRICE_USD: "1", WATCH_BASE_PRICE_USD: "0.03" });
+      const fetchMock = vi.fn(async (input: string | URL | Request) => {
+        if (String(input) === "https://facilitator.test/supported") return Response.json(supported);
+        throw new Error(`Unexpected external call: ${String(input)}`);
+      });
+      vi.stubGlobal("fetch", fetchMock);
+      const response = await app.request(`https://delta.test/v1/${product}`, { method: "POST" }, env);
+      expect(response.status).toBe(402);
+      const challenge = JSON.parse(Buffer.from(response.headers.get("payment-required")!, "base64").toString("utf8"));
+      const body = await response.json<{ accepts: unknown[] }>();
+      expect(challenge.accepts[0].amount).toBe(amount);
+      expect(body.accepts).toEqual(challenge.accepts);
+      expect(challenge.accepts[0].payTo.toLowerCase()).toBe(env.PAY_TO.toLowerCase());
+      expect(browser.quickAction).not.toHaveBeenCalled();
+      expect(fetchMock.mock.calls.every(([url]) => String(url).endsWith("/supported"))).toBe(true);
+    },
+  );
+
+  it("replays an already delivered old-price Preflight after repricing without another payment", async () => {
+    const browser = { quickAction: vi.fn() };
+    const env = runtime(browser);
+    Object.assign(env, { PREFLIGHT_BASE_PRICE_USD: "1" });
+    const oldPayment = Buffer.from(JSON.stringify({ accepted: { amount: "30000" } })).toString("base64");
+    const fingerprint = await sha256(oldPayment);
+    const body = { url: "https://example.com/" };
+    const record = initialFulfillment({ route: "/v1/preflight", requestHash: await paidRequestHash("/v1/preflight", body), requestedUrl: body.url, fulfillmentFingerprint: fingerprint, paymentFingerprint: fingerprint });
+    const delivery = { ok: true, product: "preflight", proof_id: "existing-paid-proof", manifest_url: "https://delta.test/v1/proofs/existing-paid-proof" };
+    env.PROOFS.get = vi.fn(async (key: string) => key === fulfillmentRecordKey(fingerprint)
+      ? { json: async () => ({ ...record, state: "complete", response: delivery }), etag: "old" }
+      : null) as unknown as R2Bucket["get"];
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.startsWith("https://cloudflare-dns.com/")) return Response.json(new URL(url).searchParams.get("type") === "A" ? { Status: 0, Answer: [{ type: 1, data: "93.184.216.34" }] } : { Status: 0, Answer: [] });
+      if (url === body.url) return new Response("", { status: 200 });
+      throw new Error(`Unexpected payment call: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await app.request("https://delta.test/v1/preflight", { method: "POST", headers: { "content-type": "application/json", "payment-signature": oldPayment }, body: JSON.stringify(body) }, env);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ...delivery, idempotent_replay: true });
+    expect(browser.quickAction).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("facilitator"))).toBe(false);
+  });
   it("serves only the configured IndexNow ownership key", async () => {
     const env = runtime({ quickAction: vi.fn() });
     const valid = await app.request("https://delta.test/test-key.txt", {}, env);

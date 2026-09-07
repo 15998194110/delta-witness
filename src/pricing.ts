@@ -46,7 +46,11 @@ export function estimateVariableCost(
 }
 
 function configuredProductPrice(env: RuntimeEnv, product: Product): number {
-  const value = product === "capture" ? env.CAPTURE_BASE_PRICE_USD : env.PREFLIGHT_BASE_PRICE_USD;
+  const value = product === "capture"
+    ? env.CAPTURE_BASE_PRICE_USD
+    : product === "watch_check"
+      ? env.WATCH_BASE_PRICE_USD
+      : env.PREFLIGHT_BASE_PRICE_USD;
   return numberSetting(value, 0.01, 0.001, 10_000);
 }
 

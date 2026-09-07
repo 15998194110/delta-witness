@@ -2,6 +2,7 @@ import type { RuntimeEnv } from "./env";
 import type { ProofManifest } from "./capture";
 import { sha256, stableJson } from "./crypto";
 import { validateTarget } from "./security";
+import { decodePaymentSignatureHeader } from "@x402/core/http";
 
 export type CaptureRequest = {
   url: string;
@@ -44,6 +45,7 @@ export type FulfillmentRecord = {
   requested_url: string;
   fulfillment_fingerprint: string;
   payment_fingerprint?: string;
+  paid_price_usd?: number;
   partner?: string;
   attempts: number;
   created_at: string;
@@ -183,6 +185,7 @@ export function initialFulfillment(input: {
   requestedUrl: string;
   fulfillmentFingerprint: string;
   paymentFingerprint?: string;
+  paidPriceUsd?: number;
   partner?: string;
 }): FulfillmentRecord {
   const now = new Date().toISOString();
@@ -194,6 +197,7 @@ export function initialFulfillment(input: {
     requested_url: input.requestedUrl,
     fulfillment_fingerprint: input.fulfillmentFingerprint,
     payment_fingerprint: input.paymentFingerprint,
+    paid_price_usd: input.paidPriceUsd,
     partner: input.partner,
     attempts: 1,
     created_at: now,
@@ -203,6 +207,16 @@ export function initialFulfillment(input: {
 
 export function fulfillmentMatches(record: FulfillmentRecord, route: string, requestHash: string): boolean {
   return record.route === route && record.request_hash === requestHash;
+}
+
+// Only call after the server-stored record matches both this payment header's
+// fingerprint and the original request. An unverified header is never credit.
+export function settledRetryPrice(record: FulfillmentRecord, matchedPaymentHeader: string): number {
+  if (typeof record.paid_price_usd === "number" && Number.isFinite(record.paid_price_usd) && record.paid_price_usd > 0) return record.paid_price_usd;
+  const amount = decodePaymentSignatureHeader(matchedPaymentHeader).accepted.amount;
+  if (!/^\d+$/.test(amount) || !Number.isSafeInteger(Number(amount)) || Number(amount) <= 0) throw new Error("stored_payment_amount_invalid");
+  // Legacy DELTA exact payments use canonical Base USDC (six decimals).
+  return Number(amount) / 1_000_000;
 }
 
 export type PreflightEvaluation = {

@@ -20,6 +20,12 @@ function env(overrides: Record<string, unknown> = {}): RuntimeEnv {
 }
 
 describe("contribution-margin pricing", () => {
+  it("isolates Preflight repricing from Capture and prepaid Watch checks", () => {
+    const config = env({ CAPTURE_BASE_PRICE_USD: "0.03", PREFLIGHT_BASE_PRICE_USD: "1", WATCH_BASE_PRICE_USD: "0.03" });
+    expect(quoteProduct(config, "capture").grossPriceUsd).toBe(0.03);
+    expect(quoteProduct(config, "preflight").grossPriceUsd).toBe(1);
+    expect(quoteProduct(config, "watch_check").grossPriceUsd).toBe(0.03);
+  });
   it("calculates a floor above expected variable cost", () => {
     const quote = quoteProduct(env(), "capture");
     expect(quote.grossPriceUsd).toBeGreaterThan(quote.expectedVariableCostUsd);
