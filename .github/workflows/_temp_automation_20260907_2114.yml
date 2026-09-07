@@ -1,0 +1,47 @@
+name: DELTA Fresh Revenue Reconciliation
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_automation_20260907_2114.yml'
+permissions:
+  contents: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify production paywalls
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "$BASE/health"
+          for route in preflight guarded-action-pilot; do
+            code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o "/tmp/${route}.json" -D "/tmp/${route}.headers" -w '%{http_code}' -X POST "$BASE/v1/$route" -H 'content-type: application/json' -d '{}')
+            echo "ROUTE=$route HTTP=$code"
+            test "$code" = "402"
+          done
+      - name: Reconcile canonical Base USDC Treasury
+        shell: bash
+        run: |
+          set -euo pipefail
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+          FIRST='0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3'
+          URL="https://base.blockscout.com/api/v2/addresses/${TREASURY}/token-transfers?type=ERC-20"
+          curl --retry 5 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "$URL" >/tmp/transfers.json
+          jq --arg t "${TREASURY,,}" --arg u "${USDC,,}" --arg first "${FIRST,,}" '
+            [(.items // [])[]
+              | select(((.to.hash // .to // "") | ascii_downcase) == $t)
+              | select(((.token.address_hash // .token.address // .token.contract_address_hash // "") | ascii_downcase) == $u)
+              | {timestamp, transaction_hash, from:(.from.hash // .from), value_raw:(.total.value // .value), decimals:(.total.decimals // .token.decimals), is_first:(((.transaction_hash // "")|ascii_downcase)==$first)}]
+            | {canonical_incoming:., new_after_first:[.[]|select(.is_first|not)]}' /tmp/transfers.json
+      - name: Audit recent DELTA paid funnel
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/query-revenue-candidates.mjs
