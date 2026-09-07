@@ -1,0 +1,35 @@
+name: DELTA 402 Index bounded retry
+
+on:
+  push:
+    paths:
+      - '.github/workflows/402index-capture-once.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Bounded Capture registration
+        shell: bash
+        run: |
+          set -u
+          tmp=$(mktemp)
+          code=$(curl -sS --connect-timeout 5 --max-time 20 -o "$tmp" -w '%{http_code}' \
+            -H 'content-type: application/json' \
+            -X POST 'https://402index.io/api/v1/register' \
+            -d '{"url":"https://delta-witness-api.ruphussten.workers.dev/v1/capture","name":"DELTA Witness — Page-State Proof","protocol":"x402","http_method":"POST","provider":"DELTA Witness","probe_body":"{\"url\":\"https://example.com\"}","description":"Auditable page-state proof for browser and workflow agents before actions.","price_usd":0.03,"payment_asset":"USDC","payment_network":"Base","category":"ai/verification"}' || true)
+          echo "INDEX402_HTTP=$code"
+          python3 - "$tmp" <<'PY'
+          import json,sys
+          raw=open(sys.argv[1],errors='ignore').read()
+          try:
+              d=json.loads(raw)
+              print('INDEX402_RESPONSE='+json.dumps(d,separators=(',',':'))[:16000])
+          except Exception:
+              print('INDEX402_RESPONSE_NONJSON='+raw[:2000].replace('\n',' '))
+          PY
+          exit 0
