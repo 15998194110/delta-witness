@@ -64,3 +64,4 @@ jobs:
           git add docs/autonomous-run-last.json
           git commit -m 'chore: refresh autonomous treasury audit' || exit 0
           git push
+# audit-trigger: 2026-09-07T07:24:23Z
