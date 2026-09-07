@@ -1,12 +1,61 @@
 {
   "schema": "delta-growth-meshkore/v1",
-  "recorded_at": "2026-09-07T22:11:40.814372+00:00",
+  "recorded_at": "2026-09-07T22:25:30Z",
   "channel": "meshkore",
-  "listing_status": "registration_unverified",
-  "discovery_status": "degraded",
+  "listing_status": "registered_pending_live",
+  "discovery_status": "public_card_published_heartbeat_pending",
   "canonical_url": "https://meshkore.com/agent/delta-witness-ruphussten",
-  "api_readback": {
-    "error": "HTTP Error 403: Forbidden"
+  "agent_id": "delta-witness-ruphussten",
+  "registration": {
+    "registered": 1,
+    "api_key_persisted_in": "Cloudflare Worker secret MESHKORE_API_KEY",
+    "public_readback": {
+      "live": 0,
+      "last_active": "",
+      "endpoint": "",
+      "description": "Trust layer for autonomous actions: paid public-page capture and deterministic preflight evidence over x402 on Base.",
+      "category": "security.web-verification",
+      "capabilities": [
+        "web-proof",
+        "browser-verification",
+        "preflight",
+        "page-state",
+        "x402",
+        "base",
+        "usdc",
+        "autonomous-agents",
+        "guard",
+        "evidence"
+      ],
+      "agent_card": {
+        "name": "DELTA Witness",
+        "endpoint": "https://delta-witness-api.ruphussten.workers.dev",
+        "owner_class": "third-party",
+        "protocols": ["http", "a2a", "x402"],
+        "pricing": {
+          "unit": "request",
+          "amount": 30000,
+          "currency": "USDC",
+          "network": "base"
+        },
+        "availability": {"now": true}
+      }
+    }
+  },
+  "heartbeat": {
+    "worker_cron": "*/3 * * * *",
+    "method": "POST /v1/agents/token then PATCH /v1/agents/me",
+    "status": "awaiting_new_cron_trigger_propagation",
+    "note": "Cloudflare documents that new or changed Cron Triggers can take several minutes, up to 15 minutes, to propagate. Public readback remained live=0 during early checks immediately after registration; this is treated as recoverable channel propagation, not a terminal listing failure."
+  },
+  "production": {
+    "public_card": "https://delta-witness-api.ruphussten.workers.dev/.well-known/agent.json",
+    "public_card_meshkore_compatible": true,
+    "prices_usdc": {
+      "capture": 0.03,
+      "preflight": 0.03,
+      "guarded_action_pilot": 10
+    }
   },
   "treasury_reconciliation": {
     "status": "ok",
@@ -16,12 +65,13 @@
     "rpc": "https://mainnet.base.org"
   },
   "strict_accounting": {
-    "previous_buyer_count": 1,
-    "previous_settlement_count": 1,
-    "previous_revenue_usdc": 0.03,
+    "buyer_count": 1,
+    "settlement_count": 1,
+    "revenue_usdc": 0.03,
+    "variable_cost_usdc": 0.002163522555,
+    "contribution_margin_usdc": 0.027836477445,
     "new_receipt_count": 0,
-    "new_customer_revenue_usdc": 0,
-    "classification_note": "New receipts, if any, require non-project settlement/telemetry correlation before customer-revenue classification."
+    "new_customer_revenue_usdc": 0
   },
   "evidence_quality": "B",
   "risk_controls": {
