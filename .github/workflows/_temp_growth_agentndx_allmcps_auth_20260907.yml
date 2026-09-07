@@ -1,0 +1,62 @@
+name: DELTA Growth AgentNDX AllMCPs Auth Temp
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_agentndx_allmcps_auth_20260907.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  advance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+      - name: Complete AgentNDX submission
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONTACT=$(git log -1 --format=%ae)
+          code=$(curl --retry 3 --retry-delay 2 --retry-all-errors -sS -L -o /tmp/agentndx.html -w '%{http_code}|%{url_effective}' \
+            -X POST 'https://agentndx.ai/api/submit' \
+            -H 'content-type: application/x-www-form-urlencoded' \
+            -H 'user-agent: Mozilla/5.0 DELTA-Witness-Listing/1.0' \
+            --data-urlencode 'name=DELTA Witness' \
+            --data-urlencode 'github_url=https://github.com/15998194110/delta-witness' \
+            --data-urlencode 'homepage_url=https://delta-witness-api.ruphussten.workers.dev' \
+            --data-urlencode 'protocols=MCP' \
+            --data-urlencode 'protocols=x402' \
+            --data-urlencode 'description=Trust layer for autonomous actions with MCP plus x402-paid browser capture, deterministic preflight verification, and verifiable proof artifacts.' \
+            --data-urlencode "contact=$CONTACT")
+          echo "AGENTNDX_RESULT=$code"
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          t=Path('/tmp/agentndx.html').read_text(errors='replace')
+          clean=re.sub(r'\s+',' ',t)
+          print('AGENTNDX_SUCCESS_TEXT=', 'Submission received.' in t)
+          print('AGENTNDX_ERROR_TEXT=', re.findall(r'error=[^&" ]+', clean)[:5])
+          print(clean[:1600])
+          PY
+
+      - name: Inspect AllMCPs unattended agent verification path
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const endpoint='https://allmcps.com/api/mcp';
+          async function rpc(method,params){
+            const c=AbortSignal.timeout(15000);
+            const r=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:c});
+            const t=await r.text(); console.log('RPC_HTTP',method,r.status); const j=JSON.parse(t); if(j.error)throw new Error(j.error.message);return j.result;
+          }
+          (async()=>{
+            const tools=await rpc('tools/list');
+            for(const name of ['confirm_mcp_agent','verify_mcp_claim','submit_mcp_server']){
+              const t=(tools.tools||[]).find(x=>x.name===name);
+              console.log('ALLMCPS_SCHEMA_'+name+'='+JSON.stringify(t||null));
+            }
+          })().catch(e=>{console.error('ALLMCPS_SCHEMA_DEGRADED',e.message);process.exit(0)});
+          NODE
