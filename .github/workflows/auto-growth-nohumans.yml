@@ -1,4 +1,4 @@
-name: DELTA one-shot nohumans diagnostics
+name: DELTA one-shot x402 probe compatibility
 on:
   push:
     paths:
@@ -8,26 +8,41 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Inspect nohumans probe diagnostics
+      - name: Measure challenge transport and method behavior
         shell: bash
         run: |
           set -euo pipefail
           node <<'NODE'
-          const ids = ['9acc2efd-b71','97b7e8b8-b62','50ce8a12-faa'];
-          for (const id of ids) {
+          const BASE='https://delta-witness-api.ruphussten.workers.dev';
+          const routes=[
+            ['/v1/capture',{url:'https://example.com'}],
+            ['/v1/preflight',{url:'https://example.com',expected:{contains:['Example Domain']}}],
+            ['/v1/guarded-action-pilot',{urls:['https://example.com'],preflight:{url_index:0,expected:{contains:['Example Domain']}}}]
+          ];
+          for (const [path,body] of routes) {
+            for (const variant of [
+              ['post-valid',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}],
+              ['post-empty',{method:'POST'}],
+              ['post-json-empty',{method:'POST',headers:{'content-type':'application/json'},body:'{}'}],
+              ['get',{method:'GET'}],
+              ['head',{method:'HEAD'}],
+              ['options',{method:'OPTIONS'}],
+            ]) {
+              try {
+                const [name,init]=variant;
+                const r=await fetch(BASE+path,init);
+                const ph=r.headers.get('payment-required')||'';
+                let headerBytes=0;
+                for (const [k,v] of r.headers) headerBytes += Buffer.byteLength(k)+2+Buffer.byteLength(v)+2;
+                console.log(`WIRE=${JSON.stringify({path,variant:name,status:r.status,payment_required_bytes:Buffer.byteLength(ph),header_bytes_est:headerBytes,content_type:r.headers.get('content-type')})}`);
+              } catch(e) { console.log(`WIRE_ERROR=${JSON.stringify({path,variant:variant[0],error:String(e.message||e)})}`); }
+            }
+          }
+          for (const id of ['9acc2efd-b71','97b7e8b8-b62','50ce8a12-faa']) {
             try {
-              const r = await fetch(`https://nohumans.directory/v1/listings/${id}`);
-              if (!r.ok) { console.log(`NOHUMANS_CHANNEL_DEGRADED=${id}:HTTP_${r.status}`); continue; }
-              const j = await r.json();
-              const safe = {
-                id:j.id,status:j.status,score:j.score,probe_count:j.probe_count,consecutive_failures:j.consecutive_failures,
-                last_ok_at:j.last_ok_at,last_probed_at:j.last_probed_at,status_changed_at:j.status_changed_at,
-                endpoint_url:j.endpoint_url,request_schema:j.request_schema,
-                observed:j.observed || null,
-                last_error:j.last_error || j.probe_error || j.last_probe_error || j.failure_reason || null,
-                paid_verification:j.paid_verification?{status:j.paid_verification.status,verified:j.paid_verification.verified,error:j.paid_verification.error,tx_hash:j.paid_verification.tx_hash}:null
-              };
-              console.log(`NOHUMANS_DIAGNOSTIC=${JSON.stringify(safe)}`);
-            } catch (e) { console.log(`NOHUMANS_CHANNEL_DEGRADED=${id}:${String(e.message||e)}`); }
+              const r=await fetch(`https://nohumans.directory/v1/listings/${id}`);
+              const j=await r.json();
+              console.log(`NH=${JSON.stringify({id,status:j.status,score:j.score,probe_count:j.probe_count,consecutive_failures:j.consecutive_failures,last_ok_at:j.last_ok_at,last_probed_at:j.last_probed_at,header_bytes:j.header_bytes,response_mime:j.response_mime,observed:j.observed||null})}`);
+            } catch(e) { console.log(`NH_ERROR=${id}:${String(e.message||e)}`); }
           }
           NODE
