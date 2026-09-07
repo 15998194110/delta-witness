@@ -1,0 +1,36 @@
+{
+  "schema": "delta-channel-evidence/v1",
+  "channel": "PayAI Bazaar",
+  "checked_at": "2026-09-07T20:32:41.596Z",
+  "evidence_quality": "A",
+  "catalog_total": 28258,
+  "catalog_scanned": 28258,
+  "scan_complete": true,
+  "matches": 1,
+  "resource": "https://delta-witness-api.ruphussten.workers.dev/v1/preflight",
+  "method": "POST",
+  "x402_version": 2,
+  "network": "eip155:8453",
+  "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+  "amount_atomic": "30000",
+  "price_usdc": 0.03,
+  "last_updated": "2026-09-07T05:42:01.916Z",
+  "input_schema_present": true,
+  "output_schema_present": true,
+  "market402_followup": {
+    "selftest_capture": "11/11 spec_compliant",
+    "selftest_preflight": "11/11 spec_compliant",
+    "paid_probe_qualification": false,
+    "qualification_reason": "not_in_catalog",
+    "interpretation": "Market402 is using a separately refreshed weekly Bazaar snapshot and has not yet observed the newly restored PayAI entry; its response says qualification is automatically re-evaluated after catalog refresh."
+  },
+  "accounting": {
+    "external_requests": 0,
+    "402_intents": 0,
+    "paid_settlements": 0,
+    "treasury_received_usdc": 0,
+    "revenue_usdc": 0,
+    "note": "Catalog presence and Market402 self-tests are discovery/probe evidence only and are not customer revenue."
+  }
+}
