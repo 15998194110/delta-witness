@@ -1,0 +1,67 @@
+name: DELTA Growth Tollbooth Temp
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/_temp_growth_tollbooth_20260907_1915.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  growth:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify DELTA production paid surfaces
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          for path in v1/preflight v1/guarded-action-pilot; do
+            status=$(curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 40 -sS -o "/tmp/${path##*/}.json" -D "/tmp/${path##*/}.headers" -w '%{http_code}' \
+              -X POST "$BASE/$path" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]},"urls":["https://example.com"]}')
+            echo "$path status=$status"
+            test "$status" = '402'
+            grep -qi '^payment-required:' "/tmp/${path##*/}.headers"
+          done
+
+      - name: Register or confirm DELTA Preflight on Tollbooth
+        run: |
+          set -euo pipefail
+          API='https://www.trytollbooth.com/api/services'
+          ENDPOINT='https://delta-witness-api.ruphussten.workers.dev/v1/preflight'
+          WALLET='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 40 -fsS "$API?q=DELTA%20Witness&chain=base" -o /tmp/tollbooth-before.json || echo '{"services":[]}' > /tmp/tollbooth-before.json
+          echo 'TOLLBOOTH_BEFORE'
+          cat /tmp/tollbooth-before.json | jq '.'
+          found=$(jq -r --arg e "$ENDPOINT" '[.. | objects | select(.endpoint? == $e)] | length' /tmp/tollbooth-before.json 2>/dev/null || echo 0)
+          if [ "$found" -eq 0 ]; then
+            payload=$(jq -n --arg endpoint "$ENDPOINT" --arg wallet "$WALLET" '{name:"DELTA Witness Preflight Verification",endpoint:$endpoint,category:"agent-trust",priceUsdc:0.03,wallet:$wallet,chain:"base",description:"Machine-verifiable preflight witness for browser and workflow agents before high-consequence external actions; settles x402 USDC directly on Base."}')
+            code=$(curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 60 -sS -o /tmp/tollbooth-register.json -w '%{http_code}' \
+              -X POST "$API" -H 'content-type: application/json' --data "$payload")
+            echo "TOLLBOOTH_REGISTER_STATUS=$code"
+            cat /tmp/tollbooth-register.json | jq '.'
+            case "$code" in 200|201|202|409) ;; *) exit 1 ;; esac
+          else
+            echo 'TOLLBOOTH_EXISTING=true'
+          fi
+          sleep 4
+          curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 40 -fsS "$API?q=DELTA%20Witness&chain=base" -o /tmp/tollbooth-after.json
+          echo 'TOLLBOOTH_AFTER'
+          cat /tmp/tollbooth-after.json | jq '.'
+
+      - name: Audit DELTA paid funnel candidates
+        run: node scripts/query-revenue-candidates.mjs
+
+      - name: Reconcile canonical Base USDC Treasury receipts
+        run: |
+          set -euo pipefail
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+          URL="https://base.blockscout.com/api/v2/addresses/$TREASURY/token-transfers?type=ERC-20"
+          body=$(curl --retry 5 --retry-all-errors --connect-timeout 10 --max-time 50 -fsS "$URL")
+          printf '%s' "$body" | jq --arg t "${TREASURY,,}" --arg u "${USDC,,}" '{canonical_incoming_usdc:[.items[]? | select((.to.hash // .to.address_hash // "" | ascii_downcase) == $t) | select((.token.address // "" | ascii_downcase) == $u) | {tx_hash:(.tx_hash // .transaction_hash),timestamp,from:(.from.hash // .from.address_hash),to:(.to.hash // .to.address_hash),value,token_decimals:(.token.decimals // "6"),token_symbol:(.token.symbol // "USDC")}]} '
