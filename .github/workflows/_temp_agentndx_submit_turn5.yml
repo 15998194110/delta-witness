@@ -1,0 +1,36 @@
+name: DELTA AgentNDX Submit Turn 5
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_agentndx_submit_turn5.yml'
+permissions:
+  contents: read
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Submit DELTA Witness to AgentNDX free review queue
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL='https://agentndx.ai/api/submit'
+          for attempt in 1 2 3 4; do
+            code=$(curl --silent --show-error --location --max-time 45 \
+              --output /tmp/ndx-response.txt --dump-header /tmp/ndx-headers.txt --write-out '%{http_code}' \
+              --request POST "$URL" \
+              --header 'content-type: application/x-www-form-urlencoded' \
+              --data-urlencode 'name=DELTA Witness' \
+              --data-urlencode 'github_url=https://github.com/15998194110/delta-witness' \
+              --data-urlencode 'homepage_url=https://delta-witness-api.ruphussten.workers.dev/docs' \
+              --data-urlencode 'protocols=MCP' \
+              --data-urlencode 'protocols=x402' \
+              --data-urlencode 'description=Trust layer for autonomous actions: paid browser capture and deterministic preflight verification with timestamped proof artifacts over x402 on Base.' || true)
+            echo "AGENTNDX_ATTEMPT=$attempt HTTP=$code"
+            sed -n '1,30p' /tmp/ndx-headers.txt || true
+            head -c 3000 /tmp/ndx-response.txt || true; echo
+            if [[ "$code" =~ ^20[0-9]$ ]] || [[ "$code" =~ ^30[0-9]$ ]]; then exit 0; fi
+            if [[ "$code" == "409" ]]; then exit 0; fi
+            sleep $((attempt * 3))
+          done
+          exit 1
