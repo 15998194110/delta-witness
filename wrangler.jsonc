@@ -48,9 +48,10 @@
     "DEMO_PROOF_ID": "56347db8-1aa5-447f-a0e4-3bb052d7aa89",
     "PUBLIC_ORIGIN": "https://delta-witness-api.ruphussten.workers.dev",
     "PARTNER_GATEWAY_ORIGIN": "https://delta-witness-partner-gateway.ruphussten.workers.dev",
+    "MESHKORE_AGENT_ID": "delta-witness-ruphussten",
     "INDEXNOW_KEY": "delta-witness-2026-8f0c5a3d6e7b91ac"
   },
   "triggers": {
-    "crons": ["*/15 * * * *"]
+    "crons": ["*/15 * * * *", "*/3 * * * *"]
   }
 }

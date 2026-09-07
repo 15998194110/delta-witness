@@ -20,7 +20,46 @@ export function agentJsonManifest(
     }],
   };
   return {
+    protocolVersion: "0.2.0",
+    name: "DELTA Witness",
+    url: publicOrigin,
     version: "1.4",
+    defaultInputModes: ["application/json"],
+    defaultOutputModes: ["application/json"],
+    protocols: ["http", "a2a", "x402"],
+    pricing: {
+      unit: "request",
+      amount: Math.round(capture.grossPriceUsd * 1_000_000),
+      currency: "USDC",
+      network: "base",
+      note: "Capture and preflight are 0.03 USDC per call; guarded-action-pilot is a separate 10 USDC bounded pilot.",
+    },
+    availability: { now: true, window_hours: 168, sla: "best-effort" },
+    contact: {
+      http: `${publicOrigin}/v1/preflight`,
+      a2a: `${publicOrigin}/.well-known/agent.json`,
+      payment: `${publicOrigin}/.well-known/x402`,
+    },
+    skills: [
+      {
+        id: "capture",
+        name: "Capture public page state",
+        description: "Observe a public webpage independently and return timestamped cryptographic proof metadata and hashes.",
+        examples: ["Capture the current public page state for https://example.com"],
+      },
+      {
+        id: "preflight",
+        name: "Preflight verification",
+        description: "Observe a public source and deterministically compare it with supplied expectations or a prior DELTA proof before an autonomous action.",
+        examples: ["Verify that https://example.com still contains the expected public statement before acting"],
+      },
+      {
+        id: "guarded-action-pilot",
+        name: "Guarded Action Pilot",
+        description: "Produce a bounded 1-3 URL evidence package with optional deterministic preflight for higher-value autonomous actions.",
+        examples: ["Witness up to three public URLs and run one deterministic preflight condition"],
+      },
+    ],
     origin: hostname,
     payout_address: payoutAddress,
     display_name: "DELTA Witness",

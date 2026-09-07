@@ -1,6 +1,8 @@
 export type RuntimeEnv = Env & {
   INDEXNOW_ADMIN_SECRET?: string;
   PARTNER_GATEWAY_SECRET?: string;
+  MESHKORE_API_KEY?: string;
+  MESHKORE_AGENT_ID?: string;
 };
 
 export type AnalyticsEventName =

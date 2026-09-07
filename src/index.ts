@@ -849,11 +849,62 @@ async function submitIndexNow(env: RuntimeEnv): Promise<Response> {
   });
 }
 
+const MESHKORE_DEFAULT_AGENT_ID = "delta-witness-ruphussten";
+
+function meshKoreDiscoveryCard(env: RuntimeEnv): Record<string, unknown> {
+  const base = origin(env);
+  const amount = Math.round(Number(env.CAPTURE_BASE_PRICE_USD || "0.03") * 1_000_000);
+  return {
+    name: "DELTA Witness",
+    endpoint: base,
+    category: "security.web-verification",
+    description: "Trust layer for autonomous actions: paid public-page capture and deterministic preflight evidence over x402 on Base.",
+    tags: ["web-proof", "browser-verification", "preflight", "page-state", "x402", "base", "usdc", "autonomous-agents", "guard", "evidence"],
+    accepts: ["application/json"],
+    produces: ["application/json"],
+    protocols: ["http", "a2a", "x402"],
+    pricing: { unit: "request", amount, currency: "USDC", network: "base" },
+    availability: { now: true },
+    owner_class: "third-party",
+    brand: "delta-witness",
+  };
+}
+
+async function meshKoreHeartbeat(env: RuntimeEnv): Promise<void> {
+  if (!env.MESHKORE_API_KEY) return;
+  const agentId = env.MESHKORE_AGENT_ID || MESHKORE_DEFAULT_AGENT_ID;
+  const tokenResponse = await fetch("https://api.meshkore.com/v1/agents/token", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: stableJson({ agent_id: agentId, api_key: env.MESHKORE_API_KEY }),
+  });
+  if (!tokenResponse.ok) throw new Error(`meshkore_token_${tokenResponse.status}`);
+  const tokenBody = await tokenResponse.json<{ token?: string }>();
+  if (!tokenBody.token) throw new Error("meshkore_token_missing");
+  const updateResponse = await fetch("https://api.meshkore.com/v1/agents/me", {
+    method: "PATCH",
+    headers: { authorization: `Bearer ${tokenBody.token}`, "content-type": "application/json" },
+    body: stableJson({
+      description: "Trust layer for autonomous actions: paid public-page capture and deterministic preflight evidence over x402 on Base.",
+      capabilities: ["web-proof", "browser-verification", "preflight", "page-state", "x402", "base", "usdc", "autonomous-agents", "guard", "evidence"],
+      agent_card: meshKoreDiscoveryCard(env),
+    }),
+  });
+  if (!updateResponse.ok) throw new Error(`meshkore_update_${updateResponse.status}`);
+  await updateResponse.body?.cancel();
+}
+
 export { app };
 
 export default {
   fetch: app.fetch,
   async scheduled(controller: ScheduledController, env: RuntimeEnv, ctx: ExecutionContext): Promise<void> {
+    if (controller.cron === "*/3 * * * *") {
+      ctx.waitUntil(meshKoreHeartbeat(env).catch((error) => {
+        console.error(JSON.stringify({ event: "meshkore_heartbeat_failed", message: message(error) }));
+      }));
+      return;
+    }
     ctx.waitUntil(runDueWatches(env));
     const scheduled = new Date(controller.scheduledTime);
     if (scheduled.getUTCHours() === 3 && scheduled.getUTCMinutes() < 15) {
