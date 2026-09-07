@@ -1,0 +1,135 @@
+{
+  "schema": "delta-growth-run/v1",
+  "recorded_at": "2026-09-07T22:05:04.690514+00:00",
+  "evidence_quality": "A",
+  "production": {
+    "checks": {
+      "capture": {
+        "status": "402",
+        "ok": true,
+        "body": "{\"x402Version\":2,\"error\":\"payment_required\",\"resource\":{\"url\":\"https://delta-witness-api.ruphussten.workers.dev/v1/capture\",\"description\":\"Browser verification and page state proof: preserve what a public webpage says now with timestamped artifact hashes\",\"mimeType\":\"application/json\",\"serviceName\":\"delta-witness\",\"tags\":[\"web\",\"proof\",\"capture\",\"browser-verification\",\"page-state-proof\",\"autonomous-agents\"]},\"accepts\":[{\"scheme\":\"exact\",\"network\":\"eip155:8453\",\"amount\":\"30000\",\"asset\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"payTo\":\"0x1990e21bc219696ff7fbc26527dbaed335ac6367\",\"maxTimeoutSeconds\":300,\"extra\":{\"name\":\"USD Coin\",\"version\":\"2\",\"paymentFlow\":\"upfront\"}}],\"extensions\":{\"bazaar\":{\"info\":{\"input\":{\"type\":\"http\",\"bodyType\":\"json\",\"body\":{\"url\":\"https://example.com\"},\"method\":\"POST\"},\"output\":{\"type\":\"json\",\"example\":{\"ok\":true,\"product\":\"capture\",\"proof_id\":\"7d9d12f7-8f91-5f41-9f0c-5ef257d9ea5d\",\"manifest_url\":\"https://delta-witness-api.ruphussten.workers.dev/v1/proofs/7d9d12f7-8f91-5f41-9f0c-5ef257d9ea5d\",\"public_proof_url\":\"https://delta-witness-api.ruphussten.workers.dev/p/7d9d12f7-8f91-5f41-9f0c-5ef257d9ea5d\",\"bundle_root\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"observed_at\":\"2026-08-31T00:00:00.000Z\"}}},\"schema\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{\"input\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"const\":\"http\"},\"method\":{\"type\":\"string\",\"enum\":[\"POST\"]},\"bodyType\":{\"type\":\"string\",\"enum\":[\"json\",\"form-data\",\"text\"]},\"body\":{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"url\":{\"type\":\"string\",\"pattern\":\"^https?://\",\"description\":\"Public HTTP(S) webpage to observe.\"}},\"required\":[\"url\"]}},\"required\":[\"type\",\"method\",\"bodyType\",\"body\"],\"additi"
+      },
+      "preflight": {
+        "status": "402",
+        "ok": true,
+        "body": "{\"x402Version\":2,\"error\":\"payment_required\",\"resource\":{\"url\":\"https://delta-witness-api.ruphussten.workers.dev/v1/preflight\",\"description\":\"Preflight an autonomous action by comparing a fresh public-source observation with deterministic expectations\",\"mimeType\":\"application/json\",\"serviceName\":\"delta-witness\",\"tags\":[\"web\",\"proof\",\"preflight\",\"browser-verification\",\"autonomous-action\",\"agent-guard\"]},\"accepts\":[{\"scheme\":\"exact\",\"network\":\"eip155:8453\",\"amount\":\"30000\",\"asset\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"payTo\":\"0x1990e21bc219696ff7fbc26527dbaed335ac6367\",\"maxTimeoutSeconds\":300,\"extra\":{\"name\":\"USD Coin\",\"version\":\"2\",\"paymentFlow\":\"upfront\"}}],\"extensions\":{\"bazaar\":{\"info\":{\"input\":{\"type\":\"http\",\"bodyType\":\"json\",\"body\":{\"url\":\"https://example.com/terms\",\"expected\":{\"contains\":[\"Refund window: 30 days\"]}},\"method\":\"POST\"},\"output\":{\"type\":\"json\",\"example\":{\"ok\":true,\"product\":\"preflight\",\"proof_id\":\"7d9d12f7-8f91-5f41-9f0c-5ef257d9ea5d\",\"manifest_url\":\"https://delta-witness-api.ruphussten.workers.dev/v1/proofs/7d9d12f7-8f91-5f41-9f0c-5ef257d9ea5d\",\"public_proof_url\":\"https://delta-witness-api.ruphussten.workers.dev/p/7d9d12f7-8f91-5f41-9f0c-5ef257d9ea5d\",\"bundle_root\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"observed_at\":\"2026-08-31T00:00:00.000Z\",\"safe\":true,\"changed\":false}}},\"schema\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{\"input\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"const\":\"http\"},\"method\":{\"type\":\"string\",\"enum\":[\"POST\"]},\"bodyType\":{\"type\":\"string\",\"enum\":[\"json\",\"form-data\",\"text\"]},\"body\":{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"url\":{\"type\":\"string\",\"pattern\":\"^https?://\",\"description\":\"Public HTTP(S) source to observe "
+      },
+      "pilot": {
+        "status": "402",
+        "ok": true,
+        "body": "{\"x402Version\":2,\"error\":\"payment_required\",\"resource\":{\"url\":\"https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot\",\"description\":\"One $10 guarded-action pilot: capture 1-3 public URLs as page-state evidence and optionally run one deterministic preflight check before a browser, shopping, procurement, coding, or workflow action.\",\"mimeType\":\"application/json\",\"serviceName\":\"delta-witness\",\"tags\":[\"guarded-action-pilot\",\"browser-agent-pilot\",\"page-state-evidence-bundle\",\"preflight-verification\",\"shopping\",\"procurement\",\"workflow-safety\"]},\"accepts\":[{\"scheme\":\"exact\",\"network\":\"eip155:8453\",\"amount\":\"10000000\",\"asset\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"payTo\":\"0x1990e21bc219696ff7fbc26527dbaed335ac6367\",\"maxTimeoutSeconds\":300,\"extra\":{\"name\":\"USD Coin\",\"version\":\"2\",\"paymentFlow\":\"upfront\"}}],\"extensions\":{\"bazaar\":{\"info\":{\"input\":{\"type\":\"http\",\"bodyType\":\"json\",\"body\":{\"urls\":[\"https://example.com\"],\"preflight\":{\"url_index\":0,\"expected\":{\"contains\":[\"Example Domain\"]}}},\"method\":\"POST\"},\"output\":{\"type\":\"json\",\"example\":{\"ok\":true,\"product\":\"guarded_action_pilot\",\"price_usd\":10,\"proofs\":[{\"url\":\"https://example.com/\",\"proof_id\":\"7d9d12f7-8f91-5f41-9f0c-5ef257d9ea5d\",\"manifest_url\":\"https://delta-witness-api.ruphussten.workers.dev/v1/proofs/7d9d12f7-8f91-5f41-9f0c-5ef257d9ea5d\",\"public_proof_url\":\"https://delta-witness-api.ruphussten.workers.dev/p/7d9d12f7-8f91-5f41-9f0c-5ef257d9ea5d\",\"bundle_root\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"observed_at\":\"2026-09-07T00:00:00.000Z\",\"allocated_price_usd\":10}],\"economics\":{\"variable_cost_usd\":0.004,\"contribution_margin_usd\":9.996}}}},\"schema\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{\"input\":{\"type\":\"object\",\"prope"
+      }
+    },
+    "ok": true
+  },
+  "treasury_reconciliation": {
+    "status": "ok",
+    "from_block": 51013935,
+    "latest": 51014672,
+    "receipts": [],
+    "rpc": "https://mainnet.base.org"
+  },
+  "directories": {
+    "x402_list": {
+      "channel": "x402_list",
+      "listing_status": "submitted_for_review",
+      "discovery_status": "direct_submission_accepted",
+      "attempts": [
+        {
+          "url": "https://www.x402-list.com/api/v1/submit",
+          "mode": "form",
+          "response": {
+            "status": 303,
+            "text": "",
+            "location": "/submit?error=Valid+email+is+required%3B+Invalid+endpoint+path%28s%29%3A+%2Fhttps%3A%2F%2Fdelta-witness-api.ruphussten.workers.dev%2Fv1%2Fpreflight.+Paths+must+be+like+%2Fv1%2Fresource+and+contain+only+letters%2C+digits%2C+%2F_.-%7E"
+          }
+        }
+      ],
+      "page_status": 200,
+      "form": {
+        "action": "/api/v1/submit",
+        "method": "POST",
+        "fields": [
+          "submission_type",
+          "service_name",
+          "service_url",
+          "website_url",
+          "email",
+          "category",
+          "description",
+          "endpoints",
+          "notes",
+          "type",
+          "facilitator_name",
+          "settler_addresses",
+          "networks",
+          "facilitator_id_slug",
+          "claimed_volume_usd"
+        ]
+      },
+      "candidates": []
+    },
+    "meshkore": {
+      "channel": "meshkore",
+      "listing_status": "not_submitted",
+      "discovery_status": "no_submission_endpoint_exposed",
+      "attempts": [],
+      "page_status": 200,
+      "form": {
+        "action": "",
+        "method": "GET",
+        "fields": [
+          "name",
+          "source_url",
+          "description",
+          "category",
+          "framework",
+          "capabilities",
+          "contact_email",
+          "contact_twitter",
+          "connect_to_mesh"
+        ]
+      },
+      "candidates": []
+    },
+    "a2alist": {
+      "channel": "a2alist",
+      "listing_status": "not_submitted",
+      "discovery_status": "no_submission_endpoint_exposed",
+      "attempts": [],
+      "page_status": 403,
+      "form": null,
+      "candidates": []
+    }
+  },
+  "market402": {
+    "market402": {
+      "capture": {
+        "/selftest": "{\"ok\":true,\"url\":\"https://delta-witness-api.ruphussten.workers.dev/v1/capture\",\"latency_ms\":891,\"checks\":[{\"check\":\"https_url\",\"pass\":true,\"hint\":\"\"},{\"check\":\"public_hostname\",\"pass\":true,\"hint\":\"\"},{\"check\":\"reachable\",\"pass\":true,\"hint\":\"\"},{\"check\":\"returns_402_unpaid\",\"pass\":true,\"hint\":\"\"},{\"check\":\"body_json\",\"pass\":true,\"hint\":\"\"},{\"check\":\"x402_version\",\"pass\":true,\"hint\":\"\"},{\"check\":\"accepts_present\",\"pass\":true,\"hint\":\"\"},{\"check\":\"pay_to\",\"pass\":true,\"hint\":\"\"},{\"check\":\"amount\",\"pass\":true,\"hint\":\"\"},{\"check\":\"network_format_v2\",\"pass\":true,\"hint\":\"\"},{\"check\":\"eip712_extra\",\"pass\":true,\"hint\":\"\"}],\"summary\":{\"passed\":11,\"failed\":0,\"verdict\":\"spec_compliant\"},\"self_test_only\":true,\"not_a_verified_badge\":\"Passing this self-test does NOT grant 402 Verified. Badges come only from Market402's own scheduled probes. POST /submit to get listed and probed.\"}\nHTTP_STATUS:200",
+        "/submit": "{\"ok\":true,\"already_listed\":true,\"dedupe_note\":\"identical submission within 24h - self-check ran fresh below, but the queue entry was not duplicated (SCORE_DESIGN v0.4.2)\",\"message\":\"Queued. Your endpoint will be probed in the next round (no payment attached; we expect a spec-compliant 402).\",\"instant_check\":{\"ok\":true,\"url\":\"https://delta-witness-api.ruphussten.workers.dev/v1/capture\",\"latency_ms\":1001,\"checks\":[{\"check\":\"https_url\",\"pass\":true,\"hint\":\"\"},{\"check\":\"public_hostname\",\"pass\":true,\"hint\":\"\"},{\"check\":\"reachable\",\"pass\":true,\"hint\":\"\"},{\"check\":\"returns_402_unpaid\",\"pass\":true,\"hint\":\"\"},{\"check\":\"body_json\",\"pass\":true,\"hint\":\"\"},{\"check\":\"x402_version\",\"pass\":true,\"hint\":\"\"},{\"check\":\"accepts_present\",\"pass\":true,\"hint\":\"\"},{\"check\":\"pay_to\",\"pass\":true,\"hint\":\"\"},{\"check\":\"amount\",\"pass\":true,\"hint\":\"\"},{\"check\":\"network_format_v2\",\"pass\":true,\"hint\":\"\"},{\"check\":\"eip712_extra\",\"pass\":true,\"hint\":\"\"}],\"summary\":{\"passed\":11,\"failed\":0,\"verdict\":\"spec_compliant\"}},\"declared_price_usd\":0.03,\"declared_price_note\":\"recorded; future probes compare the live 402 amount against this declaration (SCORE_DESIGN v0.4)\",\"note\":\"instant_check is advisory self-test output; the 402 Verified badge is granted only by our own scheduled probes.\",\"paid_probe_qualification\":{\"qualified\":false,\"reason\":\"not_in_catalog\",\"hint\":\"We could not find this resource in the public Bazaar catalog (refreshed weekly). Once it appears there with an accepts[] price, qualification is re-evaluated automatically.\"}}\nHTTP_STATUS:200"
+      },
+      "preflight": {
+        "/selftest": "{\"ok\":true,\"url\":\"https://delta-witness-api.ruphussten.workers.dev/v1/preflight\",\"latency_ms\":881,\"checks\":[{\"check\":\"https_url\",\"pass\":true,\"hint\":\"\"},{\"check\":\"public_hostname\",\"pass\":true,\"hint\":\"\"},{\"check\":\"reachable\",\"pass\":true,\"hint\":\"\"},{\"check\":\"returns_402_unpaid\",\"pass\":true,\"hint\":\"\"},{\"check\":\"body_json\",\"pass\":true,\"hint\":\"\"},{\"check\":\"x402_version\",\"pass\":true,\"hint\":\"\"},{\"check\":\"accepts_present\",\"pass\":true,\"hint\":\"\"},{\"check\":\"pay_to\",\"pass\":true,\"hint\":\"\"},{\"check\":\"amount\",\"pass\":true,\"hint\":\"\"},{\"check\":\"network_format_v2\",\"pass\":true,\"hint\":\"\"},{\"check\":\"eip712_extra\",\"pass\":true,\"hint\":\"\"}],\"summary\":{\"passed\":11,\"failed\":0,\"verdict\":\"spec_compliant\"},\"self_test_only\":true,\"not_a_verified_badge\":\"Passing this self-test does NOT grant 402 Verified. Badges come only from Market402's own scheduled probes. POST /submit to get listed and probed.\"}\nHTTP_STATUS:200",
+        "/submit": "{\"ok\":true,\"message\":\"Queued. Your endpoint will be probed in the next round (no payment attached; we expect a spec-compliant 402).\",\"instant_check\":{\"ok\":true,\"url\":\"https://delta-witness-api.ruphussten.workers.dev/v1/preflight\",\"latency_ms\":845,\"checks\":[{\"check\":\"https_url\",\"pass\":true,\"hint\":\"\"},{\"check\":\"public_hostname\",\"pass\":true,\"hint\":\"\"},{\"check\":\"reachable\",\"pass\":true,\"hint\":\"\"},{\"check\":\"returns_402_unpaid\",\"pass\":true,\"hint\":\"\"},{\"check\":\"body_json\",\"pass\":true,\"hint\":\"\"},{\"check\":\"x402_version\",\"pass\":true,\"hint\":\"\"},{\"check\":\"accepts_present\",\"pass\":true,\"hint\":\"\"},{\"check\":\"pay_to\",\"pass\":true,\"hint\":\"\"},{\"check\":\"amount\",\"pass\":true,\"hint\":\"\"},{\"check\":\"network_format_v2\",\"pass\":true,\"hint\":\"\"},{\"check\":\"eip712_extra\",\"pass\":true,\"hint\":\"\"}],\"summary\":{\"passed\":11,\"failed\":0,\"verdict\":\"spec_compliant\"}},\"declared_price_usd\":0.03,\"declared_price_note\":\"recorded; future probes compare the live 402 amount against this declaration (SCORE_DESIGN v0.4)\",\"note\":\"instant_check is advisory self-test output; the 402 Verified badge is granted only by our own scheduled probes.\",\"paid_probe_qualification\":{\"qualified\":false,\"reason\":\"not_in_catalog\",\"hint\":\"We could not find this resource in the public Bazaar catalog (refreshed weekly). Once it appears there with an accepts[] price, qualification is re-evaluated automatically.\"}}\nHTTP_STATUS:200"
+      }
+    }
+  },
+  "payanagent": {},
+  "telemetry_excerpt": "{\"ok\":true,\"candidate_rows\":0,\"rows\":[]}\n",
+  "strict_accounting": {
+    "previous_buyer_count": 1,
+    "previous_settlement_count": 1,
+    "previous_revenue_total_usdc": 0.03,
+    "previous_variable_cost_total_usdc": 0.002163522555,
+    "previous_contribution_margin_total_usdc": 0.027836477445,
+    "new_receipt_count": 0,
+    "customer_revenue_new_usdc": 0,
+    "classification_note": "Any new receipt requires non-project settlement/telemetry correlation before revenue classification."
+  },
+  "risk_controls": {
+    "listing_fees_paid": 0,
+    "wallet_signatures": 0,
+    "assets_moved": 0,
+    "self_pay": false
+  }
+}
