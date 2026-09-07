@@ -63,6 +63,7 @@ import {
 } from "./discovery";
 import { getWatch, parseWatchRegistration, registerWatch, runDueWatches } from "./watch";
 import { guardedPilotEconomics, guardedPilotHandler, guardedPilotPrevalidate, guardedPilotProtect } from "./guarded-pilot";
+import { mirrorX402ChallengeBody } from "./x402-compat";
 
 type PaidProduct = "capture" | "preflight";
 type PriorManifest = Pick<ProofManifest, "proof_id" | "requested_url" | "capture_completed_at" | "hashes">;
@@ -304,6 +305,12 @@ async function protectWithX402(product: PaidProduct, c: AppContext, next: Next):
   const middlewareResponse = await middleware(c, next);
   if (middlewareResponse instanceof Response) c.res = middlewareResponse;
   if (c.res.status === 402) {
+    c.res = mirrorX402ChallengeBody(c.res, {
+      error: "payment_required",
+      product,
+      price_usd: c.var.quote.grossPriceUsd,
+      payment_flow: "upfront",
+    });
     await recordEvent(c.env, {
       event: getPaymentHeader(c.req.raw) ? "payment_required" : "payment_required",
       route,

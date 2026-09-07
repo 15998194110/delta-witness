@@ -23,6 +23,7 @@ import { evaluatePreflight, parsePreflightRequest, type PreflightRequest } from 
 import { estimateVariableCost } from "./pricing";
 import { recordEvent } from "./telemetry";
 import { GUARDED_ACTION_PILOT_INPUT_SCHEMA, GUARDED_ACTION_PILOT_OUTPUT_SCHEMA } from "./discovery";
+import { mirrorX402ChallengeBody } from "./x402-compat";
 
 export const GUARDED_ACTION_PILOT_PRICE_USD = 10;
 const PILOT_ROUTE = "/v1/guarded-action-pilot";
@@ -289,6 +290,13 @@ export async function guardedPilotProtect(c: Context<any>, next: Next): Promise<
   const middlewareResponse = await middleware(c, next);
   if (middlewareResponse instanceof Response) c.res = middlewareResponse;
   if (c.res.status === 402) {
+    c.res = mirrorX402ChallengeBody(c.res, {
+      error: "payment_required",
+      product: "guarded_action_pilot",
+      price_usd: GUARDED_ACTION_PILOT_PRICE_USD,
+      payment_flow: "upfront",
+      max_urls: 3,
+    });
     await recordEvent(env, {
       event: "payment_required",
       route: PILOT_ROUTE,
