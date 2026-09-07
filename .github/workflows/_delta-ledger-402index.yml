@@ -1,0 +1,36 @@
+name: DELTA Ledger 402 Index
+on:
+  push:
+    paths:
+      - '.github/workflows/_delta-ledger-402index.yml'
+permissions:
+  contents: write
+jobs:
+  ledger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Add conservative 402 Index and treasury rows
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          import {readFile,writeFile} from 'node:fs/promises';
+          const path='docs/growth-ledger.md';
+          let text=await readFile(path,'utf8');
+          const marker='|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|\n';
+          if(!text.includes(marker)) throw new Error('ledger table marker missing');
+          const rows=[
+            '| 2026-09-07T15:28:45+08:00 | 402 Index — Capture / Preflight / Guarded Action Pilot | approved via domain verification | all 3 self-registered, independently x402-probed healthy/probeable, domain claim verified; 3 registrations retroactively approved | 0 | 0 | 0 | 0 | 0 | 0.00 | 0.00 | 0.00 | 0.00 | A | Free programmatic `POST /api/v1/register` returned HTTP 201 for all three production endpoints with service ids `73b990f5-02f6-4ef4-9892-645349938b63`, `8632f21c-6981-488e-bff5-dc0d41055886`, and `e98fec92-fe53-47bc-b274-fe228479fe49`. 402 Index independently elicited x402 v2 HTTP 402 challenges showing Base `eip155:8453`, exact USDC contract, exact Treasury, and amounts `30000`, `30000`, `10000000` raw USDC. DELTA then completed the official `.well-known/402index-verify.txt` ownership flow; `/api/v1/claim/verify` returned HTTP 200, `status=verified`, `services_count=3`, `retroactively_approved=3`. Immediate search readback still lagged on the `domain_verified` field, so no payment-verification/ranking propagation beyond the authoritative approval response is claimed yet. Directory scale at observation time: 105,306 indexed endpoints, 37,408 payment-verified, 3,530 providers, with an MCP discovery server for agent clients. No probe/listing event is counted as buyer intent or revenue. |\n',
+            '| 2026-09-07T15:21:04+08:00 | Base Treasury `0x1990e21bc219696ff7fbc26527dbaed335ac6367` | n/a | independently reconciled after First Stranger Revenue | 0 | 0 | 0 | 0 | 0 | 0.00 | 0.00 | 0.00 | 0.00 | A | Fresh Base Blockscout reconciliation found exactly the already-recorded 0.03 USDC First Stranger Revenue transfer and `new_since_first_stranger=[]`; no additional canonical incoming USDC after tx `0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3`. D1 telemetry audit recovered after a schema mismatch and showed ongoing direct payment-required/probe activity but no evidence sufficient to recognize another settlement or customer receipt. |\n'
+          ];
+          if(!text.includes('402 Index — Capture / Preflight / Guarded Action Pilot')) text=text.replace(marker,marker+rows.join(''));
+          await writeFile(path,text);
+          NODE
+      - name: Commit ledger
+        run: |
+          git config user.name 'delta-autonomous-growth'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/growth-ledger.md
+          git commit -m 'docs: record verified 402 Index distribution' || exit 0
+          git push
