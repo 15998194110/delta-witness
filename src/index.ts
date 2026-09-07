@@ -257,6 +257,10 @@ function discoveryFor(product: PaidProduct): Record<string, unknown> {
 }
 
 async function protectWithX402(product: PaidProduct, c: AppContext, next: Next): Promise<Response | void> {
+  // Only POST is a paid operation. Let unsupported methods fall through to the
+  // router instead of touching POST-only quote state; this keeps discovery
+  // probes from seeing an internal error when they first test the endpoint.
+  if (c.req.method !== "POST") return next();
   if (c.var.replayAuthorized) return next();
   const facilitator = new HTTPFacilitatorClient({ url: c.env.FACILITATOR_URL });
   const server = new x402ResourceServer(facilitator);
