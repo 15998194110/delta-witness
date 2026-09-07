@@ -1,0 +1,64 @@
+{
+  "channel": "x402 Arena",
+  "final_matches": [
+    {
+      "agentId": "delta-witness-capture",
+      "status": "active"
+    },
+    {
+      "agentId": "delta-witness-guard",
+      "status": "active"
+    },
+    {
+      "agentId": "delta-witness-guarded-action-pilot",
+      "status": "active"
+    },
+    {
+      "agentId": "delta-witness-page-state-proof",
+      "status": "active"
+    },
+    {
+      "agentId": "delta-witness-preflight",
+      "status": "active"
+    },
+    {
+      "agentId": "delta-witness-preflight-verification",
+      "status": "active"
+    }
+  ],
+  "notes": [
+    "No listing fee or wallet authorization is permitted by this workflow. HTTP 402/fee requirements are recorded and not paid."
+  ],
+  "observed_at": "2026-09-07T13:48:58Z",
+  "operator_agents_final_http": 200,
+  "operator_agents_http": 200,
+  "preexisting_matches": [
+    {
+      "agentId": "delta-witness-capture",
+      "status": "active"
+    },
+    {
+      "agentId": "delta-witness-guard",
+      "status": "active"
+    },
+    {
+      "agentId": "delta-witness-guarded-action-pilot",
+      "status": "active"
+    },
+    {
+      "agentId": "delta-witness-page-state-proof",
+      "status": "active"
+    },
+    {
+      "agentId": "delta-witness-preflight",
+      "status": "active"
+    },
+    {
+      "agentId": "delta-witness-preflight-verification",
+      "status": "active"
+    }
+  ],
+  "registration_attempts": [],
+  "source": "https://core.x402arena.gg",
+  "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+}
