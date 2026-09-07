@@ -18,7 +18,7 @@ jobs:
         run: |
           set -euo pipefail
           node <<'NODE'
-          const fs=require('node:fs');
+          import fs from 'node:fs';
           const ids=['9acc2efd-b71','97b7e8b8-b62','50ce8a12-faa'];
           const rows=[];
           for (const id of ids) {
