@@ -1,0 +1,86 @@
+name: DELTA MeshKore Finalize Temp
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_meshkore_finalize_20260908.yml'
+permissions:
+  contents: write
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Wait for MeshKore public card propagation
+        shell: bash
+        run: |
+          set -euo pipefail
+          ok=0
+          for i in 1 2 3 4 5 6; do
+            curl -sS --retry 3 --retry-all-errors --retry-delay 2 https://delta-witness-api.ruphussten.workers.dev/.well-known/agent.json -o /tmp/card.json
+            if node -e 'const c=require("/tmp/card.json"); process.exit(c.name==="DELTA Witness"&&c.pricing?.amount===30000&&c.skills?.some(x=>x.id==="preflight")?0:1)'; then ok=1; break; fi
+            sleep 5
+          done
+          if [ "$ok" != 1 ]; then
+            npm ci
+            npx wrangler deploy
+            sleep 10
+            curl --fail -sS --retry 5 --retry-all-errors --retry-delay 3 https://delta-witness-api.ruphussten.workers.dev/.well-known/agent.json -o /tmp/card.json
+            node -e 'const c=require("/tmp/card.json"); if(c.name!=="DELTA Witness"||c.pricing?.amount!==30000||!c.skills?.some(x=>x.id==="preflight")) throw Error(JSON.stringify(c));'
+          fi
+          echo 'MeshKore-compatible public card is live.'
+      - name: Register and activate MeshKore agent
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail -sS --retry 4 --retry-all-errors --retry-delay 2 -X POST https://api.meshkore.com/v1/agents/register -H 'content-type: application/json' --data '{"agent_id":"delta-witness-ruphussten","capabilities":["web-proof","browser-verification","preflight","page-state","x402","base","usdc","autonomous-agents","guard","evidence"]}' > /tmp/reg.json
+          node -e 'const x=require("/tmp/reg.json");if(!x.api_key)throw Error(JSON.stringify({error:x.error||x.message||"missing_api_key",agent_id:x.agent_id||null}));console.log("MeshKore registration accepted")'
+          node -e 'process.stdout.write(require("/tmp/reg.json").api_key)' | npx wrangler secret put MESHKORE_API_KEY
+          node <<'NODE'
+          const fs=require('fs');
+          (async()=>{const r=require('/tmp/reg.json');const tr=await fetch('https://api.meshkore.com/v1/agents/token',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({agent_id:'delta-witness-ruphussten',api_key:r.api_key})});if(!tr.ok)throw Error('token '+tr.status);const tj=await tr.json();if(!tj.token)throw Error('missing token');const card={description:'Trust layer for autonomous actions: paid public-page capture and deterministic preflight evidence over x402 on Base.',capabilities:['web-proof','browser-verification','preflight','page-state','x402','base','usdc','autonomous-agents','guard','evidence'],agent_card:{name:'DELTA Witness',endpoint:'https://delta-witness-api.ruphussten.workers.dev',category:'security.web-verification',description:'Trust layer for autonomous actions: paid public-page capture and deterministic preflight evidence over x402 on Base.',tags:['web-proof','browser-verification','preflight','page-state','x402','base','usdc','autonomous-agents','guard','evidence'],accepts:['application/json'],produces:['application/json'],protocols:['http','a2a','x402'],pricing:{unit:'request',amount:30000,currency:'USDC',network:'base'},availability:{now:true},owner_class:'third-party',brand:'delta-witness'}};const pr=await fetch('https://api.meshkore.com/v1/agents/me',{method:'PATCH',headers:{authorization:'Bearer '+tj.token,'content-type':'application/json'},body:JSON.stringify(card)});if(!pr.ok)throw Error('patch '+pr.status+' '+await pr.text());await new Promise(r=>setTimeout(r,3000));const rr=await fetch('https://api.meshkore.com/v1/agents/delta-witness-ruphussten');if(!rr.ok)throw Error('readback '+rr.status);const x=await rr.json();fs.writeFileSync('/tmp/readback.json',JSON.stringify(x,null,2));const a=x.agent||x,c=a.agent_card||a.card||{};if(!(a.live===1||a.live===true||a.online===true))throw Error('not live '+JSON.stringify(x));if(c.name!=='DELTA Witness'||c.owner_class!=='third-party'||!(c.protocols||[]).includes('x402'))throw Error('card mismatch '+JSON.stringify(x));console.log(JSON.stringify({agent_id:a.agent_id||a.id,live:a.live,owner_class:a.owner_class||c.owner_class,pricing:c.pricing,protocols:c.protocols}));})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          rm -f /tmp/reg.json
+      - name: Reconcile Treasury and persist A-grade evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,urllib.request,time,datetime,os,subprocess
+          mesh=json.load(urllib.request.urlopen('https://api.meshkore.com/v1/agents/delta-witness-ruphussten',timeout=25));a=mesh.get('agent',mesh);card=a.get('agent_card') or a.get('card') or {}
+          paid={}
+          bodies={'capture':{'url':'https://example.com'},'preflight':{'url':'https://example.com','expected':{'contains':['Example Domain']}},'guarded-action-pilot':{'urls':['https://example.com'],'preflight':{'url_index':0,'expected':{'contains':['Example Domain']}}}}
+          for p,b in bodies.items():
+            r=subprocess.run(['curl','-sS','--retry','3','--retry-all-errors','--retry-delay','2','-o','/tmp/x','-w','%{http_code}','-X','POST','https://delta-witness-api.ruphussten.workers.dev/v1/'+p,'-H','content-type: application/json','--data',json.dumps(b)],capture_output=True,text=True);paid[p]=r.stdout[-3:]
+          treasury='0x1990e21bc219696ff7fbc26527dbaed335ac6367';usdc='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';t0='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';t2='0x'+'0'*24+treasury[2:].lower();start=51014877
+          def rpc(m,p):
+            for u in ['https://mainnet.base.org','https://base-rpc.publicnode.com']:
+              for i in range(3):
+                try:
+                  q=urllib.request.Request(u,data=json.dumps({'jsonrpc':'2.0','id':1,'method':m,'params':p}).encode(),headers={'content-type':'application/json','user-agent':'delta-growth/1.0'});j=json.loads(urllib.request.urlopen(q,timeout=25).read());
+                  if 'result' in j:return j['result'],u
+                except Exception:time.sleep(i+1)
+            raise RuntimeError('rpc unavailable')
+          tr={'status':'degraded','from_block':start,'receipts':[]}
+          try:
+            h,u=rpc('eth_blockNumber',[]);latest=int(h,16);tr.update(status='ok',latest=latest,rpc=u);cur=start
+            while cur<=latest:
+              end=min(cur+1999,latest);logs,u=rpc('eth_getLogs',[{'fromBlock':hex(cur),'toBlock':hex(end),'address':usdc,'topics':[t0,None,t2]}])
+              for x in logs:tr['receipts'].append({'block':int(x['blockNumber'],16),'tx':x['transactionHash'],'from':'0x'+x['topics'][1][-40:],'amount_usdc':int(x['data'],16)/1e6})
+              cur=end+1
+          except Exception as e:tr['error']=str(e)
+          active=(a.get('live') in [1,True] or a.get('online') is True) and card.get('name')=='DELTA Witness' and all(v=='402' for v in paid.values())
+          rec={'schema':'delta-growth-meshkore/v1','recorded_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'channel':'meshkore','listing_status':'public_active' if active else 'registration_unverified','discovery_status':'live_directory_readback' if active else 'degraded','canonical_url':'https://meshkore.com/agent/delta-witness-ruphussten','agent_id':a.get('agent_id') or a.get('id'),'live':a.get('live'),'owner_class':a.get('owner_class') or card.get('owner_class'),'protocols':card.get('protocols'),'pricing':card.get('pricing'),'production_http_status':paid,'production_prices_usdc':{'capture':0.03,'preflight':0.03,'guarded_action_pilot':10},'treasury_reconciliation':tr,'strict_accounting':{'previous_buyer_count':1,'previous_settlement_count':1,'previous_revenue_usdc':0.03,'new_receipt_count':len(tr.get('receipts',[])),'new_customer_revenue_usdc':0,'classification_note':'Any new receipt requires non-project settlement/telemetry correlation before customer-revenue classification.'},'evidence_quality':'A' if active and tr.get('status')=='ok' else 'B','risk_controls':{'listing_fee_paid':0,'wallet_signature':False,'assets_moved':False,'private_key_exposed':False}}
+          os.makedirs('docs/channel-status',exist_ok=True);open('docs/channel-status/meshkore-2026-09-08.json','w').write(json.dumps(rec,indent=2)+'\n');print(json.dumps(rec,separators=(',',':')))
+          PY
+          git config user.name 'DELTA Growth Bot';git config user.email 'actions@users.noreply.github.com';git add docs/channel-status/meshkore-2026-09-08.json;git commit -m 'growth: verify active MeshKore distribution' || true;git push origin HEAD:master
+      - name: Cleanup
+        if: always()
+        run: |
+          git fetch origin master;git reset --hard origin/master;git config user.name 'DELTA Growth Bot';git config user.email 'actions@users.noreply.github.com';git rm -f .github/workflows/_temp_meshkore_finalize_20260908.yml 2>/dev/null || true;git commit -m 'chore: remove MeshKore finalize workflow' || true;git push origin HEAD:master || true
