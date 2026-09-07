@@ -1,0 +1,143 @@
+name: DELTA Autonomous Growth Turn 9 Temp
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn9_20260908.yml'
+permissions:
+  contents: write
+jobs:
+  growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Core and Treasury reconciliation
+        shell: bash
+        run: |
+          set -u
+          python3 - <<'PY'
+          import json, subprocess, urllib.request, time
+          base='https://delta-witness-api.ruphussten.workers.dev'
+          endpoints=[('capture','/v1/capture',{'url':'https://example.com'}),('preflight','/v1/preflight',{'url':'https://example.com','expected':{'contains':['Example Domain']}}),('pilot','/v1/guarded-action-pilot',{'urls':['https://example.com'],'preflight':{'url_index':0,'expected':{'contains':['Example Domain']}}})]
+          prod={'checks':{},'ok':True}
+          for n,p,b in endpoints:
+            r=subprocess.run(['curl','-sS','--retry','4','--retry-delay','2','--retry-all-errors','--max-time','25','-D','/tmp/h','-o','/tmp/b','-w','%{http_code}','-X','POST',base+p,'-H','content-type: application/json','--data',json.dumps(b)],capture_output=True,text=True)
+            st=r.stdout[-3:] if r.stdout else ''; h=open('/tmp/h').read() if __import__('os').path.exists('/tmp/h') else ''; body=open('/tmp/b').read() if __import__('os').path.exists('/tmp/b') else ''
+            ok=st=='402' and 'payment-required:' in h.lower() and '0x1990e21bc219696ff7fbc26527dbaed335ac6367' in body.lower()
+            prod['checks'][n]={'status':st,'ok':ok,'body':body[:1800]}; prod['ok'] &= ok
+          rpcs=['https://mainnet.base.org','https://base-rpc.publicnode.com','https://1rpc.io/base']; treasury='0x1990e21bc219696ff7fbc26527dbaed335ac6367'; usdc='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'; topic0='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'; topic2='0x'+'0'*24+treasury[2:].lower(); start=51013935
+          def rpc(m,p):
+            errs=[]
+            for u in rpcs:
+              for i in range(3):
+                try:
+                  q=urllib.request.Request(u,data=json.dumps({'jsonrpc':'2.0','id':1,'method':m,'params':p}).encode(),headers={'content-type':'application/json','user-agent':'delta-growth/1.0'})
+                  with urllib.request.urlopen(q,timeout=25) as z:j=json.loads(z.read())
+                  if 'result' in j:return j['result'],u
+                  errs.append(str(j)[:300])
+                except Exception as e: errs.append(str(e)); time.sleep(i+1)
+            raise RuntimeError(' | '.join(errs[-6:]))
+          tr={'status':'ok','from_block':start,'latest':None,'receipts':[]}
+          try:
+            hx,u=rpc('eth_blockNumber',[]); latest=int(hx,16); tr['latest']=latest; tr['rpc']=u; cur=start
+            while cur<=latest:
+              end=min(cur+1999,latest); logs,u=rpc('eth_getLogs',[{'fromBlock':hex(cur),'toBlock':hex(end),'address':usdc,'topics':[topic0,None,topic2]}])
+              for x in logs: tr['receipts'].append({'block':int(x['blockNumber'],16),'tx':x['transactionHash'],'from':'0x'+x['topics'][1][-40:],'to':'0x'+x['topics'][2][-40:],'amount_usdc':int(x['data'],16)/1e6})
+              cur=end+1
+          except Exception as e: tr['status']='degraded'; tr['error']=str(e)[:2000]
+          open('/tmp/core.json','w').write(json.dumps({'production':prod,'treasury':tr},indent=2)); print('CORE='+json.dumps({'production':prod,'treasury':tr},separators=(',',':')))
+          PY
+      - name: Direct free directory submissions
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -u
+          node <<'NODE'
+          const fs=require('fs');
+          const targets=[
+            {name:'x402_list',origin:'https://www.x402-list.com',page:'/submit'},
+            {name:'meshkore',origin:'https://meshkore.com',page:'/submit'},
+            {name:'a2alist',origin:'https://a2alist.ai',page:'/submit'}
+          ];
+          const listing={name:'DELTA Witness',service_name:'DELTA Witness',title:'DELTA Witness',description:'Trust layer for autonomous actions: machine-verifiable public-page capture and deterministic preflight evidence, paid per call over x402 on Base mainnet.',base_url:'https://delta-witness-api.ruphussten.workers.dev',url:'https://delta-witness-api.ruphussten.workers.dev',website:'https://delta-witness-api.ruphussten.workers.dev',repository:'https://github.com/15998194110/delta-witness',github_url:'https://github.com/15998194110/delta-witness',category:'security',email:'',endpoints:['/v1/capture','/v1/preflight','/v1/guarded-action-pilot'],endpoint_url:'https://delta-witness-api.ruphussten.workers.dev/v1/preflight'};
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function get(url){let last={};for(let i=0;i<4;i++){try{let r=await fetch(url,{headers:{'user-agent':'DELTA-Witness-directory-submit/1.0'}});let t=await r.text();last={status:r.status,text:t,url:r.url};if(r.status<500)return last}catch(e){last={error:String(e)}}await sleep(1200*(i+1));}return last}
+          async function post(url,body,ct){let last={};for(let i=0;i<3;i++){try{let opt={method:'POST',redirect:'manual',headers:{'content-type':ct,'user-agent':'DELTA-Witness-directory-submit/1.0'}};opt.body=ct==='application/json'?JSON.stringify(body):new URLSearchParams(body).toString();let r=await fetch(url,opt);let t=await r.text();last={status:r.status,text:t.slice(0,10000),location:r.headers.get('location')};if(r.status<500)return last}catch(e){last={error:String(e)}}await sleep(1500*(i+1));}return last}
+          function formFields(html){let m=html.match(/<form\b([^>]*)>([\s\S]*?)<\/form>/i); if(!m)return null; let attrs=m[1], body=m[2], a=(attrs.match(/action=["']([^"']*)/i)||[])[1]||'', meth=((attrs.match(/method=["']([^"']*)/i)||[])[1]||'GET').toUpperCase(); let fields=[...body.matchAll(/<(?:input|textarea|select)\b[^>]*name=["']([^"']+)["'][^>]*>/gi)].map(x=>x[1]); return {action:a,method:meth,fields:[...new Set(fields)]};}
+          function mapPayload(fields){let p={}; for(const f of fields){let k=f.toLowerCase(); if(k.includes('name')||k==='title')p[f]=listing.name; else if(k.includes('description')||k.includes('summary'))p[f]=listing.description; else if(k.includes('github')||k.includes('repo'))p[f]=listing.repository; else if(k.includes('email'))p[f]=''; else if(k.includes('category'))p[f]='security'; else if(k.includes('endpoint')&&k.includes('path'))p[f]='/v1/preflight'; else if(k.includes('endpoint'))p[f]=listing.endpoint_url; else if(k.includes('base')&&k.includes('url'))p[f]=listing.base_url; else if(k.includes('website')||k==='url'||k.includes('service_url'))p[f]=listing.website; else if(k.includes('network'))p[f]='base'; else if(k.includes('chain'))p[f]='base'; else if(k.includes('price'))p[f]='0.03'; else if(k.includes('type'))p[f]='api'; else p[f]=''; } return p;}
+          (async()=>{let out={};for(const t of targets){let row={channel:t.name,listing_status:'not_submitted',discovery_status:'probing',attempts:[]};let pg=await get(t.origin+t.page);row.page_status=pg.status||null;if(!pg.text){row.discovery_status='channel_degraded';row.error=pg.error||'empty';out[t.name]=row;continue} let f=formFields(pg.text);row.form=f;let scripts=[...pg.text.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m=>new URL(m[1],t.origin).href);let combined=pg.text;for(const s of [...new Set(scripts)].slice(0,30)){let x=await get(s);if(x.text)combined+='\n'+x.text}let eps=new Set();for(const re of [/fetch\(\s*["'`]([^"'`]+)["'`]/g,/axios\.post\(\s*["'`]([^"'`]+)["'`]/g,/action\s*:\s*["'`]([^"'`]+)["'`]/g])for(const m of combined.matchAll(re)){let v=m[1];if(/submit|agent|service|listing|api/i.test(v))eps.add(v)} row.candidates=[...eps].slice(0,20);let candidates=[]; if(f&&f.method==='POST'&&f.action)candidates.push(new URL(f.action,t.origin).href);for(const v of eps){try{let u=new URL(v,t.origin);if(u.origin===t.origin&&/submit|agent|service|listing/i.test(u.pathname))candidates.push(u.href)}catch{}} candidates=[...new Set(candidates)];
+            if(f&&f.method==='POST'&&f.action){let r=await post(new URL(f.action,t.origin).href,mapPayload(f.fields),'application/x-www-form-urlencoded');row.attempts.push({url:new URL(f.action,t.origin).href,mode:'form',response:r});if(r.status>=200&&r.status<400){row.listing_status='submitted_for_review';row.discovery_status='direct_submission_accepted'}}
+            if(row.listing_status==='not_submitted')for(const u of candidates.slice(0,5)){let r=await post(u,listing,'application/json');row.attempts.push({url:u,mode:'json',response:r}); if(r.status>=200&&r.status<400){row.listing_status='submitted_for_review';row.discovery_status='direct_submission_accepted';break}}
+            if(row.listing_status==='not_submitted')row.discovery_status=candidates.length?'programmatic_submission_not_confirmed':'no_submission_endpoint_exposed'; out[t.name]=row;}
+            fs.writeFileSync('/tmp/directories.json',JSON.stringify(out,null,2));console.log('DIRECTORIES='+JSON.stringify(out));
+          })();
+          NODE
+      - name: Recheck Market402 and Payan funded demand
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -u
+          python3 - <<'PY'
+          import subprocess,json
+          base='https://delta-witness-api.ruphussten.workers.dev'; out={'market402':{}}
+          for n,u,p in [('capture',base+'/v1/capture',0.03),('preflight',base+'/v1/preflight',0.03)]:
+            for path,payload in [('/selftest',{'url':u}),('/submit',{'resource':u,'declared_price_usd':p,'paid_probe_optin':True,'sample_input':{'method':'POST','body':{'url':'https://example.com'}}})]:
+              r=subprocess.run(['curl','-sS','--retry','3','--retry-delay','2','--retry-all-errors','--max-time','30','-w','\nHTTP_STATUS:%{http_code}','-X','POST','https://market402.com'+path,'-H','content-type: application/json','--data',json.dumps(payload)],capture_output=True,text=True);out['market402'].setdefault(n,{})[path]=r.stdout[-10000:]
+          open('/tmp/market.json','w').write(json.dumps(out,indent=2)); print('MARKET='+json.dumps(out,separators=(',',':')))
+          PY
+          if [ -n "${DELTA_PARTNER_SECRET:-}" ] && [ -s credentials/payanagent-operator.enc.json ]; then
+            node <<'NODE'
+            const fs=require('fs'),crypto=require('crypto');const enc=JSON.parse(fs.readFileSync('credentials/payanagent-operator.enc.json'));const e=enc.encryption,key=crypto.scryptSync(process.env.DELTA_PARTNER_SECRET,Buffer.from(e.salt_b64,'base64'),32),d=crypto.createDecipheriv('aes-256-gcm',key,Buffer.from(e.iv_b64,'base64'));d.setAuthTag(Buffer.from(e.tag_b64,'base64'));const k=Buffer.concat([d.update(Buffer.from(e.ciphertext_b64,'base64')),d.final()]).toString();console.log('::add-mask::'+k);fs.writeFileSync('/tmp/pkey',k,{mode:0o600});
+            NODE
+            python3 - <<'PY'
+          import json,subprocess,re,datetime,os
+          key=open('/tmp/pkey').read().strip(); base='https://payanagent.com'
+          def call(m,u,data=None,auth=False):
+            c=['curl','-sS','--retry','4','--retry-delay','2','--retry-all-errors','--max-time','30','-w','\nHTTP_STATUS:%{http_code}','-X',m,u,'-H','content-type: application/json'];
+            if auth:c+=['-H','Authorization: Bearer '+key]
+            if data is not None:c+=['--data',json.dumps(data)]
+            r=subprocess.run(c,capture_output=True,text=True); raw=r.stdout; body=raw.rsplit('\nHTTP_STATUS:',1)[0] if '\nHTTP_STATUS:' in raw else raw; st=raw.rsplit('HTTP_STATUS:',1)[-1][-3:] if 'HTTP_STATUS:' in raw else ''
+            try:o=json.loads(body)
+            except:o={'raw':body[:5000]}
+            return st,o
+          st,o=call('GET',base+'/api/v1/requests?status=open&limit=100'); rows=o.get('requests') or o.get('items') or o.get('data') or []; now=datetime.datetime.now(datetime.timezone.utc); pat=re.compile(r'\b(verify|verification|evidence|proof|preflight|web\s*page|browser|endpoint|http|url|integrity|change\s*detection)\b',re.I); elig=[]; bid=None
+          for x in rows:
+            title=str(x.get('title',''));desc=str(x.get('description',''));budget=x.get('budgetMaxCents') or x.get('agreedPriceCents') or 0
+            try:budget=int(budget)
+            except:budget=0
+            exp=x.get('expiresAt');fresh=True
+            if exp:
+              try:fresh=datetime.datetime.fromisoformat(exp.replace('Z','+00:00'))>now
+              except:pass
+            funded=bool(x.get('escrow') or x.get('escrowed')) or str(x.get('fundingStatus','')).lower() in ('confirmed','funded','escrowed','complete')
+            if pat.search(title+' '+desc) and budget>=100 and fresh and funded:
+              rid=x.get('id') or x.get('requestId'); rec=[]
+              for p in [f'/api/v1/requests/{rid}/receipt',f'/api/v1/requests/{rid}/receipts']:
+                rs,ro=call('GET',base+p);rec.append({'path':p,'status':rs,'body':ro})
+              ev=json.dumps(rec).lower(); txs=re.findall(r'0x[a-f0-9]{64}',ev); confirmed=bool(txs) and any(w in ev for w in ['confirmed','funded','escrowed','settled']); c={'id':rid,'title':title,'budget_cents':budget,'receipts':rec,'receipt_confirmed':confirmed,'txs':txs};elig.append(c)
+              if bid is None and confirmed:
+                bs,bo=call('POST',base+f'/api/v1/requests/{rid}/bid',{'priceCents':min(budget,1000),'estimatedDurationSeconds':120,'message':'DELTA Witness can fulfill this with deterministic public-URL observation/preflight evidence and a machine-verifiable proof reference. Settlement remains in platform escrow; no custody or asset movement required.'},True);bid={'request_id':rid,'status':bs,'response':bo}
+          out={'status':'ok','open_request_count':len(rows),'eligible':elig,'bid':bid};open('/tmp/payan.json','w').write(json.dumps(out,indent=2));print('PAYAN='+json.dumps(out,separators=(',',':')))
+          PY
+          else echo '{"status":"credential_unavailable"}' >/tmp/payan.json; fi
+          rm -f /tmp/pkey
+      - name: Revenue telemetry and evidence ledger
+        shell: bash
+        run: |
+          set -u
+          node scripts/query-revenue-candidates.mjs >/tmp/telemetry.out 2>&1 || true
+          python3 - <<'PY'
+          import json,os,datetime
+          def load(p,d={}):
+            try:return json.load(open(p))
+            except:return d
+          core=load('/tmp/core.json');dirs=load('/tmp/directories.json');market=load('/tmp/market.json');payan=load('/tmp/payan.json');tele=open('/tmp/telemetry.out').read()[-12000:] if os.path.exists('/tmp/telemetry.out') else ''
+          rec={'schema':'delta-growth-run/v1','recorded_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'evidence_quality':'A' if core.get('production',{}).get('ok') and core.get('treasury',{}).get('status')=='ok' else 'B','production':core.get('production'),'treasury_reconciliation':core.get('treasury'),'directories':dirs,'market402':market,'payanagent':payan,'telemetry_excerpt':tele,'strict_accounting':{'previous_buyer_count':1,'previous_settlement_count':1,'previous_revenue_total_usdc':0.03,'previous_variable_cost_total_usdc':0.002163522555,'previous_contribution_margin_total_usdc':0.027836477445,'new_receipt_count':len(core.get('treasury',{}).get('receipts',[])),'customer_revenue_new_usdc':0,'classification_note':'Any new receipt requires non-project settlement/telemetry correlation before revenue classification.'},'risk_controls':{'listing_fees_paid':0,'wallet_signatures':0,'assets_moved':0,'self_pay':False}}
+          stamp=datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d-%H%M%S');os.makedirs('docs/channel-status',exist_ok=True);path=f'docs/channel-status/growth-{stamp}-turn9.json';open(path,'w').write(json.dumps(rec,indent=2)+'\n');open('/tmp/path','w').write(path);print('EVIDENCE='+path)
+          PY
+          p=$(cat /tmp/path);git config user.name 'DELTA Growth Bot';git config user.email 'actions@users.noreply.github.com';git add "$p";git commit -m 'growth: record autonomous expansion turn 9' || exit 0
+          for i in 1 2 3; do git pull --rebase origin master || true; git push origin HEAD:master && break; sleep $((i*3)); done
