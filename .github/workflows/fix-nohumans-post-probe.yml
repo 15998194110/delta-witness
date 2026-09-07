@@ -1,0 +1,79 @@
+name: DELTA fix nohumans POST probe compatibility
+on:
+  push:
+    branches: ["fix/nohumans-post-probe-20260907"]
+    paths:
+      - ".github/workflows/fix-nohumans-post-probe.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix-test-deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/nohumans-post-probe-20260907
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Apply narrow unsupported-method fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/index.ts')
+          s = p.read_text()
+          old = '''async function protectWithX402(product: PaidProduct, c: AppContext, next: Next): Promise<Response | void> {\n  if (c.var.replayAuthorized) return next();'''
+          new = '''async function protectWithX402(product: PaidProduct, c: AppContext, next: Next): Promise<Response | void> {\n  // Only POST is a paid operation. Let unsupported methods fall through to the\n  // router instead of touching POST-only quote state; this keeps discovery\n  // probes from seeing an internal error when they first test the endpoint.\n  if (c.req.method !== "POST") return next();\n  if (c.var.replayAuthorized) return next();'''
+          if old not in s:
+              raise SystemExit('expected protectWithX402 anchor not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+          git diff --check
+          git diff -- src/index.ts
+      - name: Verify full project
+        run: |
+          npm ci
+          npm run verify
+      - name: Commit only the verified source fix and self-clean workflow
+        run: |
+          git config user.name "DELTA Autonomous Growth"
+          git config user.email "actions@users.noreply.github.com"
+          git rm .github/workflows/fix-nohumans-post-probe.yml
+          git add src/index.ts
+          git commit -m "fix: let non-POST paid-route probes fall through [skip ci]"
+          git push origin HEAD:fix/nohumans-post-probe-20260907
+      - name: Deploy verified worker code
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npm run deploy
+      - name: Verify production wire contract
+        run: |
+          node <<'NODE'
+          const BASE='https://delta-witness-api.ruphussten.workers.dev';
+          const checks=[
+            ['/v1/capture',{url:'https://example.com'}],
+            ['/v1/preflight',{url:'https://example.com',expected:{contains:['Example Domain']}}],
+            ['/v1/guarded-action-pilot',{urls:['https://example.com'],preflight:{url_index:0,expected:{contains:['Example Domain']}}}]
+          ];
+          for (let attempt=0; attempt<8; attempt++) {
+            let ok=true;
+            const rows=[];
+            for (const [path,body] of checks) {
+              const post=await fetch(BASE+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+              const get=await fetch(BASE+path,{method:'GET'});
+              rows.push({path,post:post.status,get:get.status,has_payment_required:!!post.headers.get('payment-required')});
+              if (post.status!==402 || !post.headers.get('payment-required')) ok=false;
+              if ((path==='/v1/capture'||path==='/v1/preflight') && get.status>=500) ok=false;
+            }
+            console.log(`PRODUCTION=${JSON.stringify(rows)}`);
+            if (ok) process.exit(0);
+            await new Promise(r=>setTimeout(r,5000));
+          }
+          throw new Error('production verification did not converge');
+          NODE
