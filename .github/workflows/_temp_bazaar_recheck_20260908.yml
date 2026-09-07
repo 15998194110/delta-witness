@@ -1,0 +1,44 @@
+name: DELTA Bazaar Recheck Temp
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_bazaar_recheck_20260908.yml'
+permissions:
+  contents: read
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run existing Bazaar visibility scanner
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/check-bazaar.mjs | tee /tmp/bazaar.out
+      - name: Direct paginated fallback search
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://facilitator.payai.network/discovery/resources'
+          needle='delta-witness-api.ruphussten.workers.dev'
+          offset=0
+          limit=500
+          total='unknown'
+          scanned=0
+          matches='[]'
+          while :; do
+            url="$base?limit=$limit&offset=$offset"
+            body=$(curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "$url")
+            n=$(jq '(.resources // .items // .data // []) | length' <<<"$body")
+            if [ "$offset" -eq 0 ]; then total=$(jq -r '.total // .pagination.total // "unknown"' <<<"$body"); fi
+            part=$(jq -c --arg n "$needle" '[((.resources // .items // .data // [])[]) | select((tostring|ascii_downcase) | contains($n))]' <<<"$body")
+            matches=$(jq -nc --argjson a "$matches" --argjson b "$part" '$a+$b')
+            scanned=$((scanned+n))
+            [ "$n" -lt "$limit" ] && break
+            offset=$((offset+limit))
+            [ "$offset" -gt 100000 ] && break
+          done
+          echo "BAZAAR_DIRECT total=$total scanned=$scanned matches=$(jq 'length' <<<"$matches")"
+          jq -c . <<<"$matches"
