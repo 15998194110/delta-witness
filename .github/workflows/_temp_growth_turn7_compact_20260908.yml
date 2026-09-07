@@ -1,0 +1,72 @@
+name: DELTA Growth Turn 7 Compact
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn7_compact_20260908.yml'
+permissions:
+  contents: read
+jobs:
+  compact:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Compact production and revenue audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          DB='c9431b00-27c5-4609-9f3d-6af20cb162df'
+          RPC='https://mainnet.base.org'
+          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          T0='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
+          T2="0x000000000000000000000000${TREASURY#0x}"
+
+          health=$(curl --retry 3 --retry-delay 1 --retry-all-errors -fsS --max-time 20 "$BASE/health")
+          echo "HEALTH_OK=$(jq -r '.ok' <<<"$health") VERSION=$(jq -r '.version' <<<"$health") NETWORK=$(jq -r '.network' <<<"$health")"
+
+          for p in capture preflight guarded-action-pilot; do
+            if [ "$p" = capture ]; then body='{"url":"https://example.com"}'; fi
+            if [ "$p" = preflight ]; then body='{"url":"https://example.com","expected":{"contains":["Example Domain"]}}'; fi
+            if [ "$p" = guarded-action-pilot ]; then body='{"urls":["https://example.com"],"action":"verify"}'; fi
+            code=$(curl --retry 3 --retry-delay 1 --retry-all-errors -sS --max-time 20 -o /tmp/b -w '%{http_code}' -X POST "$BASE/v1/$p" -H 'content-type: application/json' --data-binary "$body")
+            price=$(jq -r '.price_usd // .price // "unknown"' /tmp/b 2>/dev/null || echo unknown)
+            echo "PAID_SURFACE product=$p http=$code price=$price"
+          done
+
+          SQL="SELECT event,COUNT(*) AS n,ROUND(SUM(gross_usd),6) AS gross,ROUND(SUM(variable_cost_usd),6) AS cost,ROUND(SUM(contribution_margin_usd),6) AS margin,MAX(created_at) AS latest FROM telemetry_events WHERE created_at > '2026-09-07 05:42:06' AND event IN ('payment_verified','capture_completed') GROUP BY event ORDER BY event"
+          jq -n --arg sql "$SQL" '{sql:$sql}' >/tmp/q
+          d1=$(curl --retry 4 --retry-delay 1 --retry-all-errors -fsS --max-time 25 -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${DB}/query" -H "authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'content-type: application/json' --data-binary @/tmp/q)
+          echo "NEW_PAID_TELEMETRY=$(jq -c '[.result[0].results[]?]' <<<"$d1")"
+
+          latest_hex=$(curl --retry 4 --retry-delay 1 --retry-all-errors -fsS --max-time 20 -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}' "$RPC" | jq -r .result)
+          latest=$((latest_hex))
+          cur=50985189
+          count=0
+          rows='[]'
+          while [ "$cur" -le "$latest" ]; do
+            end=$((cur+9999)); [ "$end" -gt "$latest" ] && end=$latest
+            from=$(printf '0x%x' "$cur"); to=$(printf '0x%x' "$end")
+            jq -n --arg from "$from" --arg to "$to" --arg address "$USDC" --arg t0 "$T0" --arg t2 "$T2" '{jsonrpc:"2.0",id:1,method:"eth_getLogs",params:[{fromBlock:$from,toBlock:$to,address:$address,topics:[$t0,null,$t2]}]}' >/tmp/r
+            resp=$(curl --retry 4 --retry-delay 1 --retry-all-errors -fsS --max-time 25 -H 'content-type: application/json' --data-binary @/tmp/r "$RPC")
+            part=$(jq -c '[.result[]? | {tx:.transactionHash,block:.blockNumber,from_topic:.topics[1],value_hex:.data}]' <<<"$resp")
+            n=$(jq 'length' <<<"$part"); count=$((count+n))
+            rows=$(jq -c --argjson a "$rows" --argjson b "$part" -n '$a+$b')
+            cur=$((end+1))
+          done
+          echo "TREASURY_LATEST_BLOCK=$latest NEW_USDC_RECEIPTS=$count"
+          if [ "$count" -gt 0 ]; then echo "NEW_USDC_ROWS=$rows"; fi
+
+      - name: Compact Agent Bazaar submit surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          u='https://www.agent-bazaar.com/dev'
+          html=$(curl --retry 3 --retry-delay 1 --retry-all-errors -fsSL --max-time 20 "$u")
+          printf '%s' "$html" >/tmp/dev
+          action=$(grep -oE '<form[^>]*action="[^"]+"' /tmp/dev | head -1 | sed -n 's/.*action="\([^"]*\)".*/\1/p' || true)
+          method=$(grep -oE '<form[^>]*method="[^"]+"' /tmp/dev | head -1 | sed -n 's/.*method="\([^"]*\)".*/\1/p' || true)
+          fields=$(grep -oE 'name="[^"]+"' /tmp/dev | sed 's/name="//;s/"//' | sort -u | paste -sd, - || true)
+          echo "AGENT_BAZAAR_FORM action=${action:-none} method=${method:-none} fields=${fields:-none}"
