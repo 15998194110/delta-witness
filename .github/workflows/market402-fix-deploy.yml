@@ -1,0 +1,123 @@
+name: DELTA Market402 compatibility deploy
+
+on:
+  push:
+    paths:
+      - '.github/workflows/market402-fix-deploy.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix-deploy-optin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Patch x402 body compatibility
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('src/index.ts')
+          s=p.read_text()
+          old='import { guardedPilotEconomics, guardedPilotHandler, guardedPilotPrevalidate, guardedPilotProtect } from "./guarded-pilot";\n'
+          new=old+'import { mirrorX402ChallengeBody } from "./x402-compat";\n'
+          if 'from "./x402-compat"' not in s:
+              if old not in s: raise SystemExit('index import anchor missing')
+              s=s.replace(old,new,1)
+          anchor='''  if (c.res.status === 402) {\n    await recordEvent(c.env, {'''
+          replacement='''  if (c.res.status === 402) {\n    c.res = mirrorX402ChallengeBody(c.res, {\n      error: "payment_required",\n      product,\n      price_usd: c.var.quote.grossPriceUsd,\n      payment_flow: "upfront",\n    });\n    await recordEvent(c.env, {'''
+          if 'c.res = mirrorX402ChallengeBody(c.res' not in s:
+              if anchor not in s: raise SystemExit('index 402 anchor missing')
+              s=s.replace(anchor,replacement,1)
+          p.write_text(s)
+
+          p=Path('src/guarded-pilot.ts')
+          s=p.read_text()
+          old='import { GUARDED_ACTION_PILOT_INPUT_SCHEMA, GUARDED_ACTION_PILOT_OUTPUT_SCHEMA } from "./discovery";\n'
+          new=old+'import { mirrorX402ChallengeBody } from "./x402-compat";\n'
+          if 'from "./x402-compat"' not in s:
+              if old not in s: raise SystemExit('pilot import anchor missing')
+              s=s.replace(old,new,1)
+          anchor='''  if (c.res.status === 402) {\n    await recordEvent(env, {'''
+          replacement='''  if (c.res.status === 402) {\n    c.res = mirrorX402ChallengeBody(c.res, {\n      error: "payment_required",\n      product: "guarded_action_pilot",\n      price_usd: GUARDED_ACTION_PILOT_PRICE_USD,\n      payment_flow: "upfront",\n      max_urls: 3,\n    });\n    await recordEvent(env, {'''
+          if 'c.res = mirrorX402ChallengeBody(c.res' not in s:
+              if anchor not in s: raise SystemExit('pilot 402 anchor missing')
+              s=s.replace(anchor,replacement,1)
+          p.write_text(s)
+          PY
+          git diff --check
+      - name: Verify core
+        run: npm ci && npm run verify
+      - name: Persist compatibility patch
+        shell: bash
+        run: |
+          git config user.name 'DELTA growth operator'
+          git config user.email 'actions@users.noreply.github.com'
+          git add src/index.ts src/guarded-pilot.ts src/x402-compat.ts
+          if git diff --cached --quiet; then
+            echo 'No source changes to commit'
+          else
+            git commit -m 'compat: expose canonical x402 v2 challenge in 402 JSON body'
+            git push origin HEAD:master
+          fi
+      - name: Deploy core
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx wrangler deploy
+      - name: Verify Market402 compatibility and opt in paid probes
+        shell: bash
+        run: |
+          set -u
+          sleep 8
+          python3 - <<'PY'
+          import json,subprocess
+          base='https://delta-witness-api.ruphussten.workers.dev'
+          items=[
+            ('capture',base+'/v1/capture',0.03,{'method':'POST','body':{'url':'https://example.com'}}),
+            ('preflight',base+'/v1/preflight',0.03,{'method':'POST','body':{'url':'https://example.com','expected':{'contains':['Example Domain']}}}),
+          ]
+          def post(path,payload):
+              p=subprocess.run(['curl','-sS','--retry','3','--retry-delay','2','--retry-all-errors','--max-time','30','-w','\nHTTP_STATUS:%{http_code}','-X','POST','https://market402.com'+path,'-H','content-type: application/json','--data',json.dumps(payload)],capture_output=True,text=True)
+              return {'rc':p.returncode,'body':(p.stdout or '').strip()[:9000],'err':(p.stderr or '').strip()[:1000]}
+          out=[]
+          for name,url,price,sample in items:
+              selftest=post('/selftest',{'url':url})
+              optin=post('/submit',{'resource':url,'declared_price_usd':price,'paid_probe_optin':True,'sample_input':sample})
+              row={'name':name,'selftest':selftest,'optin':optin}
+              out.append(row); print('MARKET402='+json.dumps(row,ensure_ascii=False))
+          print('MARKET402_ALL='+json.dumps(out,ensure_ascii=False,separators=(',',':')))
+          PY
+      - name: Reconcile Base Treasury independently
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,subprocess
+          url='https://base.blockscout.com/api/v2/addresses/0x1990e21bc219696ff7fbc26527dbaed335ac6367/token-transfers?type=ERC-20'
+          p=subprocess.run(['curl','-sS','--retry','4','--retry-delay','2','--retry-all-errors','--max-time','30',url],capture_output=True,text=True)
+          if p.returncode:
+              print('TREASURY_ERROR='+json.dumps({'rc':p.returncode,'stderr':p.stderr[:1000]})); raise SystemExit(0)
+          try: d=json.loads(p.stdout)
+          except Exception as e:
+              print('TREASURY_ERROR='+json.dumps({'error':str(e),'body':p.stdout[:1000]})); raise SystemExit(0)
+          usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'; addr='0x1990e21bc219696ff7fbc26527dbaed335ac6367'; out=[]
+          for x in d.get('items',[]):
+              token=x.get('token') or {}; ta=(token.get('address_hash') or token.get('address') or '').lower()
+              to=x.get('to') or {}; toh=(to.get('hash') if isinstance(to,dict) else to or '').lower()
+              if ta!=usdc or toh!=addr: continue
+              total=x.get('total') or {}; raw=total.get('value') if isinstance(total,dict) else x.get('value')
+              dec=int(token.get('decimals') or 6)
+              try: amt=int(raw)/(10**dec)
+              except: amt=raw
+              fr=x.get('from') or {}; frh=fr.get('hash') if isinstance(fr,dict) else fr
+              out.append({'tx_hash':x.get('transaction_hash'),'timestamp':x.get('timestamp'),'from':frh,'amount_usdc':amt})
+          print('TREASURY_RESULT='+json.dumps(out[:30],separators=(',',':')))
+          PY
