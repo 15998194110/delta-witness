@@ -49,7 +49,7 @@ jobs:
             canonical_incoming_usdc: [
               .items[]? |
               select((.to.hash // .to.address_hash // "" | ascii_downcase) == $t) |
-              select((.token.address // "" | ascii_downcase) == $u) |
+              select((.token.address // .token.address_hash // "" | ascii_downcase) == $u) |
               {
                 tx_hash:(.tx_hash // .transaction_hash),
                 timestamp,
