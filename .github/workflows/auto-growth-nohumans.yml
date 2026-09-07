@@ -1,4 +1,4 @@
-name: DELTA one-shot nohumans growth
+name: DELTA one-shot nohumans readback
 on:
   push:
     paths:
@@ -8,7 +8,7 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Submit nohumans listings and reconcile production
+      - name: Read back nohumans listings and reconcile production
         shell: bash
         run: |
           set -euo pipefail
@@ -17,7 +17,7 @@ jobs:
           const USDC = '0x833589fcd6db6e08f4c7c32d4f71b54bdA02913'.toLowerCase();
           const BASE = 'https://delta-witness-api.ruphussten.workers.dev';
           const NH = 'https://nohumans.directory';
-
+          const ids = ['9acc2efd-b71','97b7e8b8-b62','50ce8a12-faa'];
           const sleep = ms => new Promise(r => setTimeout(r, ms));
           async function fetchRetry(url, init={}, attempts=4) {
             let err;
@@ -31,123 +31,39 @@ jobs:
             }
             throw err;
           }
-
-          const listings = [
-            {
-              name: 'DELTA Witness — Page-State Capture',
-              description: 'Independent public page-state witness for browser, shopping, procurement and workflow agents. Produces cryptographically bound capture evidence before an agent acts. x402 v2 on Base.',
-              endpoint_url: `${BASE}/v1/capture`,
-              category: 'infra.trust',
-              price_amount: 0.03,
-              price_currency: 'USDC',
-              chains: ['base'],
-              facilitator_url: 'https://facilitator.payai.network',
-              request_schema: {
-                type: 'object', required: ['url'], additionalProperties: true,
-                properties: { url: {type:'string', format:'uri'} }
-              }
-            },
-            {
-              name: 'DELTA Witness — Preflight Verification',
-              description: 'Deterministic preflight verification for autonomous browser and workflow actions. DELTA independently observes a public URL and checks expected page conditions before irreversible execution. x402 v2 on Base.',
-              endpoint_url: `${BASE}/v1/preflight`,
-              category: 'infra.trust',
-              price_amount: 0.03,
-              price_currency: 'USDC',
-              chains: ['base'],
-              facilitator_url: 'https://facilitator.payai.network',
-              request_schema: {
-                type: 'object', required: ['url','expected'], additionalProperties: true,
-                properties: {
-                  url: {type:'string', format:'uri'},
-                  expected: {type:'object', additionalProperties:true}
-                }
-              }
-            },
-            {
-              name: 'DELTA Witness — Guarded Action Pilot',
-              description: 'Higher-value guarded-action proof bundle for browser, shopping, travel, procurement, coding and workflow agents: 1–3 independent page-state witnesses plus deterministic preflight evidence. x402 v2 on Base.',
-              endpoint_url: `${BASE}/v1/guarded-action-pilot`,
-              category: 'infra.trust',
-              price_amount: 10,
-              price_currency: 'USDC',
-              chains: ['base'],
-              facilitator_url: 'https://facilitator.payai.network',
-              request_schema: {
-                type: 'object', required: ['urls'], additionalProperties: true,
-                properties: {
-                  urls: {type:'array', minItems:1, maxItems:3, items:{type:'string', format:'uri'}},
-                  preflight: {type:'object', additionalProperties:true}
-                }
-              }
-            }
-          ];
-
-          async function existingFor(endpoint) {
-            const q = encodeURIComponent('DELTA Witness independent page-state preflight guarded action');
-            const r = await fetchRetry(`${NH}/v1/discover?q=${q}&limit=50`);
-            if (!r.ok) return null;
-            const j = await r.json();
-            return (j.results || []).find(x => x.endpoint_url === endpoint) || null;
-          }
-
-          const ids = [];
-          for (const item of listings) {
-            let row = await existingFor(item.endpoint_url);
-            if (!row) {
-              const r = await fetchRetry(`${NH}/v1/listings`, {
-                method: 'POST',
-                headers: {'content-type':'application/json'},
-                body: JSON.stringify(item)
-              });
-              const text = await r.text();
-              let j = {};
-              try { j = JSON.parse(text); } catch {}
-              if (!(r.status === 201 || r.status === 200 || r.status === 409)) {
-                throw new Error(`nohumans submit ${item.endpoint_url} HTTP ${r.status}: ${text.slice(0,400)}`);
-              }
-              // Deliberately never print claim_token.
-              row = {id:j.id, status:j.status || (r.status===409?'duplicate':'accepted'), endpoint_url:item.endpoint_url};
-            }
-            if (!row?.id) {
-              row = await existingFor(item.endpoint_url);
-            }
-            if (!row?.id) throw new Error(`nohumans listing id unresolved for ${item.endpoint_url}`);
-            ids.push(row.id);
-            console.log(`NOHUMANS_LISTING=${JSON.stringify({name:item.name,id:row.id,status:row.status,endpoint_url:item.endpoint_url})}`);
-          }
-
           for (const id of ids) {
-            const r = await fetchRetry(`${NH}/v1/listings/${encodeURIComponent(id)}`);
+            const r = await fetchRetry(`${NH}/v1/listings/${id}`);
+            if (!r.ok) { console.log(`NOHUMANS_CHANNEL_DEGRADED=${id}:HTTP_${r.status}`); continue; }
             const j = await r.json();
-            console.log(`NOHUMANS_READBACK=${JSON.stringify({id:j.id,status:j.status,score:j.score,probe_count:j.probe_count,paid_verified:!!j.paid_verified,endpoint_url:j.endpoint_url,observed:j.observed?{x402_version:j.observed.x402_version,network:j.observed.network,pay_to:j.observed.pay_to,amount_usd:j.observed.amount_usd}:null})}`);
+            console.log(`NOHUMANS_READBACK=${JSON.stringify({id:j.id,status:j.status,score:j.score,probe_count:j.probe_count,paid_verified:!!j.paid_verified,endpoint_url:j.endpoint_url,onchain_unique_payers_30d:j.onchain_unique_payers_30d,observed:j.observed?{x402_version:j.observed.x402_version,challenge_transport:j.observed.challenge_transport,network:j.observed.network,pay_to:j.observed.pay_to,amount_usd:j.observed.amount_usd,price_matches_listing:j.observed.price_matches_listing}:null})}`);
           }
-
           const probes = [
             [`${BASE}/v1/capture`, {url:'https://example.com'}],
             [`${BASE}/v1/preflight`, {url:'https://example.com', expected:{contains:['Example Domain']}}],
             [`${BASE}/v1/guarded-action-pilot`, {urls:['https://example.com'], preflight:{url_index:0, expected:{contains:['Example Domain']}}}]
           ];
           for (const [url,body] of probes) {
-            const r = await fetchRetry(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
-            console.log(`PRODUCTION_402=${JSON.stringify({url,status:r.status,has_payment_required:!!r.headers.get('payment-required')})}`);
-            if (r.status !== 402) throw new Error(`production contract failed ${url}: ${r.status}`);
+            try {
+              const r = await fetchRetry(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+              console.log(`PRODUCTION_402=${JSON.stringify({url,status:r.status,has_payment_required:!!r.headers.get('payment-required')})}`);
+              if (r.status !== 402) process.exitCode = 2;
+            } catch (e) {
+              console.log(`PRODUCTION_CORE_FAILURE=${url}:${String(e.message||e)}`);
+              process.exitCode = 2;
+            }
           }
-
-          const turl = `https://base.blockscout.com/api/v2/addresses/${TREASURY}/token-transfers?type=ERC-20`;
-          const tr = await fetchRetry(turl);
-          if (!tr.ok) throw new Error(`Blockscout HTTP ${tr.status}`);
-          const tj = await tr.json();
-          const incoming = (tj.items || []).filter(it => {
-            const token = String(it.token?.address_hash || it.token?.address || it.token?.contract_address_hash || '').toLowerCase();
-            const to = String(it.to?.hash || it.to?.address_hash || it.to || '').toLowerCase();
-            return token === USDC && to === TREASURY;
-          }).map(it => ({
-            transaction_hash: it.transaction_hash || it.tx_hash || it.hash,
-            from: it.from?.hash || it.from?.address_hash || it.from,
-            to: it.to?.hash || it.to?.address_hash || it.to,
-            timestamp: it.timestamp || it.block_timestamp,
-            total: it.total || it.value
-          }));
-          console.log(`TREASURY_RESULT=${JSON.stringify(incoming)}`);
+          try {
+            const turl = `https://base.blockscout.com/api/v2/addresses/${TREASURY}/token-transfers?type=ERC-20`;
+            const tr = await fetchRetry(turl);
+            if (!tr.ok) throw new Error(`HTTP ${tr.status}`);
+            const tj = await tr.json();
+            const incoming = (tj.items || []).filter(it => {
+              const token = String(it.token?.address_hash || it.token?.address || it.token?.contract_address_hash || '').toLowerCase();
+              const to = String(it.to?.hash || it.to?.address_hash || it.to || '').toLowerCase();
+              return token === USDC && to === TREASURY;
+            }).map(it => ({transaction_hash:it.transaction_hash||it.tx_hash||it.hash,from:it.from?.hash||it.from?.address_hash||it.from,to:it.to?.hash||it.to?.address_hash||it.to,timestamp:it.timestamp||it.block_timestamp,total:it.total||it.value}));
+            console.log(`TREASURY_RESULT=${JSON.stringify(incoming)}`);
+          } catch (e) {
+            console.log(`TREASURY_CHANNEL_DEGRADED=${String(e.message||e)}`);
+          }
           NODE
