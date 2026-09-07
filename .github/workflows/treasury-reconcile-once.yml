@@ -1,0 +1,44 @@
+name: DELTA Treasury one-shot reconciliation
+
+on:
+  push:
+    paths:
+      - '.github/workflows/treasury-reconcile-once.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Base canonical USDC incoming
+        shell: bash
+        run: |
+          set -euo pipefail
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          curl -sS --fail --retry 3 --retry-all-errors --connect-timeout 5 --max-time 20 \
+            "https://base.blockscout.com/api/v2/addresses/$TREASURY/token-transfers?type=ERC-20" -o /tmp/transfers.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/transfers.json'))
+          usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+          addr='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          out=[]
+          for x in d.get('items',[]):
+              token=x.get('token') or {}
+              ta=(token.get('address_hash') or token.get('address') or '').lower()
+              tov=x.get('to') or {}
+              to=(tov.get('hash') if isinstance(tov,dict) else tov or '').lower()
+              if ta != usdc or to != addr: continue
+              total=x.get('total') or {}
+              raw=total.get('value') if isinstance(total,dict) else x.get('value')
+              dec=int(token.get('decimals') or 6)
+              try: amount=int(raw)/(10**dec)
+              except Exception: amount=raw
+              fr=x.get('from') or {}
+              fr=fr.get('hash') if isinstance(fr,dict) else fr
+              out.append({'tx_hash':x.get('transaction_hash'),'timestamp':x.get('timestamp'),'from':fr,'amount_usdc':amount})
+          print('TREASURY_RESULT='+json.dumps(out[:20],separators=(',',':')))
+          PY
