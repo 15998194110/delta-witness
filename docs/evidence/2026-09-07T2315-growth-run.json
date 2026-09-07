@@ -1,0 +1,64 @@
+{
+  "observed_at": "2026-09-07T23:15:00+08:00",
+  "treasury": {
+    "address": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "new_customer_receipts_after_first_stranger": 0,
+    "buyer_count_delta": 0,
+    "settlement_count_delta": 0,
+    "paid_settlements_delta": 0,
+    "treasury_received_usdc_delta": 0,
+    "revenue_usdc_delta": 0,
+    "evidence_quality": "A",
+    "notes": "Fresh canonical Base USDC reconciliation found only the previously recorded 0.03 USDC First Stranger Revenue. Fresh D1 audit found no payment_verified or capture_completed events in the inspected three-hour window."
+  },
+  "core": {
+    "capture_http": 402,
+    "preflight_http": 402,
+    "guarded_action_pilot_http": 402,
+    "evidence_quality": "A"
+  },
+  "channels": [
+    {
+      "channel": "AgentNDX",
+      "listing_status": "submitted_pending_review",
+      "discovery_status": "curated review pending",
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received_usdc": 0,
+      "revenue_usdc": 0,
+      "variable_cost_usdc": 0,
+      "contribution_margin_usdc": 0,
+      "evidence_quality": "A-",
+      "notes": "Official no-login submission endpoint accepted the completed DELTA Witness MCP+x402 form and redirected to /submit?success=1. AgentNDX states curated submissions are reviewed within 48 hours. No live listing is claimed yet."
+    },
+    {
+      "channel": "AllMCPs",
+      "listing_status": "live_unverified",
+      "discovery_status": "indexed at id delta-witness",
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received_usdc": 0,
+      "revenue_usdc": 0,
+      "variable_cost_usdc": 0,
+      "contribution_margin_usdc": 0,
+      "evidence_quality": "A",
+      "notes": "Public REST search already returns DELTA Witness with detailUrl /mcp/delta-witness. Ownership verification is not completed: verify_mcp_claim requires either an active browser session or an agentToken obtained via register_mcp_agent + emailed six-digit code + confirm_mcp_agent. No verification claim is made."
+    },
+    {
+      "channel": "x402-list",
+      "listing_status": "not_indexed",
+      "discovery_status": "no DELTA match in official public API readback",
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received_usdc": 0,
+      "revenue_usdc": 0,
+      "variable_cost_usdc": 0,
+      "contribution_margin_usdc": 0,
+      "evidence_quality": "A",
+      "notes": "Fresh official API searches for DELTA Witness and the production workers.dev hostname returned zero matches. No paid listing action was taken."
+    }
+  ]
+}
