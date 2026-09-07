@@ -1,0 +1,73 @@
+name: DELTA Tollbooth Retry Temp
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_tollbooth_retry_20260907_2245.yml'
+permissions:
+  contents: read
+jobs:
+  retry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Retry Tollbooth service listing with documented category
+        shell: bash
+        run: |
+          set -u
+          TB='https://www.trytollbooth.com/api/services'
+          W='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          submit(){
+            name="$1"; endpoint="$2"; price="$3"; desc="$4"
+            jq -n --arg name "$name" --arg endpoint "$endpoint" --arg wallet "$W" --arg desc "$desc" --argjson price "$price" '{name:$name,endpoint:$endpoint,category:"ai-inference",priceUsdc:$price,wallet:$wallet,chain:"base",description:$desc}' >/tmp/tb.json
+            code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 45 -o /tmp/tb-res.json -w '%{http_code}' -X POST "$TB" -H 'content-type: application/json' --data-binary @/tmp/tb.json || true)
+            echo "TOLLBOOTH_SUBMIT name=$name HTTP=$code"
+            cat /tmp/tb-res.json 2>/dev/null || true; echo
+          }
+          submit 'DELTA Witness Capture' 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 0.03 'Browser verification and timestamped page-state proof for autonomous agents.'
+          submit 'DELTA Witness Preflight' 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 0.03 'Preflight autonomous actions against fresh public-source observations and deterministic expectations.'
+          submit 'DELTA Witness Guarded Action Pilot' 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot' 10 'Higher-value guarded-action pilot for evidence-backed autonomous action verification.'
+      - name: Tollbooth readback and alternate manifest discovery
+        shell: bash
+        run: |
+          set -u
+          echo 'TOLLBOOTH_ALL_BEGIN'
+          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 45 -o /tmp/all.json -w '%{http_code}' 'https://www.trytollbooth.com/api/services' || true)
+          echo "TOLLBOOTH_ALL_HTTP=$code"
+          if [ "$code" = 200 ]; then
+            jq '[.. | objects | select((.name? // "") | test("DELTA Witness";"i")) | {id,slug,name,endpoint,category,priceUsdc,wallet,chain,status,verified,verificationStatus}]' /tmp/all.json 2>/dev/null || cat /tmp/all.json
+          else
+            head -c 3000 /tmp/all.json 2>/dev/null || true; echo
+          fi
+          echo 'TOLLBOOTH_ALL_END'
+      - name: Reconcile Base Treasury via public Base RPC logs
+        shell: bash
+        run: |
+          set -u
+          RPC='https://mainnet.base.org'
+          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+          TRANSFER='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
+          TO='0x0000000000000000000000001990e21bc219696ff7fbc26527dbaed335ac6367'
+          FIRST_DEC=50985188
+          FROM=$(printf '0x%x' "$FIRST_DEC")
+          latest=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}' "$RPC" | jq -r '.result // empty')
+          echo "BASE_RPC_LATEST=$latest FROM=$FROM"
+          if [ -z "$latest" ]; then echo 'BASE_RPC_UNAVAILABLE'; exit 0; fi
+          from_dec=$FIRST_DEC
+          latest_dec=$((16#${latest#0x}))
+          step=5000
+          : >/tmp/logs.ndjson
+          while [ "$from_dec" -le "$latest_dec" ]; do
+            to_dec=$((from_dec + step - 1)); if [ "$to_dec" -gt "$latest_dec" ]; then to_dec=$latest_dec; fi
+            from_hex=$(printf '0x%x' "$from_dec"); to_hex=$(printf '0x%x' "$to_dec")
+            jq -n --arg a "$USDC" --arg t0 "$TRANSFER" --arg t2 "$TO" --arg f "$from_hex" --arg to "$to_hex" '{jsonrpc:"2.0",id:1,method:"eth_getLogs",params:[{address:$a,fromBlock:$f,toBlock:$to,topics:[$t0,null,$t2]}]}' >/tmp/rpc.json
+            resp=$(curl --retry 3 --retry-delay 1 --retry-all-errors -sS --max-time 30 -H 'content-type: application/json' --data-binary @/tmp/rpc.json "$RPC" || true)
+            echo "$resp" | jq -c '.result[]? | {blockNumber,transactionHash,data,topics}' >>/tmp/logs.ndjson 2>/dev/null || true
+            from_dec=$((to_dec + 1))
+          done
+          echo 'BASE_RPC_TREASURY_USDC_BEGIN'
+          if [ -s /tmp/logs.ndjson ]; then
+            jq -s 'map(. + {amount_raw:(.data|ltrimstr("0x")|"0x"+.)}) | map({blockNumber,transactionHash,data,topics})' /tmp/logs.ndjson
+          else
+            echo '[]'
+          fi
+          echo 'BASE_RPC_TREASURY_USDC_END'
