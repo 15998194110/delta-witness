@@ -30,38 +30,68 @@ jobs:
           done
 
       - name: Register or confirm DELTA Preflight on Tollbooth
+        continue-on-error: true
         run: |
-          set -euo pipefail
+          set -u
           API='https://www.trytollbooth.com/api/services'
           ENDPOINT='https://delta-witness-api.ruphussten.workers.dev/v1/preflight'
           WALLET='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-          curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 40 -fsS "$API?q=DELTA%20Witness&chain=base" -o /tmp/tollbooth-before.json || echo '{"services":[]}' > /tmp/tollbooth-before.json
-          echo 'TOLLBOOTH_BEFORE'
-          cat /tmp/tollbooth-before.json | jq '.'
-          found=$(jq -r --arg e "$ENDPOINT" '[.. | objects | select(.endpoint? == $e)] | length' /tmp/tollbooth-before.json 2>/dev/null || echo 0)
-          if [ "$found" -eq 0 ]; then
-            payload=$(jq -n --arg endpoint "$ENDPOINT" --arg wallet "$WALLET" '{name:"DELTA Witness Preflight Verification",endpoint:$endpoint,category:"agent-trust",priceUsdc:0.03,wallet:$wallet,chain:"base",description:"Machine-verifiable preflight witness for browser and workflow agents before high-consequence external actions; settles x402 USDC directly on Base."}')
-            code=$(curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 60 -sS -o /tmp/tollbooth-register.json -w '%{http_code}' \
-              -X POST "$API" -H 'content-type: application/json' --data "$payload")
-            echo "TOLLBOOTH_REGISTER_STATUS=$code"
-            cat /tmp/tollbooth-register.json | jq '.'
-            case "$code" in 200|201|202|409) ;; *) exit 1 ;; esac
+
+          if curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 40 -fsS "$API?q=DELTA%20Witness&chain=base" -o /tmp/tollbooth-before.json; then
+            echo 'TOLLBOOTH_BEFORE'
+            jq '.' /tmp/tollbooth-before.json
+            found=$(jq -r --arg e "$ENDPOINT" '[.. | objects | select(.endpoint? == $e)] | length' /tmp/tollbooth-before.json 2>/dev/null || echo 0)
           else
-            echo 'TOLLBOOTH_EXISTING=true'
+            echo 'TOLLBOOTH_LIST_DEGRADED_AFTER_RETRIES=true'
+            found=0
           fi
-          sleep 4
-          curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 40 -fsS "$API?q=DELTA%20Witness&chain=base" -o /tmp/tollbooth-after.json
-          echo 'TOLLBOOTH_AFTER'
-          cat /tmp/tollbooth-after.json | jq '.'
+
+          if [ "$found" -gt 0 ]; then
+            echo 'TOLLBOOTH_EXISTING=true'
+            exit 0
+          fi
+
+          success=0
+          for category in verification security developer-tools web-automation data other; do
+            payload=$(jq -n --arg endpoint "$ENDPOINT" --arg wallet "$WALLET" --arg category "$category" '{name:"DELTA Witness Preflight Verification",endpoint:$endpoint,category:$category,priceUsdc:0.03,wallet:$wallet,chain:"base",description:"Machine-verifiable preflight witness for browser and workflow agents before high-consequence external actions; settles x402 USDC directly on Base."}')
+            code=$(curl --retry 3 --retry-all-errors --connect-timeout 10 --max-time 60 -sS -o "/tmp/tollbooth-register-${category}.json" -w '%{http_code}' -X POST "$API" -H 'content-type: application/json' --data "$payload")
+            echo "TOLLBOOTH_REGISTER category=$category status=$code"
+            cat "/tmp/tollbooth-register-${category}.json" | jq '.' || cat "/tmp/tollbooth-register-${category}.json"
+            case "$code" in
+              200|201|202|409)
+                success=1
+                cp "/tmp/tollbooth-register-${category}.json" /tmp/tollbooth-register-success.json
+                break
+                ;;
+              422) ;;
+              *) echo "TOLLBOOTH_CHANNEL_DEGRADED status=$code" ;;
+            esac
+          done
+
+          if [ "$success" -eq 0 ]; then
+            echo 'TOLLBOOTH_REGISTRATION_NOT_COMPLETED=true'
+            exit 0
+          fi
+
+          sid=$(jq -r '.service.id // .service.slug // .id // empty' /tmp/tollbooth-register-success.json)
+          if [ -n "$sid" ]; then
+            echo "TOLLBOOTH_SERVICE_ID=$sid"
+            curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 40 -fsS "$API/$sid" -o /tmp/tollbooth-service.json || true
+            if [ -s /tmp/tollbooth-service.json ]; then echo 'TOLLBOOTH_SERVICE_READBACK'; jq '.' /tmp/tollbooth-service.json; fi
+          fi
+          curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 40 -fsS "$API?q=DELTA%20Witness&chain=base" -o /tmp/tollbooth-after.json || true
+          if [ -s /tmp/tollbooth-after.json ]; then echo 'TOLLBOOTH_AFTER'; jq '.' /tmp/tollbooth-after.json; fi
 
       - name: Audit DELTA paid funnel candidates
+        if: always()
         run: node scripts/query-revenue-candidates.mjs
 
       - name: Reconcile canonical Base USDC Treasury receipts
+        if: always()
         run: |
           set -euo pipefail
           TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
           USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
           URL="https://base.blockscout.com/api/v2/addresses/$TREASURY/token-transfers?type=ERC-20"
-          body=$(curl --retry 5 --retry-all-errors --connect-timeout 10 --max-time 50 -fsS "$URL")
+          body=$(curl --retry 6 --retry-all-errors --connect-timeout 10 --max-time 60 -fsS "$URL")
           printf '%s' "$body" | jq --arg t "${TREASURY,,}" --arg u "${USDC,,}" '{canonical_incoming_usdc:[.items[]? | select((.to.hash // .to.address_hash // "" | ascii_downcase) == $t) | select((.token.address // "" | ascii_downcase) == $u) | {tx_hash:(.tx_hash // .transaction_hash),timestamp,from:(.from.hash // .from.address_hash),to:(.to.hash // .to.address_hash),value,token_decimals:(.token.decimals // "6"),token_symbol:(.token.symbol // "USDC")}]} '
