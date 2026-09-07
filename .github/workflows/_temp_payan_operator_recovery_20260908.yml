@@ -1,0 +1,80 @@
+name: DELTA PayanAgent Operator Recovery Temp
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_payan_operator_recovery_20260908.yml'
+permissions:
+  contents: write
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - name: Register bidding provider and persist API key encrypted
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DELTA_PARTNER_SECRET:-}"
+          BASE='https://payanagent.com'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          API='https://delta-witness-api.ruphussten.workers.dev'
+          mkdir -p credentials
+          test ! -e credentials/payanagent-operator.enc.json
+          payload=$(jq -nc --arg wallet "$TREASURY" --arg url "$API" '{name:"DELTA Witness Operator",description:"Provider identity for DELTA Witness to bid on evidence-verification, browser-state, preflight and guarded-action work. Payments settle to the existing DELTA Treasury.",walletAddress:$wallet,chain:"base",tags:["verification","browser","preflight","guard","x402"],providerType:"api",agentUrl:$url,discoverySource:"web_search"}')
+          tmp=$(mktemp)
+          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors --fail-with-body -sS -o "$tmp" -w '%{http_code}' -H 'content-type: application/json' -X POST "$BASE/api/v1/agents" -d "$payload")
+          test "$code" -ge 200 -a "$code" -lt 300
+          AGENT_ID=$(jq -er '.agentId' "$tmp")
+          API_KEY=$(jq -er '.apiKey' "$tmp")
+          API_PREFIX=$(jq -r '.apiKeyPrefix // ""' "$tmp")
+          echo "::add-mask::$API_KEY"
+          export PAYAN_AGENT_ID="$AGENT_ID" PAYAN_API_KEY="$API_KEY" PAYAN_API_PREFIX="$API_PREFIX"
+          node <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const secret = process.env.DELTA_PARTNER_SECRET;
+          const apiKey = process.env.PAYAN_API_KEY;
+          if (!secret || !apiKey) throw new Error('missing_secret_or_key');
+          const salt = crypto.randomBytes(16);
+          const iv = crypto.randomBytes(12);
+          const key = crypto.scryptSync(secret, salt, 32);
+          const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+          const ciphertext = Buffer.concat([cipher.update(apiKey, 'utf8'), cipher.final()]);
+          const out = {
+            schema: 'delta-encrypted-credential/v1',
+            provider: 'payanagent',
+            purpose: 'provider_bid_fulfill',
+            agent_id: process.env.PAYAN_AGENT_ID,
+            api_key_prefix: process.env.PAYAN_API_PREFIX || null,
+            encryption: {
+              alg: 'aes-256-gcm',
+              kdf: 'scrypt',
+              salt_b64: salt.toString('base64'),
+              iv_b64: iv.toString('base64'),
+              tag_b64: cipher.getAuthTag().toString('base64'),
+              ciphertext_b64: ciphertext.toString('base64')
+            },
+            created_at: new Date().toISOString()
+          };
+          fs.writeFileSync('credentials/payanagent-operator.enc.json', JSON.stringify(out, null, 2) + '\n', { mode: 0o600 });
+          NODE
+          unset API_KEY PAYAN_API_KEY
+          rm -f "$tmp"
+          echo "PAYAN_OPERATOR_REGISTERED=true AGENT_ID=$AGENT_ID API_KEY_PREFIX=${API_PREFIX:-unknown}"
+          git config user.name 'DELTA Growth Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add credentials/payanagent-operator.enc.json
+          git commit -m 'ops: persist encrypted PayanAgent provider credential'
+          git push origin HEAD:master
+      - name: Scan open requests after provider recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 'https://payanagent.com/api/v1/requests?status=open&limit=100' >/tmp/requests.json
+          echo 'PAYAN_OPEN_REQUESTS='
+          jq -c '(.requests // .items // .data // []) | map({id:(.id // .requestId),title,description,budgetMaxCents,agreedPriceCents,escrow,escrowed,escrowTxHash,escrowTransactionHash,fundingStatus,status,bidCount:(.bidCount // (.bids|length?)),createdAt,expiresAt})' /tmp/requests.json
