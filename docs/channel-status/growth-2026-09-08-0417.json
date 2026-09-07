@@ -1,0 +1,63 @@
+{
+  "schema": "delta-growth-run/v1",
+  "recorded_at": "2026-09-07T20:39:00Z",
+  "evidence_quality": "A",
+  "production": {
+    "health_ok": true,
+    "version": "0.7.0",
+    "network": "eip155:8453",
+    "capture": {"http_unpaid": 402, "price_usdc": 0.03},
+    "preflight": {"http_unpaid": 402, "price_usdc": 0.03},
+    "guarded_action_pilot": {"http_unpaid": 402, "price_usdc": 10.0}
+  },
+  "payai_bazaar": {
+    "listing_status": "live",
+    "discovery_status": "catalog_match_confirmed",
+    "catalog_total": 28258,
+    "catalog_scanned": 28258,
+    "matches": 1,
+    "live_resource": "https://delta-witness-api.ruphussten.workers.dev/v1/preflight",
+    "price_usdc": 0.03,
+    "network": "eip155:8453",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "evidence_quality": "A"
+  },
+  "market402": {
+    "capture_selftest": "11/11 spec_compliant",
+    "preflight_selftest": "11/11 spec_compliant",
+    "paid_probe_status": "waiting_for_market402_weekly_catalog_refresh",
+    "paid_probe_qualification": false,
+    "reason": "not_in_catalog",
+    "evidence_quality": "A"
+  },
+  "payanagent": {
+    "provider_write_capability": "recovered",
+    "credential_storage": "encrypted_at_rest",
+    "candidate_request": "x2prt1cej4d3f9jjv8wn9pnh1d8eda1m",
+    "candidate_action": "not_bid",
+    "candidate_reason": "escrow evidence contradiction and stale OPEN state after expiry",
+    "candidate_evidence_quality": "B"
+  },
+  "strict_accounting": {
+    "buyer_count": 1,
+    "settlement_count": 1,
+    "external_requests_new": 0,
+    "402_intents_new": 0,
+    "paid_settlements_new": 0,
+    "treasury_received_new_usdc": 0,
+    "revenue_total_usdc": 0.03,
+    "variable_cost_total_usdc": 0.002163522555,
+    "contribution_margin_total_usdc": 0.027836477445,
+    "last_confirmed_stranger_tx": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3",
+    "treasury_scan_from_block_exclusive": 50985188,
+    "treasury_scan_through_block": 51011641,
+    "new_canonical_usdc_receipts": 0,
+    "new_paid_d1_rows": 0
+  },
+  "risk_controls": {
+    "listing_fees_paid": 0,
+    "wallet_signatures": 0,
+    "assets_moved": 0,
+    "self_pay": false
+  }
+}
