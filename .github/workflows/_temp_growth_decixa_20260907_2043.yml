@@ -6,50 +6,22 @@ on:
 permissions:
   contents: read
 jobs:
-  submit:
+  readback:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
-      - name: Verify and publish DELTA on Decixa
+      - name: Verify Decixa listings and discovery
         shell: bash
         run: |
           set -euo pipefail
-          BASE='https://delta-witness-api.ruphussten.workers.dev'
-          DECIXA='https://api.decixa.ai'
-          cat >/tmp/verify.json <<'JSON'
-          {"endpoints":["https://delta-witness-api.ruphussten.workers.dev/v1/capture","https://delta-witness-api.ruphussten.workers.dev/v1/preflight","https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot"]}
-          JSON
-          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 45 -o /tmp/verify.out -w '%{http_code}' -X POST "$DECIXA/api/submit/verify" -H 'content-type: application/json' --data-binary @/tmp/verify.json)
-          echo "VERIFY_HTTP=$code"
-          cat /tmp/verify.out | jq .
-          test "$code" = '200'
-          jq -e '(.results|length)==3 and all(.results[]; .verified==true)' /tmp/verify.out >/dev/null
-          cat >/tmp/publish.json <<'JSON'
-          {
-            "provider_name":"DELTA Witness",
-            "provider_website":"https://delta-witness-api.ruphussten.workers.dev",
-            "wallet_address":"0x1990e21bc219696ff7fbc26527dbaed335ac6367",
-            "contact_email":"ruphussten85@gmail.com",
-            "endpoints":[
-              {"url":"https://delta-witness-api.ruphussten.workers.dev/v1/capture","display_name":"DELTA Witness — Capture","description":"Captures a public webpage with browser-rendered artifacts and a verifiable proof manifest for later independent checking.","price_per_call":0.03},
-              {"url":"https://delta-witness-api.ruphussten.workers.dev/v1/preflight","display_name":"DELTA Witness — Preflight","description":"Checks a fresh public-page observation against deterministic expectations before an autonomous action and returns proof references.","price_per_call":0.03},
-              {"url":"https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot","display_name":"DELTA Witness — Guarded Action Pilot","description":"Runs a multi-URL guarded-action verification and returns a machine-readable decision bundle with proof references.","price_per_call":10}
-            ]
-          }
-          JSON
-          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 45 -o /tmp/publish.out -w '%{http_code}' -X POST "$DECIXA/api/submit/publish" -H 'content-type: application/json' --data-binary @/tmp/publish.json)
-          echo "PUBLISH_HTTP=$code"
-          cat /tmp/publish.out | jq .
-          test "$code" = '200'
-          jq -e '.apis and (.apis|length)>=1' /tmp/publish.out >/dev/null
-      - name: Read back Decixa discovery
-        shell: bash
-        run: |
-          set -euo pipefail
-          DECIXA='https://api.decixa.ai'
-          for q in 'DELTA Witness' 'preflight autonomous action' 'browser proof'; do
-            enc=$(python -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))' "$q")
-            echo "DISCOVER_QUERY=$q"
-            curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "$DECIXA/api/agent/discover?q=$enc&limit=20" | jq . || true
+          D='https://api.decixa.ai'
+          for id in 78ea3d38-da37-4521-95f8-0338207f6e1f a2f4d378-1faf-4635-b7f8-f5e04cba27c6 79864d2f-f1de-41e7-8ab3-137e0590346e; do
+            echo "DETAIL_ID=$id"
+            curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "$D/api/agent/detail/$id" | jq '{id,name,endpoint,pricing,provider,agent_compatibility,trust_score,verification_status,health}'
+          done
+          for task in 'DELTA Witness' 'preflight autonomous action' 'browser verification proof'; do
+            enc=$(python -c 'import urllib.parse,sys; print(urllib.parse.quote_plus(sys.argv[1]))' "$task")
+            echo "DISCOVER_TASK=$task"
+            curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "$D/api/agent/discover?task=$enc&limit=20" | jq '[.apis[]? | select((.endpoint // "") | contains("delta-witness-api.ruphussten.workers.dev")) | {id,name,endpoint,pricing,trust_score,agent_ready}]'
           done
