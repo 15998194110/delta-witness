@@ -1,0 +1,67 @@
+name: DELTA Agent Bazaar submission
+
+on:
+  push:
+    paths:
+      - '.github/workflows/agent-bazaar-submit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Submit Guarded Action Pilot
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ab && cd /tmp/ab
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+          cat > submit.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({headless:true});
+          const page = await browser.newPage();
+          await page.goto('https://www.agent-bazaar.com/dev', {waitUntil:'networkidle', timeout:60000});
+          const snapshot = await page.locator('body').innerText();
+          console.log('PAGE_OK', snapshot.includes('List a Skill'));
+          console.log('INPUTS', await page.locator('input').evaluateAll(xs => xs.map(x => ({name:x.name, type:x.type, placeholder:x.placeholder}))));
+          console.log('SELECTS', await page.locator('select').evaluateAll(xs => xs.map(x => ({name:x.name, options:[...x.options].map(o=>o.text)}))));
+
+          async function fillByPlaceholder(fragment, value) {
+            const loc = page.locator(`input[placeholder*="${fragment}" i]`).first();
+            if (await loc.count()) { await loc.fill(value); return true; }
+            return false;
+          }
+          await fillByPlaceholder('GPT-4 Code Review', 'DELTA Witness — Guarded Action Pilot');
+          await fillByPlaceholder('0.05', '10');
+          await fillByPlaceholder('your-api.com', 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot');
+
+          const textareas = page.locator('textarea');
+          if (await textareas.count()) {
+            await textareas.first().fill('Deterministic trust/preflight witness for browser, shopping, procurement, coding and workflow agents before a high-consequence action. Returns timestamped evidence and explicit guard results. x402 v2 on Base; production price 10 USDC; direct settlement to the provider treasury.');
+          }
+
+          const selects = page.locator('select');
+          for (let i=0;i<await selects.count();i++) {
+            const s=selects.nth(i);
+            const opts=await s.locator('option').allTextContents();
+            const api=opts.find(x=>/^API$/i.test(x.trim()));
+            const security=opts.find(x=>/security|testing|automation|ci\/cd/i.test(x));
+            if (api) await s.selectOption({label:api}).catch(()=>{});
+            else if (security) await s.selectOption({label:security}).catch(()=>{});
+          }
+
+          const submit = page.getByRole('button', {name:/submit for review/i});
+          if (!await submit.count()) throw new Error('submit button not found');
+          await submit.click();
+          await page.waitForTimeout(4000);
+          const after = await page.locator('body').innerText();
+          console.log('AFTER_SUBMIT', after.slice(-4000));
+          console.log('SUBMISSION_SIGNAL', /thank|submitted|review|success|pending/i.test(after));
+          await browser.close();
+          NODE
+          node submit.mjs
