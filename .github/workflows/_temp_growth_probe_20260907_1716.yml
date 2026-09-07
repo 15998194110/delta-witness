@@ -1,0 +1,87 @@
+name: DELTA Growth Probe Temp
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/_temp_growth_probe_20260907_1716.yml'
+
+jobs:
+  growth-probe:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify DELTA production paid surfaces
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          for path in v1/preflight v1/guarded-action-pilot; do
+            status=$(curl --retry 3 --retry-all-errors --connect-timeout 10 --max-time 30 -sS -o "/tmp/${path##*/}.json" -D "/tmp/${path##*/}.headers" -w '%{http_code}' \
+              -X POST "$BASE/$path" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]},"urls":["https://example.com"]}')
+            echo "$path status=$status"
+            test "$status" = '402'
+            grep -qi '^payment-required:' "/tmp/${path##*/}.headers"
+          done
+
+      - name: Register or confirm true402 listing
+        id: true402
+        run: |
+          set -euo pipefail
+          API='https://true402.dev/api/v1/services'
+          ENDPOINT='https://delta-witness-api.ruphussten.workers.dev/v1/preflight'
+          existing=$(curl --retry 3 --retry-all-errors --connect-timeout 10 --max-time 30 -fsS "$API?q=DELTA%20Witness&limit=100")
+          found=$(printf '%s' "$existing" | jq -r --arg endpoint "$ENDPOINT" '[.data[]? | select(.manifest.endpoint == $endpoint)] | length')
+          if [ "$found" -gt 0 ]; then
+            echo 'true402 listing already present'
+          else
+            payload=$(jq -n '{
+              url:"https://delta-witness-api.ruphussten.workers.dev",
+              manifest:{
+                x402:"1.0",
+                name:"DELTA Witness Guard Preflight",
+                description:"Machine-verifiable preflight witness for browser and workflow agents before high-consequence external actions.",
+                capabilities:["browser-agent","preflight","guard","witness","proof"],
+                pricing:{currency:"USDC",base:"0.03",unit:"request"},
+                payment:{address:"0x1990e21bc219696ff7fbc26527dbaed335ac6367",chain:"base",facilitator:"https://facilitator.payai.network"},
+                endpoint:"https://delta-witness-api.ruphussten.workers.dev/v1/preflight"
+              }
+            }')
+            code=$(curl --retry 3 --retry-all-errors --connect-timeout 10 --max-time 30 -sS -o /tmp/true402-register.json -w '%{http_code}' \
+              -X POST "$API/register" -H 'content-type: application/json' --data "$payload")
+            echo "true402 register status=$code"
+            cat /tmp/true402-register.json | jq '{id,url,manifest,reputation,error}'
+            test "$code" = '201'
+          fi
+          confirmed=$(curl --retry 3 --retry-all-errors --connect-timeout 10 --max-time 30 -fsS "$API?q=DELTA%20Witness&limit=100")
+          printf '%s' "$confirmed" | jq --arg endpoint "$ENDPOINT" '{total, delta:[.data[]? | select(.manifest.endpoint == $endpoint) | {id,url,manifest,reputation}]}'
+          test "$(printf '%s' "$confirmed" | jq -r --arg endpoint "$ENDPOINT" '[.data[]? | select(.manifest.endpoint == $endpoint)] | length')" -gt 0
+
+      - name: Audit DELTA paid funnel candidates
+        run: node scripts/query-revenue-candidates.mjs
+
+      - name: Reconcile canonical Base USDC Treasury receipts
+        run: |
+          set -euo pipefail
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+          URL="https://base.blockscout.com/api/v2/addresses/$TREASURY/token-transfers?type=ERC-20"
+          body=$(curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 40 -fsS "$URL")
+          printf '%s' "$body" | jq --arg t "${TREASURY,,}" --arg u "${USDC,,}" '{
+            canonical_incoming_usdc: [
+              .items[]? |
+              select((.to.hash // .to.address_hash // "" | ascii_downcase) == $t) |
+              select((.token.address // "" | ascii_downcase) == $u) |
+              {
+                tx_hash:(.tx_hash // .transaction_hash),
+                timestamp,
+                from:(.from.hash // .from.address_hash),
+                to:(.to.hash // .to.address_hash),
+                value,
+                token_decimals:(.token.decimals // "6"),
+                token_symbol:(.token.symbol // "USDC")
+              }
+            ]
+          }'
