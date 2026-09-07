@@ -9,45 +9,21 @@ permissions:
   contents: read
 
 jobs:
-  register-arena:
+  verify-arena:
     runs-on: ubuntu-latest
     steps:
-      - name: Verify and register DELTA paid surfaces
+      - name: Read back DELTA Arena registrations
         shell: bash
         run: |
           set -euo pipefail
           BASE='https://delta-witness-api.ruphussten.workers.dev'
-          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-          API='https://core.x402arena.gg/register'
+          raw=$(curl --retry 3 --retry-all-errors --connect-timeout 10 --max-time 40 -fsS 'https://core.x402arena.gg/operator/agents')
+          echo "$raw" | jq '{delta:[.. | objects | select((.endpoint? // "") | startswith("'"$BASE"'")) | {id,agentId,name,endpoint,niche,status,verified,pricing,network,payTo,walletAddress,revenue,queries,buyers}]}'
+          echo "$raw" | jq -e '[.. | objects | select((.endpoint? // "") == "'"$BASE"'/v1/preflight")] | length > 0'
 
-          register_one() {
-            local name="$1" path="$2" niche="$3" desc="$4"
-            local endpoint="$BASE/$path"
-            local h="/tmp/${name}.headers" b="/tmp/${name}.body"
-            code=$(curl --retry 3 --retry-all-errors --connect-timeout 10 --max-time 30 -sS -D "$h" -o "$b" -w '%{http_code}' -X POST "$endpoint" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]},"urls":["https://example.com"]}')
-            echo "VERIFY $name status=$code payment_required=$(grep -Eic '^(payment-required|x-payment-required):' "$h" || true)"
-            test "$code" = '402'
-            test "$(grep -Eic '^(payment-required|x-payment-required):' "$h" || true)" -gt 0
-
-            payload=$(jq -nc --arg name "$name" --arg endpoint "$endpoint" --arg niche "$niche" --arg description "$desc" --arg wallet "$TREASURY" '{name:$name,endpoint:$endpoint,niche:$niche,description:$description,walletAddress:$wallet,method:"POST",resourceType:"http"}')
-            for attempt in 1 2 3; do
-              rc=$(curl --connect-timeout 10 --max-time 40 -sS -D "/tmp/${name}.reg.headers" -o "/tmp/${name}.reg.body" -w '%{http_code}' -X POST "$API" -H 'content-type: application/json' --data "$payload" || true)
-              echo "REGISTER $name attempt=$attempt status=$rc"
-              cat "/tmp/${name}.reg.body" || true
-              echo
-              if [[ "$rc" =~ ^2 ]]; then break; fi
-              if [[ "$rc" = '402' ]]; then echo 'REGISTRATION_REQUIRES_PAYMENT_DO_NOT_PAY'; break; fi
-              sleep $((attempt*2))
-            done
-          }
-
-          register_one 'delta-witness-preflight' 'v1/preflight' 'workflow-safety' 'Deterministic preflight verification before browser, shopping, procurement or workflow actions; Base USDC x402.'
-          register_one 'delta-witness-capture' 'v1/capture' 'web-intelligence' 'Capture a public HTTPS page-state proof for independent machine-checkable evidence; Base USDC x402.'
-          register_one 'delta-witness-guarded-action-pilot' 'v1/guarded-action-pilot' 'agent-infrastructure' 'Guarded-action evidence pilot combining page-state proofs and deterministic preflight checks for agent workflows; Base USDC x402.'
-
-      - name: Read back Arena operator catalog
+      - name: Read back DELTA leaderboard rows
         shell: bash
         run: |
           set -euo pipefail
-          curl --retry 3 --retry-all-errors --connect-timeout 10 --max-time 40 -fsS 'https://core.x402arena.gg/operator/agents' \
-            | jq '[.[]? | select((.name // "") | startswith("delta-witness")) | {id,name,endpoint,niche,status,price,walletAddress,revenue,queries,buyers}]'
+          raw=$(curl --retry 3 --retry-all-errors --connect-timeout 10 --max-time 40 -fsS 'https://core.x402arena.gg/leaderboard')
+          echo "$raw" | jq '{delta:[.. | objects | select(((.name? // .agentId? // "") | startswith("delta-witness"))) | {id,agentId,name,endpoint,niche,revenue,queries,buyers}]}'
