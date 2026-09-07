@@ -1,0 +1,39 @@
+name: DELTA Market402 submit
+
+on:
+  push:
+    paths:
+      - '.github/workflows/market402-submit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Submit DELTA endpoints to Market402
+        shell: bash
+        run: |
+          set -u
+          python3 - <<'PY'
+          import json, subprocess, time
+          items=[
+            ('capture','https://delta-witness-api.ruphussten.workers.dev/v1/capture',0.03),
+            ('preflight','https://delta-witness-api.ruphussten.workers.dev/v1/preflight',0.03),
+            ('guarded_action_pilot','https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot',10.0),
+          ]
+          def req(path,payload):
+              cmd=['curl','-sS','--retry','3','--retry-delay','2','--retry-all-errors','--max-time','30','-w','\nHTTP_STATUS:%{http_code}','-X','POST','https://market402.com'+path,'-H','content-type: application/json','--data',json.dumps(payload)]
+              p=subprocess.run(cmd,capture_output=True,text=True)
+              return p.returncode,(p.stdout or '').strip(),(p.stderr or '').strip()
+          out=[]
+          for name,url,price in items:
+              rc1,body1,err1=req('/selftest',{'url':url})
+              rc2,body2,err2=req('/submit',{'resource':url,'declared_price_usd':price})
+              rec={'name':name,'url':url,'declared_price_usd':price,'selftest_rc':rc1,'selftest':body1[:5000],'selftest_err':err1[:1000],'submit_rc':rc2,'submit':body2[:5000],'submit_err':err2[:1000]}
+              out.append(rec)
+              print(json.dumps(rec,ensure_ascii=False))
+          print('MARKET402_RESULTS='+json.dumps(out,ensure_ascii=False,separators=(',',':')))
+          PY
