@@ -1,0 +1,159 @@
+{
+  "errors": [],
+  "payanagent": {
+    "after": [
+      {
+        "_creationTime": 1788341002946.0415,
+        "_id": "kh72vd1kdv37109xxzzgmn2xfn8dnc6z",
+        "amountRaw": "30000",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "buyUrl": "/x402/kh72vd1kdv37109xxzzgmn2xfn8dnc6z",
+        "category": "verification",
+        "description": "Check whether a public source changed before an autonomous agent executes a consequential action. Proves observation and change, not truth.",
+        "httpMethod": "POST",
+        "isActive": true,
+        "network": "eip155:8453",
+        "offerType": "api",
+        "payTo": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "priceCents": 3,
+        "priceUsd": 0.03,
+        "rankScore": 1000,
+        "searchText": "DELTA Witness Guard Preflight Check whether a public source changed before an autonomous agent executes a consequential action. Proves observation and change, not truth. preflight autonomous-action change-detection guard",
+        "sellerId": "j57c8s34n1gm5hp5jqzjf6fzm58dmqv8",
+        "tags": [
+          "preflight",
+          "autonomous-action",
+          "change-detection",
+          "guard"
+        ],
+        "title": "DELTA Witness Guard Preflight"
+      },
+      {
+        "_creationTime": 1788341001504.1072,
+        "_id": "kh79t54410qb82yjcqsjmgv0d58dn7p3",
+        "amountRaw": "30000",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "buyUrl": "/x402/kh79t54410qb82yjcqsjmgv0d58dn7p3",
+        "category": "verification",
+        "description": "Capture and certify what a public web page says now. Returns machine-verifiable proof metadata and hashes; raw artifacts remain private.",
+        "httpMethod": "POST",
+        "isActive": true,
+        "network": "eip155:8453",
+        "offerType": "api",
+        "payTo": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "priceCents": 3,
+        "priceUsd": 0.03,
+        "rankScore": 1000,
+        "searchText": "DELTA Witness Capture Capture and certify what a public web page says now. Returns machine-verifiable proof metadata and hashes; raw artifacts remain private. web-evidence page-state-proof browser-verification capture",
+        "sellerId": "j57c8s34n1gm5hp5jqzjf6fzm58dmqv8",
+        "tags": [
+          "web-evidence",
+          "page-state-proof",
+          "browser-verification",
+          "capture"
+        ],
+        "title": "DELTA Witness Capture"
+      }
+    ],
+    "agent_id": "j571mgf6xe002m8d3dxafgr8xh8dy326",
+    "created": [
+      {
+        "endpoint": "https://delta-witness-api.ruphussten.workers.dev/v1/capture",
+        "response": {
+          "error": "[Request ID: 48e2e3e1e160b909] Server Error"
+        },
+        "status": 400
+      },
+      {
+        "endpoint": "https://delta-witness-api.ruphussten.workers.dev/v1/preflight",
+        "response": {
+          "error": "[Request ID: 06440bce8eb25a51] Server Error"
+        },
+        "status": 400
+      },
+      {
+        "endpoint": "https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot",
+        "response": {
+          "buyUrl": "/x402/kh7dskbdz0mj2ctc0dvm6q1yb98dz8dm",
+          "mode": "relay",
+          "offerId": "kh7dskbdz0mj2ctc0dvm6q1yb98dz8dm",
+          "verified": {
+            "amountRaw": "10000000",
+            "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "network": "eip155:8453",
+            "payTo": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+          }
+        },
+        "status": 201
+      }
+    ],
+    "discover_after_status": 200,
+    "discover_status": 200,
+    "existing_before": [
+      {
+        "_creationTime": 1788341002946.0415,
+        "_id": "kh72vd1kdv37109xxzzgmn2xfn8dnc6z",
+        "amountRaw": "30000",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "buyUrl": "/x402/kh72vd1kdv37109xxzzgmn2xfn8dnc6z",
+        "category": "verification",
+        "description": "Check whether a public source changed before an autonomous agent executes a consequential action. Proves observation and change, not truth.",
+        "httpMethod": "POST",
+        "isActive": true,
+        "network": "eip155:8453",
+        "offerType": "api",
+        "payTo": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "priceCents": 3,
+        "priceUsd": 0.03,
+        "rankScore": 1000,
+        "searchText": "DELTA Witness Guard Preflight Check whether a public source changed before an autonomous agent executes a consequential action. Proves observation and change, not truth. preflight autonomous-action change-detection guard",
+        "sellerId": "j57c8s34n1gm5hp5jqzjf6fzm58dmqv8",
+        "tags": [
+          "preflight",
+          "autonomous-action",
+          "change-detection",
+          "guard"
+        ],
+        "title": "DELTA Witness Guard Preflight"
+      },
+      {
+        "_creationTime": 1788341001504.1072,
+        "_id": "kh79t54410qb82yjcqsjmgv0d58dn7p3",
+        "amountRaw": "30000",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "buyUrl": "/x402/kh79t54410qb82yjcqsjmgv0d58dn7p3",
+        "category": "verification",
+        "description": "Capture and certify what a public web page says now. Returns machine-verifiable proof metadata and hashes; raw artifacts remain private.",
+        "httpMethod": "POST",
+        "isActive": true,
+        "network": "eip155:8453",
+        "offerType": "api",
+        "payTo": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "priceCents": 3,
+        "priceUsd": 0.03,
+        "rankScore": 1000,
+        "searchText": "DELTA Witness Capture Capture and certify what a public web page says now. Returns machine-verifiable proof metadata and hashes; raw artifacts remain private. web-evidence page-state-proof browser-verification capture",
+        "sellerId": "j57c8s34n1gm5hp5jqzjf6fzm58dmqv8",
+        "tags": [
+          "web-evidence",
+          "page-state-proof",
+          "browser-verification",
+          "capture"
+        ],
+        "title": "DELTA Witness Capture"
+      }
+    ],
+    "register_status": 201
+  },
+  "treasury": {
+    "blockscout_status": 200,
+    "incoming_usdc": [
+      {
+        "amount_usdc": 0.03,
+        "from": "0x7E6b6556322c4e26c567a867964aC793f5eE2b1c",
+        "timestamp": "2026-09-07T05:42:03.000000Z",
+        "tx_hash": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3"
+      }
+    ]
+  }
+}
