@@ -1,0 +1,74 @@
+name: DELTA Growth Decixa Temp
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_decixa_20260907_2043.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Core integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "$BASE/health"
+          for route in preflight guarded-action-pilot; do
+            code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o "/tmp/$route.body" -D "/tmp/$route.headers" -w '%{http_code}' -X POST "$BASE/v1/$route" -H 'content-type: application/json' -d '{}')
+            echo "CORE_ROUTE=$route HTTP=$code"
+            test "$code" = '402'
+            grep -qi '^payment-required:' "/tmp/$route.headers"
+          done
+      - name: Strict Treasury reconciliation
+        shell: bash
+        run: |
+          set -euo pipefail
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+          URL="https://base.blockscout.com/api/v2/addresses/${TREASURY}/token-transfers?type=ERC-20&filter=to&token=${USDC}"
+          for attempt in 1 2 3 4 5; do
+            if curl -fsS --max-time 30 "$URL" -o /tmp/transfers.json; then break; fi
+            sleep $((attempt*2))
+          done
+          jq --arg t "${TREASURY,,}" --arg u "${USDC,,}" '[.items[] | select(((.to.hash // .to // "")|ascii_downcase)==$t) | select(((.token.address_hash // .token.address // "")|ascii_downcase)==$u) | {timestamp,transaction_hash,from:(.from.hash // .from),to:(.to.hash // .to),value_raw:.total.value,decimals:.total.decimals}]' /tmp/transfers.json
+      - name: Audit D1 paid funnel
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB='c9431b00-27c5-4609-9f3d-6af20cb162df'
+          SQL="SELECT event,route,channel,partner,success,COUNT(*) rows,SUM(gross_usd) gross_usd,SUM(variable_cost_usd) variable_cost_usd,SUM(contribution_margin_usd) contribution_margin_usd,MAX(created_at) latest FROM telemetry_events WHERE created_at >= datetime('now','-2 hours') AND event IN ('payment_verified','capture_started','capture_completed','capture_failed') GROUP BY event,route,channel,partner,success ORDER BY latest DESC"
+          jq -n --arg sql "$SQL" '{sql:$sql}' >/tmp/query.json
+          curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${DB}/query" -H "authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'content-type: application/json' --data-binary @/tmp/query.json | jq '{success,errors,result:[.result[]|{success,results}]}'
+      - name: Inspect Decixa submission implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 'https://api.decixa.ai/submit' -o /tmp/decixa.html
+          echo 'DECIXA_HTML_FETCH_LINES_BEGIN'
+          grep -Eo 'src="[^"]+\.js[^"]*"|fetch\([^)]*\)|/api/[A-Za-z0-9_./?-]+' /tmp/decixa.html | head -100 || true
+          echo 'DECIXA_HTML_FETCH_LINES_END'
+          python - <<'PY'
+          import re, urllib.parse, urllib.request
+          html=open('/tmp/decixa.html',encoding='utf-8').read()
+          srcs=re.findall(r'<script[^>]+src=["\']([^"\']+)["\']',html,re.I)
+          print('SCRIPT_SRCS',srcs)
+          for src in srcs:
+              u=urllib.parse.urljoin('https://api.decixa.ai/submit',src)
+              try:
+                  body=urllib.request.urlopen(u,timeout=20).read().decode('utf-8','replace')
+              except Exception as e:
+                  print('SCRIPT_ERR',u,repr(e)); continue
+              hits=[]
+              for pat in [r'/api/[A-Za-z0-9_./?{}:-]+',r'fetch\([^)]{0,300}\)',r'contact_email',r'payout_wallet',r'provider']:
+                  hits += re.findall(pat,body,re.I)
+              if hits:
+                  print('SCRIPT',u)
+                  for h in hits[:100]: print(str(h)[:500])
+          PY
