@@ -6,22 +6,31 @@ on:
 permissions:
   contents: read
 jobs:
-  readback:
+  fallback:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
-      - name: Verify Decixa listings and discovery
+      - name: Decixa fallback readback
         shell: bash
         run: |
-          set -euo pipefail
-          D='https://api.decixa.ai'
-          for id in 78ea3d38-da37-4521-95f8-0338207f6e1f a2f4d378-1faf-4635-b7f8-f5e04cba27c6 79864d2f-f1de-41e7-8ab3-137e0590346e; do
-            echo "DETAIL_ID=$id"
-            curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "$D/api/agent/detail/$id" | jq '{id,name,endpoint,pricing,provider,agent_compatibility,trust_score,verification_status,health}'
+          set -u
+          API='https://api.decixa.ai'
+          WEB='https://decixa.ai'
+          ids=(78ea3d38-da37-4521-95f8-0338207f6e1f a2f4d378-1faf-4635-b7f8-f5e04cba27c6 79864d2f-f1de-41e7-8ab3-137e0590346e)
+          for id in "${ids[@]}"; do
+            echo "PUBLIC_LISTING_ID=$id"
+            code=$(curl --retry 3 --retry-delay 2 --retry-all-errors -A 'Mozilla/5.0' -sS --max-time 30 -o "/tmp/page-$id" -w '%{http_code}' "$WEB/apis/$id" || echo 000)
+            echo "PUBLIC_LISTING_HTTP=$code"
+            grep -Eo 'DELTA Witness[^<]{0,120}|delta-witness-api\.ruphussten\.workers\.dev[^<]{0,160}|0\.03 USDC|10(\.0+)? USDC' "/tmp/page-$id" 2>/dev/null | head -20 || true
+            code=$(curl --retry 3 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o "/tmp/detail-$id" -w '%{http_code}' "$API/api/agent/detail/$id" || echo 000)
+            echo "DETAIL_HTTP=$code"
+            cat "/tmp/detail-$id" 2>/dev/null | head -c 1000 || true
+            echo
           done
           for task in 'DELTA Witness' 'preflight autonomous action' 'browser verification proof'; do
             enc=$(python -c 'import urllib.parse,sys; print(urllib.parse.quote_plus(sys.argv[1]))' "$task")
-            echo "DISCOVER_TASK=$task"
-            curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "$D/api/agent/discover?task=$enc&limit=20" | jq '[.apis[]? | select((.endpoint // "") | contains("delta-witness-api.ruphussten.workers.dev")) | {id,name,endpoint,pricing,trust_score,agent_ready}]'
+            code=$(curl --retry 3 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o /tmp/discover -w '%{http_code}' "$API/api/agent/discover?task=$enc&limit=20" || echo 000)
+            echo "DISCOVER_TASK=$task HTTP=$code"
+            cat /tmp/discover 2>/dev/null | jq '[.apis[]? | select((.endpoint // "") | contains("delta-witness-api.ruphussten.workers.dev")) | {id,name,endpoint,pricing,trust_score,agent_ready}]' 2>/dev/null || head -c 1200 /tmp/discover 2>/dev/null || true
           done
