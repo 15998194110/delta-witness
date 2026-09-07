@@ -1,0 +1,323 @@
+name: DELTA Autonomous Growth Turn 8 Temp
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn8_20260908.yml'
+permissions:
+  contents: write
+jobs:
+  growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Verify production pricing and core integrity
+        shell: bash
+        run: |
+          set -u
+          python3 - <<'PY'
+          import json, subprocess, time
+          base='https://delta-witness-api.ruphussten.workers.dev'
+          checks=[
+            ('capture','/v1/capture',0.03,{'url':'https://example.com'}),
+            ('preflight','/v1/preflight',0.03,{'url':'https://example.com','expected':{'contains':['Example Domain']}}),
+            ('guarded_action_pilot','/v1/guarded-action-pilot',10.0,{'url':'https://example.com','expected':{'contains':['Example Domain']},'action':{'type':'observe_only','description':'DELTA production integrity probe'}}),
+          ]
+          out={'reachable':True,'health':None,'checks':{},'core_integrity_ok':True}
+          def curl(args):
+            return subprocess.run(['curl','-sS','--retry','4','--retry-delay','2','--retry-all-errors','--max-time','25']+args,capture_output=True,text=True)
+          h=curl(['-w','\nHTTP_STATUS:%{http_code}',base+'/health'])
+          out['health_raw']=(h.stdout+h.stderr)[-4000:]
+          if h.returncode!=0:
+            out['reachable']=False; out['core_integrity_ok']=False
+          for name,path,expected_price,payload in checks:
+            body='/tmp/'+name+'.body'; hdr='/tmp/'+name+'.hdr'
+            p=curl(['-o',body,'-D',hdr,'-w','%{http_code}','-X','POST',base+path,'-H','content-type: application/json','--data',json.dumps(payload)])
+            status=p.stdout.strip()[-3:] if p.stdout.strip() else ''
+            headers=''; text=''
+            try: headers=open(hdr).read()
+            except: pass
+            try: text=open(body).read()
+            except: pass
+            item={'status':status,'curl_rc':p.returncode,'payment_required_header':('payment-required:' in headers.lower()),'body_excerpt':text[:2500]}
+            # Strict: an unpaid production endpoint must be 402 and advertise x402 payment metadata.
+            item['ok']=(status=='402' and item['payment_required_header'])
+            out['checks'][name]=item
+            if not item['ok']: out['core_integrity_ok']=False
+          open('/tmp/production.json','w').write(json.dumps(out,indent=2))
+          print('PRODUCTION='+json.dumps(out,separators=(',',':')))
+          PY
+
+      - name: Reconcile Base Treasury independently
+        shell: bash
+        run: |
+          set -u
+          python3 - <<'PY'
+          import json, urllib.request, time
+          rpcs=['https://mainnet.base.org','https://base-rpc.publicnode.com','https://1rpc.io/base']
+          treasury='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          usdc='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+          topic0='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
+          topic2='0x'+'0'*24+treasury[2:].lower()
+          start=51011642
+          def rpc(method,params):
+            err=[]
+            for url in rpcs:
+              for attempt in range(3):
+                try:
+                  req=urllib.request.Request(url,data=json.dumps({'jsonrpc':'2.0','id':1,'method':method,'params':params}).encode(),headers={'content-type':'application/json','user-agent':'delta-growth-audit/1.0'})
+                  with urllib.request.urlopen(req,timeout=25) as resp:
+                    j=json.loads(resp.read())
+                  if 'result' in j: return j['result'],url
+                  err.append(str(j)[:500])
+                except Exception as e:
+                  err.append(f'{url}:{type(e).__name__}:{e}')
+                  time.sleep(1.5*(attempt+1))
+            raise RuntimeError(' | '.join(err[-10:]))
+          out={'status':'ok','from_block':start,'latest_block':None,'rpc':None,'receipts':[]}
+          try:
+            latest_hex,used=rpc('eth_blockNumber',[]); latest=int(latest_hex,16); out['latest_block']=latest; out['rpc']=used
+            cur=start
+            while cur<=latest:
+              end=min(cur+1999,latest)
+              logs,used=rpc('eth_getLogs',[{'fromBlock':hex(cur),'toBlock':hex(end),'address':usdc,'topics':[topic0,None,topic2]}])
+              for log in logs:
+                amount=int(log['data'],16)/1_000_000
+                frm='0x'+log['topics'][1][-40:]
+                to='0x'+log['topics'][2][-40:]
+                out['receipts'].append({'block':int(log['blockNumber'],16),'tx':log['transactionHash'],'from':frm.lower(),'to':to.lower(),'amount_usdc':amount,'log_index':int(log['logIndex'],16)})
+              cur=end+1
+          except Exception as e:
+            out={'status':'degraded','from_block':start,'latest_block':out.get('latest_block'),'rpc':out.get('rpc'),'receipts':out.get('receipts',[]),'error':str(e)[:3000]}
+          open('/tmp/treasury.json','w').write(json.dumps(out,indent=2))
+          print('TREASURY='+json.dumps(out,separators=(',',':')))
+          PY
+
+      - name: Recheck PayAI Bazaar and Market402 routing
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -u
+          baz_rc=0
+          node scripts/check-bazaar.mjs >/tmp/bazaar.out 2>&1 || baz_rc=$?
+          python3 - <<'PY'
+          import json, subprocess
+          base='https://delta-witness-api.ruphussten.workers.dev'
+          out={'bazaar_script_rc':None,'bazaar_output':'','market402':{}}
+          try: out['bazaar_output']=open('/tmp/bazaar.out').read()[-12000:]
+          except: pass
+          def post(path,payload):
+            p=subprocess.run(['curl','-sS','--retry','4','--retry-delay','2','--retry-all-errors','--max-time','30','-w','\nHTTP_STATUS:%{http_code}','-X','POST','https://market402.com'+path,'-H','content-type: application/json','--data',json.dumps(payload)],capture_output=True,text=True)
+            return {'rc':p.returncode,'response':p.stdout[-10000:],'stderr':p.stderr[-2000:]}
+          for name,url,price,sample in [
+            ('capture',base+'/v1/capture',0.03,{'method':'POST','body':{'url':'https://example.com'}}),
+            ('preflight',base+'/v1/preflight',0.03,{'method':'POST','body':{'url':'https://example.com','expected':{'contains':['Example Domain']}}}),
+          ]:
+            st=post('/selftest',{'url':url})
+            # /submit is idempotent for the resource; use it as routing qualification/status refresh.
+            sub=post('/submit',{'resource':url,'declared_price_usd':price,'paid_probe_optin':True,'sample_input':sample})
+            out['market402'][name]={'selftest':st,'submit':sub}
+          open('/tmp/discovery.json','w').write(json.dumps(out,indent=2))
+          print('DISCOVERY='+json.dumps(out,separators=(',',':')))
+          PY
+
+      - name: Probe and directly submit free Agent Bazaar listing when supported
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -u
+          node <<'NODE'
+          const fs=require('fs');
+          const origin='https://www.agent-bazaar.com';
+          const target={
+            name:'DELTA Witness Preflight',
+            type:'api',
+            category:'Security',
+            description:'Machine-verifiable preflight evidence for autonomous actions. DELTA observes a public URL, checks deterministic expectations, and returns a cryptographically anchored proof reference. x402 on Base mainnet; pay per call; no subscription.',
+            price:0.03,
+            endpoint:'https://delta-witness-api.ruphussten.workers.dev/v1/preflight'
+          };
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function get(url){let last;for(let i=0;i<4;i++){try{let r=await fetch(url,{headers:{'user-agent':'DELTA-Witness-listing/1.0'}});let t=await r.text();if(r.status<500)return {status:r.status,text:t,url:r.url,headers:Object.fromEntries(r.headers.entries())};last={status:r.status,text:t}}catch(e){last={error:String(e)}}await sleep(1500*(i+1));}return last||{};}
+          async function post(url,body,ct='application/json'){let last;for(let i=0;i<3;i++){try{let r=await fetch(url,{method:'POST',redirect:'manual',headers:{'content-type':ct,'user-agent':'DELTA-Witness-listing/1.0'},body:ct==='application/json'?JSON.stringify(body):new URLSearchParams(body).toString()});let t=await r.text();if(r.status<500)return {status:r.status,text:t.slice(0,8000),location:r.headers.get('location')};last={status:r.status,text:t.slice(0,8000)}}catch(e){last={error:String(e)}}await sleep(1800*(i+1));}return last||{};}
+          (async()=>{
+            const out={channel:'agent_bazaar',listing_status:'not_submitted',discovery_status:'probe_started',target,forms:[],candidate_endpoints:[],attempts:[]};
+            const page=await get(origin+'/dev'); out.page_status=page.status||null;
+            if(!page.text){out.discovery_status='channel_degraded';out.error=page.error||'empty_page';fs.writeFileSync('/tmp/agentbazaar.json',JSON.stringify(out,null,2));console.log('AGENT_BAZAAR='+JSON.stringify(out));return;}
+            const html=page.text;
+            for(const m of html.matchAll(/<form\b([^>]*)>/gi)){
+              const attrs=m[1]; const am=attrs.match(/action=["']([^"']+)/i); const mm=attrs.match(/method=["']([^"']+)/i);
+              out.forms.push({action:am?am[1]:null,method:mm?mm[1].toUpperCase():'GET'});
+            }
+            const scripts=[...html.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m=>new URL(m[1],origin).href);
+            let combined=html;
+            for(const s of [...new Set(scripts)].slice(0,40)){const j=await get(s); if(j.text) combined+='\n'+j.text;}
+            const literals=new Set();
+            for(const re of [/fetch\(\s*["'`]([^"'`]+)["'`]/g,/axios\.post\(\s*["'`]([^"'`]+)["'`]/g,/action\s*:\s*["'`]([^"'`]+)["'`]/g]){
+              for(const m of combined.matchAll(re)){const v=m[1]; if(v.includes('/api/')||/submit|skill/i.test(v)) literals.add(v);}
+            }
+            out.candidate_endpoints=[...literals].slice(0,30);
+            let candidates=[];
+            for(const f of out.forms){if(f.action && f.method==='POST') candidates.push(new URL(f.action,origin).href);}
+            for(const v of literals){try{let u=new URL(v,origin); if(u.origin===origin && /api|submit|skill/i.test(u.pathname)) candidates.push(u.href);}catch{}}
+            candidates=[...new Set(candidates)];
+            // Only use endpoints that are directly evidenced by the current developer page/client bundle.
+            const payloads=[
+              {name:target.name,type:'api',category:'security',description:target.description,price:target.price,endpoint:target.endpoint,x402Endpoint:target.endpoint,x402EndpointUrl:target.endpoint},
+              {skillName:target.name,type:'API',category:'Security',description:target.description,pricePerCall:target.price,endpointUrl:target.endpoint,x402EndpointUrl:target.endpoint}
+            ];
+            for(const url of candidates.slice(0,5)){
+              // Avoid unrelated endpoints surfaced by global bundles.
+              if(!/submit|skill|listing|developer/i.test(new URL(url).pathname)) continue;
+              let r=await post(url,payloads[0]); out.attempts.push({url,payload_variant:1,response:r});
+              if(r.status && r.status>=200 && r.status<400){out.listing_status='submitted_for_review';out.discovery_status='direct_submission_accepted';out.accepted_endpoint=url;break;}
+              const txt=(r.text||'').toLowerCase();
+              if(r.status && r.status>=400 && r.status<500 && /skillname|pricepercall|endpointurl|validation|field|required/.test(txt)){
+                let r2=await post(url,payloads[1]); out.attempts.push({url,payload_variant:2,response:r2});
+                if(r2.status && r2.status>=200 && r2.status<400){out.listing_status='submitted_for_review';out.discovery_status='direct_submission_accepted';out.accepted_endpoint=url;break;}
+              }
+            }
+            if(out.listing_status==='not_submitted') out.discovery_status=candidates.length?'programmatic_submission_not_confirmed':'no_submission_endpoint_exposed';
+            fs.writeFileSync('/tmp/agentbazaar.json',JSON.stringify(out,null,2));
+            console.log('AGENT_BAZAAR='+JSON.stringify(out));
+          })().catch(e=>{const out={channel:'agent_bazaar',listing_status:'not_submitted',discovery_status:'channel_degraded',error:String(e)};fs.writeFileSync('/tmp/agentbazaar.json',JSON.stringify(out,null,2));console.log('AGENT_BAZAAR='+JSON.stringify(out));});
+          NODE
+
+      - name: Scan PayanAgent funded demand and bid only on A-grade compatible work
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -u
+          if [ -z "${DELTA_PARTNER_SECRET:-}" ] || [ ! -s credentials/payanagent-operator.enc.json ]; then
+            echo '{"status":"credential_unavailable","open_requests":[],"eligible":[],"bid":null}' >/tmp/payan.json
+            exit 0
+          fi
+          node <<'NODE'
+          const fs=require('fs'),crypto=require('crypto');
+          const enc=JSON.parse(fs.readFileSync('credentials/payanagent-operator.enc.json','utf8'));
+          const e=enc.encryption; const secret=process.env.DELTA_PARTNER_SECRET;
+          const key=crypto.scryptSync(secret,Buffer.from(e.salt_b64,'base64'),32);
+          const d=crypto.createDecipheriv('aes-256-gcm',key,Buffer.from(e.iv_b64,'base64')); d.setAuthTag(Buffer.from(e.tag_b64,'base64'));
+          const apiKey=Buffer.concat([d.update(Buffer.from(e.ciphertext_b64,'base64')),d.final()]).toString('utf8');
+          console.log('::add-mask::'+apiKey); fs.writeFileSync('/tmp/payan.key',apiKey,{mode:0o600});
+          NODE
+          python3 - <<'PY'
+          import json, subprocess, datetime, re, os
+          base='https://payanagent.com'; key=open('/tmp/payan.key').read().strip(); agent=json.load(open('credentials/payanagent-operator.enc.json'))['agent_id']
+          def curl(method,url,data=None,auth=False):
+            cmd=['curl','-sS','--retry','4','--retry-delay','2','--retry-all-errors','--max-time','30','-w','\nHTTP_STATUS:%{http_code}','-X',method,url,'-H','content-type: application/json']
+            if auth: cmd += ['-H','Authorization: Bearer '+key]
+            if data is not None: cmd += ['--data',json.dumps(data)]
+            p=subprocess.run(cmd,capture_output=True,text=True); raw=p.stdout; status=raw[-3:] if len(raw)>=3 else ''; body=raw.rsplit('\nHTTP_STATUS:',1)[0] if '\nHTTP_STATUS:' in raw else raw
+            try: obj=json.loads(body)
+            except: obj={'raw':body[:6000]}
+            return {'status':status,'rc':p.returncode,'body':obj,'stderr':p.stderr[-1000:]}
+          r=curl('GET',base+'/api/v1/requests?status=open&limit=100')
+          rows=(r['body'].get('requests') or r['body'].get('items') or r['body'].get('data') or []) if isinstance(r['body'],dict) else []
+          now=datetime.datetime.now(datetime.timezone.utc)
+          words=re.compile(r'\b(verify|verification|evidence|proof|preflight|web\s*page|browser|endpoint|http|url|integrity|change\s*detection)\b',re.I)
+          eligible=[]
+          for x in rows:
+            title=str(x.get('title','')); desc=str(x.get('description','')); budget=x.get('budgetMaxCents') or x.get('agreedPriceCents') or 0
+            try: budget=int(budget)
+            except: budget=0
+            exp=x.get('expiresAt'); fresh=True
+            if exp:
+              try: fresh=datetime.datetime.fromisoformat(exp.replace('Z','+00:00'))>now
+              except: pass
+            escrow=bool(x.get('escrow') or x.get('escrowed'))
+            funded=str(x.get('fundingStatus','')).lower() in ('confirmed','funded','escrowed','complete') or escrow
+            match=bool(words.search(title+' '+desc))
+            # Only consider work large enough to justify custom fulfillment, fresh, and explicitly funded/escrowed.
+            if match and budget>=100 and fresh and funded:
+              eligible.append({'id':x.get('id') or x.get('requestId'),'title':title,'description':desc[:1500],'budget_cents':budget,'expiresAt':exp,'escrow':escrow,'fundingStatus':x.get('fundingStatus'),'raw':x})
+          out={'status':'ok','agent_id':agent,'open_request_count':len(rows),'eligible':[],'bid':None}
+          for c in eligible[:5]:
+            rid=c['id']; detail=curl('GET',base+'/api/v1/requests/'+str(rid)); c['detail_status']=detail['status']
+            # Check documented/public receipt variants. A bid is permitted only when a receipt independently says confirmed/funded and exposes a tx hash.
+            receipts=[]
+            for path in [f'/api/v1/requests/{rid}/receipt',f'/api/v1/requests/{rid}/receipts']:
+              rr=curl('GET',base+path); receipts.append({'path':path,'status':rr['status'],'body':rr['body']})
+            c['receipts']=receipts
+            evidence=json.dumps(receipts).lower(); txs=re.findall(r'0x[a-f0-9]{64}',evidence)
+            receipt_confirmed=bool(txs) and any(w in evidence for w in ['confirmed','funded','escrowed','settled'])
+            c['receipt_confirmed']=receipt_confirmed; c['tx_hashes']=list(dict.fromkeys(txs))[:5]
+            out['eligible'].append(c)
+            if out['bid'] is None and receipt_confirmed:
+              price=min(c['budget_cents'],1000)
+              msg='DELTA Witness can fulfill this with deterministic public-URL observation/preflight evidence and a machine-verifiable proof reference. No wallet custody or asset movement is required; settlement should remain in platform escrow.'
+              b=curl('POST',base+f'/api/v1/requests/{rid}/bid',{'priceCents':price,'estimatedDurationSeconds':120,'message':msg},auth=True)
+              out['bid']={'request_id':rid,'price_cents':price,'response_status':b['status'],'response':b['body']}
+          open('/tmp/payan.json','w').write(json.dumps(out,indent=2))
+          print('PAYAN='+json.dumps(out,separators=(',',':')))
+          PY
+          rm -f /tmp/payan.key
+
+      - name: Audit recent paid telemetry
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -u
+          node scripts/query-revenue-candidates.mjs >/tmp/telemetry.out 2>&1 || true
+          tail -c 20000 /tmp/telemetry.out || true
+
+      - name: Persist strict evidence ledger
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          python3 - <<'PY'
+          import json, os, datetime, re
+          def load(path,default):
+            try:return json.load(open(path))
+            except:return default
+          production=load('/tmp/production.json',{})
+          treasury=load('/tmp/treasury.json',{})
+          discovery=load('/tmp/discovery.json',{})
+          agentbazaar=load('/tmp/agentbazaar.json',{})
+          payan=load('/tmp/payan.json',{})
+          try: tele=open('/tmp/telemetry.out').read()[-20000:]
+          except: tele=''
+          receipts=treasury.get('receipts',[]) if isinstance(treasury,dict) else []
+          # Do not auto-classify chain receipts as customer revenue without settlement/telemetry correlation.
+          rec={
+            'schema':'delta-growth-run/v1',
+            'recorded_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'evidence_quality':'A' if production.get('core_integrity_ok') and treasury.get('status')=='ok' else 'B',
+            'production':production,
+            'treasury_reconciliation':{'status':treasury.get('status'),'from_block':treasury.get('from_block'),'through_block':treasury.get('latest_block'),'new_canonical_usdc_receipts':receipts,'new_receipt_count':len(receipts),'revenue_classification':'unclassified_pending_telemetry' if receipts else 'no_new_receipt'},
+            'payai_market402':discovery,
+            'agent_bazaar':agentbazaar,
+            'payanagent':payan,
+            'telemetry_excerpt':tele,
+            'strict_accounting':{
+              'previous_buyer_count':1,'previous_settlement_count':1,'previous_revenue_total_usdc':0.03,
+              'previous_variable_cost_total_usdc':0.002163522555,'previous_contribution_margin_total_usdc':0.027836477445,
+              'treasury_received_new_usdc':None if receipts else 0,
+              'customer_revenue_new_usdc':0,
+              'customer_revenue_new_reason':'No new canonical receipt' if not receipts else 'New receipt(s) require non-project settlement/telemetry correlation before revenue classification'
+            },
+            'risk_controls':{'listing_fees_paid':0,'wallet_signatures':0,'assets_moved':0,'self_pay':False}
+          }
+          stamp=datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d-%H%M%S')
+          os.makedirs('docs/channel-status',exist_ok=True); path=f'docs/channel-status/growth-{stamp}-turn8.json'
+          open(path,'w').write(json.dumps(rec,indent=2)+'\n'); open('/tmp/evidence_path','w').write(path)
+          print('EVIDENCE_PATH='+path)
+          PY
+          path=$(cat /tmp/evidence_path)
+          git config user.name 'DELTA Growth Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add "$path"
+          git commit -m 'growth: record autonomous distribution audit turn 8' || exit 0
+          for i in 1 2 3; do
+            git pull --rebase origin master || true
+            git push origin HEAD:master && break
+            sleep $((i*3))
+          done
