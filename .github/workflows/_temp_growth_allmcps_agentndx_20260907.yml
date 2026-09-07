@@ -1,0 +1,238 @@
+name: DELTA Growth AllMCPs AgentNDX Temp
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_allmcps_agentndx_20260907.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+
+      - name: Verify DELTA production paywalls
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          for spec in \
+            'capture|{"url":"https://example.com"}' \
+            'preflight|{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' \
+            'guarded-action-pilot|{}'; do
+            route="${spec%%|*}"; body="${spec#*|}"
+            code=$(curl --retry 3 --retry-delay 2 --retry-all-errors -sS -o "/tmp/${route}.body" -D "/tmp/${route}.headers" -w '%{http_code}' -X POST "$BASE/v1/$route" -H 'content-type: application/json' --data-binary "$body")
+            echo "CORE_PROBE route=$route http=$code"
+            test "$code" = '402'
+          done
+
+      - name: Reconcile Base Treasury independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+          FIRST='0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3'
+          curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 \
+            "https://base.blockscout.com/api/v2/addresses/${TREASURY}/token-transfers?type=ERC-20" > /tmp/treasury.json
+          jq --arg t "${TREASURY,,}" --arg u "${USDC,,}" --arg first "${FIRST,,}" '
+            [(.items // [])[]
+              | select(((.to.hash // .to // "")|ascii_downcase)==$t)
+              | select(((.token.address_hash // .token.address // "")|ascii_downcase)==$u)
+              | {timestamp, transaction_hash, from:(.from.hash // .from), value_raw:.total.value, decimals:.total.decimals}
+            ] as $incoming
+            | {incoming_canonical_usdc:$incoming,
+               new_since_first:[$incoming[] | select((.transaction_hash|ascii_downcase)!=$first) | select(.timestamp > "2026-09-07T05:42:03.000000Z")]}' /tmp/treasury.json
+
+      - name: Reconcile DELTA telemetry independently
+        if: ${{ env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB='c9431b00-27c5-4609-9f3d-6af20cb162df'
+          SQL="SELECT id,created_at,event,route,channel,partner,success,reason,gross_usd,browser_ms,storage_bytes,variable_cost_usd,contribution_margin_usd FROM telemetry_events WHERE created_at >= datetime('now','-3 hours') AND event IN ('payment_required','qualified_request','payment_verified','capture_started','capture_completed','capture_failed','proof_opened','repeat_call') ORDER BY id DESC LIMIT 250"
+          jq -n --arg sql "$SQL" '{sql:$sql}' >/tmp/query.json
+          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --max-time 30 \
+            -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${DB}/query" \
+            -H "authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'content-type: application/json' \
+            --data-binary @/tmp/query.json > /tmp/d1.json
+          jq '{success,errors,rows:[.result[].results[]?] | {count:length, payment_verified:[.[]|select(.event=="payment_verified")], capture_completed:[.[]|select(.event=="capture_completed")], recent_402:[.[]|select(.event=="payment_required")][0:20]}}' /tmp/d1.json
+
+      - name: Submit and verify AllMCPs listing
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONTACT=$(git log -1 --format=%ae)
+          export CONTACT
+          node <<'NODE'
+          const fs = require('fs');
+          const endpoint = 'https://allmcps.com/api/mcp';
+          async function rpc(method, params) {
+            let last;
+            for (let i=0;i<4;i++) {
+              try {
+                const r = await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});
+                const text = await r.text();
+                if (!r.ok) throw new Error(`HTTP ${r.status}: ${text.slice(0,300)}`);
+                const j = JSON.parse(text);
+                if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
+                return j.result;
+              } catch(e) { last=e; if(i<3) await new Promise(r=>setTimeout(r,1500*(i+1))); }
+            }
+            throw last;
+          }
+          function textOf(result){ return (result?.content||[]).map(x=>x?.text||'').join('\n'); }
+          function findDeep(obj,key){
+            if (!obj || typeof obj!=='object') return undefined;
+            if (Object.prototype.hasOwnProperty.call(obj,key)) return obj[key];
+            for (const v of Object.values(obj)) { const f=findDeep(v,key); if(f!==undefined) return f; }
+          }
+          function parseMaybe(s){ try{return JSON.parse(s)}catch{return null} }
+          (async()=>{
+            const tools = await rpc('tools/list');
+            const submitTool = (tools.tools||[]).find(t=>t.name==='submit_mcp_server');
+            const verifyTool = (tools.tools||[]).find(t=>t.name==='verify_mcp_claim');
+            console.log('ALLMCPS_TOOLS submit='+!!submitTool+' verify='+!!verifyTool);
+            if(!submitTool) throw new Error('submit_mcp_server unavailable');
+            const search = await fetch('https://allmcps.com/api/v1/search?q='+encodeURIComponent('DELTA Witness'));
+            const searchText = await search.text();
+            console.log('ALLMCPS_PRESEARCH_HTTP='+search.status);
+            fs.writeFileSync('/tmp/allmcps_presearch.json',searchText);
+            let existing = null;
+            try {
+              const sj=JSON.parse(searchText);
+              const arr=Array.isArray(sj)?sj:(sj.results||sj.data||sj.servers||[]);
+              existing=(arr||[]).find(x=>JSON.stringify(x).toLowerCase().includes('15998194110/delta-witness') || JSON.stringify(x).toLowerCase().includes('delta witness'));
+            } catch {}
+            let submitResult;
+            if(existing){
+              console.log('ALLMCPS_EXISTING='+JSON.stringify(existing));
+              submitResult={existing};
+            } else {
+              const args={
+                name:'DELTA Witness',
+                url:'https://github.com/15998194110/delta-witness',
+                email:process.env.CONTACT
+              };
+              const props=submitTool.inputSchema?.properties||{};
+              if(props.description) args.description='Trust layer for autonomous actions: x402-paid browser capture, deterministic preflight verification, proof artifacts, and an MCP adapter for agent workflows.';
+              if(props.category && !props.category.enum) args.category='Security';
+              submitResult=await rpc('tools/call',{name:'submit_mcp_server',arguments:args});
+              console.log('ALLMCPS_SUBMIT='+JSON.stringify(submitResult));
+            }
+            const raw=textOf(submitResult);
+            fs.writeFileSync('/tmp/allmcps_submit.txt',raw || JSON.stringify(submitResult));
+            const parsed=parseMaybe(raw);
+            let id=findDeep(parsed,'id') ?? findDeep(submitResult,'id') ?? existing?.id;
+            let badge=findDeep(parsed,'badge_markdown') ?? findDeep(submitResult,'badge_markdown');
+            let claim=findDeep(parsed,'claim_url') ?? findDeep(submitResult,'claim_url');
+            if(!id){ const m=raw.match(/(?:server[_ ]?id|id)["'`:\s=]+([a-zA-Z0-9_-]{3,})/i); if(m) id=m[1]; }
+            if(!badge){ const m=raw.match(/badge_markdown["'`:\s=]+([^\n]+)/i); if(m) badge=m[1].trim(); }
+            if(!claim){ const m=raw.match(/https:\/\/allmcps\.com\/[^\s)"']*(?:claim|verify)[^\s)"']*/i); if(m) claim=m[0]; }
+            if(id) fs.writeFileSync('/tmp/allmcps_id.txt',String(id));
+            if(badge) fs.writeFileSync('/tmp/allmcps_badge.txt',String(badge));
+            if(claim) fs.writeFileSync('/tmp/allmcps_claim.txt',String(claim));
+            console.log('ALLMCPS_PARSED id='+(id||'')+' badge='+(badge?'yes':'no')+' claim='+(claim||''));
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+          if [[ -s /tmp/allmcps_badge.txt ]]; then
+            BADGE=$(cat /tmp/allmcps_badge.txt)
+            if ! grep -qi 'allmcps' README.md; then
+              printf '\n\n## Directory verification\n\n%s\n' "$BADGE" >> README.md
+              git config user.name 'DELTA Autonomous Operator'
+              git config user.email 'actions@users.noreply.github.com'
+              git add README.md
+              git commit -m 'docs: verify DELTA on AllMCPs'
+              git push origin HEAD:master
+              sleep 4
+            fi
+          fi
+
+          if [[ -s /tmp/allmcps_id.txt ]]; then
+            ID=$(cat /tmp/allmcps_id.txt)
+            export ID
+            node <<'NODE'
+            const endpoint='https://allmcps.com/api/mcp';
+            async function rpc(method,params){const r=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:2,method,params})});const j=await r.json();if(j.error)throw new Error(j.error.message);return j.result}
+            (async()=>{let last;for(let i=0;i<4;i++){try{const res=await rpc('tools/call',{name:'verify_mcp_claim',arguments:{id:process.env.ID}});console.log('ALLMCPS_VERIFY='+JSON.stringify(res));process.exit(0)}catch(e){last=e;await new Promise(r=>setTimeout(r,2000*(i+1)))}}throw last})().catch(e=>{console.error('ALLMCPS_VERIFY_DEGRADED '+e.message);process.exit(0)});
+            NODE
+          fi
+
+          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS 'https://allmcps.com/api/v1/search?q=DELTA%20Witness' | tee /tmp/allmcps_readback.json
+
+      - name: Submit AgentNDX for curated review
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONTACT=$(git log -1 --format=%ae)
+          export CONTACT
+          python - <<'PY'
+          import html.parser, urllib.request, urllib.parse, http.cookiejar, json, re, os, time
+          URL='https://agentndx.ai/submit/'
+          class P(html.parser.HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.forms=[]; self.cur=None
+              def handle_starttag(self,tag,attrs):
+                  a=dict(attrs)
+                  if tag=='form': self.cur={'action':a.get('action',''),'method':a.get('method','get').lower(),'fields':[]}; self.forms.append(self.cur)
+                  elif self.cur is not None and tag in ('input','textarea','select'):
+                      self.cur['fields'].append({'tag':tag,**a})
+              def handle_endtag(self,tag):
+                  if tag=='form': self.cur=None
+          cj=http.cookiejar.CookieJar(); op=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+          req=urllib.request.Request(URL,headers={'User-Agent':'Mozilla/5.0 DELTA-Witness-Listing/1.0'})
+          html=op.open(req,timeout=30).read().decode('utf-8','replace')
+          p=P(); p.feed(html)
+          if not p.forms: raise SystemExit('AGENTNDX no form found')
+          form=max(p.forms,key=lambda f:len(f['fields']))
+          print('AGENTNDX_FORM',json.dumps(form,ensure_ascii=False))
+          data={}
+          for f in form['fields']:
+              name=f.get('name'); typ=f.get('type','').lower(); val=f.get('value',''); ph=f.get('placeholder','').lower()
+              if not name: continue
+              if typ=='hidden': data[name]=val; continue
+              key=(name+' '+ph).lower()
+              if 'github' in key: data[name]='https://github.com/15998194110/delta-witness'
+              elif 'server' in key and ('name' in key or 'firecrawl' in ph): data[name]='DELTA Witness'
+              elif 'homepage' in key or ('website' in key): data[name]='https://delta-witness-api.ruphussten.workers.dev'
+              elif 'description' in key or f.get('tag')=='textarea': data[name]='Trust layer for autonomous actions with MCP plus x402-paid browser capture, deterministic preflight verification, and verifiable proof artifacts.'
+              elif 'email' in key: data[name]=os.environ['CONTACT']
+              elif typ in ('checkbox','radio'):
+                  token=(val or name).lower()
+                  if token in ('mcp','x402') or 'mcp' in token or 'x402' in token: data.setdefault(name,[]).append(val or 'on')
+          encoded=[]
+          for k,v in data.items():
+              if isinstance(v,list): encoded += [(k,x) for x in v]
+              else: encoded.append((k,v))
+          action=urllib.parse.urljoin(URL,form['action'] or URL)
+          body=urllib.parse.urlencode(encoded,doseq=True).encode()
+          for attempt in range(4):
+              try:
+                  r=op.open(urllib.request.Request(action,data=body,headers={'User-Agent':'Mozilla/5.0 DELTA-Witness-Listing/1.0','Content-Type':'application/x-www-form-urlencoded','Referer':URL}),timeout=30)
+                  text=r.read().decode('utf-8','replace')
+                  print('AGENTNDX_SUBMIT http=',r.status,'final=',r.geturl(),'received=',('submission received' in text.lower()))
+                  print(re.sub(r'\s+',' ',text)[:700])
+                  break
+              except Exception as e:
+                  if attempt==3: raise
+                  print('AGENTNDX_RETRY',attempt+1,type(e).__name__,str(e)[:180]); time.sleep(2*(attempt+1))
+          PY
+
+      - name: Check x402-list organic/imported visibility without paying fees
+        shell: bash
+        run: |
+          set -euo pipefail
+          for q in 'DELTA Witness' 'delta-witness-api.ruphussten.workers.dev'; do
+            echo "X402LIST_QUERY=$q"
+            curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --get 'https://x402-list.com/api/v1/services' --data-urlencode "q=$q" --data 'per_page=100' | jq '{meta, matches:[(.data // [])[] | {slug,name,base_url,source,status,payment_ready,verified,cheapest_price_usd}]}'
+          done
