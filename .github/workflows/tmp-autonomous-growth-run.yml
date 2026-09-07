@@ -1,4 +1,4 @@
-name: DELTA Autonomous Growth Verification
+name: DELTA Record First External Revenue
 
 on:
   push:
@@ -7,41 +7,34 @@ on:
       - '.github/workflows/tmp-autonomous-growth-run.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  classify:
+  record:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
-      - name: Read exact DELTA telemetry rows
+        with:
+          fetch-depth: 1
+      - name: Prepend reconciled First Stranger Revenue row
         shell: bash
         run: |
           set -euo pipefail
-          DB='c9431b00-27c5-4609-9f3d-6af20cb162df'
-          SQL="SELECT id,created_at,app_version,event,route,channel,partner,success,reason,network,gross_usd,browser_ms,storage_bytes,variable_cost_usd,contribution_margin_usd FROM telemetry_events WHERE created_at >= '2026-09-07 05:41:30' AND created_at <= '2026-09-07 05:43:30' ORDER BY id ASC"
-          jq -n --arg sql "$SQL" '{sql:$sql}' >/tmp/query.json
-          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --max-time 30 \
-            -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${DB}/query" \
-            -H "authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'content-type: application/json' \
-            --data-binary @/tmp/query.json | jq '{success,errors,result:[.result[]|{success,results}]}'
-
-      - name: Inspect payer activity and target transaction
-        shell: bash
-        run: |
-          set -euo pipefail
-          PAYER='0x7E6b6556322c4e26c567a867964aC793f5eE2b1c'
-          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-          TX='0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3'
-          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --max-time 30 \
-            "https://base.blockscout.com/api/v2/addresses/${PAYER}/token-transfers?type=ERC-20" >/tmp/payer.json
-          echo 'PAYER_RECENT_USDC_BEGIN'
-          jq --arg p "${PAYER,,}" --arg u "${USDC,,}" '[.items[] | select(((.from.hash // .from // "")|ascii_downcase)==$p) | select(((.token.address_hash // .token.address // "")|ascii_downcase)==$u) | {timestamp,transaction_hash,to:(.to.hash // .to),value_raw:.total.value,decimals:.total.decimals,method}] | .[:50]' /tmp/payer.json
-          echo 'PAYER_RECENT_USDC_END'
-          echo 'TARGET_TX_BEGIN'
-          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "https://base.blockscout.com/api/v2/transactions/${TX}" | jq '{hash,status,timestamp,from,to,method,decoded_input,token_transfers}'
-          echo 'TARGET_TX_END'
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('docs/growth-ledger.md')
+          text = p.read_text()
+          row = "| 2026-09-07T13:42:06+08:00 | Direct / unattributed external x402 buyer — Preflight | live | independently invoked, paid, fulfilled and proof-opened | 1 | 1 | 1 | 1 | 1 | 0.03 | 0.03 | 0.002163522555 | 0.027836477445 | A | First Stranger Revenue confirmed under available evidence. DELTA telemetry shows `payment_required` 05:41:59Z → `qualified_request` 05:42:00Z → `payment_verified` 05:42:02Z on `/v1/preflight` (`channel=direct`, `partner=none`) → `capture_completed` 05:42:06Z with `browser_ms=1329`, `storage_bytes=519837`, gross `$0.03`, variable cost `$0.002163522555`, contribution margin `$0.027836477445`; the proof was then opened through both `/v1/proofs/:id` and `/p/:id` at 05:43:12–13Z. Independent Base reconciliation confirms canonical USDC receipt of `30000` raw units = `0.03 USDC` from payer `0x7E6b6556322c4e26c567a867964aC793f5eE2b1c` to Treasury `0x1990e21bc219696ff7fbc26527dbaed335ac6367` at 05:42:03Z in tx `0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3`. The payer is not the known nohumans scout and is not present in DELTA repository self/canary records; its Base history shows repeated small USDC payments to many unrelated recipients, consistent with an external x402 buyer. Buyer identity and originating discovery surface remain unattributed, so no platform source is claimed. |"
+          marker = "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|\n"
+          if row in text:
+              raise SystemExit('row already present')
+          if marker not in text:
+              raise SystemExit('ledger table marker not found')
+          p.write_text(text.replace(marker, marker + row + '\n', 1))
+          PY
+          git config user.name 'DELTA Autonomous Operator'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/growth-ledger.md
+          git commit -m 'docs: record first external DELTA revenue'
+          git push origin HEAD:master
