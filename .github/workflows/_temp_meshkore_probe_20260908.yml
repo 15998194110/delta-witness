@@ -1,0 +1,25 @@
+name: DELTA MeshKore Probe Temp
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_meshkore_probe_20260908.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch official deploy guide and public endpoints
+        shell: bash
+        run: |
+          set -u
+          for u in \
+            https://meshkore.com/reference/agents/deploy-your-agent.md \
+            https://meshkore.com/agent/meshkore-greeter/.well-known/agent.json \
+            https://meshkore.com/reference/agents/addressing \
+            https://meshkore.com/reference/agents/payments; do
+            echo "===== $u ====="
+            curl -sS --retry 4 --retry-delay 2 --retry-all-errors --max-time 30 -D - "$u" | head -c 50000 || true
+            echo
+          done
