@@ -1,0 +1,72 @@
+name: DELTA 402 Index Publish
+on:
+  push:
+    paths:
+      - '.github/workflows/_delta-402index-publish.yml'
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Add public 402 Index verification route
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          import {readFile,writeFile} from 'node:fs/promises';
+          const claim=JSON.parse(await readFile('docs/402index-claim-public.json','utf8'));
+          const hash=claim.verification_hash;
+          if(!/^[0-9a-f]{64}$/i.test(String(hash||''))) throw new Error('invalid public verification hash');
+          let source=await readFile('src/index.ts','utf8');
+          const route=`app.get("/.well-known/402index-verify.txt", (c) => c.text("${hash}"));`;
+          if(/app\.get\("\/\.well-known\/402index-verify\.txt"/.test(source)) {
+            source=source.replace(/app\.get\("\/\.well-known\/402index-verify\.txt"[^\n]*\n/,route+'\n');
+          } else {
+            const marker='app.get("/health", (c) => c.json({ ok: true, version: c.env.APP_VERSION, network: c.env.NETWORK, ts: new Date().toISOString() }));';
+            if(!source.includes(marker)) throw new Error('health route marker not found');
+            source=source.replace(marker,route+'\n\n'+marker);
+          }
+          await writeFile('src/index.ts',source);
+          NODE
+      - run: npm ci
+      - run: npm run verify
+      - name: Deploy production Worker
+        run: npx wrangler deploy
+      - name: Verify domain and read live 402 Index records
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          import {readFile,writeFile} from 'node:fs/promises';
+          const claim=JSON.parse(await readFile('docs/402index-claim-public.json','utf8'));
+          const domain=claim.domain;
+          async function retry(fn,tries=6){let last;for(let i=0;i<tries;i++){try{const v=await fn();if(v.ok)return v;last=v;}catch(e){last={error:String(e)}}await new Promise(r=>setTimeout(r,1000*(i+1)));}throw new Error(JSON.stringify(last));}
+          const vf=await retry(async()=>{const r=await fetch(`https://${domain}/.well-known/402index-verify.txt`);const text=await r.text();return {ok:r.ok&&text.trim()===claim.verification_hash,status:r.status,text};});
+          let verify;
+          for(let i=0;i<5;i++){
+            try{const r=await fetch('https://402index.io/api/v1/claim/verify',{method:'POST',headers:{'content-type':'application/json','user-agent':'DELTA-Witness/0.7.0'},body:JSON.stringify({domain})});const text=await r.text();let data;try{data=JSON.parse(text)}catch{data={raw:text}};verify={status:r.status,data};if(r.status===200||r.status===409)break;}catch(e){verify={error:String(e)}}
+            await new Promise(r=>setTimeout(r,800*(2**i)));
+          }
+          const r=await retry(async()=>{const x=await fetch('https://402index.io/api/v1/services?q=DELTA%20Witness&protocol=x402&limit=50');return {ok:x.ok,status:x.status,text:await x.text()};});
+          let body;try{body=JSON.parse(r.text)}catch{body={services:[]}};
+          const mine=(body.services||[]).filter(s=>String(s.url||'').includes(domain));
+          const out={generated_at:new Date().toISOString(),public_file:{status:vf.status,matched:true},verification:verify,services:mine};
+          await writeFile('docs/402index-verification-last.json',JSON.stringify(out,null,2)+'\n');
+          console.log(JSON.stringify({verification:verify,services:mine.map(s=>({id:s.id,name:s.name,status:s.status,verified:s.verified,domain_verified:s.domain_verified,x402_payment_valid:s.x402_payment_valid,health_status:s.health_status,price_usd:s.price_usd}))}));
+          if(!verify || ![200,409].includes(verify.status)) process.exit(1);
+          NODE
+      - name: Commit source and public evidence
+        run: |
+          git config user.name 'delta-autonomous-growth'
+          git config user.email 'actions@users.noreply.github.com'
+          git add src/index.ts docs/402index-verification-last.json
+          git commit -m 'feat: verify DELTA domain on 402 Index' || exit 0
+          git push
