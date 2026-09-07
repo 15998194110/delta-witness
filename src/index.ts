@@ -64,6 +64,7 @@ import {
 import { getWatch, parseWatchRegistration, registerWatch, runDueWatches } from "./watch";
 import { guardedPilotEconomics, guardedPilotHandler, guardedPilotPrevalidate, guardedPilotProtect } from "./guarded-pilot";
 import { mirrorX402ChallengeBody } from "./x402-compat";
+import { agentJsonManifest } from "./agent-manifest";
 
 type PaidProduct = "capture" | "preflight";
 type PriorManifest = Pick<ProofManifest, "proof_id" | "requested_url" | "capture_completed_at" | "hashes">;
@@ -726,6 +727,13 @@ app.get("/.well-known/x402-service.json", (c) => c.json({
   payment: { address: c.env.PAY_TO, chain: "base", network: c.env.NETWORK, facilitator: c.env.FACILITATOR_URL },
   endpoint: `${origin(c.env)}/v1/guarded-action-pilot`,
 }));
+app.get("/.well-known/agent.json", async (c) => c.json(agentJsonManifest(
+  origin(c.env),
+  c.env.PAY_TO,
+  c.env.FACILITATOR_URL,
+  await quoteProductWithOverride(c.env, "capture"),
+  await quoteProductWithOverride(c.env, "preflight"),
+)));
 app.get("/.well-known/api-catalog", (c) => c.json({ name: "DELTA Witness", version: c.env.APP_VERSION, openapi: `${origin(c.env)}/openapi.json`, skill: `${origin(c.env)}/SKILL.md` }));
 app.get("/SKILL.md", (c) => c.text(skillMarkdown(origin(c.env)), 200, { "content-type": "text/markdown; charset=utf-8" }));
 app.get("/AGENTS.md", (c) => c.text("# DELTA Witness\n\nUse /v1/preflight before consequential actions that depend on public web content. DELTA proves observation/change, not truth.\n", 200, { "content-type": "text/markdown; charset=utf-8" }));
@@ -758,6 +766,7 @@ app.get("/distribution.json", (c) => c.json({
   discovery: {
     openapi: `${origin(c.env)}/openapi.json`,
     x402: `${origin(c.env)}/.well-known/x402`,
+    agent_json: `${origin(c.env)}/.well-known/agent.json`,
     skill: `${origin(c.env)}/SKILL.md`,
     postman: `${origin(c.env)}/postman.json`,
     mcp_registry: "https://registry.modelcontextprotocol.io/",
