@@ -498,6 +498,8 @@ app.options("/v1/*", (c) => {
   return c.body(null, 204);
 });
 
+app.get("/.well-known/402index-verify.txt", (c) => c.text("1a44144b01cf2e59a16783ecf191b4f6e489c236dfad5168d913a4afc4bbca85"));
+
 app.get("/health", (c) => c.json({ ok: true, version: c.env.APP_VERSION, network: c.env.NETWORK, ts: new Date().toISOString() }));
 
 app.get("/v1/quote", async (c) => {
