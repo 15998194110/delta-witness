@@ -1,0 +1,30 @@
+name: DELTA Payan Demand Temp
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn6_payan_20260908.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      PAYANAGENT_API_KEY: ${{ secrets.PAYANAGENT_API_KEY }}
+    steps:
+      - name: Inspect DELTA seller state and funded open requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://payanagent.com'
+          if [ -n "${PAYANAGENT_API_KEY:-}" ]; then echo 'PAYANAGENT_API_KEY_PRESENT=true'; else echo 'PAYANAGENT_API_KEY_PRESENT=false'; fi
+          echo 'DISCOVER_DELTA_BEGIN'
+          curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "$BASE/api/v1/discover?q=DELTA%20Witness&limit=20" | jq -c '{agents,offers,openRequests}'
+          echo 'DISCOVER_DELTA_END'
+          echo 'OPEN_REQUESTS_BEGIN'
+          curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "$BASE/api/v1/requests?status=open&limit=100" >/tmp/requests.json
+          jq -c '(.requests // .items // .data // []) | map({id:(.id // .requestId),title,description,budgetMaxCents,agreedPriceCents,escrow,escrowed,escrowTxHash,escrowTransactionHash,fundingStatus,status,bidCount:(.bidCount // (.bids|length?)),createdAt,expiresAt,inputPayload})' /tmp/requests.json
+          echo 'OPEN_REQUESTS_END'
