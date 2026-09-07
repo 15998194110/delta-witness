@@ -47,7 +47,7 @@ jobs:
             out.chain.new_since_first_stranger=incoming.filter(x=>new Date(x.timestamp)>new Date('2026-09-07T05:42:03Z'));
           } catch(e) { out.errors.push({channel:'blockscout',error:String(e)}); }
           try {
-            const sql=`SELECT id,event,channel,partner,success,gross_usd,variable_cost_usd,contribution_margin_usd,created_at,request_id,proof_id FROM telemetry_events WHERE created_at >= '2026-09-07 05:40:00' AND event IN ('payment_required','qualified_request','payment_verified','partner_request','capture_started','capture_completed','capture_failed','proof_opened','machine_proof_opened','watch_checked') ORDER BY created_at DESC LIMIT 500`;
+            const sql=`SELECT id,event,channel,partner,success,gross_usd,variable_cost_usd,contribution_margin_usd,created_at FROM telemetry_events WHERE created_at >= '2026-09-07 05:40:00' AND event IN ('payment_required','qualified_request','payment_verified','partner_request','capture_started','capture_completed','capture_failed','proof_opened','machine_proof_opened','watch_checked') ORDER BY created_at DESC LIMIT 500`;
             const url=`https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/d1/database/${process.env.DELTA_D1_DATABASE_ID}/query`;
             const r=await fetchRetry(url,{method:'POST',headers:{authorization:`Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({sql})});
             const j=await r.json();
