@@ -39,3 +39,48 @@ This ledger is deliberately conservative. Platform reach is not DELTA buyer coun
 `value_authored` → `payment_authorized` → `settlement_confirmed` → `treasury_received`
 
 Only `treasury_received` from a non-project payer can become customer revenue. Exclude canary/test/self-pay, platform self-tests, registration probes, crawler traffic, directory badges, and uncorroborated marketplace counters.
+
+## 2026-09-07 — provider-authoritative discovery + AgentNDX submission
+
+### Open 402 / Agent Internet Runtime provider discovery
+- channel/source: `/.well-known/agent.json` provider-authoritative agent-commerce discovery surface
+- listing_status: `provider_manifest_live`; external Open 402 registry indexing is not yet confirmed
+- discovery_status: production manifest live at `https://delta-witness-api.ruphussten.workers.dev/.well-known/agent.json`
+- canonical_source: commit `d631605` (`growth: publish provider-authoritative agent.json`)
+- declared_intents: Capture `POST /v1/capture` at `0.03 USDC`, Preflight `POST /v1/preflight` at `0.03 USDC`, Guarded Action Pilot `POST /v1/guarded-action-pilot` at `10 USDC`
+- payment_rail: x402 / Base / canonical USDC / Treasury `0x1990e21bc219696ff7fbc26527dbaed335ac6367`
+- production_verification: repository verify passed `47/47` tests; Cloudflare deployment succeeded; all three paid production routes revalidated as HTTP `402`
+- external_requests: `0` attributable customer requests confirmed in this run; CI/discovery probes excluded
+- 402_intents: `0` attributable external customer intents confirmed; own verification probes excluded
+- paid_settlements: `0`; treasury_received: `0 USDC`; revenue: `$0`
+- evidence_quality: `A` for production manifest/deployment; registry indexing remains pending and is not claimed
+
+### AgentNDX
+- channel/source: `agentndx.ai` curated MCP / A2A / x402 registry
+- listing_status: `submitted_pending_review`
+- submission_evidence: free form submission returned HTTP `302` to `/submit?success=1` on 2026-09-07
+- submitted_protocols: `MCP`, `x402`
+- discovery_status: not yet found in public AgentNDX server index immediately after submission; no live listing claimed
+- external_requests: `0`; 402_intents: `0`; paid_settlements: `0`; treasury_received: `0 USDC`; revenue: `$0`
+- evidence_quality: `A` for accepted submission, `pending` for public listing
+
+### x402dash
+- channel/source: `api.x402dash.com`
+- listing_status: `not_listed`
+- discovery_status: channel degraded during programmatic registration; its remote verifier observed HTTP `500` for a DELTA URL despite independent production POST checks returning expected HTTP `402`, then later attempts hit the channel's five-per-hour rate limit
+- operational_action: isolated as third-party degradation; no DELTA core failure declared; retry deferred
+- paid_settlements: `0`; treasury_received: `0 USDC`
+
+### Treasury / revenue reconciliation
+- Base mainnet Treasury: `0x1990e21bc219696ff7fbc26527dbaed335ac6367`
+- canonical USDC incoming result: `[]`
+- Blockscout transport: first request returned HTTP `500`; bounded retry returned HTTP `200`; Treasury reconciliation completed independently
+- value_authored: not counted as revenue
+- payment_authorized: `0` attributable external payments confirmed
+- settlement_confirmed: `0` attributable external settlements confirmed
+- treasury_received: `0 USDC`; customer_revenue: `$0`; First Stranger Revenue: `not yet reached`
+
+### Outreach
+- no new human reply from the active BrowserAgent / Trouve / PayAPI threads during this run
+- daily first-contact allowance was already exhausted before this run; no additional outreach email was sent
+- next qualified untouched target retained for a later natural day: Hyperbrowser (`info@hyperbrowser.ai`), subject to re-verification before contact
