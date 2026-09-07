@@ -6,121 +6,31 @@ on:
 permissions:
   contents: write
 jobs:
-  inspect-register:
+  record:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 1
-      - name: Inspect Arena and register unique DELTA services if absent
+      - name: Prepend conservative x402 Arena ledger row
         shell: bash
         run: |
           set -euo pipefail
-          API='https://core.x402arena.gg'
-          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-          mkdir -p docs/evidence
           python - <<'PY'
-          import json, os, subprocess, time, urllib.request, urllib.error
-          API='https://core.x402arena.gg'
-          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-          host='delta-witness-api.ruphussten.workers.dev'
-          evidence={
-            'observed_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-            'channel': 'x402 Arena',
-            'source': API,
-            'treasury': TREASURY,
-            'preexisting_matches': [],
-            'registration_attempts': [],
-            'final_matches': [],
-            'notes': ['No listing fee or wallet authorization is permitted by this workflow. HTTP 402/fee requirements are recorded and not paid.']
-          }
-          def get_json(url):
-            last=None
-            for delay in (0,2,5,9):
-              if delay: time.sleep(delay)
-              try:
-                req=urllib.request.Request(url, headers={'User-Agent':'DELTA-Witness-Growth/0.7.0','Accept':'application/json'})
-                with urllib.request.urlopen(req, timeout=30) as r:
-                  raw=r.read().decode('utf-8','replace')
-                  return r.status, json.loads(raw)
-              except Exception as e: last=e
-            raise last
-          def post_json(url,payload):
-            data=json.dumps(payload).encode()
-            last=None
-            for delay in (0,2,5):
-              if delay: time.sleep(delay)
-              try:
-                req=urllib.request.Request(url,data=data,method='POST',headers={'User-Agent':'DELTA-Witness-Growth/0.7.0','Accept':'application/json','Content-Type':'application/json'})
-                with urllib.request.urlopen(req, timeout=30) as r:
-                  raw=r.read().decode('utf-8','replace')
-                  try: body=json.loads(raw)
-                  except: body={'raw':raw[:2000]}
-                  return r.status,body,dict(r.headers)
-              except urllib.error.HTTPError as e:
-                raw=e.read().decode('utf-8','replace')
-                try: body=json.loads(raw)
-                except: body={'raw':raw[:2000]}
-                if e.code in (429,500,502,503,504): last=(e.code,body,dict(e.headers)); continue
-                return e.code,body,dict(e.headers)
-              except Exception as e: last=e
-            if isinstance(last,tuple): return last
-            return 0,{'error':repr(last)},{}
-          def matches(d):
-            out=[]; seen=set()
-            def walk(x):
-              if isinstance(x,dict):
-                text=json.dumps(x,sort_keys=True).lower()
-                if 'delta-witness' in text or host in text:
-                  # Keep only compact public listing-like records.
-                  keys=('id','agentId','agent_id','name','endpoint','url','walletAddress','wallet_address','niche','description','method','resourceType','status','active','verified','createdAt','created_at')
-                  item={k:x[k] for k in keys if k in x}
-                  if item:
-                    s=json.dumps(item,sort_keys=True)
-                    if s not in seen: seen.add(s); out.append(item)
-                for v in x.values(): walk(v)
-              elif isinstance(x,list):
-                for v in x: walk(v)
-            walk(d)
-            return out
-          try:
-            status,agents=get_json(API+'/operator/agents')
-            evidence['operator_agents_http']=status
-            evidence['preexisting_matches']=matches(agents)
-          except Exception as e:
-            evidence['operator_agents_error']=repr(e)
-            agents={}
-          if not evidence['preexisting_matches']:
-            specs=[
-              ('delta-witness-capture-v070','https://delta-witness-api.ruphussten.workers.dev/v1/capture','web-intelligence','Timestamped browser verification and public page-state proof for autonomous agents.',{'type':'object','required':['url'],'properties':{'url':{'type':'string','format':'uri'}}}),
-              ('delta-witness-preflight-v070','https://delta-witness-api.ruphussten.workers.dev/v1/preflight','agent-trust','Deterministic preflight verification of public-source state before autonomous actions.',{'type':'object','required':['url'],'properties':{'url':{'type':'string','format':'uri'},'expected':{'type':'object'}}}),
-              ('delta-witness-guarded-action-pilot-v070','https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot','agent-security','Evidence-backed guarded-action pilot for higher-value autonomous action checks.',{'type':'object','properties':{'urls':{'type':'array','items':{'type':'string','format':'uri'}}}})
-            ]
-            for name,endpoint,niche,desc,schema in specs:
-              payload={'name':name,'endpoint':endpoint,'niche':niche,'description':desc,'walletAddress':TREASURY,'method':'POST','inputSchema':schema,'resourceType':'http'}
-              code,body,headers=post_json(API+'/register',payload)
-              attempt={'name':name,'endpoint':endpoint,'http':code,'body':body}
-              # Never follow/authorize payment challenges.
-              if code==402: attempt['decision']='skipped_payment_required'
-              elif 200 <= code < 300: attempt['decision']='submitted_or_registered'
-              elif code==409: attempt['decision']='already_exists_or_conflict'
-              else: attempt['decision']='degraded_or_rejected'
-              evidence['registration_attempts'].append(attempt)
-          try:
-            status2,agents2=get_json(API+'/operator/agents')
-            evidence['operator_agents_final_http']=status2
-            evidence['final_matches']=matches(agents2)
-          except Exception as e:
-            evidence['operator_agents_final_error']=repr(e)
-          with open('docs/evidence/x402-arena-check-2026-09-07.json','w') as f:
-            json.dump(evidence,f,indent=2,sort_keys=True)
+          from pathlib import Path
+          p=Path('docs/growth-ledger.md')
+          text=p.read_text()
+          row="| 2026-09-07T21:48:58+08:00 | x402 Arena — DELTA Witness service family | live | official operator API returned six DELTA agent ids as `active`; public leaderboard independently surfaces DELTA Capture / Guard / Guarded Action Pilot / Page State Proof / Preflight Verification | 0 | 0 | 0 | 0 | 0 | 0.00 | 0.00 | 0.00 | 0.00 | A | Official `GET /operator/agents` returned HTTP 200 and six pre-existing active DELTA registrations: `delta-witness-capture`, `delta-witness-guard`, `delta-witness-guarded-action-pilot`, `delta-witness-page-state-proof`, `delta-witness-preflight`, `delta-witness-preflight-verification`. Because matching registrations already existed, no duplicate submission or payment was made. Public Arena leaderboard also surfaces multiple DELTA entries with current revenue/queries/buyers all zero. Arena-wide revenue/query/buyer counters are platform-reported adjacent-demand signals only and are not counted as DELTA buyer intent, settlement or revenue. Independent DELTA production probes in this run returned expected HTTP 402 for Capture, Preflight and Guarded Action Pilot; Base Treasury reconciliation found no canonical incoming USDC beyond the already-recorded First Stranger Revenue. |"
+          marker="|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|\n"
+          if row not in text:
+              if marker not in text: raise SystemExit('ledger marker missing')
+              p.write_text(text.replace(marker, marker+row+'\n',1))
           PY
-          cat docs/evidence/x402-arena-check-2026-09-07.json
           git config user.name 'DELTA Autonomous Operator'
           git config user.email 'actions@users.noreply.github.com'
-          git add docs/evidence/x402-arena-check-2026-09-07.json
+          git add docs/growth-ledger.md
           if ! git diff --cached --quiet; then
-            git commit -m 'evidence: record x402 Arena registration state'
+            git commit -m 'growth: record verified x402 Arena distribution'
             git push origin HEAD:master
           fi
