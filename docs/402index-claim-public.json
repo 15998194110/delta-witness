@@ -1,7 +1,0 @@
-{
-  "status": 201,
-  "domain": "delta-witness-api.ruphussten.workers.dev",
-  "verification_hash": "1a44144b01cf2e59a16783ecf191b4f6e489c236dfad5168d913a4afc4bbca85",
-  "verification_url": "https://delta-witness-api.ruphussten.workers.dev/.well-known/402index-verify.txt",
-  "expires_at": null
-}
