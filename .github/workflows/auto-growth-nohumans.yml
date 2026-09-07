@@ -1,4 +1,4 @@
-name: DELTA one-shot nohumans readback
+name: DELTA one-shot nohumans diagnostics
 on:
   push:
     paths:
@@ -8,62 +8,26 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Read back nohumans listings and reconcile production
+      - name: Inspect nohumans probe diagnostics
         shell: bash
         run: |
           set -euo pipefail
           node <<'NODE'
-          const TREASURY = '0x1990e21bc219696ff7fbc26527dbaed335ac6367'.toLowerCase();
-          const USDC = '0x833589fcd6db6e08f4c7c32d4f71b54bdA02913'.toLowerCase();
-          const BASE = 'https://delta-witness-api.ruphussten.workers.dev';
-          const NH = 'https://nohumans.directory';
           const ids = ['9acc2efd-b71','97b7e8b8-b62','50ce8a12-faa'];
-          const sleep = ms => new Promise(r => setTimeout(r, ms));
-          async function fetchRetry(url, init={}, attempts=4) {
-            let err;
-            for (let i=0;i<attempts;i++) {
-              try {
-                const r = await fetch(url, init);
-                if (r.status < 500 && r.status !== 429) return r;
-                err = new Error(`HTTP ${r.status}`);
-              } catch (e) { err = e; }
-              await sleep(1000 * (i + 1));
-            }
-            throw err;
-          }
           for (const id of ids) {
-            const r = await fetchRetry(`${NH}/v1/listings/${id}`);
-            if (!r.ok) { console.log(`NOHUMANS_CHANNEL_DEGRADED=${id}:HTTP_${r.status}`); continue; }
-            const j = await r.json();
-            console.log(`NOHUMANS_READBACK=${JSON.stringify({id:j.id,status:j.status,score:j.score,probe_count:j.probe_count,paid_verified:!!j.paid_verified,endpoint_url:j.endpoint_url,onchain_unique_payers_30d:j.onchain_unique_payers_30d,observed:j.observed?{x402_version:j.observed.x402_version,challenge_transport:j.observed.challenge_transport,network:j.observed.network,pay_to:j.observed.pay_to,amount_usd:j.observed.amount_usd,price_matches_listing:j.observed.price_matches_listing}:null})}`);
-          }
-          const probes = [
-            [`${BASE}/v1/capture`, {url:'https://example.com'}],
-            [`${BASE}/v1/preflight`, {url:'https://example.com', expected:{contains:['Example Domain']}}],
-            [`${BASE}/v1/guarded-action-pilot`, {urls:['https://example.com'], preflight:{url_index:0, expected:{contains:['Example Domain']}}}]
-          ];
-          for (const [url,body] of probes) {
             try {
-              const r = await fetchRetry(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
-              console.log(`PRODUCTION_402=${JSON.stringify({url,status:r.status,has_payment_required:!!r.headers.get('payment-required')})}`);
-              if (r.status !== 402) process.exitCode = 2;
-            } catch (e) {
-              console.log(`PRODUCTION_CORE_FAILURE=${url}:${String(e.message||e)}`);
-              process.exitCode = 2;
-            }
-          }
-          try {
-            const turl = `https://base.blockscout.com/api/v2/addresses/${TREASURY}/token-transfers?type=ERC-20`;
-            const tr = await fetchRetry(turl);
-            if (!tr.ok) throw new Error(`HTTP ${tr.status}`);
-            const tj = await tr.json();
-            const incoming = (tj.items || []).filter(it => {
-              const token = String(it.token?.address_hash || it.token?.address || it.token?.contract_address_hash || '').toLowerCase();
-              const to = String(it.to?.hash || it.to?.address_hash || it.to || '').toLowerCase();
-              return token === USDC && to === TREASURY;
-            }).map(it => ({transaction_hash:it.transaction_hash||it.tx_hash||it.hash,from:it.from?.hash||it.from?.address_hash||it.from,to:it.to?.hash||it.to?.address_hash||it.to,timestamp:it.timestamp||it.block_timestamp,total:it.total||it.value}));
-            console.log(`TREASURY_RESULT=${JSON.stringify(incoming)}`);
-          } catch (e) {
-            console.log(`TREASURY_CHANNEL_DEGRADED=${String(e.message||e)}`);
+              const r = await fetch(`https://nohumans.directory/v1/listings/${id}`);
+              if (!r.ok) { console.log(`NOHUMANS_CHANNEL_DEGRADED=${id}:HTTP_${r.status}`); continue; }
+              const j = await r.json();
+              const safe = {
+                id:j.id,status:j.status,score:j.score,probe_count:j.probe_count,consecutive_failures:j.consecutive_failures,
+                last_ok_at:j.last_ok_at,last_probed_at:j.last_probed_at,status_changed_at:j.status_changed_at,
+                endpoint_url:j.endpoint_url,request_schema:j.request_schema,
+                observed:j.observed || null,
+                last_error:j.last_error || j.probe_error || j.last_probe_error || j.failure_reason || null,
+                paid_verification:j.paid_verification?{status:j.paid_verification.status,verified:j.paid_verification.verified,error:j.paid_verification.error,tx_hash:j.paid_verification.tx_hash}:null
+              };
+              console.log(`NOHUMANS_DIAGNOSTIC=${JSON.stringify(safe)}`);
+            } catch (e) { console.log(`NOHUMANS_CHANNEL_DEGRADED=${id}:${String(e.message||e)}`); }
           }
           NODE
