@@ -1,0 +1,46 @@
+{
+  "generated_at": "2026-09-07T07:19:49.361Z",
+  "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+  "usdc_contract": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "chain": {
+    "ok": true,
+    "transfers": [
+      {
+        "tx_hash": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3",
+        "timestamp": "2026-09-07T05:42:03.000000Z",
+        "from": "0x7E6b6556322c4e26c567a867964aC793f5eE2b1c",
+        "to": "0x1990E21bC219696fF7fBC26527dBaeD335ac6367",
+        "total": {
+          "decimals": "6",
+          "value": "30000"
+        },
+        "token": {
+          "address_hash": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "circulating_market_cap": "72023511062.46837",
+          "circulating_supply": null,
+          "decimals": "6",
+          "exchange_rate": "0.999714",
+          "holders_count": "12782812",
+          "icon_url": "https://assets.coingecko.com/coins/images/6319/small/USDC.png?1769615602",
+          "name": "USDC",
+          "reputation": "ok",
+          "symbol": "USDC",
+          "total_supply": "4223081371281618",
+          "type": "ERC-20",
+          "volume_24h": "11817518917.989908"
+        }
+      }
+    ],
+    "new_since_first_stranger": []
+  },
+  "telemetry": {
+    "ok": false,
+    "rows": []
+  },
+  "errors": [
+    {
+      "channel": "cloudflare_d1",
+      "error": "Error: HTTP 400: {\"messages\":[],\"result\":[],\"success\":false,\"errors\":[{\"code\":7500,\"message\":\"no such column: request_id at offset 103: SQLITE_ERROR\"}]}"
+    }
+  ]
+}
