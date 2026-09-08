@@ -1,0 +1,38 @@
+name: TMP DELTA Free Listing Form Inspect 20260909 0322
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-automation-form-inspect-20260909-0322.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect PayAPI listing form
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 3 --retry-delay 2 https://payapi.market/list -o /tmp/payapi.html
+          echo '=== PAYAPI FORMS ==='
+          grep -Eio '<form[^>]*>|action="[^"]+"|method="[^"]+"|name="[^"]+"|type="(email|hidden|text|url|radio|checkbox)"|fetch\([^)]+' /tmp/payapi.html | head -n 200 || true
+          echo '=== PAYAPI SCRIPTS ==='
+          grep -Eio '<script[^>]*src="[^"]+"' /tmp/payapi.html | head -n 50 || true
+      - name: Inspect AgentNDX submission form
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 3 --retry-delay 2 https://agentndx.ai/submit/ -o /tmp/agentndx.html
+          echo '=== AGENTNDX FORMS ==='
+          grep -Eio '<form[^>]*>|action="[^"]+"|method="[^"]+"|name="[^"]+"|type="(email|hidden|text|url|radio|checkbox)"|fetch\([^)]+' /tmp/agentndx.html | head -n 200 || true
+          echo '=== AGENTNDX SCRIPTS ==='
+          grep -Eio '<script[^>]*src="[^"]+"' /tmp/agentndx.html | head -n 50 || true
+      - name: Inspect 402.ad free submission form
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 3 --retry-delay 2 https://402.ad/submit -o /tmp/402ad.html
+          echo '=== 402AD FORMS ==='
+          grep -Eio '<form[^>]*>|action="[^"]+"|method="[^"]+"|name="[^"]+"|type="(email|hidden|text|url|radio|checkbox)"|fetch\([^)]+' /tmp/402ad.html | head -n 200 || true
+          echo '=== 402AD SCRIPTS ==='
+          grep -Eio '<script[^>]*src="[^"]+"' /tmp/402ad.html | head -n 50 || true
