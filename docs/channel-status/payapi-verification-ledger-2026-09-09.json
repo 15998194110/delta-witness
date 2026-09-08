@@ -1,0 +1,65 @@
+{
+  "get": {
+    "base_url": "https://delta-witness-api.ruphussten.workers.dev/v1/preflight",
+    "category": "Verification",
+    "description": "Preflight an autonomous action before taking it: fetches a public URL, compares the live observation against deterministic expectations you supply, and returns a safe/unsafe verdict naming exactly which expectation failed. Every check emits a signed proof bundle with content hashes and a publicly resolvable manifest.",
+    "endpoints_count": 1,
+    "id": "ceefcd83-fe34-462e-b919-76ed2431abc1",
+    "marketplace_url": "https://payapi.market/api/delta-witness",
+    "mcp_endpoint": null,
+    "name": "DELTA Witness",
+    "network": "base",
+    "payment_verified": true,
+    "price_max": 0.03,
+    "price_min": 0.03,
+    "provider_name": "DELTA Witness",
+    "reliability": {
+      "band": "unscored",
+      "computed_at": null,
+      "score": null
+    },
+    "slug": "delta-witness",
+    "status": "live"
+  },
+  "get_http": "200",
+  "public_ledger": null,
+  "public_ledger_error": "HTTPError: HTTP Error 401: Unauthorized",
+  "public_listing_error": "HTTPError: HTTP Error 401: Unauthorized",
+  "public_listing_row": null,
+  "search": {
+    "count": 1,
+    "match_mode": "all_tokens",
+    "query": "DELTA Witness",
+    "results": [
+      {
+        "base_url": "https://delta-witness-api.ruphussten.workers.dev/v1/preflight",
+        "category": "Verification",
+        "description": "Preflight an autonomous action before taking it: fetches a public URL, compares the live observation against deterministic expectations you supply, and returns a safe/unsafe verdict naming exactly which expectation failed. Every check emits a signed proof bundle with content hashes and a publicly resolvable manifest.",
+        "endpoints_count": 1,
+        "id": "ceefcd83-fe34-462e-b919-76ed2431abc1",
+        "marketplace_url": "https://payapi.market/api/delta-witness",
+        "mcp_endpoint": null,
+        "name": "DELTA Witness",
+        "network": "base",
+        "payment_verified": true,
+        "price_max": 0.03,
+        "price_min": 0.03,
+        "provider_name": "DELTA Witness",
+        "reliability": {
+          "band": "unscored",
+          "computed_at": null,
+          "score": null
+        },
+        "slug": "delta-witness",
+        "status": "live"
+      }
+    ],
+    "searched": 131,
+    "total_matches": 1,
+    "verified_only": false
+  },
+  "search_http": "200",
+  "supabase_urls": [
+    "https://hgqrxihytykfxhnedhzv.supabase.co"
+  ]
+}
