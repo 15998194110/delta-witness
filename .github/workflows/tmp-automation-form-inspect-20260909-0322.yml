@@ -1,4 +1,4 @@
-name: TMP DELTA AgentNDX Contract Inspect 20260909 0322
+name: TMP DELTA AgentNDX Submit 20260909 0322
 on:
   push:
     paths:
@@ -6,27 +6,33 @@ on:
 permissions:
   contents: read
 jobs:
-  inspect:
+  submit:
     runs-on: ubuntu-latest
     steps:
-      - name: Inspect exact AgentNDX submission contract
+      - name: Submit DELTA Witness to AgentNDX
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsS --retry 3 --retry-delay 2 https://agentndx.ai/submit/ -o /tmp/agentndx.html
-          echo '=== FORM ==='
-          grep -Eio '<form[^>]*id="submit-form"[^>]*>' /tmp/agentndx.html || true
-          echo '=== INPUTS ==='
-          grep -Eio '<input[^>]*>' /tmp/agentndx.html | grep -Ei 'report_id|name=.?name|github_url|homepage_url|protocols|contact' || true
-          echo '=== TEXTAREA ==='
-          grep -Eio '<textarea[^>]*>' /tmp/agentndx.html || true
-          echo '=== PROTOCOL CONTEXT ==='
-          python - <<'PY'
-          from pathlib import Path
-          s=Path('/tmp/agentndx.html').read_text(errors='ignore')
-          for needle in ['name="protocols"','name="report_id"','/api/submit']:
-              i=s.find(needle)
-              if i>=0:
-                  print('---', needle, '---')
-                  print(s[max(0,i-500):i+900])
-          PY
+          curl -fsS https://agentndx.ai/submit/ -o /tmp/form.html
+          grep -q 'method="POST" action="/api/submit"' /tmp/form.html
+          grep -q 'name="protocols" value="MCP"' /tmp/form.html
+          grep -q 'name="protocols" value="x402"' /tmp/form.html
+          code=$(curl --silent --show-error --max-time 30 \
+            --output /tmp/submit.body --dump-header /tmp/submit.headers --write-out '%{http_code}' \
+            -X POST https://agentndx.ai/api/submit \
+            --data-urlencode 'name=DELTA Witness' \
+            --data-urlencode 'github_url=https://github.com/15998194110/delta-witness' \
+            --data-urlencode 'homepage_url=https://delta-witness-api.ruphussten.workers.dev/' \
+            --data-urlencode 'protocols=MCP' \
+            --data-urlencode 'protocols=x402' \
+            --data-urlencode 'description=Deterministic public-page evidence and guarded-action preflight for web agents; exposes MCP tools and x402-paid Capture/Preflight on Base.' \
+            --data-urlencode 'contact=ruphussten85@gmail.com')
+          echo "SUBMIT_HTTP=$code"
+          echo '=== HEADERS ==='
+          sed -n '1,30p' /tmp/submit.headers
+          echo '=== BODY ==='
+          head -c 3000 /tmp/submit.body || true
+          case "$code" in
+            200|201|202|303) exit 0 ;;
+            *) exit 1 ;;
+          esac
