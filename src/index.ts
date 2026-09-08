@@ -885,6 +885,7 @@ async function meshKoreHeartbeat(env: RuntimeEnv): Promise<void> {
     method: "PATCH",
     headers: { authorization: `Bearer ${tokenBody.token}`, "content-type": "application/json" },
     body: stableJson({
+      endpoint: origin(env),
       description: "Trust layer for autonomous actions: paid public-page capture and deterministic preflight evidence over x402 on Base.",
       capabilities: ["web-proof", "browser-verification", "preflight", "page-state", "x402", "base", "usdc", "autonomous-agents", "guard", "evidence"],
       agent_card: meshKoreDiscoveryCard(env),
