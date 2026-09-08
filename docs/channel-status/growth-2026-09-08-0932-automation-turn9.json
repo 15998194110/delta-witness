@@ -1,0 +1,38 @@
+{
+  "observed_at": "2026-09-08T01:35:33.469Z",
+  "production": {
+    "preflight_http": 402,
+    "price_usdc": 0.03,
+    "network": "eip155:8453",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+  },
+  "true402": {
+    "catalog_http": 200,
+    "register_http": "201",
+    "listing_count": 0,
+    "listings": [],
+    "neighbor_demand": {
+      "catalog_services": 100,
+      "services_with_settled_activity": 23,
+      "reported_settled_transactions": 86,
+      "reported_settled_volume_usd": 1.0503000000000002
+    },
+    "evidence_quality": "unresolved"
+  },
+  "telemetry": {
+    "exit": 0,
+    "output": "{\"ok\":true,\"candidate_rows\":0,\"rows\":[]}\n"
+  },
+  "treasury_reconciliation": {
+    "scan_from_block": 51018062,
+    "latest_block": 51020992,
+    "new_count": 0,
+    "new_transfers": []
+  },
+  "controls": [
+    "No fee paid.",
+    "No wallet signature or asset movement.",
+    "No platform probes counted as buyer intent or revenue.",
+    "Only canonical Base USDC transfers to Treasury can qualify as treasury_received, subject to provenance reconciliation."
+  ]
+}
