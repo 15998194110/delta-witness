@@ -1,0 +1,207 @@
+name: One-time Tollbooth Recovery
+on:
+  push:
+    paths:
+      - '.github/workflows/one-time-tollbooth-recheck.yml'
+
+jobs:
+  treasury:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reconcile Base Treasury independently
+        shell: python
+        run: |
+          import json, time, urllib.request
+
+          RPCS = [
+              "https://mainnet.base.org",
+              "https://base-rpc.publicnode.com",
+              "https://base.llamarpc.com",
+          ]
+          USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+          TREASURY = "1990e21bc219696ff7fbc26527dbaed335ac6367"
+          TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+          TO_TOPIC = "0x" + ("0" * 24) + TREASURY
+          START = 51040990
+
+          def rpc(url, method, params, timeout=20):
+              body = json.dumps({"jsonrpc":"2.0","id":1,"method":method,"params":params}).encode()
+              req = urllib.request.Request(url, data=body, headers={"content-type":"application/json"})
+              with urllib.request.urlopen(req, timeout=timeout) as r:
+                  payload = json.loads(r.read().decode())
+              if "error" in payload:
+                  raise RuntimeError(payload["error"])
+              return payload["result"]
+
+          chosen = None
+          head = None
+          errors = []
+          for url in RPCS:
+              for attempt in range(3):
+                  try:
+                      head = int(rpc(url, "eth_blockNumber", []), 16)
+                      chosen = url
+                      break
+                  except Exception as e:
+                      errors.append(f"{url} attempt {attempt+1}: {type(e).__name__}: {e}")
+                      time.sleep(2 ** attempt)
+              if chosen:
+                  break
+          if not chosen:
+              print(json.dumps({"treasury_reconciliation":"degraded","errors":errors}))
+              raise SystemExit(1)
+
+          logs = []
+          cursor = START
+          chunk = 1500
+          while cursor <= head:
+              end = min(cursor + chunk - 1, head)
+              params = [{
+                  "fromBlock": hex(cursor),
+                  "toBlock": hex(end),
+                  "address": USDC,
+                  "topics": [TRANSFER, None, TO_TOPIC],
+              }]
+              ok = False
+              for url in [chosen] + [u for u in RPCS if u != chosen]:
+                  for attempt in range(3):
+                      try:
+                          part = rpc(url, "eth_getLogs", params, timeout=30)
+                          logs.extend(part)
+                          chosen = url
+                          ok = True
+                          break
+                      except Exception as e:
+                          errors.append(f"logs {cursor}-{end} {url} attempt {attempt+1}: {type(e).__name__}: {e}")
+                          time.sleep(2 ** attempt)
+                  if ok:
+                      break
+              if not ok:
+                  print(json.dumps({"treasury_reconciliation":"partial","start":START,"through":cursor-1,"head":head,"errors":errors[-8:]}))
+                  raise SystemExit(1)
+              cursor = end + 1
+
+          incoming = []
+          for log in logs:
+              incoming.append({
+                  "block": int(log["blockNumber"], 16),
+                  "tx": log["transactionHash"],
+                  "raw_amount": str(int(log["data"], 16)),
+                  "usdc": int(log["data"], 16) / 1_000_000,
+              })
+          print(json.dumps({
+              "treasury_reconciliation":"complete",
+              "rpc": chosen,
+              "start_block": START,
+              "head_block": head,
+              "incoming_count": len(incoming),
+              "incoming": incoming,
+              "errors_seen": errors,
+          }))
+
+  telemetry:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Reconcile DELTA paid funnel independently
+        run: node scripts/query-revenue-candidates.mjs
+
+  tollbooth:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Recover Tollbooth listing channel without payments
+        shell: python
+        run: |
+          import json, time, urllib.parse, urllib.request, urllib.error
+
+          API = "https://www.trytollbooth.com/api/services"
+          WALLET = "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+          services = [
+              {
+                  "name":"DELTA Witness Capture",
+                  "endpoint":"https://delta-witness-api.ruphussten.workers.dev/v1/capture",
+                  "category":"ai-inference",
+                  "priceUsdc":0.03,
+                  "wallet":WALLET,
+                  "chain":"base",
+                  "description":"Independent public page-state capture with timestamped cryptographic proof metadata and hashes; x402 on Base USDC."
+              },
+              {
+                  "name":"DELTA Witness Preflight",
+                  "endpoint":"https://delta-witness-api.ruphussten.workers.dev/v1/preflight",
+                  "category":"ai-inference",
+                  "priceUsdc":1,
+                  "wallet":WALLET,
+                  "chain":"base",
+                  "description":"Deterministic preflight verification against public page state or prior DELTA proof before an autonomous action; x402 on Base USDC."
+              },
+              {
+                  "name":"DELTA Witness Guarded Action Pilot",
+                  "endpoint":"https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot",
+                  "category":"ai-inference",
+                  "priceUsdc":10,
+                  "wallet":WALLET,
+                  "chain":"base",
+                  "description":"Bounded 1-3 URL evidence package with optional deterministic preflight for higher-value autonomous actions; x402 on Base USDC."
+              },
+          ]
+
+          def request(method, url, payload=None):
+              data = None if payload is None else json.dumps(payload).encode()
+              headers = {"accept":"application/json", "user-agent":"DELTA-Witness-distribution/1.0"}
+              if data is not None:
+                  headers["content-type"] = "application/json"
+              req = urllib.request.Request(url, data=data, method=method, headers=headers)
+              with urllib.request.urlopen(req, timeout=35) as r:
+                  return r.status, json.loads(r.read().decode())
+
+          def retry(method, url, payload=None):
+              errors=[]
+              for attempt in range(4):
+                  try:
+                      return (*request(method, url, payload), errors)
+                  except urllib.error.HTTPError as e:
+                      body = e.read().decode(errors="replace")
+                      errors.append({"attempt":attempt+1,"status":e.code,"body":body[:1000]})
+                      if e.code < 500 and e.code not in (408,409,425,429):
+                          return e.code, {"error_body":body}, errors
+                  except Exception as e:
+                      errors.append({"attempt":attempt+1,"error":f"{type(e).__name__}: {e}"})
+                  time.sleep(2 ** attempt)
+              return None, None, errors
+
+          q = API + "?q=" + urllib.parse.quote("DELTA Witness")
+          status, existing_payload, get_errors = retry("GET", q)
+          existing = []
+          if isinstance(existing_payload, list):
+              existing = existing_payload
+          elif isinstance(existing_payload, dict):
+              for key in ("services","data","results"):
+                  if isinstance(existing_payload.get(key), list):
+                      existing = existing_payload[key]
+                      break
+
+          by_endpoint = {str(x.get("endpoint", "")).rstrip("/"): x for x in existing if isinstance(x, dict)}
+          results=[]
+          for svc in services:
+              ep = svc["endpoint"].rstrip("/")
+              if ep in by_endpoint:
+                  results.append({"action":"already_listed","endpoint":ep,"service":by_endpoint[ep]})
+                  continue
+              st, body, errs = retry("POST", API, svc)
+              results.append({"action":"register","endpoint":ep,"http_status":st,"response":body,"retry_errors":errs})
+
+          # Read back exact DELTA search after all attempts; this never pays or signs anything.
+          rb_status, rb_payload, rb_errors = retry("GET", q)
+          print(json.dumps({
+              "channel":"tollbooth",
+              "initial_get_status":status,
+              "initial_get_errors":get_errors,
+              "actions":results,
+              "readback_status":rb_status,
+              "readback":rb_payload,
+              "readback_errors":rb_errors,
+          }))
