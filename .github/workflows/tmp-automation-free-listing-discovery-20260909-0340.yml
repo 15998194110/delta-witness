@@ -1,4 +1,4 @@
-name: TMP DELTA PayAPI + Reconcile 20260909 0340
+name: TMP DELTA Fallback Reconcile 20260909 0340
 on:
   push:
     paths:
@@ -6,148 +6,92 @@ on:
 permissions:
   contents: read
 jobs:
-  execute:
+  reconcile:
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - name: Check and submit PayAPI free listing
+      - name: Read exact PayAPI listing details
         shell: bash
         run: |
-          set -euo pipefail
-          echo '=== PAYAPI PRECHECK ==='
-          curl -fsS --retry 3 --retry-delay 2 'https://payapi.market/agent/search?q=DELTA%20Witness&verified_only=false' -o /tmp/search.json
-          python - <<'PY'
-          import json
-          d=json.load(open('/tmp/search.json'))
-          print(json.dumps(d, separators=(',',':'))[:5000])
-          def walk(x):
-              if isinstance(x,dict):
-                  yield x
-                  for v in x.values(): yield from walk(v)
-              elif isinstance(x,list):
-                  for v in x: yield from walk(v)
-          found=any(str(o.get('name','')).strip().lower()=='delta witness' for o in walk(d))
-          open('/tmp/exact','w').write('1' if found else '0')
-          print('PAYAPI_EXACT_LIVE='+('1' if found else '0'))
-          PY
-          if [ "$(cat /tmp/exact)" = 0 ]; then
-            cat >/tmp/payload.json <<'JSON'
-          {
-            "provider": {
-              "name": "RUPHUS STEN",
-              "email": "ruphussten85@gmail.com",
-              "company_name": "DELTA Witness",
-              "wallet_address": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
-            },
-            "api": {
-              "name": "DELTA Witness",
-              "description": "Deterministic evidence capture and guarded-action preflight for web agents, with x402 settlement on Base. Paid routes span Capture, Preflight, and Guarded Action Pilot.",
-              "category": "Verification",
-              "base_url": "https://delta-witness-api.ruphussten.workers.dev/",
-              "mcp_endpoint": "",
-              "endpoints_count": "3",
-              "tools_count": "",
-              "price_min": "0.03",
-              "price_max": "10"
-            },
-            "tier": "free"
-          }
-          JSON
-            code=$(curl --silent --show-error --retry 3 --retry-delay 2 --max-time 30 \
-              --output /tmp/payapi-submit.json --write-out '%{http_code}' \
-              -X POST 'https://payapi.market/api/submit-listing' \
-              -H 'content-type: application/json' --data-binary @/tmp/payload.json)
-            echo "PAYAPI_SUBMIT_HTTP=$code"
-            head -c 5000 /tmp/payapi-submit.json || true
+          set +e
+          for u in 'https://payapi.market/agent/get?id=delta-witness' 'https://payapi.market/api/delta-witness'; do
+            echo "=== $u ==="
+            curl -fsS --retry 3 --retry-delay 2 "$u" | head -c 12000
             echo
-            case "$code" in 200|201|202) : ;; *) exit 1;; esac
-          else
-            echo 'PAYAPI_SUBMIT_SKIPPED_EXISTING=1'
-          fi
-      - name: Reconcile canonical Base USDC Treasury
+          done
+          exit 0
+      - name: Blockscout Treasury fallback
         shell: bash
         run: |
-          set -euo pipefail
-          python - <<'PY'
-          import json, urllib.request, time
+          set +e
+          curl -fsS --retry 3 --retry-delay 2 'https://base.blockscout.com/api/v2/addresses/0x1990e21bc219696ff7fbc26527dbaed335ac6367/token-transfers?type=ERC-20' -o /tmp/transfers.json
+          code=$?
+          echo "BLOCKSCOUT_CURL_EXIT=$code"
+          if [ $code -eq 0 ]; then
+            python - <<'PY'
+          import json
+          d=json.load(open('/tmp/transfers.json'))
+          usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
           treasury='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-          usdc='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-          topic0='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
-          to_topic='0x'+'0'*24+treasury[2:].lower()
-          rpcs=['https://mainnet.base.org','https://base-rpc.publicnode.com']
-          def rpc(method,params):
-              last=None
-              for endpoint in rpcs:
-                  for attempt in range(3):
-                      try:
-                          req=urllib.request.Request(endpoint,data=json.dumps({'jsonrpc':'2.0','id':1,'method':method,'params':params}).encode(),headers={'content-type':'application/json'})
-                          with urllib.request.urlopen(req,timeout=20) as resp: d=json.load(resp)
-                          if 'result' in d: return d['result'], endpoint
-                          last=RuntimeError(str(d)[:500])
-                      except Exception as e:
-                          last=e; time.sleep(2*(attempt+1))
-              raise last
-          head_hex, ep=rpc('eth_blockNumber',[]); head=int(head_hex,16)
-          start=51052684
-          if head < start: start=head
-          logs, ep2=rpc('eth_getLogs',[{'fromBlock':hex(start),'toBlock':hex(head),'address':usdc,'topics':[topic0,None,to_topic]}])
+          items=d.get('items',[]) if isinstance(d,dict) else []
           rows=[]
-          for x in logs:
-              rows.append({'block':int(x['blockNumber'],16),'tx':x['transactionHash'],'amount_usdc':int(x['data'],16)/1_000_000})
-          print('TREASURY_RECON='+json.dumps({'from_block':start,'head_block':head,'incoming_count':len(rows),'incoming':rows,'rpc':ep2},separators=(',',':')))
+          for x in items:
+              token=((x.get('token') or {}).get('address') or '').lower()
+              to=((x.get('to') or {}).get('hash') or x.get('to') or '').lower() if isinstance(x.get('to'),dict) else str(x.get('to') or '').lower()
+              if token==usdc and to==treasury:
+                  raw=x.get('total',{}).get('value') if isinstance(x.get('total'),dict) else x.get('value')
+                  dec=(x.get('token') or {}).get('decimals') or 6
+                  try: amount=int(raw)/(10**int(dec))
+                  except: amount=None
+                  rows.append({'tx':x.get('transaction_hash'),'timestamp':x.get('timestamp'),'amount_usdc':amount,'block':x.get('block_number')})
+          print('BLOCKSCOUT_USDC_INCOMING='+json.dumps(rows,separators=(',',':')))
           PY
-      - name: Reconcile D1 paid-delivery telemetry
+          fi
+          exit 0
+      - name: D1 telemetry fallback
         shell: bash
         run: |
-          set -euo pipefail
-          test -n "${CLOUDFLARE_API_TOKEN:-}" && test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
+          set +e
+          test -n "${CLOUDFLARE_API_TOKEN:-}" && test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo 'D1_CREDS_MISSING'; exit 0; }
           python - <<'PY'
-          import json, os, urllib.request
-          token=os.environ['CLOUDFLARE_API_TOKEN']; acct=os.environ['CLOUDFLARE_ACCOUNT_ID']
-          base=f'https://api.cloudflare.com/client/v4/accounts/{acct}/d1/database'
-          def call(url, method='GET', body=None):
-              data=None if body is None else json.dumps(body).encode()
-              req=urllib.request.Request(url,data=data,method=method,headers={'authorization':f'Bearer {token}','content-type':'application/json'})
-              with urllib.request.urlopen(req,timeout=30) as r: return json.load(r)
-          dbl=call(base).get('result',[])
-          cand=[d for d in dbl if any(k in (str(d.get('name',''))+' '+str(d.get('uuid',''))).lower() for k in ['delta','witness'])]
-          print('D1_DATABASE_CANDIDATES='+json.dumps([{'name':d.get('name'),'uuid':d.get('uuid')} for d in cand],separators=(',',':')))
-          out=[]
-          for db in cand:
-              uid=db.get('uuid')
-              qurl=f'{base}/{uid}/query'
+          import json,os,urllib.request
+          tok=os.environ['CLOUDFLARE_API_TOKEN']; acct=os.environ['CLOUDFLARE_ACCOUNT_ID']
+          root=f'https://api.cloudflare.com/client/v4/accounts/{acct}/d1/database'
+          def call(url,body=None):
+              req=urllib.request.Request(url,data=None if body is None else json.dumps(body).encode(),method='GET' if body is None else 'POST',headers={'Authorization':f'Bearer {tok}','Content-Type':'application/json'})
+              with urllib.request.urlopen(req,timeout=30) as r:return json.load(r)
+          try:
+              dbs=call(root).get('result',[])
+          except Exception as e:
+              print('D1_LIST_ERROR='+type(e).__name__); raise SystemExit
+          c=[d for d in dbs if 'delta' in str(d.get('name','')).lower() or 'witness' in str(d.get('name','')).lower()]
+          print('D1_CANDIDATES='+json.dumps([d.get('name') for d in c]))
+          for d in c:
+              q=f"{root}/{d['uuid']}/query"
               try:
-                  schema=call(qurl,'POST',{'sql':"SELECT name, sql FROM sqlite_master WHERE type='table' ORDER BY name"}).get('result',[])
-                  # Cloudflare returns a list of result objects; normalize rows.
-                  rows=[]
-                  for item in schema if isinstance(schema,list) else []:
-                      rows.extend(item.get('results',[]) if isinstance(item,dict) else [])
-                  table_names=[r.get('name') for r in rows if r.get('name') and not str(r.get('name')).startswith('_cf_')]
-                  dbout={'database':db.get('name'),'tables':table_names,'paid_candidates':[]}
-                  for t in table_names:
-                      if not all(c.isalnum() or c=='_' for c in t): continue
+                  s=call(q,{'sql':"SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"}).get('result',[])
+                  tables=[]
+                  for z in s if isinstance(s,list) else []: tables += [r.get('name') for r in z.get('results',[]) if r.get('name')]
+                  print('D1_TABLES='+json.dumps(tables))
+                  for t in tables:
+                      if t.startswith('_') or not t.replace('_','').isalnum(): continue
                       try:
-                          info=call(qurl,'POST',{'sql':f'PRAGMA table_info({t})'}).get('result',[])
+                          inf=call(q,{'sql':f'PRAGMA table_info({t})'}).get('result',[])
                           cols=[]
-                          for item in info if isinstance(info,list) else []:
-                              cols += [x.get('name') for x in item.get('results',[]) if isinstance(x,dict) and x.get('name')]
-                          lower={c.lower():c for c in cols}
-                          event_col=next((lower[k] for k in ['event_type','type','event','name'] if k in lower),None)
-                          time_col=next((lower[k] for k in ['created_at','timestamp','ts','occurred_at'] if k in lower),None)
-                          if event_col:
-                              sql=f'SELECT * FROM {t} WHERE lower(CAST({event_col} AS TEXT)) IN (\'payment_verified\',\'capture_completed\',\'paid_settlement\',\'settlement_confirmed\',\'treasury_received\',\'qualified_request\')'
-                              if time_col: sql += f' ORDER BY {time_col} DESC'
-                              sql += ' LIMIT 50'
-                              res=call(qurl,'POST',{'sql':sql}).get('result',[])
-                              ev=[]
-                              for item in res if isinstance(res,list) else []: ev += item.get('results',[]) if isinstance(item,dict) else []
-                              if ev: dbout['paid_candidates'].append({'table':t,'rows':ev})
-                      except Exception as e:
-                          dbout.setdefault('table_errors',[]).append({'table':t,'error':type(e).__name__})
-                  out.append(dbout)
-              except Exception as e:
-                  out.append({'database':db.get('name'),'error':type(e).__name__})
-          print('D1_RECON='+json.dumps(out,separators=(',',':'))[:15000])
+                          for z in inf if isinstance(inf,list) else []: cols += [r.get('name') for r in z.get('results',[]) if r.get('name')]
+                          ec=next((x for x in cols if x.lower() in ['event_type','event','type']),None)
+                          tc=next((x for x in cols if x.lower() in ['created_at','timestamp','ts']),None)
+                          if not ec: continue
+                          sql=f"SELECT * FROM {t} WHERE lower(CAST({ec} AS TEXT)) IN ('payment_verified','capture_completed','paid_settlement','settlement_confirmed','treasury_received','qualified_request')"
+                          if tc: sql += f' ORDER BY {tc} DESC'
+                          sql += ' LIMIT 50'
+                          res=call(q,{'sql':sql}).get('result',[])
+                          rows=[]
+                          for z in res if isinstance(res,list) else []: rows += z.get('results',[])
+                          if rows: print('D1_PAID_ROWS_'+t+'='+json.dumps(rows,separators=(',',':'))[:12000])
+                      except Exception as e: print('D1_TABLE_ERROR_'+t+'='+type(e).__name__)
+              except Exception as e: print('D1_DB_ERROR='+type(e).__name__)
           PY
+          exit 0
