@@ -1,0 +1,66 @@
+name: DELTA MeshKore Endpoint Fix2 Temp
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_meshkore_endpoint_fix2_20260908.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Patch, verify and deploy MeshKore endpoint heartbeat
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/index.ts'); s=p.read_text()
+          old='''    body: stableJson({\n      description: "Trust layer for autonomous actions: paid public-page capture and deterministic preflight evidence over x402 on Base.",\n      capabilities: ["web-proof", "browser-verification", "preflight", "page-state", "x402", "base", "usdc", "autonomous-agents", "guard", "evidence"],\n      agent_card: meshKoreDiscoveryCard(env),\n    }),'''
+          new='''    body: stableJson({\n      endpoint: origin(env),\n      description: "Trust layer for autonomous actions: paid public-page capture and deterministic preflight evidence over x402 on Base.",\n      capabilities: ["web-proof", "browser-verification", "preflight", "page-state", "x402", "base", "usdc", "autonomous-agents", "guard", "evidence"],\n      agent_card: meshKoreDiscoveryCard(env),\n    }),'''
+          if old in s: p.write_text(s.replace(old,new,1))
+          elif 'endpoint: origin(env),\n      description: "Trust layer for autonomous actions' not in s: raise SystemExit('heartbeat anchor missing')
+          PY
+          npm ci
+          npm run verify
+          git checkout -- worker-configuration.d.ts || true
+          git config user.name 'DELTA Growth Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add src/index.ts
+          if ! git diff --cached --quiet; then git commit -m 'growth: bind MeshKore top-level endpoint in heartbeat'; fi
+          git fetch origin master
+          git rebase origin/master
+          git push origin HEAD:master
+          npx wrangler deploy
+          curl --fail --retry 5 --retry-delay 3 --retry-all-errors --max-time 30 https://delta-witness-api.ruphussten.workers.dev/health
+      - name: Verify MeshKore endpoint after cron heartbeat
+        shell: bash
+        run: |
+          set +e
+          for i in 1 2 3 4; do
+            sleep 50
+            curl -sS --retry 3 --retry-delay 2 --retry-all-errors --max-time 30 https://api.meshkore.com/v1/agents/delta-witness-ruphussten > /tmp/a.json
+            echo "CHECK=$i"; cat /tmp/a.json; echo
+            node - <<'NODE'
+          const a=JSON.parse(require('fs').readFileSync('/tmp/a.json','utf8')).agent||{};
+          console.log('STATE='+JSON.stringify({live:a.live,endpoint:a.endpoint,last_active:a.last_active,pubkey:a.pubkey,updated_at:a.updated_at}));
+          process.exit(a.endpoint ? 0 : 1);
+          NODE
+            if [ $? -eq 0 ]; then
+              echo 'ENDPOINT_BOUND=1'
+              curl -sS --retry 3 --retry-delay 2 --retry-all-errors --max-time 30 -w '\nCARD_HTTP=%{http_code}\n' https://meshkore.com/agent/delta-witness-ruphussten/.well-known/agent.json
+              curl -sS --retry 3 --retry-delay 2 --retry-all-errors --max-time 30 -w '\nIDENTITY_HTTP=%{http_code}\n' https://api.meshkore.com/v1/agents/delta-witness-ruphussten/identity
+              exit 0
+            fi
+          done
+          echo 'ENDPOINT_BOUND=0'
+          curl -sS --retry 3 --retry-delay 2 --retry-all-errors --max-time 30 -w '\nIDENTITY_HTTP=%{http_code}\n' https://api.meshkore.com/v1/agents/delta-witness-ruphussten/identity
+          exit 0
