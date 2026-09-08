@@ -1,0 +1,32 @@
+name: TMP DELTA Market Readback 20260909 0317
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-automation-market-readback-20260909-0317.yml'
+permissions:
+  contents: read
+jobs:
+  readback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: APIHub external catalog exact DELTA match
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 3 --retry-delay 2 https://api.apihub.io/v1/external -o /tmp/apihub.json
+          echo 'APIHUB_MATCHES='
+          jq -c '[.. | objects | select(tostring | test("delta-witness-api\\.ruphussten\\.workers\\.dev"; "i"))]' /tmp/apihub.json
+      - name: x402-list public catalog exact DELTA match
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 3 --retry-delay 2 'https://x402-list.com/api/v1/services?q=delta-witness&per_page=100' -o /tmp/x402list.json
+          echo 'X402LIST_MATCHES='
+          jq -c '[.. | objects | select(tostring | test("delta-witness|ruphussten"; "i"))]' /tmp/x402list.json
+      - name: Agora402 discovery exact DELTA match
+        shell: bash
+        run: |
+          set -euo pipefail
+          code=$(curl -sS --retry 3 --retry-delay 2 -o /tmp/agora.json -w '%{http_code}' 'https://agora402.io/api/v1/discover?search=delta%20witness&limit=50' || true)
+          echo "AGORA_HTTP=$code"
+          if [ "$code" = "200" ]; then jq -c '[.. | objects | select(tostring | test("delta-witness|ruphussten"; "i"))]' /tmp/agora.json; else head -c 1000 /tmp/agora.json || true; fi
