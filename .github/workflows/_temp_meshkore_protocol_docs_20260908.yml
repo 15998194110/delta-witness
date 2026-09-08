@@ -1,0 +1,31 @@
+name: DELTA MeshKore Protocol Docs Temp
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_meshkore_protocol_docs_20260908.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch current MeshKore agent docs
+        shell: bash
+        run: |
+          set +e
+          urls=(
+            'https://meshkore.com/reference/agents/deploy-your-agent.md'
+            'https://meshkore.com/reference/agents/protocol-minimum.md'
+            'https://meshkore.com/reference/agents/identity.md'
+            'https://meshkore.com/reference/agents/meshkore-sig.md'
+            'https://meshkore.com/reference/agents/heartbeat.md'
+            'https://meshkore.com/llms.txt'
+          )
+          for u in "${urls[@]}"; do
+            echo "===== URL $u ====="
+            curl -sS -L --retry 5 --retry-delay 2 --retry-all-errors --max-time 30 -w '\nHTTP=%{http_code}\n' "$u" | head -c 120000
+            echo
+          done
+          echo '===== SEARCH SITE ASSETS ====='
+          curl -sS -L --retry 5 --retry-delay 2 --retry-all-errors --max-time 30 https://meshkore.com/llms-full.txt | grep -i -C 12 -E 'heartbeat|MeshKore-Sig|/v1/agents/register|/v1/agents/me|identity|ed25519' | head -c 120000 || true
