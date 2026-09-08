@@ -1,0 +1,46 @@
+name: TMP DELTA PayAPI Refresh Inspect 20260909 0442
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-payapi-refresh-inspect-20260909-0442.yml'
+permissions:
+  contents: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Inspect current PayAPI public update/refresh contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/payapi-refresh
+          curl -fsS --retry 4 --retry-all-errors --retry-delay 2 --max-time 30 'https://payapi.market/list' -o /tmp/payapi-refresh/index.html
+          src=$(grep -Eo 'src="/assets/index-[^"]+\.js"' /tmp/payapi-refresh/index.html | head -1 | cut -d'"' -f2)
+          test -n "$src"
+          curl -fsS --retry 4 --retry-all-errors --retry-delay 2 --max-time 30 "https://payapi.market$src" -o /tmp/payapi-refresh/app.js
+          SRC="$src" python - <<'PY'
+          import os,re,json,pathlib
+          s=pathlib.Path('/tmp/payapi-refresh/app.js').read_text(errors='ignore')
+          needles=['submit-listing','api_listings','payment_verified','verify-payment','refresh','reverify','update(','patch','provider dashboard','signInWithOtp','price_min','base_url']
+          hits={}
+          for n in needles:
+              arr=[]; start=0
+              while len(arr)<20:
+                  i=s.lower().find(n.lower(),start)
+                  if i<0: break
+                  arr.append(s[max(0,i-900):i+2200].replace('\n',' ')[:3100])
+                  start=i+len(n)
+              if arr:hits[n]=arr
+          endpoints=sorted(set(re.findall(r'(?:["\'`])(/(?:api|agent)/[A-Za-z0-9_?=&/{}.$:-]+)',s)))
+          out={'asset':os.environ.get('SRC'),'endpoints':endpoints,'hits':hits}
+          pathlib.Path('docs/channel-status/payapi-refresh-contract-2026-09-09.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({'asset':out['asset'],'endpoints':endpoints,'hit_keys':list(hits)},separators=(',',':'))[:10000])
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/channel-status/payapi-refresh-contract-2026-09-09.json
+          git commit -m 'ops: capture PayAPI refresh contract'
+          git push origin HEAD:master
