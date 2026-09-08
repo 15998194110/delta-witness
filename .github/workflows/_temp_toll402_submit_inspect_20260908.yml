@@ -1,0 +1,29 @@
+name: DELTA TOLL402 Submit Inspect
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_toll402_submit_inspect_20260908.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect submit page and public specs
+        shell: bash
+        run: |
+          set -u
+          for u in https://toll402.com/submit https://toll402.com/openapi.json https://toll402.com/llms.txt; do
+            echo "=== $u ==="
+            curl --retry 2 --retry-delay 2 --retry-all-errors -fsSL --max-time 30 "$u" -o /tmp/out || { echo FETCH_FAILED; continue; }
+            if [[ "$u" == *submit ]]; then
+              grep -Eo '(<form[^>]*>|action="[^"]+"|method="[^"]+"|/api/[A-Za-z0-9_/?&.=:-]+|name="[^"]+")' /tmp/out | head -n 150 || true
+              grep -i -E -A3 -B3 'submit|endpoint|url|email|github|form' /tmp/out | head -n 200 || true
+            elif [[ "$u" == *openapi.json ]]; then
+              jq '.paths | with_entries(select(.key|test("submit|listing|resource|provider|claim";"i")))' /tmp/out || head -c 10000 /tmp/out
+            else
+              grep -i -E -A15 -B5 'submit|listing|register|claim' /tmp/out | head -n 250 || true
+            fi
+            echo
+          done
