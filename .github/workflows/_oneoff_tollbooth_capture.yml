@@ -28,7 +28,7 @@ jobs:
           jq -c . /tmp/capture402.json || cat /tmp/capture402.json
           test "$code" = '402'
           echo '=== Tollbooth registration ==='
-          payload=$(jq -nc --arg endpoint "$ORIGIN/v1/capture" --arg wallet "$TREASURY" '{name:"DELTA Witness Capture",endpoint:$endpoint,category:"web-verification",priceUsdc:0.03,wallet:$wallet,chain:"base",description:"Timestamped page-state proof for a public HTTPS page, returning deterministic artifact hashes for autonomous agents."}')
+          payload=$(jq -nc --arg endpoint "$ORIGIN/v1/capture" --arg wallet "$TREASURY" '{name:"DELTA Witness Capture",endpoint:$endpoint,priceUsdc:0.03,wallet:$wallet,chain:"base",description:"Timestamped page-state proof for a public HTTPS page, returning deterministic artifact hashes for autonomous agents."}')
           for attempt in 1 2 3; do
             status=$(curl --connect-timeout 15 --max-time 90 -sS -o /tmp/tollbooth.json -w '%{http_code}' -X POST 'https://www.trytollbooth.com/api/services' -H 'content-type: application/json' --data "$payload" || true)
             echo "attempt=$attempt status=$status"
