@@ -1,0 +1,73 @@
+{
+  "observed_at": "2026-09-08T09:15:00+08:00",
+  "production": {
+    "preflight_endpoint": "https://delta-witness-api.ruphussten.workers.dev/v1/preflight",
+    "preflight_unpaid_http": 402,
+    "price_usdc": 0.03,
+    "network": "eip155:8453",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+  },
+  "channels": {
+    "auragate": {
+      "status": "blocked_after_successful_probe",
+      "probe_http": 200,
+      "probe_ok": true,
+      "probe_warning": "AuraGate target network is Arc (eip155:5042002) while DELTA quotes Base mainnet (eip155:8453)",
+      "registration_http": 403,
+      "registration_error": "owner_authorization_required",
+      "cost_usd": 0,
+      "classification": "high_value_surface_runtime_gate",
+      "note": "Public-facing open-listing language did not match the live registration gate; no wallet authorization, fee, or asset movement was attempted."
+    },
+    "vertical_marketplace": {
+      "status": "evaluated_not_registered",
+      "live_stats": {
+        "agents": 377,
+        "queriers": 377,
+        "listings": 26688,
+        "queries": 102441,
+        "sales": 77
+      },
+      "listing_free": true,
+      "agent_registration_api_key_shown_once": true,
+      "seller_requires_stripe_connect_onboarding": true,
+      "seller_requires_verified_signed_callback": true,
+      "action": "defer_without_creating_orphan_api_key_or_financial_payout_account"
+    },
+    "toll402": {
+      "status": "submission_path_verified_not_submitted",
+      "listing_free": true,
+      "account_required": false,
+      "review_eta_claimed": "about a day",
+      "requires_contact_email": true,
+      "verified_tier_requires_real_paid_call_by_toll402": true,
+      "supports_base": true,
+      "public_openapi_has_read_only_resource_provider_search": true,
+      "note": "The public submit form is client-side and requires a contact email; the public OpenAPI does not expose a write submission route. No personal contact address was guessed or used."
+    }
+  },
+  "reconciliation": {
+    "d1_since_utc": "2026-09-08 00:13:17",
+    "new_proof_opens": 2,
+    "new_paid_settlements": 0,
+    "new_capture_completions": 0,
+    "base_scan_from_block_decimal": 51018061,
+    "base_latest_block_hex": "0x30a822a",
+    "new_treasury_usdc_transfers": 0,
+    "strict_cumulative_stranger_revenue_usdc": 0.03,
+    "strict_cumulative_variable_cost_usdc": 0.002163522555,
+    "strict_cumulative_contribution_margin_usdc": 0.027836477445,
+    "classification_note": "The two proof opens are not classified as paid demand because there is no matching payment_verified/capture_completed event or new canonical Treasury USDC transfer."
+  },
+  "outreach": {
+    "new_human_replies": 0,
+    "emails_sent_this_run": 0
+  },
+  "controls": [
+    "No owner/canary/test activity counted as revenue.",
+    "No external registration fee paid.",
+    "No wallet signature or owner authorization was performed for AuraGate.",
+    "No personal email was guessed or submitted to TOLL402.",
+    "No Stripe Connect seller account was created on Vertical Marketplace."
+  ]
+}
