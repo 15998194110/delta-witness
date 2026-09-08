@@ -1,0 +1,54 @@
+name: TMP DELTA Treasury Reconcile 20260908 1737
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Strict canonical Base USDC scan with bounded ranges
+        shell: bash
+        run: |
+          set -euo pipefail
+          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          TRANSFER='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
+          TO_TOPIC="0x000000000000000000000000${TREASURY#0x}"
+          FROM_DEC=51029361
+          RPCS=('https://mainnet.base.org' 'https://base-rpc.publicnode.com' 'https://1rpc.io/base')
+          rpc_call() {
+            local payload="$1" out status
+            for rpc in "${RPCS[@]}"; do
+              for attempt in 1 2 3; do
+                status=0
+                out="$(curl --silent --show-error --max-time 20 --output /tmp/rpc-body --write-out '%{http_code}' -H 'content-type: application/json' --data "$payload" "$rpc" || status=$?)"
+                if [ "$status" -eq 0 ] && [ "$out" = '200' ] && jq -e '.error == null' /tmp/rpc-body >/dev/null 2>&1; then
+                  cat /tmp/rpc-body
+                  return 0
+                fi
+                sleep $((attempt * attempt))
+              done
+            done
+            return 1
+          }
+          latest_json="$(rpc_call '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}')"
+          latest_hex="$(jq -r '.result' <<<"$latest_json")"
+          latest_dec=$((latest_hex))
+          printf 'HEAD_BLOCK=%s\n' "$latest_dec"
+          printf 'FROM_BLOCK=%s\n' "$FROM_DEC"
+          all='[]'
+          if [ "$latest_dec" -ge "$FROM_DEC" ]; then
+            for ((a=FROM_DEC; a<=latest_dec; a+=5000)); do
+              b=$((a+4999)); [ "$b" -gt "$latest_dec" ] && b="$latest_dec"
+              ah=$(printf '0x%x' "$a"); bh=$(printf '0x%x' "$b")
+              payload="$(jq -nc --arg address "$USDC" --arg from "$ah" --arg to "$bh" --arg t0 "$TRANSFER" --arg t2 "$TO_TOPIC" '{jsonrpc:"2.0",id:2,method:"eth_getLogs",params:[{address:$address,fromBlock:$from,toBlock:$to,topics:[$t0,null,$t2]}]}')"
+              page="$(rpc_call "$payload")"
+              logs="$(jq '.result // []' <<<"$page")"
+              all="$(jq -nc --argjson x "$all" --argjson y "$logs" '$x + $y')"
+            done
+          fi
+          jq -nc --argjson logs "$all" '{ok:true,incoming_count:($logs|length),incoming:[$logs[]|{block_number:(.blockNumber|tonumber),tx_hash:.transactionHash,from:("0x"+(.topics[1][-40:])),raw_amount:(.data|tonumber)}]}'
