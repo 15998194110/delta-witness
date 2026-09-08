@@ -4,6 +4,8 @@
 
 The10:01 Asia/Shanghai batch found live Preflight back at0.03. Commit0d51cec explicitly reverted the approved1 price using an older copied mandate; later deployments preserved that rollback. This was production drift, not merely external cache lag. The main Operator is restoring the latest owner's1 approval on top of current master, retaining the newer MeshKore integration and secrets. A repository AGENTS.md and a production-config regression now make the current authority explicit. The originating growth task was instructed to stop conflicting price deployments and acknowledge only. No other price, rights, payout or spending change is authorized.
 
+Repair completed: source `f2f9183`, Worker `d29a8b25-84e8-4016-a702-d9c888804fcf`. All55 tests, typecheck and dry-run passed. Production quote is1; Capture/Preflight/Pilot402 amounts are30000/1000000/10000000, and provider discovery plus old proof remain200. The originating task acknowledged the latest authority and no more old-price rollbacks. No new Base USDC transfer from50993032 through51021962; no paid delivery events in the checked interval. No new cash outlay or paid test.
+
 Owner approved execution of the proposed public Preflight 1 USDC price experiment and continued free market expansion. This changes new public Preflight calls only; it does not establish proven willingness to pay at this price.
 
 | Route | Base USDC price |
