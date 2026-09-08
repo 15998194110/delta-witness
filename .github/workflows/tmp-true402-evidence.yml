@@ -1,0 +1,93 @@
+name: TMP true402 evidence
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-true402-evidence.yml'
+permissions:
+  contents: write
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Reconcile listing production and treasury
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/delta-growth docs/channel-status
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+
+          # Production quote: authoritative core integrity check.
+          PHTTP=$(curl --retry 2 --retry-delay 2 --retry-all-errors -sS -o /tmp/delta-growth/preflight.json -D /tmp/delta-growth/preflight.headers -w '%{http_code}' -X POST "$BASE/v1/preflight" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
+          test "$PHTTP" = '402'
+          grep -qi '^payment-required:' /tmp/delta-growth/preflight.headers
+          printf '%s' "$PHTTP" > /tmp/delta-growth/preflight_http
+
+          # Current true402 readback first; register only if DELTA is absent.
+          CHTTP=$(curl --retry 2 --retry-delay 2 --retry-all-errors -sS -o /tmp/delta-growth/catalog.json -w '%{http_code}' 'https://true402.dev/api/v1/services' || true)
+          printf '%s' "$CHTTP" > /tmp/delta-growth/catalog_http
+          FOUND=$(node - <<'NODE'
+          const fs=require('fs');let raw='';try{raw=fs.readFileSync('/tmp/delta-growth/catalog.json','utf8')}catch{}
+          try{const j=JSON.parse(raw);const a=Array.isArray(j)?j:(j.data||j.services||j.items||[]);const h=a.filter(x=>JSON.stringify(x).toLowerCase().includes('delta-witness-api.ruphussten.workers.dev'));process.stdout.write(String(h.length));}catch{process.stdout.write('0')}
+          NODE
+          )
+          RHTTP='not_needed'
+          if [ "$FOUND" = '0' ]; then
+            cat > /tmp/delta-growth/payload.json <<'JSON'
+          {"url":"https://delta-witness-api.ruphussten.workers.dev","manifest":{"x402":"1.0","name":"DELTA Witness Preflight","description":"Deterministic preflight evidence for autonomous actions: observe a public source, compare fresh state against explicit rules or prior proof hashes, and return a verifiable decision without claiming the source is truthful.","capabilities":["preflight","web-evidence","agent-safety","deterministic-verification"],"pricing":{"currency":"USDC","base":"0.03","unit":"request"},"payment":{"address":"0x1990e21bc219696ff7fbc26527dbaed335ac6367","chain":"base","facilitator":"https://facilitator.payai.network"},"endpoint":"https://delta-witness-api.ruphussten.workers.dev/v1/preflight"}}
+          JSON
+            RHTTP=$(curl --retry 2 --retry-delay 2 --retry-all-errors -sS -o /tmp/delta-growth/register.json -w '%{http_code}' -X POST 'https://true402.dev/api/v1/services' -H 'content-type: application/json' --data-binary @/tmp/delta-growth/payload.json || true)
+            sleep 1
+            CHTTP=$(curl --retry 2 --retry-delay 2 --retry-all-errors -sS -o /tmp/delta-growth/catalog.json -w '%{http_code}' 'https://true402.dev/api/v1/services' || true)
+            printf '%s' "$CHTTP" > /tmp/delta-growth/catalog_http
+          fi
+          printf '%s' "$RHTTP" > /tmp/delta-growth/register_http
+
+          # Funnel audit is independent of external catalog health.
+          set +e
+          node scripts/query-revenue-candidates.mjs > /tmp/delta-growth/funnel.txt 2>&1
+          FEXIT=$?
+          set -e
+          printf '%s' "$FEXIT" > /tmp/delta-growth/funnel_exit
+
+          # Independent canonical-USDC Treasury reconciliation from after prior 09:15 scan start.
+          node - <<'NODE' > /tmp/delta-growth/treasury.json
+          const RPC='https://mainnet.base.org';
+          const USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+          const treasury='1990e21bc219696ff7fbc26527dbaed335ac6367'.toLowerCase();
+          const topic0='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+          const topic2='0x'+treasury.padStart(64,'0');
+          const from=51018062;
+          async function rpc(method,params){let last;for(let i=0;i<3;i++){try{const r=await fetch(RPC,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});const j=await r.json();if(j.error)throw new Error(JSON.stringify(j.error));return j.result;}catch(e){last=e;await new Promise(r=>setTimeout(r,1500*(i+1)));}}throw last;}
+          (async()=>{const latestHex=await rpc('eth_blockNumber',[]);const latest=parseInt(latestHex,16);const logs=await rpc('eth_getLogs',[{address:USDC,fromBlock:'0x'+from.toString(16),toBlock:latestHex,topics:[topic0,null,topic2]}]);const rows=logs.map(l=>({block:parseInt(l.blockNumber,16),tx:l.transactionHash,from:'0x'+l.topics[1].slice(-40),to:'0x'+l.topics[2].slice(-40),amount_usdc:Number(BigInt(l.data))/1e6}));console.log(JSON.stringify({scan_from_block:from,latest_block:latest,new_count:rows.length,new_transfers:rows}));})().catch(e=>{console.log(JSON.stringify({error:e.message,scan_from_block:from}));process.exit(2)});
+          NODE
+
+          # Sanitize and persist only public/non-secret evidence.
+          node - <<'NODE'
+          const fs=require('fs');
+          const safeJson=(p)=>{try{return JSON.parse(fs.readFileSync(p,'utf8'))}catch{return null}};
+          const catalog=safeJson('/tmp/delta-growth/catalog.json');
+          const arr=Array.isArray(catalog)?catalog:(catalog?.data||catalog?.services||catalog?.items||[]);
+          const hits=arr.filter(x=>JSON.stringify(x).toLowerCase().includes('delta-witness-api.ruphussten.workers.dev'));
+          const neighbor={catalog_services:arr.length,services_with_settled_activity:arr.filter(x=>(x?.reputation?.settled||0)>0).length,reported_settled_transactions:arr.reduce((s,x)=>s+(Number(x?.reputation?.settled)||0),0),reported_settled_volume_usd:arr.reduce((s,x)=>s+(Number(x?.reputation?.settledVolumeUsd)||0),0)};
+          let register=safeJson('/tmp/delta-growth/register.json');
+          if(register&&typeof register==='object') { const keep={}; for(const k of ['ok','id','serviceId','slug','status','listed','created','message','error','url','name']) if(register[k]!==undefined)keep[k]=register[k]; register=keep; }
+          const funnel=fs.readFileSync('/tmp/delta-growth/funnel.txt','utf8').slice(0,12000);
+          const treasury=safeJson('/tmp/delta-growth/treasury.json');
+          const evidence={observed_at:new Date().toISOString(),production:{preflight_http:Number(fs.readFileSync('/tmp/delta-growth/preflight_http','utf8')),price_usdc:0.03,network:'eip155:8453',treasury:'0x1990e21bc219696ff7fbc26527dbaed335ac6367'},true402:{catalog_http:Number(fs.readFileSync('/tmp/delta-growth/catalog_http','utf8')),register_http:fs.readFileSync('/tmp/delta-growth/register_http','utf8'),listing_count:hits.length,listings:hits.slice(0,5),neighbor_demand:neighbor,evidence_quality:hits.length?'A listing / B neighbor-demand':'unresolved'},telemetry:{exit:Number(fs.readFileSync('/tmp/delta-growth/funnel_exit','utf8')),output:funnel},treasury_reconciliation:treasury,controls:['No fee paid.','No wallet signature or asset movement.','No platform probes counted as buyer intent or revenue.','Only canonical Base USDC transfers to Treasury can qualify as treasury_received, subject to provenance reconciliation.']};
+          const out='docs/channel-status/growth-2026-09-08-0932-automation-turn9.json';
+          fs.writeFileSync(out,JSON.stringify(evidence,null,2)+'\n');
+          console.log(out);
+          NODE
+      - name: Commit evidence
+        shell: bash
+        run: |
+          git config user.name 'delta-growth-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/channel-status/growth-2026-09-08-0932-automation-turn9.json
+          git commit -m 'growth: persist true402 listing and treasury evidence'
+          git push
