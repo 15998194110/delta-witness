@@ -1,0 +1,79 @@
+{
+  "checked_at": "2026-09-08T21:46:32.532Z",
+  "production": {
+    "agent_http": {
+      "ok": true,
+      "http_code": 200,
+      "error": null
+    },
+    "x402_http": {
+      "ok": true,
+      "http_code": 200,
+      "error": null
+    },
+    "agent_pricing": {
+      "unit": "request",
+      "amount": 30000,
+      "currency": "USDC",
+      "network": "base",
+      "note": "Capture and preflight are 0.03 USDC per call; guarded-action-pilot is a separate 10 USDC bounded pilot."
+    },
+    "intent_prices": {
+      "capture_page_state": {
+        "amount": 0.03,
+        "currency": "USDC",
+        "model": "per_call",
+        "network": "base"
+      },
+      "preflight_verification": {
+        "amount": 1,
+        "currency": "USDC",
+        "model": "per_call",
+        "network": "base"
+      },
+      "guarded_action_pilot": {
+        "amount": 10,
+        "currency": "USDC",
+        "model": "flat",
+        "network": "base"
+      }
+    },
+    "capture_402": {
+      "ok": true,
+      "http_code": 402,
+      "amount": "30000",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "network": "eip155:8453",
+      "payTo": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+    },
+    "preflight_402": {
+      "ok": true,
+      "http_code": 402,
+      "amount": "1000000",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "network": "eip155:8453",
+      "payTo": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+    },
+    "pilot_402": {
+      "ok": true,
+      "http_code": 402,
+      "amount": "10000000",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "network": "eip155:8453",
+      "payTo": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+    }
+  },
+  "d1_paid_funnel": {
+    "ok": true,
+    "candidate_rows": 0,
+    "rows": []
+  },
+  "treasury": {
+    "ok": true,
+    "source": "https://mainnet.base.org",
+    "from_block": 51040989,
+    "latest_block": 51057320,
+    "canonical_usdc_incoming": [],
+    "errors": []
+  }
+}
