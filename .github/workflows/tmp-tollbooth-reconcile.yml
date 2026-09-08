@@ -1,0 +1,206 @@
+name: TMP DELTA Tollbooth + Treasury Reconcile
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-tollbooth-reconcile.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile-and-list:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify current production price authority without payment
+        run: |
+          set -euo pipefail
+          BASE=https://delta-witness-api.ruphussten.workers.dev
+          capture_status=$(curl --silent --show-error --output /tmp/capture.json --dump-header /tmp/capture.headers --write-out '%{http_code}' --request POST "$BASE/v1/capture" --header 'content-type: application/json' --data '{"url":"https://example.com"}')
+          preflight_status=$(curl --silent --show-error --output /tmp/preflight.json --dump-header /tmp/preflight.headers --write-out '%{http_code}' --request POST "$BASE/v1/preflight" --header 'content-type: application/json' --data '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
+          test "$capture_status" = "402"
+          test "$preflight_status" = "402"
+          grep -Eq '30000|0\.03' /tmp/capture.json /tmp/capture.headers
+          grep -Eq '1000000|1\.0|1 USDC' /tmp/preflight.json /tmp/preflight.headers
+          echo '{"capture_http":402,"capture_expected_raw":"30000","preflight_http":402,"preflight_expected_raw":"1000000"}'
+
+      - name: Strict pre-action Base Treasury reconciliation
+        run: |
+          cat > /tmp/reconcile.mjs <<'NODE'
+          import fs from 'node:fs';
+          const RPCS = [
+            'https://mainnet.base.org',
+            'https://base-rpc.publicnode.com',
+            'https://1rpc.io/base'
+          ];
+          const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+          const TREASURY = '0x1990e21bc219696ff7fbc26527dbaed335ac6367';
+          const TRANSFER = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+          const TO_TOPIC = '0x' + TREASURY.toLowerCase().slice(2).padStart(64, '0');
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          async function rpc(method, params) {
+            const errors = [];
+            for (const url of RPCS) {
+              for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                  const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {'content-type':'application/json'},
+                    body: JSON.stringify({jsonrpc:'2.0', id:1, method, params}),
+                    signal: AbortSignal.timeout(15000)
+                  });
+                  const text = await res.text();
+                  if (res.status === 429 || res.status >= 500) throw new Error(`HTTP ${res.status}: ${text.slice(0,180)}`);
+                  if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0,180)}`);
+                  const json = JSON.parse(text);
+                  if (json.error) throw new Error(JSON.stringify(json.error));
+                  return {result: json.result, rpc: url};
+                } catch (e) {
+                  errors.push(`${url}#${attempt}:${e.message}`);
+                  if (attempt < 3) await sleep(750 * 2 ** (attempt - 1));
+                }
+              }
+            }
+            throw new Error(errors.join(' | '));
+          }
+          function norm(log) {
+            return {
+              block_number: Number(BigInt(log.blockNumber)),
+              tx_hash: log.transactionHash,
+              from: '0x' + log.topics[1].slice(-40),
+              to: '0x' + log.topics[2].slice(-40),
+              raw_amount: BigInt(log.data).toString(),
+              amount_usdc: Number(BigInt(log.data)) / 1e6
+            };
+          }
+          const latestInfo = await rpc('eth_blockNumber', []);
+          const head = Number(BigInt(latestInfo.result));
+          const fromBlock = 51021963;
+          const logs = [];
+          const CHUNK = 1000;
+          if (head >= fromBlock) {
+            for (let a = fromBlock; a <= head; a += CHUNK) {
+              const b = Math.min(head, a + CHUNK - 1);
+              const r = await rpc('eth_getLogs', [{
+                address: USDC,
+                fromBlock: '0x' + a.toString(16),
+                toBlock: '0x' + b.toString(16),
+                topics: [TRANSFER, null, TO_TOPIC]
+              }]);
+              logs.push(...r.result.map(norm));
+            }
+          }
+          const out = {ok:true, source:'canonical_base_usdc_transfer_logs', rpc_for_head:latestInfo.rpc, from_block:fromBlock, head_block:head, incoming_count:logs.length, incoming:logs};
+          fs.writeFileSync('/tmp/treasury-pre.json', JSON.stringify(out));
+          console.log(JSON.stringify(out));
+          NODE
+          node /tmp/reconcile.mjs
+
+      - name: Reconcile DELTA telemetry independently
+        run: node scripts/query-revenue-candidates.mjs
+
+      - name: Direct free Tollbooth registry submission with idempotent fallback
+        run: |
+          cat > /tmp/tollbooth.mjs <<'NODE'
+          import fs from 'node:fs';
+          const BASE = 'https://www.trytollbooth.com';
+          const wallet = '0x1990e21bc219696ff7fbc26527dbaed335ac6367';
+          const wanted = [
+            {name:'DELTA Witness Capture', endpoint:'https://delta-witness-api.ruphussten.workers.dev/v1/capture', category:'developer-tools', priceUsdc:0.03, wallet, chain:'base', description:'Tamper-evident public page-state capture with public proof, paid per call via x402.'},
+            {name:'DELTA Witness Preflight', endpoint:'https://delta-witness-api.ruphussten.workers.dev/v1/preflight', category:'developer-tools', priceUsdc:1, wallet, chain:'base', description:'Deterministic page observation and expectation comparison for autonomous actions; not a security audit.'},
+            {name:'DELTA Witness Guarded Action Pilot', endpoint:'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot', category:'developer-tools', priceUsdc:10, wallet, chain:'base', description:'Guarded higher-value DELTA Witness action pilot with x402 settlement and verifiable evidence.'}
+          ];
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          function arr(x) {
+            if (Array.isArray(x)) return x;
+            for (const k of ['services','data','items','results']) if (Array.isArray(x?.[k])) return x[k];
+            return [];
+          }
+          async function list() {
+            const urls = [`${BASE}/api/services?q=${encodeURIComponent('DELTA Witness')}`, `${BASE}/api/services`];
+            let all = [];
+            for (const url of urls) {
+              for (let attempt=1; attempt<=3; attempt++) {
+                try {
+                  const r = await fetch(url, {signal:AbortSignal.timeout(15000)});
+                  const text = await r.text();
+                  if (r.status===429 || r.status>=500) throw new Error(`HTTP ${r.status}: ${text.slice(0,160)}`);
+                  if (!r.ok) throw new Error(`HTTP ${r.status}: ${text.slice(0,160)}`);
+                  all.push(...arr(JSON.parse(text)));
+                  break;
+                } catch(e) {
+                  if (attempt===3) throw e;
+                  await sleep(800 * 2 ** (attempt-1));
+                }
+              }
+            }
+            return all;
+          }
+          async function findExact(endpoint) {
+            const services = await list();
+            return services.find(s => String(s.endpoint || s.url || '').replace(/\/$/,'') === endpoint.replace(/\/$/,''));
+          }
+          async function register(spec) {
+            const existing = await findExact(spec.endpoint);
+            if (existing) return {action:'already_listed', endpoint:spec.endpoint, service:existing};
+            const attempts=[];
+            for (let attempt=1; attempt<=3; attempt++) {
+              try {
+                const r = await fetch(`${BASE}/api/services`, {
+                  method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(spec), signal:AbortSignal.timeout(30000)
+                });
+                const text = await r.text();
+                let body; try { body = JSON.parse(text); } catch { body = {raw:text.slice(0,1000)}; }
+                attempts.push({attempt,status:r.status,body});
+                if (r.ok) {
+                  await sleep(750);
+                  const readback = await findExact(spec.endpoint).catch(()=>null);
+                  return {action:'submitted', endpoint:spec.endpoint, http_status:r.status, response:body, readback};
+                }
+                if (!(r.status===429 || r.status>=500)) return {action:'rejected_nonretryable', endpoint:spec.endpoint, attempts};
+              } catch(e) {
+                attempts.push({attempt,error:e.message});
+              }
+              const appeared = await findExact(spec.endpoint).catch(()=>null);
+              if (appeared) return {action:'submitted_then_recovered_by_readback', endpoint:spec.endpoint, service:appeared, attempts};
+              if (attempt<3) await sleep(1000 * 2 ** (attempt-1));
+            }
+            return {action:'degraded_after_retries', endpoint:spec.endpoint, attempts};
+          }
+          const results=[];
+          for (const spec of wanted) results.push(await register(spec));
+          const finalServices = await list().catch(()=>[]);
+          const readback = wanted.map(spec => ({endpoint:spec.endpoint, service:finalServices.find(s => String(s.endpoint || s.url || '').replace(/\/$/,'')===spec.endpoint.replace(/\/$/,'')) || null}));
+          const out={ok:results.some(x=>['submitted','submitted_then_recovered_by_readback','already_listed'].includes(x.action)), channel:'Tollbooth', results, readback};
+          fs.writeFileSync('/tmp/tollbooth-result.json', JSON.stringify(out));
+          console.log(JSON.stringify(out));
+          NODE
+          node /tmp/tollbooth.mjs
+
+      - name: Post-action Treasury delta for platform-verification isolation
+        if: always()
+        run: |
+          cat > /tmp/post-reconcile.mjs <<'NODE'
+          import fs from 'node:fs';
+          const pre = JSON.parse(fs.readFileSync('/tmp/treasury-pre.json','utf8'));
+          const RPCS=['https://mainnet.base.org','https://base-rpc.publicnode.com','https://1rpc.io/base'];
+          const USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+          const TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367';
+          const TRANSFER='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+          const TO='0x'+TREASURY.slice(2).padStart(64,'0');
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function rpc(method,params){let es=[];for(const url of RPCS){for(let a=1;a<=3;a++){try{const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(15000)});const t=await r.text();if(r.status===429||r.status>=500)throw new Error(`HTTP ${r.status}`);if(!r.ok)throw new Error(`HTTP ${r.status}`);const j=JSON.parse(t);if(j.error)throw new Error(JSON.stringify(j.error));return j.result}catch(e){es.push(`${url}#${a}:${e.message}`);if(a<3)await sleep(700*2**(a-1));}}}throw new Error(es.join('|'));}
+          const head=Number(BigInt(await rpc('eth_blockNumber',[])));
+          const from=pre.head_block+1;
+          let raw=[];
+          if(head>=from){for(let a=from;a<=head;a+=1000){const b=Math.min(head,a+999);raw.push(...await rpc('eth_getLogs',[{address:USDC,fromBlock:'0x'+a.toString(16),toBlock:'0x'+b.toString(16),topics:[TRANSFER,null,TO]}]));}}
+          const incoming=raw.map(l=>({block_number:Number(BigInt(l.blockNumber)),tx_hash:l.transactionHash,from:'0x'+l.topics[1].slice(-40),raw_amount:BigInt(l.data).toString(),amount_usdc:Number(BigInt(l.data))/1e6,classification:'new_after_tollbooth_submission__exclude_from_customer_revenue_until_source_proven'}));
+          console.log(JSON.stringify({ok:true,from_block:from,head_block:head,incoming_count:incoming.length,incoming}));
+          NODE
+          node /tmp/post-reconcile.mjs
