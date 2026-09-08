@@ -1,0 +1,86 @@
+{
+  "observed_at": "2026-09-08T17:13:40.355Z",
+  "channel": "x402dash",
+  "pricing_authority": {
+    "capture_usdc": 0.03,
+    "public_preflight_usdc": 1,
+    "guarded_action_pilot_usdc": 10
+  },
+  "listing_attempts": [
+    {
+      "url": "https://delta-witness-api.ruphussten.workers.dev/v1/capture",
+      "base": "https://api.x402dash.com",
+      "status": 400,
+      "response": {
+        "detail": "URL did not return HTTP 402 (got 404). Endpoints must respond with 402 and a valid x402 payment spec."
+      }
+    },
+    {
+      "url": "https://delta-witness-api.ruphussten.workers.dev/v1/preflight",
+      "base": "https://api.x402dash.com",
+      "status": 400,
+      "response": {
+        "detail": "URL did not return HTTP 402 (got 404). Endpoints must respond with 402 and a valid x402 payment spec."
+      }
+    },
+    {
+      "url": "https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot",
+      "base": "https://api.x402dash.com",
+      "status": 400,
+      "response": {
+        "detail": "URL did not return HTTP 402 (got 404). Endpoints must respond with 402 and a valid x402 payment spec."
+      }
+    }
+  ],
+  "readback": {
+    "base": "https://api.x402dash.com",
+    "status": 200,
+    "exact_urls": [
+      {
+        "url": "https://delta-witness-api.ruphussten.workers.dev/v1/capture",
+        "present": false,
+        "record": null
+      },
+      {
+        "url": "https://delta-witness-api.ruphussten.workers.dev/v1/preflight",
+        "present": false,
+        "record": null
+      },
+      {
+        "url": "https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot",
+        "present": false,
+        "record": null
+      }
+    ],
+    "total_returned": 0
+  },
+  "treasury": {
+    "source": "Base Blockscout",
+    "start_block": 51047133,
+    "observed_head": 51049134,
+    "head_status": 200,
+    "transfer_query_status": 200,
+    "transfer_query_ok": true,
+    "incoming_count": 0,
+    "incoming": []
+  },
+  "d1": {
+    "ok": true,
+    "candidate_rows": 0,
+    "rows": []
+  },
+  "metrics": {
+    "listing_status": "partial_or_unconfirmed",
+    "discovery_status": "partial_or_unconfirmed",
+    "buyer_count": 0,
+    "settlement_count": 0,
+    "external_requests": 0,
+    "intents_402": 0,
+    "paid_settlements": 0,
+    "treasury_received_new": 0,
+    "revenue_usdc_new": 0,
+    "variable_cost_usdc_new": null,
+    "contribution_margin_usdc_new": null,
+    "evidence_quality": "B"
+  }
+}
