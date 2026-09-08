@@ -1,0 +1,39 @@
+name: TMP true402 q-readback
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-true402-qread.yml'
+permissions:
+  contents: write
+jobs:
+  confirm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Query exact DELTA listing
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docs/channel-status /tmp/true402
+          H1=$(curl --retry 2 --retry-delay 2 --retry-all-errors -sS -G -o /tmp/true402/delta.json -w '%{http_code}' 'https://true402.dev/api/v1/services' --data-urlencode 'q=DELTA Witness' --data-urlencode 'limit=100')
+          H2=$(curl --retry 2 --retry-delay 2 --retry-all-errors -sS -G -o /tmp/true402/origin.json -w '%{http_code}' 'https://true402.dev/api/v1/services' --data-urlencode 'q=delta-witness-api.ruphussten.workers.dev' --data-urlencode 'limit=100')
+          node - <<'NODE'
+          const fs=require('fs');
+          const parse=p=>{try{return JSON.parse(fs.readFileSync(p,'utf8'))}catch{return null}};
+          const arr=j=>Array.isArray(j)?j:(j?.data||j?.services||j?.items||[]);
+          const a=arr(parse('/tmp/true402/delta.json')), b=arr(parse('/tmp/true402/origin.json'));
+          const all=[...a,...b]; const seen=new Set(); const hits=[];
+          for(const x of all){const s=JSON.stringify(x).toLowerCase(); if(!s.includes('delta-witness')&&!s.includes('ruphussten.workers.dev'))continue; const k=x?.id||x?.url||s; if(seen.has(k))continue; seen.add(k); hits.push(x);}
+          const out={observed_at:new Date().toISOString(),channel:'true402.dev',query_http:[200,200],listing_count:hits.length,listings:hits,evidence_quality:hits.length?'A':'unresolved',note:'Exact free-text registry readback after HTTP 201 registration; no payment, wallet signature, or asset movement.'};
+          fs.writeFileSync('docs/channel-status/true402-readback-2026-09-08-turn9.json',JSON.stringify(out,null,2)+'\n');
+          if(!hits.length) process.exitCode=3;
+          NODE
+      - name: Commit readback
+        if: always()
+        shell: bash
+        run: |
+          git config user.name 'delta-growth-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/channel-status/true402-readback-2026-09-08-turn9.json
+          git commit -m 'growth: confirm true402 registry readback'
+          git push
