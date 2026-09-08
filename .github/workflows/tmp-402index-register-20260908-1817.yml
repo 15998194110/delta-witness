@@ -1,0 +1,80 @@
+name: TMP DELTA 402 Index Register 20260908 1817
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - ".github/workflows/tmp-402index-register-20260908-1817.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Register DELTA paid endpoints with 402 Index
+        shell: bash
+        run: |
+          set -euo pipefail
+          API='https://402index.io/api/v1/register'
+          register() {
+            local payload="$1" label="$2" body code ok=0
+            for attempt in 1 2 3; do
+              code=$(curl --silent --show-error --max-time 30 \
+                --output /tmp/402index-body.json --write-out '%{http_code}' \
+                -H 'content-type: application/json' --data "$payload" "$API" || true)
+              body=$(cat /tmp/402index-body.json 2>/dev/null || true)
+              printf '%s attempt=%s http=%s body=%s\n' "$label" "$attempt" "$code" "$body"
+              if [ "$code" = '201' ]; then ok=1; break; fi
+              if [ "$code" = '429' ] || [ "$code" = '500' ] || [ "$code" = '502' ] || [ "$code" = '503' ] || [ "$code" = '504' ] || [ "$code" = '000' ]; then
+                sleep $((attempt * attempt))
+                continue
+              fi
+              # 422 is useful protocol diagnostic and should not be hidden.
+              break
+            done
+            [ "$ok" -eq 1 ]
+          }
+
+          register '{
+            "url":"https://delta-witness-api.ruphussten.workers.dev/v1/capture",
+            "name":"DELTA Witness Capture",
+            "protocol":"x402",
+            "http_method":"POST",
+            "probe_body":"{\"url\":\"https://example.com\"}",
+            "description":"Independent public webpage capture with timestamped cryptographic evidence and a public verifier.",
+            "price_usd":0.03,
+            "payment_asset":"USDC",
+            "payment_network":"Base",
+            "category":"verification/web-proof",
+            "provider":"DELTA Witness"
+          }' capture
+
+          register '{
+            "url":"https://delta-witness-api.ruphussten.workers.dev/v1/preflight",
+            "name":"DELTA Witness Preflight",
+            "protocol":"x402",
+            "http_method":"POST",
+            "probe_body":"{\"url\":\"https://example.com\",\"expected\":{\"contains\":[\"Example Domain\"]}}",
+            "description":"Independent deterministic preflight verification of a public source before consequential agent action.",
+            "price_usd":1,
+            "payment_asset":"USDC",
+            "payment_network":"Base",
+            "category":"verification/web-proof",
+            "provider":"DELTA Witness"
+          }' preflight
+
+          register '{
+            "url":"https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot",
+            "name":"DELTA Witness Guarded Action Pilot",
+            "protocol":"x402",
+            "http_method":"POST",
+            "probe_body":"{\"urls\":[\"https://example.com\"]}",
+            "description":"Bounded higher-value evidence package for one to three public URLs with optional deterministic preflight.",
+            "price_usd":10,
+            "payment_asset":"USDC",
+            "payment_network":"Base",
+            "category":"verification/web-proof",
+            "provider":"DELTA Witness"
+          }' guarded_action_pilot
