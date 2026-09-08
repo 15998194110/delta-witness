@@ -1,0 +1,65 @@
+name: TMP DELTA x402scan register 20260908
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-x402scan-register-20260908.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Register DELTA origin with x402scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://www.x402scan.com/api/trpc'
+          origin='https://delta-witness-api.ruphussten.workers.dev'
+
+          call_trpc() {
+            local procedure="$1" payload="$2" out="$3"
+            local code
+            for attempt in 1 2 3; do
+              code=$(curl --silent --show-error --max-time 45 \
+                --output "$out" --write-out '%{http_code}' \
+                -X POST "$base/$procedure?batch=1" \
+                -H 'content-type: application/json' \
+                -H 'x-trpc-source: nextjs-react' \
+                --data "$payload" || true)
+              echo "attempt=$attempt procedure=$procedure http=$code"
+              cat "$out" 2>/dev/null || true
+              echo
+              if [ "$code" = '200' ] && jq -e . "$out" >/dev/null 2>&1; then return 0; fi
+              sleep $((attempt * attempt))
+            done
+            return 1
+          }
+
+          origin_payload=$(jq -nc --arg origin "$origin" '{"0":{"json":{"origin":$origin}}}')
+          if call_trpc 'public.resources.registerFromOrigin' "$origin_payload" /tmp/origin.json; then
+            if jq -e '.[0].result.data.json.success == true' /tmp/origin.json >/dev/null 2>&1; then
+              echo 'DELTA_X402SCAN_REGISTRATION=origin_success'
+              jq '.[0].result.data.json' /tmp/origin.json
+              exit 0
+            fi
+          fi
+
+          echo 'Origin registration did not confirm success; falling back to exact paid endpoints.'
+          ok=0
+          for path in /v1/capture /v1/preflight /v1/guarded-action-pilot; do
+            url="$origin$path"
+            payload=$(jq -nc --arg url "$url" '{"0":{"json":{"url":$url}}}')
+            safe=$(echo "$path" | tr '/-' '__')
+            if call_trpc 'public.resources.register' "$payload" "/tmp/${safe}.json"; then
+              if jq -e '.[0].result.data.json.success == true' "/tmp/${safe}.json" >/dev/null 2>&1; then
+                ok=$((ok+1))
+              elif jq -e '.[0].result.data.json.error.message? | strings | test("already|registered"; "i")' "/tmp/${safe}.json" >/dev/null 2>&1; then
+                ok=$((ok+1))
+              fi
+            fi
+          done
+          echo "DELTA_X402SCAN_EXACT_CONFIRMED=$ok"
+          test "$ok" -eq 3
