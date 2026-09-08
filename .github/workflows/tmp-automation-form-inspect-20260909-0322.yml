@@ -1,4 +1,4 @@
-name: TMP DELTA Free Listing Form Inspect 20260909 0322
+name: TMP DELTA AgentNDX Contract Inspect 20260909 0322
 on:
   push:
     paths:
@@ -9,30 +9,24 @@ jobs:
   inspect:
     runs-on: ubuntu-latest
     steps:
-      - name: Inspect PayAPI listing form
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fsS --retry 3 --retry-delay 2 https://payapi.market/list -o /tmp/payapi.html
-          echo '=== PAYAPI FORMS ==='
-          grep -Eio '<form[^>]*>|action="[^"]+"|method="[^"]+"|name="[^"]+"|type="(email|hidden|text|url|radio|checkbox)"|fetch\([^)]+' /tmp/payapi.html | head -n 200 || true
-          echo '=== PAYAPI SCRIPTS ==='
-          grep -Eio '<script[^>]*src="[^"]+"' /tmp/payapi.html | head -n 50 || true
-      - name: Inspect AgentNDX submission form
+      - name: Inspect exact AgentNDX submission contract
         shell: bash
         run: |
           set -euo pipefail
           curl -fsS --retry 3 --retry-delay 2 https://agentndx.ai/submit/ -o /tmp/agentndx.html
-          echo '=== AGENTNDX FORMS ==='
-          grep -Eio '<form[^>]*>|action="[^"]+"|method="[^"]+"|name="[^"]+"|type="(email|hidden|text|url|radio|checkbox)"|fetch\([^)]+' /tmp/agentndx.html | head -n 200 || true
-          echo '=== AGENTNDX SCRIPTS ==='
-          grep -Eio '<script[^>]*src="[^"]+"' /tmp/agentndx.html | head -n 50 || true
-      - name: Inspect 402.ad free submission form
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fsS --retry 3 --retry-delay 2 https://402.ad/submit -o /tmp/402ad.html
-          echo '=== 402AD FORMS ==='
-          grep -Eio '<form[^>]*>|action="[^"]+"|method="[^"]+"|name="[^"]+"|type="(email|hidden|text|url|radio|checkbox)"|fetch\([^)]+' /tmp/402ad.html | head -n 200 || true
-          echo '=== 402AD SCRIPTS ==='
-          grep -Eio '<script[^>]*src="[^"]+"' /tmp/402ad.html | head -n 50 || true
+          echo '=== FORM ==='
+          grep -Eio '<form[^>]*id="submit-form"[^>]*>' /tmp/agentndx.html || true
+          echo '=== INPUTS ==='
+          grep -Eio '<input[^>]*>' /tmp/agentndx.html | grep -Ei 'report_id|name=.?name|github_url|homepage_url|protocols|contact' || true
+          echo '=== TEXTAREA ==='
+          grep -Eio '<textarea[^>]*>' /tmp/agentndx.html || true
+          echo '=== PROTOCOL CONTEXT ==='
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('/tmp/agentndx.html').read_text(errors='ignore')
+          for needle in ['name="protocols"','name="report_id"','/api/submit']:
+              i=s.find(needle)
+              if i>=0:
+                  print('---', needle, '---')
+                  print(s[max(0,i-500):i+900])
+          PY
