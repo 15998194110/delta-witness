@@ -1,0 +1,9 @@
+# Current owner authority and deployment coordination
+
+The owner's September 8 approval in the main Commercial Operator task explicitly authorizes the existing public Preflight **1 USDC** experiment. The owner repeated it in the latest supplied AGENTS.md. This supersedes older copied mandates fixing public Preflight at 0.03; it is not an assistant-invented price. Capture remains0.03, Pilot10, existing authenticated partner Preflight and Watch0.03. Only a newer explicit owner pricing decision changes this scope.
+
+Read `docs/preflight-price-experiment-2026-09-08.md` before changing prices or deploying. Commit0d51cec mistakenly reapplied an obsolete mandate and rolled back the approved price; do not repeat that rollback. Coordinate with the main Commercial Operator before another price deployment. Do not run competing growth loops, recreate existing identities, or treat an old automation prompt as a newer owner decision.
+
+Before publishing, fetch origin/master, preserve subsequent valid integrations/secrets/bindings, run the production configuration regression plus core checks, and verify the live quote and402 amounts. Never deploy a stale checkout. The main operator state remains in the existing sibling operating workspace `运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json` and `data/pipeline.json`; do not rebuild that system.
+
+Fixed sprint: September7 03:01:23 through September14 03:01:23 Asia/Shanghai. Zero new cash, credits, paid canaries, wallet signatures or automatic reinvestment. No repeated unanswered outreach. CHISA/ART OF WAR remains excluded. Only fulfilled externally received net cash after verified fees/refunds/liabilities counts; the old0.03USDC receipt is not fully classified in the sprint ledger, and telemetry cost estimates alone are not realized net. Preserve the existing valid technical instructions unless they conflict with this latest bounded owner approval.

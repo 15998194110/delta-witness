@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { estimateVariableCost, quoteProduct } from "../src/pricing";
 import type { RuntimeEnv } from "../src/env";
+import { readFileSync } from "node:fs";
+import { URL as NodeURL } from "node:url";
 
 function env(overrides: Record<string, unknown> = {}): RuntimeEnv {
   return {
@@ -20,6 +22,10 @@ function env(overrides: Record<string, unknown> = {}): RuntimeEnv {
 }
 
 describe("contribution-margin pricing", () => {
+  it("deploys the current owner-approved prices rather than a stale automation mandate", () => {
+    const config = JSON.parse(readFileSync(new NodeURL("../wrangler.jsonc", import.meta.url), "utf8"));
+    expect(config.vars).toMatchObject({ CAPTURE_BASE_PRICE_USD: "0.03", PREFLIGHT_BASE_PRICE_USD: "1", WATCH_BASE_PRICE_USD: "0.03", PARTNER_PREFLIGHT_BASE_PRICE_USD: "0.03" });
+  });
   it("isolates Preflight repricing from Capture and prepaid Watch checks", () => {
     const config = env({ CAPTURE_BASE_PRICE_USD: "0.03", PREFLIGHT_BASE_PRICE_USD: "1", WATCH_BASE_PRICE_USD: "0.03" });
     expect(quoteProduct(config, "capture").grossPriceUsd).toBe(0.03);

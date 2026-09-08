@@ -1,5 +1,9 @@
 # Public Preflight price experiment — 2026-09-08
 
+## September8 scheduled reconciliation: obsolete-mandate rollback
+
+The10:01 Asia/Shanghai batch found live Preflight back at0.03. Commit0d51cec explicitly reverted the approved1 price using an older copied mandate; later deployments preserved that rollback. This was production drift, not merely external cache lag. The main Operator is restoring the latest owner's1 approval on top of current master, retaining the newer MeshKore integration and secrets. A repository AGENTS.md and a production-config regression now make the current authority explicit. The originating growth task was instructed to stop conflicting price deployments and acknowledge only. No other price, rights, payout or spending change is authorized.
+
 Owner approved execution of the proposed public Preflight 1 USDC price experiment and continued free market expansion. This changes new public Preflight calls only; it does not establish proven willingness to pay at this price.
 
 | Route | Base USDC price |
