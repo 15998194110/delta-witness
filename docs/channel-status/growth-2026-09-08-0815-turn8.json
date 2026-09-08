@@ -1,0 +1,99 @@
+{
+  "recorded_at": "2026-09-08T08:15:00+08:00",
+  "run_label": "growth-turn8",
+  "production": {
+    "status": "healthy",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "routes": [
+      {"name":"capture","url":"https://delta-witness-api.ruphussten.workers.dev/v1/capture","http":402,"price_usdc":0.03},
+      {"name":"preflight","url":"https://delta-witness-api.ruphussten.workers.dev/v1/preflight","http":402,"price_usdc":0.03},
+      {"name":"guarded_action_pilot","url":"https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot","http":402,"price_usdc":10.0}
+    ],
+    "evidence_quality": "A"
+  },
+  "channels": {
+    "market402": {
+      "listing_status": "already_listed",
+      "discovery_status": "queued_for_next_probe_round",
+      "spec_checks": "11/11 for capture, preflight, guarded-action pilot",
+      "submission_result": "all three direct submissions deduped as identical within 24h",
+      "fee_paid": false,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received_usdc": 0,
+      "evidence_quality": "A"
+    },
+    "meshkore": {
+      "listing_status": "registered",
+      "discovery_status": "canonical_agent_card_resolves",
+      "source_fix_commit": "ff5677d975c780f2f765df52cdfb77060b5242f1",
+      "canonical_card_http": 200,
+      "endpoint": "https://delta-witness-api.ruphussten.workers.dev",
+      "identity_registered": true,
+      "identity_online": false,
+      "public_live": 0,
+      "diagnosis": "third-party state contradiction: documented API-key token heartbeat plus PATCH succeeds and updates card/updated_at, but MeshKore still reports online=false/live=0",
+      "action": "isolated as external channel degradation; no DELTA core failure and no destructive re-registration attempted",
+      "evidence_quality": "A"
+    },
+    "swarmwage_agentic_market": {
+      "listing_status": "not_confirmed_for_delta",
+      "discovery_status": "DELTA not returned by current x402-search queries",
+      "verified_neighbor_demand": [
+        {"service":"witnessd.vip","last_30d_calls":6,"last_30d_unique_payers":2,"price_usdc":0.02},
+        {"service":"anywaypossible.com","last_30d_calls":5,"last_30d_unique_payers":3,"price_usdc":0.01},
+        {"service":"txguard.schemasure.com","last_30d_calls":31,"last_30d_unique_payers":2,"price_usdc":0.01},
+        {"service":"action402.vercel.app","last_30d_calls":36,"last_30d_unique_payers":15,"price_usdc":0.003}
+      ],
+      "note": "neighbor demand is external marketplace evidence and is not DELTA buyer/revenue evidence",
+      "evidence_quality": "A/B"
+    },
+    "swarmbazaar": {
+      "listing_status": "submitted_pending_review",
+      "discovery_status": "not_yet_in_public_index",
+      "submission_http": 200,
+      "submission_response": {"ok": true, "payment": null},
+      "plan": "free_listing_only",
+      "fee_paid": false,
+      "endpoint_submitted": "https://delta-witness-api.ruphussten.workers.dev/v1/preflight",
+      "review_sla_claimed_by_channel": "within 24h",
+      "evidence_quality": "A"
+    }
+  },
+  "treasury_reconciliation": {
+    "method": "Base canonical RPC + USDC Transfer logs",
+    "from_block": 51014673,
+    "through_block": 51018061,
+    "new_receipt_count": 0,
+    "new_treasury_received_usdc": 0,
+    "evidence_quality": "A"
+  },
+  "telemetry_reconciliation": {
+    "source": "Cloudflare D1 telemetry_events",
+    "after": "2026-09-07T22:05:04+08:00",
+    "events_checked": ["payment_verified", "capture_completed"],
+    "new_matching_events": 0,
+    "evidence_quality": "A"
+  },
+  "strict_cumulative": {
+    "buyer_count": 1,
+    "settlement_count": 1,
+    "paid_settlements": 1,
+    "treasury_received_count": 1,
+    "revenue_usdc": 0.03,
+    "variable_cost_usdc": 0.002163522555,
+    "contribution_margin_usdc": 0.027836477445,
+    "first_stranger_tx": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3",
+    "new_revenue_this_run_usdc": 0
+  },
+  "risk_controls": {
+    "listing_or_signup_fees_paid": false,
+    "wallet_authorizations": false,
+    "assets_moved": false,
+    "private_keys_exposed": false,
+    "legal_commitments_accepted": false
+  }
+}
