@@ -1,0 +1,154 @@
+{
+  "observed_at": "2026-09-08T01:37:52.833Z",
+  "production": {
+    "capture_http": 402,
+    "preflight_http": 402,
+    "pilot_http": 402,
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "network": "eip155:8453"
+  },
+  "true402": {
+    "capture_registration_http": "201",
+    "preflight_registration_http": "201",
+    "delta_listing_count": 3,
+    "listings": [
+      {
+        "id": "b09ed3e6-1ba3-4c0e-b455-dd3038a09766",
+        "url": "https://delta-witness-api.ruphussten.workers.dev/v1/capture",
+        "manifest": {
+          "x402": "1.0",
+          "name": "DELTA Witness Capture",
+          "description": "Timestamped public-page evidence for autonomous agents. One exact $0.03 Base USDC payment preserves the observed page state and returns verifiable proof metadata and hashes.",
+          "capabilities": [
+            "web-evidence",
+            "page-state-proof",
+            "capture",
+            "browser-verification",
+            "agent-safety"
+          ],
+          "pricing": {
+            "currency": "USDC",
+            "base": "0.03",
+            "unit": "request"
+          },
+          "payment": {
+            "address": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+            "chain": "base",
+            "facilitator": "https://facilitator.payai.network"
+          },
+          "endpoint": "https://delta-witness-api.ruphussten.workers.dev/v1/capture"
+        },
+        "reputation": {
+          "transactions": 0,
+          "successRate": null,
+          "isNew": true,
+          "registeredAt": "2026-09-08T01:37:49.676Z",
+          "lastSeen": "2026-09-08T01:37:49.676Z",
+          "settled": null,
+          "settledVolumeUsd": null,
+          "distinctPayers": null,
+          "lastSettledAt": null,
+          "trustScore": 0,
+          "trustVersion": 1
+        }
+      },
+      {
+        "id": "670c08ee-0a25-40b7-bf05-e46186a42211",
+        "url": "https://delta-witness-api.ruphussten.workers.dev/v1/preflight",
+        "manifest": {
+          "x402": "1.0",
+          "name": "DELTA Witness Preflight",
+          "description": "Deterministic public-source preflight for autonomous actions. One exact $0.03 Base USDC payment observes fresh page state and compares it with explicit text rules or prior proof hashes before an agent acts.",
+          "capabilities": [
+            "preflight-verification",
+            "web-evidence",
+            "agent-safety",
+            "deterministic-verification",
+            "workflow-safety"
+          ],
+          "pricing": {
+            "currency": "USDC",
+            "base": "0.03",
+            "unit": "request"
+          },
+          "payment": {
+            "address": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+            "chain": "base",
+            "facilitator": "https://facilitator.payai.network"
+          },
+          "endpoint": "https://delta-witness-api.ruphussten.workers.dev/v1/preflight"
+        },
+        "reputation": {
+          "transactions": 0,
+          "successRate": null,
+          "isNew": true,
+          "registeredAt": "2026-09-08T01:37:50.166Z",
+          "lastSeen": "2026-09-08T01:37:50.166Z",
+          "settled": null,
+          "settledVolumeUsd": null,
+          "distinctPayers": null,
+          "lastSettledAt": null,
+          "trustScore": 0,
+          "trustVersion": 1
+        }
+      },
+      {
+        "id": "7e147a75-78fb-4ef3-b35b-538a599df023",
+        "url": "https://delta-witness-api.ruphussten.workers.dev",
+        "manifest": {
+          "x402": "1.0",
+          "name": "delta-witness-guarded-action-pilot",
+          "description": "DELTA Witness guarded-action evidence pilot for browser, shopping, procurement and workflow agents. One exact $10 USDC Base payment captures 1-3 public HTTPS page-state proofs and can run one deterministic preflight condition. No subscription.",
+          "capabilities": [
+            "guarded-action-pilot",
+            "browser-verification",
+            "page-state-proof",
+            "preflight-verification",
+            "workflow-safety",
+            "shopping",
+            "procurement"
+          ],
+          "pricing": {
+            "currency": "USDC",
+            "base": "10.00",
+            "unit": "pilot"
+          },
+          "payment": {
+            "address": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+            "chain": "base",
+            "facilitator": "https://facilitator.payai.network"
+          },
+          "endpoint": "https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot"
+        },
+        "reputation": {
+          "transactions": 0,
+          "successRate": null,
+          "isNew": true,
+          "registeredAt": "2026-09-06T21:01:20.557Z",
+          "lastSeen": "2026-09-08T01:35:29.706Z",
+          "settled": null,
+          "settledVolumeUsd": null,
+          "distinctPayers": null,
+          "lastSettledAt": null,
+          "trustScore": 0,
+          "trustVersion": 1
+        }
+      }
+    ],
+    "expected_endpoints": [
+      "https://delta-witness-api.ruphussten.workers.dev/v1/capture",
+      "https://delta-witness-api.ruphussten.workers.dev/v1/preflight",
+      "https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot"
+    ],
+    "confirmed_endpoints": [
+      "https://delta-witness-api.ruphussten.workers.dev/v1/capture",
+      "https://delta-witness-api.ruphussten.workers.dev/v1/preflight",
+      "https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot"
+    ],
+    "evidence_quality": "A if confirmed by registry readback; otherwise registration-only"
+  },
+  "controls": [
+    "Free registration only.",
+    "No wallet signature, fee, asset movement, or paid self-call."
+  ]
+}
