@@ -1,0 +1,103 @@
+name: TMP DELTA TOLL402 Evidence 20260909 0400
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-automation-toll402-evidence-20260909-0400.yml'
+permissions:
+  contents: write
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Collect TOLL402 contract and treasury fallbacks
+        shell: bash
+        run: |
+          set -u
+          OUT=docs/evidence/toll402-automation-2026-09-09.md
+          mkdir -p docs/evidence
+          {
+            echo '# TOLL402 automation evidence — 2026-09-09'
+            echo
+            echo '## TOLL402 official submit surface'
+            date -u '+checked_utc: %Y-%m-%dT%H:%M:%SZ'
+            echo
+          } > "$OUT"
+
+          curl -sS --retry 4 --retry-delay 2 --max-time 30 'https://toll402.com/submit' -o /tmp/toll.html
+          python - "$OUT" <<'PY'
+          from html.parser import HTMLParser
+          import pathlib,re,sys,urllib.request,urllib.parse
+          out=pathlib.Path(sys.argv[1])
+          html=pathlib.Path('/tmp/toll.html').read_text(errors='ignore')
+          rows=[]
+          class P(HTMLParser):
+            def handle_starttag(self,tag,attrs):
+              if tag in ('form','input','textarea','select','button'):
+                d=dict(attrs)
+                rows.append((tag,{k:v for k,v in d.items() if k in ('action','method','name','type','placeholder','value')}))
+          P().feed(html)
+          with out.open('a') as f:
+            f.write('form_controls:\n```json\n')
+            import json
+            f.write(json.dumps(rows,indent=2)[:16000]+'\n```\n\n')
+          srcs=re.findall(r'<script[^>]+src=["\']([^"\']+)',html,re.I)
+          findings=[]
+          for src in srcs:
+            url=urllib.parse.urljoin('https://toll402.com/submit',src)
+            try:
+              req=urllib.request.Request(url,headers={'user-agent':'Mozilla/5.0'})
+              data=urllib.request.urlopen(req,timeout=20).read().decode(errors='ignore')
+            except Exception as e:
+              findings.append({'script':url,'error':repr(e)}); continue
+            apis=sorted(set(re.findall(r'/api/[A-Za-z0-9_./?=&:-]+',data)))
+            hits=[x for x in apis if any(k in x.lower() for k in ('submit','listing','review','contact'))]
+            contexts=[]
+            for needle in ('SUBMIT FOR REVIEW','contactEmail','contact_email','endpointUrl','endpoint_url','submit-listing','submitListing'):
+              i=data.find(needle)
+              if i>=0: contexts.append(data[max(0,i-500):i+1200])
+            if hits or contexts: findings.append({'script':url,'api_hits':hits[:100],'contexts':contexts[:8]})
+          with out.open('a') as f:
+            f.write('script_findings:\n```json\n'+json.dumps(findings,indent=2)[:30000]+'\n```\n\n')
+          PY
+
+          {
+            echo '## Treasury fallback reads'
+            echo 'canonical_usdc: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+            echo 'treasury: 0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+            echo
+          } >> "$OUT"
+          BS='https://base.blockscout.com/api/v2/addresses/0x1990e21bc219696ff7fbc26527dbaed335ac6367/token-transfers?type=ERC-20'
+          code=$(curl -sS --retry 4 --retry-delay 2 --max-time 30 -o /tmp/bs.json -w '%{http_code}' "$BS" || true)
+          echo "blockscout_http: $code" >> "$OUT"
+          if [ -s /tmp/bs.json ]; then
+            python - "$OUT" <<'PY'
+          import json,pathlib,sys
+          p=pathlib.Path(sys.argv[1])
+          try: d=json.load(open('/tmp/bs.json'))
+          except Exception as e:
+            with p.open('a') as f:f.write('blockscout_parse_error: '+repr(e)+'\n')
+            raise SystemExit
+          target='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+          rows=[]
+          for x in d.get('items',[]):
+            tok=(x.get('token') or {}).get('address_hash','').lower()
+            to=((x.get('to') or {}).get('hash') or '').lower()
+            if tok==usdc and to==target:
+              val=x.get('total') or x.get('value') or x.get('amount')
+              rows.append({'timestamp':x.get('timestamp'),'tx_hash':x.get('transaction_hash'),'from':((x.get('from') or {}).get('hash') or ''),'to':to,'token':tok,'raw_value':val})
+          with p.open('a') as f:
+            f.write('blockscout_canonical_incoming_count_visible: '+str(len(rows))+'\n')
+            f.write('blockscout_canonical_incoming_visible:\n```json\n'+json.dumps(rows,indent=2)[:20000]+'\n```\n')
+          PY
+          fi
+      - name: Persist evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'DELTA automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/evidence/toll402-automation-2026-09-09.md
+          git commit -m 'ops: persist TOLL402 contract and treasury fallback evidence' || exit 0
+          git push
