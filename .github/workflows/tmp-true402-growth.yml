@@ -1,0 +1,143 @@
+name: TMP true402 growth run
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-true402-growth.yml'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify DELTA production quote
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          STATUS=$(curl --retry 2 --retry-delay 2 --retry-all-errors -sS -o /tmp/preflight.json -D /tmp/preflight.headers -w '%{http_code}' \
+            -X POST "$BASE/v1/preflight" -H 'content-type: application/json' \
+            -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
+          echo "DELTA_PREFLIGHT_HTTP=$STATUS"
+          test "$STATUS" = '402'
+          grep -qi '^payment-required:' /tmp/preflight.headers
+          node - <<'NODE'
+          const fs=require('fs');
+          const h=fs.readFileSync('/tmp/preflight.headers','utf8');
+          const m=h.match(/^payment-required:\s*(.+)$/mi);
+          if (!m) process.exit(1);
+          console.log('DELTA_PAYMENT_REQUIRED_PRESENT=true');
+          NODE
+
+      - name: Register DELTA on true402 with bounded fallback
+        shell: bash
+        run: |
+          set -u
+          ORIGIN='https://delta-witness-api.ruphussten.workers.dev'
+          cat > /tmp/true402-payload.json <<'JSON'
+          {
+            "url": "https://delta-witness-api.ruphussten.workers.dev",
+            "manifest": {
+              "x402": "1.0",
+              "name": "DELTA Witness Preflight",
+              "capabilities": ["preflight", "web-evidence", "agent-safety", "deterministic-verification"],
+              "pricing": {"currency": "USDC", "base": "0.03", "unit": "request"},
+              "payment": {
+                "address": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+                "chain": "base",
+                "facilitator": "https://facilitator.payai.network"
+              },
+              "endpoint": "https://delta-witness-api.ruphussten.workers.dev/v1/preflight"
+            }
+          }
+          JSON
+
+          do_post () {
+            curl --retry 2 --retry-delay 2 --retry-all-errors -sS \
+              -o /tmp/true402-register.json -w '%{http_code}' \
+              -X POST 'https://true402.dev/api/v1/services' \
+              -H 'content-type: application/json' \
+              --data-binary @/tmp/true402-payload.json
+          }
+
+          HTTP=$(do_post || true)
+          echo "TRUE402_REGISTER_HTTP=$HTTP"
+          node - <<'NODE'
+          const fs=require('fs');
+          let s=''; try{s=fs.readFileSync('/tmp/true402-register.json','utf8')}catch{}
+          try {
+            const j=JSON.parse(s);
+            const safe={};
+            for (const k of ['ok','id','serviceId','slug','status','listed','created','message','error','url','name']) if (j[k]!==undefined) safe[k]=j[k];
+            console.log('TRUE402_REGISTER_BODY='+JSON.stringify(safe));
+          } catch { console.log('TRUE402_REGISTER_BODY_TEXT='+s.slice(0,800)); }
+          NODE
+
+          # Treat 2xx and already-exists conflicts as non-terminal; a fresh GET readback is authoritative.
+          if [[ ! "$HTTP" =~ ^2 ]] && [[ "$HTTP" != '409' ]]; then
+            echo 'TRUE402_REGISTER_DEGRADED=true'
+          fi
+
+      - name: Read back true402 catalog
+        shell: bash
+        run: |
+          set -u
+          HTTP=$(curl --retry 2 --retry-delay 2 --retry-all-errors -sS -o /tmp/true402-services.json -w '%{http_code}' 'https://true402.dev/api/v1/services' || true)
+          echo "TRUE402_CATALOG_HTTP=$HTTP"
+          node - <<'NODE'
+          const fs=require('fs');
+          let raw=''; try{raw=fs.readFileSync('/tmp/true402-services.json','utf8')}catch{}
+          try {
+            const j=JSON.parse(raw);
+            const arr=Array.isArray(j)?j:(j.services||j.items||j.data||[]);
+            const hits=arr.filter(x=>JSON.stringify(x).toLowerCase().includes('delta-witness'));
+            console.log('TRUE402_DELTA_COUNT='+hits.length);
+            console.log('TRUE402_DELTA='+JSON.stringify(hits.slice(0,5)));
+          } catch(e) {
+            console.log('TRUE402_PARSE_ERROR='+e.message);
+            console.log('TRUE402_CATALOG_TEXT='+raw.slice(0,1000));
+          }
+          NODE
+
+      - name: Audit DELTA paid funnel telemetry
+        shell: bash
+        run: |
+          set +e
+          node scripts/query-revenue-candidates.mjs
+          echo "FUNNEL_EXIT=$?"
+          exit 0
+
+      - name: Reconcile Base Treasury canonical USDC
+        shell: bash
+        run: |
+          set -u
+          node - <<'NODE'
+          const RPC='https://mainnet.base.org';
+          const USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+          const treasury='1990e21bc219696ff7fbc26527dbaed335ac6367'.toLowerCase();
+          const topic0='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+          const topic2='0x'+treasury.padStart(64,'0');
+          const from=51018062;
+          async function rpc(method,params){
+            let last;
+            for(let i=0;i<3;i++){
+              try{
+                const r=await fetch(RPC,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});
+                const j=await r.json(); if(j.error) throw new Error(JSON.stringify(j.error)); return j.result;
+              }catch(e){ last=e; await new Promise(r=>setTimeout(r,1500*(i+1))); }
+            }
+            throw last;
+          }
+          (async()=>{
+            const latestHex=await rpc('eth_blockNumber',[]); const latest=parseInt(latestHex,16);
+            const logs=await rpc('eth_getLogs',[{address:USDC,fromBlock:'0x'+from.toString(16),toBlock:latestHex,topics:[topic0,null,topic2]}]);
+            const rows=logs.map(l=>({block:parseInt(l.blockNumber,16),tx:l.transactionHash,from:'0x'+l.topics[1].slice(-40),to:'0x'+l.topics[2].slice(-40),amount_usdc:Number(BigInt(l.data))/1e6}));
+            console.log('TREASURY_SCAN_FROM='+from);
+            console.log('TREASURY_LATEST_BLOCK='+latest);
+            console.log('TREASURY_NEW_COUNT='+rows.length);
+            console.log('TREASURY_NEW='+JSON.stringify(rows));
+          })().catch(e=>{console.error('TREASURY_RECON_ERROR='+e.message);process.exit(2)});
+          NODE
