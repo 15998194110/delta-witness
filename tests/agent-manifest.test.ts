@@ -20,13 +20,14 @@ describe("agent.json provider manifest", () => {
       "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
       "https://facilitator.payai.network",
       quote("capture"),
-      quote("preflight"),
+      quote("preflight", 1),
     );
     expect(doc.version).toBe("1.4");
     expect(doc.origin).toBe("delta-witness-api.ruphussten.workers.dev");
     expect(doc.payout_address).toBe("0x1990e21bc219696ff7fbc26527dbaed335ac6367");
     expect(doc.identity).toBeUndefined();
     expect(doc.commitments).toBeUndefined();
+    expect(doc.pricing.note).toBe("Capture is 0.03 USDC per call; public preflight is 1 USDC per call; guarded-action-pilot is a separate 10 USDC bounded pilot.");
     expect(doc.payments.x402.networks[0]).toMatchObject({
       network: "base",
       asset: "USDC",
@@ -36,7 +37,7 @@ describe("agent.json provider manifest", () => {
     });
     expect(doc.intents.map((x: any) => [x.name, x.endpoint, x.method, x.price.amount])).toEqual([
       ["capture_page_state", "/v1/capture", "POST", 0.03],
-      ["preflight_verification", "/v1/preflight", "POST", 0.03],
+      ["preflight_verification", "/v1/preflight", "POST", 1],
       ["guarded_action_pilot", "/v1/guarded-action-pilot", "POST", 10],
     ]);
   });
