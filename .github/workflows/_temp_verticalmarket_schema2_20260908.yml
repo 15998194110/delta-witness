@@ -1,0 +1,17 @@
+name: DELTA Vertical Marketplace Seller Schema
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_verticalmarket_schema2_20260908.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read seller API spec excerpt
+        shell: bash
+        run: |
+          curl --retry 2 --retry-delay 2 --retry-all-errors -fsS --max-time 30 https://verticalmarketplace.ai/llms-full.txt -o /tmp/spec
+          sed -n '400,505p' /tmp/spec
