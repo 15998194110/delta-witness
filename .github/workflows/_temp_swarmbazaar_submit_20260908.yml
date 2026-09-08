@@ -1,0 +1,45 @@
+name: DELTA SwarmBazaar Submit Temp
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_swarmbazaar_submit_20260908.yml'
+permissions:
+  contents: read
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Submit free seller listing and verify response
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/payload.json <<'JSON'
+          {
+            "name":"DELTA Witness",
+            "url":"https://delta-witness-api.ruphussten.workers.dev",
+            "tagline":"Trust layer for autonomous actions: capture evidence and preflight public web state.",
+            "category":"seller",
+            "protocols":"x402, MCP",
+            "offering_title":"Web evidence capture & deterministic preflight",
+            "offering_detail":"Agents verify public page state before acting and receive hashed proof metadata; $0.03 capture/preflight on Base.",
+            "offering_price":"$0.03/capture or preflight · $10 guarded-action pilot · USDC on Base",
+            "logo":"",
+            "featured_plan":"none",
+            "endpoint":"https://delta-witness-api.ruphussten.workers.dev/v1/preflight",
+            "email":"ruphussten85@gmail.com",
+            "website2":""
+          }
+          JSON
+          for attempt in 1 2 3; do
+            code=$(curl -sS --retry 3 --retry-delay 2 --retry-all-errors --max-time 30 -o /tmp/resp.json -w '%{http_code}' \
+              -X POST https://swarmbazaar.com/api/onboard \
+              -H 'content-type: application/json' \
+              --data-binary @/tmp/payload.json || true)
+            echo "ATTEMPT=$attempt HTTP=$code"
+            cat /tmp/resp.json 2>/dev/null || true; echo
+            if [[ "$code" =~ ^2 ]]; then break; fi
+            sleep $((attempt*3))
+          done
+          echo '--- PUBLIC INDEX CHECK ---'
+          curl -sS --retry 3 --retry-delay 2 --retry-all-errors --max-time 30 https://swarmbazaar.com/data/census-vendors.json | grep -i -C 3 -E 'delta-witness|ruphussten' || true
