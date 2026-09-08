@@ -1,0 +1,42 @@
+name: One-off Tollbooth Capture registration
+
+on:
+  push:
+    paths:
+      - '.github/_run_tollbooth_capture'
+
+permissions:
+  contents: read
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify production quote and register Capture
+        shell: bash
+        run: |
+          set -euo pipefail
+          ORIGIN='https://delta-witness-api.ruphussten.workers.dev'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          echo '=== production pre-check ==='
+          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS "$ORIGIN/health" | jq -c .
+          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS "$ORIGIN/v1/quote?product=capture" | jq -c .
+          echo '=== unpaid 402 probe ==='
+          code=$(curl --retry 3 --retry-delay 2 --retry-all-errors -sS -o /tmp/capture402.json -w '%{http_code}' -X POST "$ORIGIN/v1/capture" -H 'content-type: application/json' --data '{"url":"https://example.com"}')
+          echo "HTTP=$code"
+          jq -c . /tmp/capture402.json || cat /tmp/capture402.json
+          test "$code" = '402'
+          echo '=== Tollbooth registration ==='
+          payload=$(jq -nc --arg endpoint "$ORIGIN/v1/capture" --arg wallet "$TREASURY" '{name:"DELTA Witness Capture",endpoint:$endpoint,category:"web-verification",priceUsdc:0.03,wallet:$wallet,chain:"base",description:"Timestamped page-state proof for a public HTTPS page, returning deterministic artifact hashes for autonomous agents."}')
+          for attempt in 1 2 3; do
+            status=$(curl --connect-timeout 15 --max-time 90 -sS -o /tmp/tollbooth.json -w '%{http_code}' -X POST 'https://www.trytollbooth.com/api/services' -H 'content-type: application/json' --data "$payload" || true)
+            echo "attempt=$attempt status=$status"
+            cat /tmp/tollbooth.json 2>/dev/null || true
+            echo
+            if [ "$status" = '200' ] || [ "$status" = '201' ] || [ "$status" = '409' ]; then break; fi
+            sleep $((attempt*3))
+          done
+          if [ "$status" != '200' ] && [ "$status" != '201' ] && [ "$status" != '409' ]; then exit 1; fi
+          echo '=== discovery readback ==='
+          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS 'https://www.trytollbooth.com/api/services?q=DELTA%20Witness' | jq -c .
