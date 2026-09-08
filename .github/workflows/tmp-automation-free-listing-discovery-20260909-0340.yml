@@ -1,4 +1,4 @@
-name: TMP DELTA Fallback Reconcile 20260909 0340
+name: TMP DELTA Historical Receipt Inspect 20260909 0340
 on:
   push:
     paths:
@@ -6,92 +6,29 @@ on:
 permissions:
   contents: read
 jobs:
-  reconcile:
+  inspect:
     runs-on: ubuntu-latest
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - name: Read exact PayAPI listing details
+      - name: Inspect historical Base transaction and token transfers
         shell: bash
         run: |
           set +e
-          for u in 'https://payapi.market/agent/get?id=delta-witness' 'https://payapi.market/api/delta-witness'; do
-            echo "=== $u ==="
-            curl -fsS --retry 3 --retry-delay 2 "$u" | head -c 12000
-            echo
-          done
-          exit 0
-      - name: Blockscout Treasury fallback
-        shell: bash
-        run: |
-          set +e
-          curl -fsS --retry 3 --retry-delay 2 'https://base.blockscout.com/api/v2/addresses/0x1990e21bc219696ff7fbc26527dbaed335ac6367/token-transfers?type=ERC-20' -o /tmp/transfers.json
-          code=$?
-          echo "BLOCKSCOUT_CURL_EXIT=$code"
-          if [ $code -eq 0 ]; then
-            python - <<'PY'
+          tx='0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3'
+          for path in "transactions/$tx" "transactions/$tx/token-transfers"; do
+            echo "=== $path ==="
+            curl -fsS --retry 4 --retry-delay 2 "https://base.blockscout.com/api/v2/$path" -o /tmp/out.json
+            rc=$?
+            echo "CURL_EXIT=$rc"
+            if [ $rc -eq 0 ]; then
+              python - <<'PY'
           import json
-          d=json.load(open('/tmp/transfers.json'))
-          usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
-          treasury='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-          items=d.get('items',[]) if isinstance(d,dict) else []
-          rows=[]
-          for x in items:
-              token=((x.get('token') or {}).get('address') or '').lower()
-              to=((x.get('to') or {}).get('hash') or x.get('to') or '').lower() if isinstance(x.get('to'),dict) else str(x.get('to') or '').lower()
-              if token==usdc and to==treasury:
-                  raw=x.get('total',{}).get('value') if isinstance(x.get('total'),dict) else x.get('value')
-                  dec=(x.get('token') or {}).get('decimals') or 6
-                  try: amount=int(raw)/(10**int(dec))
-                  except: amount=None
-                  rows.append({'tx':x.get('transaction_hash'),'timestamp':x.get('timestamp'),'amount_usdc':amount,'block':x.get('block_number')})
-          print('BLOCKSCOUT_USDC_INCOMING='+json.dumps(rows,separators=(',',':')))
+          d=json.load(open('/tmp/out.json'))
+          if isinstance(d,dict):
+              keep={k:d.get(k) for k in ['hash','status','block','timestamp','from','to','method','fee','items'] if k in d}
+              print(json.dumps(keep,separators=(',',':'))[:12000])
+          else:
+              print(json.dumps(d,separators=(',',':'))[:12000])
           PY
-          fi
-          exit 0
-      - name: D1 telemetry fallback
-        shell: bash
-        run: |
-          set +e
-          test -n "${CLOUDFLARE_API_TOKEN:-}" && test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo 'D1_CREDS_MISSING'; exit 0; }
-          python - <<'PY'
-          import json,os,urllib.request
-          tok=os.environ['CLOUDFLARE_API_TOKEN']; acct=os.environ['CLOUDFLARE_ACCOUNT_ID']
-          root=f'https://api.cloudflare.com/client/v4/accounts/{acct}/d1/database'
-          def call(url,body=None):
-              req=urllib.request.Request(url,data=None if body is None else json.dumps(body).encode(),method='GET' if body is None else 'POST',headers={'Authorization':f'Bearer {tok}','Content-Type':'application/json'})
-              with urllib.request.urlopen(req,timeout=30) as r:return json.load(r)
-          try:
-              dbs=call(root).get('result',[])
-          except Exception as e:
-              print('D1_LIST_ERROR='+type(e).__name__); raise SystemExit
-          c=[d for d in dbs if 'delta' in str(d.get('name','')).lower() or 'witness' in str(d.get('name','')).lower()]
-          print('D1_CANDIDATES='+json.dumps([d.get('name') for d in c]))
-          for d in c:
-              q=f"{root}/{d['uuid']}/query"
-              try:
-                  s=call(q,{'sql':"SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"}).get('result',[])
-                  tables=[]
-                  for z in s if isinstance(s,list) else []: tables += [r.get('name') for r in z.get('results',[]) if r.get('name')]
-                  print('D1_TABLES='+json.dumps(tables))
-                  for t in tables:
-                      if t.startswith('_') or not t.replace('_','').isalnum(): continue
-                      try:
-                          inf=call(q,{'sql':f'PRAGMA table_info({t})'}).get('result',[])
-                          cols=[]
-                          for z in inf if isinstance(inf,list) else []: cols += [r.get('name') for r in z.get('results',[]) if r.get('name')]
-                          ec=next((x for x in cols if x.lower() in ['event_type','event','type']),None)
-                          tc=next((x for x in cols if x.lower() in ['created_at','timestamp','ts']),None)
-                          if not ec: continue
-                          sql=f"SELECT * FROM {t} WHERE lower(CAST({ec} AS TEXT)) IN ('payment_verified','capture_completed','paid_settlement','settlement_confirmed','treasury_received','qualified_request')"
-                          if tc: sql += f' ORDER BY {tc} DESC'
-                          sql += ' LIMIT 50'
-                          res=call(q,{'sql':sql}).get('result',[])
-                          rows=[]
-                          for z in res if isinstance(res,list) else []: rows += z.get('results',[])
-                          if rows: print('D1_PAID_ROWS_'+t+'='+json.dumps(rows,separators=(',',':'))[:12000])
-                      except Exception as e: print('D1_TABLE_ERROR_'+t+'='+type(e).__name__)
-              except Exception as e: print('D1_DB_ERROR='+type(e).__name__)
-          PY
+            fi
+          done
           exit 0
