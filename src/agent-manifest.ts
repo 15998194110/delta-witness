@@ -32,7 +32,7 @@ export function agentJsonManifest(
       amount: Math.round(capture.grossPriceUsd * 1_000_000),
       currency: "USDC",
       network: "base",
-      note: "Capture and preflight are 0.03 USDC per call; guarded-action-pilot is a separate 10 USDC bounded pilot.",
+      note: `Capture is ${capture.grossPriceUsd} USDC per call; public preflight is ${preflight.grossPriceUsd} USDC per call; guarded-action-pilot is a separate 10 USDC bounded pilot.`,
     },
     availability: { now: true, window_hours: 168, sla: "best-effort" },
     contact: {
