@@ -1,0 +1,72 @@
+name: TMP DELTA Free Listing Contract Discovery 20260909 0340
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-automation-free-listing-discovery-20260909-0340.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect PayAPI SPA submission contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://payapi.market'
+          curl -fsS --retry 3 --retry-delay 2 "$base/list" -o /tmp/payapi.html
+          src=$(grep -Eo 'src="/assets/index-[^"]+\.js"' /tmp/payapi.html | head -1 | cut -d'"' -f2)
+          test -n "$src"
+          curl -fsS --retry 3 --retry-delay 2 "$base$src" -o /tmp/payapi.js
+          echo "PAYAPI_JS=$src"
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('/tmp/payapi.js').read_text(errors='ignore')
+          needles=['/api/','submit','listing','featured','wallet','baseUrl','base_url','contactEmail','email','price']
+          for n in needles:
+              print('\n===',n,'===')
+              start=0; shown=0
+              while shown<8:
+                  i=s.lower().find(n.lower(),start)
+                  if i<0: break
+                  print(s[max(0,i-350):i+700].replace('\n',' ')[:1200])
+                  start=i+len(n); shown+=1
+          PY
+      - name: Inspect 402.ad submission scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://402.ad'
+          curl -fsS --retry 3 --retry-delay 2 "$base/submit" -o /tmp/ad.html
+          echo '=== 402AD FORM CONTEXT ==='
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('/tmp/ad.html').read_text(errors='ignore')
+          for n in ['<form','Submit Your','endpoint','category','price','fetch(','/api/']:
+              i=s.lower().find(n.lower())
+              if i>=0: print('\n---',n,'---\n',s[max(0,i-500):i+1800].replace('\n',' '))
+          PY
+          grep -Eo '<script[^>]+src="[^"]+"' /tmp/ad.html | sed -E 's/.*src="([^"]+)"/\1/' > /tmp/srcs.txt || true
+          n=0
+          while read -r src; do
+            [ -z "$src" ] && continue
+            case "$src" in http*) url="$src";; *) url="$base$src";; esac
+            if curl -fsS --retry 2 --retry-delay 1 "$url" -o "/tmp/ad-$n.js"; then
+              if grep -Eqi 'submit|/api/|endpoint|listing' "/tmp/ad-$n.js"; then
+                echo "=== SCRIPT $src ==="
+                python - "$n" <<'PY'
+          import sys
+          from pathlib import Path
+          s=Path('/tmp/ad-'+sys.argv[1]+'.js').read_text(errors='ignore')
+          for needle in ['submit','/api/','endpoint','listing']:
+              start=0; shown=0
+              while shown<5:
+                  i=s.lower().find(needle.lower(),start)
+                  if i<0: break
+                  print(s[max(0,i-300):i+800].replace('\n',' ')[:1100])
+                  start=i+len(needle); shown+=1
+          PY
+              fi
+            fi
+            n=$((n+1))
+          done < /tmp/srcs.txt
