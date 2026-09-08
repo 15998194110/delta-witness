@@ -1,4 +1,4 @@
-name: One-off PayanAgent funded-request scan
+name: One-off PayanAgent funded-request verification
 
 on:
   push:
@@ -9,53 +9,60 @@ permissions:
   contents: write
 
 jobs:
-  scan:
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 8
+    env:
+      PAYANAGENT_API_KEY: ${{ secrets.PAYANAGENT_API_KEY }}
     steps:
       - uses: actions/checkout@v6
-      - name: Scan compatible open requests
+      - name: Verify compatible funded requests
         shell: bash
         run: |
           set -euo pipefail
+          if [ -n "${PAYANAGENT_API_KEY:-}" ]; then echo 'Payan provider auth: present'; else echo 'Payan provider auth: absent'; fi
           node - <<'NODE'
-          const fs = require('fs');
+          const fs=require('fs');
           const base='https://payanagent.com';
-          const queries=['verification','preflight','evidence','endpoint','website','browser'];
+          const targets=[
+            {id:'ks76vc9pzpz3qfgf8aawjckn5n8bezhf',receipt:'kn76vdyp5sb7kk2bqs130mhrx98bf90e',label:'catalog endpoint-health checker'},
+            {id:'ks72wtaz7zm77kb8hwsnpkhpzx8bep72',receipt:'kn7ayz776b30tggh97v8axkkys8bfzrf',label:'escrow/x402 bug bounty'}
+          ];
           const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-          async function get(q){
-            const url=`${base}/api/v1/discover?q=${encodeURIComponent(q)}&limit=100`;
-            let last=null;
+          async function get(url){
+            let last;
             for(let i=0;i<3;i++){
               const c=new AbortController(); const t=setTimeout(()=>c.abort(),25000);
               try{
                 const r=await fetch(url,{signal:c.signal}); const txt=await r.text(); clearTimeout(t);
-                let j=null; try{j=JSON.parse(txt)}catch{}
-                if(r.status===429 || r.status>=500){last={q,status:r.status,error:txt.slice(0,500)}; if(i+1<3) await sleep(1000*(2**i)); continue;}
-                return {q,status:r.status,ok:r.ok,json:j,error:r.ok?null:txt.slice(0,500)};
-              }catch(e){clearTimeout(t); last={q,status:0,error:String(e)}; if(i+1<3) await sleep(1000*(2**i));}
+                let json=null; try{json=JSON.parse(txt)}catch{}
+                last={status:r.status,ok:r.ok,json,text:txt.slice(0,3000)};
+                if((r.status===429||r.status>=500)&&i<2){await sleep(1000*(2**i));continue;}
+                return last;
+              }catch(e){clearTimeout(t);last={status:0,ok:false,error:String(e)};if(i<2)await sleep(1000*(2**i));}
             }
             return last;
           }
           async function main(){
-            const calls=[]; const byId=new Map();
-            for(const q of queries){
-              const r=await get(q); calls.push({q,status:r?.status||0,ok:!!r?.ok,error:r?.error||null});
-              for(const req of (r?.json?.openRequests||[])){
-                const id=req.id||req.requestId||JSON.stringify(req).slice(0,100);
-                byId.set(id,req);
+            const out={observed_at:new Date().toISOString(),channel:'PayanAgent',provider_api_key_present:!!process.env.PAYANAGENT_API_KEY,targets:[]};
+            for(const t of targets){
+              const req=await get(`${base}/api/v1/requests/${t.id}`);
+              const rec=await get(`${base}/api/v1/receipts/${t.receipt}`);
+              let tx=null;
+              const rj=rec?.json||{};
+              const candidateHash=rj.txHash||rj.transactionHash||rj.receipt?.txHash||rj.receipt?.transactionHash||null;
+              if(candidateHash){
+                tx=await get(`https://base.blockscout.com/api/v2/transactions/${candidateHash}`);
               }
+              out.targets.push({label:t.label,request_id:t.id,escrow_receipt_id:t.receipt,request:{status:req?.status||0,ok:!!req?.ok,body:req?.json||req?.text||req?.error||null},receipt:{status:rec?.status||0,ok:!!rec?.ok,body:rec?.json||rec?.text||rec?.error||null},candidate_tx_hash:candidateHash,blockscout_tx:tx?{status:tx.status,ok:tx.ok,body:tx.json||tx.text||tx.error||null}:null});
             }
-            const terms=/verif|preflight|evidence|endpoint|health|website|browser|url|proof|audit|page|http|api|discover|monitor/i;
-            const relevant=[...byId.values()].filter(r=>terms.test(JSON.stringify(r)));
-            const out={observed_at:new Date().toISOString(),channel:'PayanAgent',calls,relevant_open_requests:relevant,count:relevant.length};
             fs.mkdirSync('docs/channel-status',{recursive:true});
-            fs.writeFileSync('docs/channel-status/payanagent-open-requests-2026-09-09.json',JSON.stringify(out,null,2)+'\n');
+            fs.writeFileSync('docs/channel-status/payanagent-escrow-verification-2026-09-09.json',JSON.stringify(out,null,2)+'\n');
           }
           main().catch(e=>{console.error(e);process.exit(1)});
           NODE
           git config user.name 'DELTA Growth Operator'
           git config user.email 'actions@users.noreply.github.com'
-          git add docs/channel-status/payanagent-open-requests-2026-09-09.json
-          git commit -m 'growth: scan PayanAgent funded requests' || true
+          git add docs/channel-status/payanagent-escrow-verification-2026-09-09.json
+          git commit -m 'growth: verify PayanAgent funded-request evidence' || true
           git push
