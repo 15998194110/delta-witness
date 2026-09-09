@@ -1,5 +1,7 @@
 # DELTA Witness v0.6
 
+[![AllMCPs](https://allmcps.com/api/badge/delta-witness?style=directory)](https://allmcps.com/mcp/delta-witness)
+
 DELTA Witness is a Trust Layer for Autonomous Actions. It observes public sources, records timestamped hashes, and lets software make deterministic preflight decisions without claiming that a source is truthful.
 
 ## Production products
