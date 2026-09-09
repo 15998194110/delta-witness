@@ -1,0 +1,77 @@
+name: DELTA Growth Turn 3 Temp
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn3_20260909.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconcile production, treasury, buyers, and open listing channel
+        shell: bash
+        run: |
+          set +e
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          PAYAN='https://payanagent.com'
+          AURA='https://auragate.app'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          KNOWN_REQ='ks76vc9pzpz3qfgf8aawjckn5n8bezhf'
+
+          echo '=== TREASURY_RECONCILIATION ==='
+          node scripts/reconcile-treasury.mjs > /tmp/treasury.json 2>/tmp/treasury.err
+          trc=$?
+          echo "TREASURY_EXIT=$trc"
+          cat /tmp/treasury.err
+          if [ -s /tmp/treasury.json ]; then jq '{ok,checked_at,start_block,latest_block,treasury_received_candidates,total_usdc,evidence_quality,transfers}' /tmp/treasury.json; fi
+
+          echo '=== PRODUCTION_QUOTES ==='
+          quote() {
+            label="$1" url="$2" body="$3"
+            code=$(curl --retry 3 --retry-delay 2 --retry-all-errors -sS --max-time 25 -D "/tmp/${label}.hdr" -o "/tmp/${label}.body" -w '%{http_code}' -X POST "$url" -H 'content-type: application/json' --data-binary "$body" || true)
+            echo "QUOTE label=$label http=$code"
+            grep -Ei '^(payment-required|x-payment-required|content-type):' "/tmp/${label}.hdr" || true
+            jq '{x402Version,accepts,error,message}' "/tmp/${label}.body" 2>/dev/null || head -c 1200 "/tmp/${label}.body"; echo
+          }
+          quote capture "$BASE/v1/capture" '{"url":"https://example.com"}'
+          quote preflight "$BASE/v1/preflight" '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}'
+          quote guarded "$BASE/v1/guarded-action-pilot" '{"urls":["https://example.com"],"preflight":{"url_index":0,"expected":{"contains":["Example Domain"]}}}'
+
+          echo '=== PAYAN_OPEN_REQUESTS ==='
+          pcode=$(curl --retry 3 --retry-delay 2 --retry-all-errors -sS --max-time 25 -o /tmp/payan-requests.json -w '%{http_code}' "$PAYAN/api/v1/requests?status=open&limit=100" || true)
+          echo "PAYAN_REQUESTS_HTTP=$pcode"
+          if [ "$pcode" = 200 ]; then
+            jq --arg known "$KNOWN_REQ" '{known:[(.requests // .items // .data // [])[] | select((._id // .id)==$known) | {id:(._id // .id),title,status,budgetMinCents,budgetMaxCents,escrow,escrowDepositedCents,escrowReceiptId,bidCount,acceptedBidId,assignedAgentId,fulfilledAt,completedAt}], compatible:[(.requests // .items // .data // [])[] | select((.status//"")=="open") | select((.escrow==true) and ((.escrowDepositedCents//0)>0)) | select((((.title//"")+" "+(.description//""))|ascii_downcase|test("api|endpoint|http|web|verification|verify|monitor|health|catalog|evidence|research|data|url|x402"))) | {id:(._id // .id),title,description,budgetMinCents,budgetMaxCents,escrowDepositedCents,escrowReceiptId,bidCount,createdAt}]}' /tmp/payan-requests.json
+          else
+            head -c 1200 /tmp/payan-requests.json; echo
+          fi
+
+          echo '=== PAYAN_RECEIPTS_FOR_TREASURY ==='
+          rcode=$(curl --retry 3 --retry-delay 2 --retry-all-errors -sS --max-time 25 -o /tmp/payan-receipts.json -w '%{http_code}' "$PAYAN/api/v1/receipts?limit=100" || true)
+          echo "PAYAN_RECEIPTS_HTTP=$rcode"
+          if [ "$rcode" = 200 ]; then jq --arg t "$TREASURY" '{matches:[(.receipts // .items // .data // [])[] | select(((.sellerAddress // .payTo // .recipient // "")|ascii_downcase)==($t|ascii_downcase)) | {id:(_id // .id),type,amountCents,amountUsd,txHash,requestId,offerId,buyerAddress,sellerAddress,createdAt}]}' /tmp/payan-receipts.json; else head -c 1000 /tmp/payan-receipts.json; echo; fi
+
+          echo '=== AURAGATE_PROBES ==='
+          probe() {
+            label="$1" url="$2" price="$3"
+            jq -n --arg url "$url" --arg price "$price" '{url:$url,method:"POST",price:$price}' > "/tmp/aura-${label}.json"
+            code=$(curl --retry 3 --retry-delay 2 --retry-all-errors -sS --max-time 25 -o "/tmp/aura-${label}.out" -w '%{http_code}' -X POST "$AURA/api/services/probe" -H 'content-type: application/json' --data-binary @"/tmp/aura-${label}.json" || true)
+            echo "AURA_PROBE label=$label http=$code"
+            jq . "/tmp/aura-${label}.out" 2>/dev/null || head -c 1500 "/tmp/aura-${label}.out"; echo
+          }
+          probe capture "$BASE/v1/capture" '0.03'
+          probe preflight "$BASE/v1/preflight" '1.00'
+          probe guarded "$BASE/v1/guarded-action-pilot" '10.00'
+
+          echo '=== AURAGATE_CATALOG_EXISTING ==='
+          acode=$(curl --retry 3 --retry-delay 2 --retry-all-errors -sS --max-time 25 -o /tmp/aura-catalog.json -w '%{http_code}' "$AURA/api/agent" || true)
+          echo "AURA_CATALOG_HTTP=$acode"
+          if [ "$acode" = 200 ]; then jq '{delta:[(.services // [])[] | select((((.name//"")+" "+(.externalUrl//.url//""))|ascii_downcase|contains("delta"))) | {id,name,price,url,externalUrl,sellerAddress,network}]}' /tmp/aura-catalog.json; fi
+
+          echo '=== END_TURN3_CHECK ==='
