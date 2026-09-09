@@ -60,3 +60,5 @@ jobs:
           probe capture kh79t54410qb82yjcqsjmgv0d58dn7p3 '{"url":"https://example.com"}' '30000'
           probe preflight kh72vd1kdv37109xxzzgmn2xfn8dnc6z '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' '30000'
           probe guarded-action-pilot kh7dskbdz0mj2ctc0dvm6q1yb98dz8dm '{"urls":["https://example.com"],"preflight":{"url_index":0,"expected":{"contains":["Example Domain"]}}}' '10000000'
+
+# Trigger after owner-mandate pricing test alignment.
