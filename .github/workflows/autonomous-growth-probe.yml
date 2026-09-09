@@ -1,0 +1,115 @@
+name: Autonomous Growth Probe
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/autonomous-growth-probe.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Run bounded public checks and free listing
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, time, requests
+          from urllib.parse import quote
+
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          USDC='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+          BID='jd79ndx8s7y59tkcvjbars0vf18e33z9'
+          s=requests.Session()
+          s.headers.update({'User-Agent':'DELTA-Witness-Autonomous-Growth/1.0'})
+
+          def req(method,url,**kw):
+            last=None
+            for i in range(4):
+              try:
+                r=s.request(method,url,timeout=20,**kw)
+                if r.status_code not in (429,500,502,503,504): return r
+                last=r
+              except Exception as e: last=e
+              time.sleep(min(2**i,5))
+            if isinstance(last,Exception): raise last
+            return last
+
+          print('=== PRODUCTION ===')
+          for path in ['/distribution.json','/.well-known/x402','/docs']:
+            try:
+              r=req('GET',BASE+path)
+              print(path,r.status_code,r.text[:2500].replace('\n',' '))
+            except Exception as e: print(path,'ERR',repr(e))
+          for path in ['/v1/capture','/v1/preflight']:
+            try:
+              r=req('POST',BASE+path,json={'url':'https://example.com'})
+              print(path,'STATUS',r.status_code)
+              for k,v in r.headers.items():
+                if 'payment' in k.lower() or 'x402' in k.lower(): print('HDR',k,v[:1600])
+              print('BODY',r.text[:2500].replace('\n',' '))
+            except Exception as e: print(path,'ERR',repr(e))
+
+          print('=== TRUE402 DIRECT FREE LISTING ===')
+          register='https://true402.dev/api/v1/services'
+          payload={'url':BASE}
+          try:
+            r=req('POST',register,json=payload)
+            print('ROOT_REGISTER',r.status_code,r.text[:3000])
+            if r.status_code >= 400:
+              manifest={
+                'x402':'1.0','name':'DELTA Witness Preflight',
+                'description':'Preflight an autonomous action against a fresh public-source observation with deterministic expectations and timestamped evidence.',
+                'capabilities':['agent-safety','preflight','verification','evidence','web'],
+                'pricing':{'currency':'USDC','base':'0.03','unit':'request'},
+                'payment':{'address':TREASURY,'chain':'base-mainnet'},
+                'endpoint':BASE+'/v1/preflight'
+              }
+              r2=req('POST',register,json={'url':BASE,'manifest':manifest})
+              print('FALLBACK_REGISTER',r2.status_code,r2.text[:3000])
+            cat=req('GET',register)
+            data=cat.json() if cat.ok else {}
+            matches=[x for x in data.get('data',[]) if 'delta-witness' in (str(x.get('url',''))+json.dumps(x.get('manifest',{}))).lower()]
+            print('CATALOG_MATCHES',json.dumps(matches,ensure_ascii=False)[:5000])
+          except Exception as e: print('TRUE402_ERR',repr(e))
+
+          print('=== PAYAN FUNDED REQUEST ===')
+          try:
+            q=quote('catalog endpoint-health checker')
+            r=req('GET',f'https://payanagent.com/api/v1/requests?status=open&q={q}&limit=30')
+            print('REQUEST_LIST',r.status_code,r.text[:5000])
+            obj=r.json() if r.ok else {}
+            arr=obj.get('requests',obj.get('data',obj if isinstance(obj,list) else []))
+            if isinstance(arr,list):
+              for item in arr:
+                blob=json.dumps(item).lower()
+                if 'endpoint-health' in blob or 'catalog endpoint' in blob:
+                  rid=item.get('id') or item.get('requestId')
+                  print('MATCH',json.dumps(item))
+                  if rid:
+                    d=req('GET',f'https://payanagent.com/api/v1/requests/{rid}')
+                    print('DETAIL',d.status_code,d.text[:7000])
+                    print('BID_PRESENT',BID in d.text)
+          except Exception as e: print('PAYAN_ERR',repr(e))
+
+          print('=== TREASURY ===')
+          try:
+            u=f'https://base.blockscout.com/api/v2/addresses/{TREASURY}/token-transfers?type=ERC-20'
+            r=req('GET',u)
+            print('BLOCKSCOUT',r.status_code)
+            obj=r.json() if r.ok else {}
+            incoming=[]
+            for x in obj.get('items',[]):
+              token=(x.get('token') or {})
+              to=x.get('to') or {}
+              if str(to.get('hash','')).lower()==TREASURY.lower() and str(token.get('address_hash',token.get('address',''))).lower()==USDC:
+                raw=x.get('total',{}).get('value',x.get('value','0')) if isinstance(x.get('total'),dict) else x.get('value','0')
+                dec=token.get('decimals') or 6
+                try: amount=int(raw)/(10**int(dec))
+                except: amount=raw
+                incoming.append({'timestamp':x.get('timestamp'),'tx':x.get('transaction_hash'),'from':(x.get('from') or {}).get('hash'),'amount':amount})
+            print('USDC_INCOMING',json.dumps(incoming[:20]))
+            print('NEXT',json.dumps(obj.get('next_page_params')))
+          except Exception as e: print('TREASURY_ERR',repr(e))
+          PY
