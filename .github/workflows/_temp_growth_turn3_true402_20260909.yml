@@ -1,4 +1,4 @@
-name: DELTA true402 Readback Temp
+name: DELTA true402 Targeted Readback Temp
 
 on:
   push:
@@ -13,27 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Read back DELTA true402 listings and Payan receipts
+      - name: Read back targeted DELTA true402 listings
         shell: bash
         run: |
           set +e
-          BASE='https://delta-witness-api.ruphussten.workers.dev'
-          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-
-          echo '=== TRUE402_READBACK ==='
-          tcode=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o /tmp/true402.json -w '%{http_code}' 'https://true402.dev/api/v1/services' || true)
-          echo "TRUE402_LIST_HTTP=$tcode"
-          if [ "$tcode" = 200 ]; then
-            jq --arg base "$BASE" '{delta:[(.data // [])[] | select(((.manifest.endpoint // .url // "") | startswith($base))) | {id,url,manifest,reputation}]}' /tmp/true402.json
+          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -G -o /tmp/true402.json -w '%{http_code}' 'https://true402.dev/api/v1/services' --data-urlencode 'q=delta-witness' --data-urlencode 'limit=100' || true)
+          echo "TRUE402_TARGETED_HTTP=$code"
+          if [ "$code" = 200 ]; then
+            jq '{object,has_more,next_cursor,data:[(.data // [])[] | {id,url,manifest,reputation}]}' /tmp/true402.json
           else
-            head -c 1600 /tmp/true402.json; echo
-          fi
-
-          echo '=== PAYAN_RECEIPTS_TREASURY_READBACK ==='
-          pcode=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o /tmp/payan.json -w '%{http_code}' 'https://payanagent.com/api/v1/receipts?limit=100' || true)
-          echo "PAYAN_RECEIPTS_HTTP=$pcode"
-          if [ "$pcode" = 200 ]; then
-            jq --arg t "$TREASURY" '{matches:[(.receipts // .items // .data // [])[] | select(((.sellerAddress // .payTo // .recipient // "") | ascii_downcase) == ($t | ascii_downcase)) | {id:(._id // .id),type,amountCents,amountUsd,txHash,requestId,offerId,buyerAddress,sellerAddress,createdAt}]}' /tmp/payan.json
-          else
-            head -c 1600 /tmp/payan.json; echo
+            head -c 4000 /tmp/true402.json; echo
           fi
