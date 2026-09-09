@@ -1,0 +1,29 @@
+{
+  "observed_at": "2026-09-09T08:46:45Z",
+  "channel_source": "PayanAgent funded request",
+  "request_id": "ks76vc9pzpz3qfgf8aawjckn5n8bezhf",
+  "bid_id": "jd79ndx8s7y59tkcvjbars0vf18e33z9",
+  "bid_status": "submitted_not_yet_settled",
+  "fulfillment_readiness": {
+    "script": "scripts/payan-catalog-health-checker.mjs",
+    "syntax_check": "passed",
+    "unpaid_smoke_test_offers": 10,
+    "alive": 10,
+    "four_xx": 0,
+    "five_xx": 0,
+    "timeout": 0,
+    "dead": 0,
+    "payment_headers_sent": false,
+    "notes": "PayanAgent public offer projections hide upstream seller endpoints. The checker uses a public upstream URL when exposed; otherwise it probes the public /x402/:offerId route and treats unpaid HTTP 402 as a healthy liveness signal. This limitation is explicit in the generated markdown report."
+  },
+  "financial_state": {
+    "value_authored": "health-checker implementation prepared",
+    "payment_authorized": false,
+    "settlement_confirmed": false,
+    "treasury_received": false,
+    "revenue_usdc": 0,
+    "variable_cost_usdc": 0,
+    "contribution_margin_usdc": 0
+  },
+  "evidence_quality": "A_direct_execution_smoke_test"
+}
