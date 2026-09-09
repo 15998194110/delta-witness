@@ -1,0 +1,106 @@
+name: DELTA Growth Turn 8
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn8_20260910_0241.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconcile and refresh
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p .growth
+          node <<'NODE' > .growth/result.json
+          const sleep = ms => new Promise(r=>setTimeout(r,ms));
+          const TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'.toLowerCase();
+          const BASE='https://delta-witness-api.ruphussten.workers.dev';
+          const START_BLOCK=51092579n;
+          const USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+          const TRANSFER_TOPIC='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+          const TO_TOPIC='0x'+'0'.repeat(24)+TREASURY.slice(2);
+          const KNOWN={
+            '0x54e163e9b8edda194d83f46add921bfa5fc5f4e0':'nohumans_platform_verification',
+            '0x7e6b6556322c4e26c567a867964ac793f5ee2b1c':'payapi_platform_verification'
+          };
+          const out={checked_at:new Date().toISOString(),production:{},treasury:{},payan:{},payapi:{},agent402:{},swarmwage:{}};
+          async function req(url,opts={},tries=4){
+            let last={};
+            for(let i=0;i<tries;i++){
+              try{
+                const r=await fetch(url,{...opts,headers:{'user-agent':'DELTA-Witness-Growth/0.7',...(opts.headers||{})},signal:AbortSignal.timeout(15000)});
+                const text=await r.text(); last={status:r.status,text,headers:Object.fromEntries(r.headers)};
+                if((r.status===429||r.status>=500)&&i<tries-1){await sleep(600*2**i);continue}
+                return last;
+              }catch(e){last={status:0,text:'',error:String(e)};if(i<tries-1)await sleep(600*2**i)}
+            }
+            return last;
+          }
+          function j(s){try{return JSON.parse(s)}catch{return null}}
+          function accepts(obj){for(const a of [obj?.accepts,obj?.paymentRequirements,obj?.payment?.accepts,obj?.x402?.accepts,obj?.error?.accepts])if(Array.isArray(a)&&a.length)return a[0];return null}
+          async function probe(name,path,body,expected){
+            const r=await req(BASE+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+            const bodyj=j(r.text)||{}; const a=accepts(bodyj)||{};
+            const amount=String(a.maxAmountRequired??a.amount??a.maxAmount??'');
+            const payTo=String(a.payTo??a.pay_to??'').toLowerCase();
+            const network=String(a.network??'');
+            out.production[name]={http:r.status,amount,payTo,network,ok:r.status===402&&amount===expected&&payTo===TREASURY&&network==='eip155:8453'};
+          }
+          await probe('capture','/v1/capture',{url:'https://example.com'},'30000');
+          await probe('preflight','/v1/preflight',{url:'https://example.com',expected:{contains:['Example Domain']}},'30000');
+          await probe('pilot','/v1/guarded-action-pilot',{urls:['https://example.com'],preflight:{url_index:0,expected:{contains:['Example Domain']}}},'10000000');
+          out.production.core_ok=Object.values(out.production).filter(x=>x&&typeof x==='object'&&'ok' in x).every(x=>x.ok);
+
+          async function rpc(ep,method,params){
+            const r=await req(ep,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})},3);
+            if(r.status!==200)throw new Error('http_'+r.status);
+            const q=j(r.text);if(!q||q.error)throw new Error(q?.error?.message||'bad_rpc');return q.result;
+          }
+          const rpcs=['https://mainnet.base.org','https://base-rpc.publicnode.com','https://base.llamarpc.com'];
+          let latest=null,rpcUsed=null;
+          for(const ep of rpcs){try{latest=BigInt(await rpc(ep,'eth_blockNumber',[]));rpcUsed=ep;break}catch(e){}}
+          const rec=[]; const degraded=[];
+          if(latest!==null){
+            let from=START_BLOCK;
+            while(from<=latest){const to=from+1499n>latest?latest:from+1499n;let logs=null;
+              for(const ep of [rpcUsed,...rpcs.filter(x=>x!==rpcUsed)]){try{logs=await rpc(ep,'eth_getLogs',[{address:USDC,fromBlock:'0x'+from.toString(16),toBlock:'0x'+to.toString(16),topics:[TRANSFER_TOPIC,null,TO_TOPIC]}]);rpcUsed=ep;break}catch(e){degraded.push({ep,from:Number(from),to:Number(to),error:String(e)})}}
+              if(Array.isArray(logs))for(const l of logs){const raw=BigInt(l.data||'0x0');const payer=('0x'+String(l.topics?.[1]||'').slice(-40)).toLowerCase();rec.push({block:Number(BigInt(l.blockNumber)),tx:l.transactionHash,payer,raw:raw.toString(),usdc:Number(raw)/1e6,classification:KNOWN[payer]||'unclassified'});} else degraded.push({from:Number(from),to:Number(to),unresolved:true});
+              from=to+1n;
+            }
+          }
+          out.treasury={start_block:Number(START_BLOCK),latest_block:latest===null?null:Number(latest),rpc:rpcUsed,receipts:rec,degraded,unclassified:rec.filter(x=>x.classification==='unclassified'),known_non_customer:rec.filter(x=>x.classification!=='unclassified')};
+
+          const RID='ks76vc9pzpz3qfgf8aawjckn5n8bezhf', BID='jd79ndx8s7y59tkcvjbars0vf18e33z9', PAYAN='https://payanagent.com';
+          const pr=await req(`${PAYAN}/api/v1/requests/${RID}`); out.payan.target={http:pr.status,body:j(pr.text)||pr.text.slice(0,1500)};
+          const rr=await req(`${PAYAN}/api/v1/receipts?limit=300`); const rrj=j(rr.text); const matches=[];
+          function walk(x){if(!x||typeof x!=='object')return;if(Array.isArray(x)){for(const y of x)walk(y);return;}if((x.bidId??x.bid_id)===BID||(x.requestId??x.request_id)===RID)matches.push(x);for(const y of Object.values(x))walk(y)}
+          if(rrj)walk(rrj); out.payan.receipts={http:rr.status,matches:matches.slice(0,20)};
+          const or=await req(`${PAYAN}/api/v1/requests?status=open&limit=200`);const oj=j(or.text);const arr=oj?.requests??oj?.items??oj?.data??[];
+          out.payan.funded={http:or.status,items:(Array.isArray(arr)?arr:[]).filter(x=>x&&x.escrow===true&&Number(x.escrowDepositedCents??0)>0).map(x=>({id:x._id??x.id,title:x.title,description:x.description,budgetMaxCents:x.budgetMaxCents,escrowDepositedCents:x.escrowDepositedCents,status:x.status,bidCount:x.bidCount,createdAt:x.createdAt})).slice(0,50)};
+
+          for(const [k,u] of Object.entries({search:'https://payapi.market/agent/search?q=delta%20witness&verified_only=false&limit=50',list:'https://payapi.market/agent/list?verified_only=false&limit=500'})){
+            const r=await req(u);const q=j(r.text);const a=q?.apis??q?.items??q?.data??q?.results??(Array.isArray(q)?q:[]);out.payapi[k]={http:r.status,matches:Array.isArray(a)?a.filter(x=>JSON.stringify(x).toLowerCase().includes('delta')).slice(0,20):[],preview:Array.isArray(a)?undefined:r.text.slice(0,700)};
+          }
+
+          const ar=await req('https://agent402.tools/api/index/register',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({origin:BASE})});out.agent402.register={http:ar.status,body:j(ar.text)||ar.text.slice(0,1000)};
+          const af=await req('https://agent402.tools/api/find?q=verification%20preflight%20browser%20evidence');out.agent402.find={http:af.status,body:j(af.text)||af.text.slice(0,2500)};
+
+          for(const [k,u] of Object.entries({search:'https://api.swarmwage.com/search?q=verification%20browser%20evidence',listings:'https://api.swarmwage.com/listings?limit=100',receipts:'https://api.swarmwage.com/receipts?limit=100'})){
+            const r=await req(u);out.swarmwage[k]={http:r.status,body:j(r.text)||r.text.slice(0,3000)};
+          }
+          console.log(JSON.stringify(out,null,2));
+          NODE
+          cp .growth/result.json docs/growth-evidence-2026-09-10T0241+08-turn8.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/growth-evidence-2026-09-10T0241+08-turn8.json
+          git commit -m 'ops: record turn 8 growth evidence' || true
+          git push || true
