@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: delta-turn4-preflight-restore
+  cancel-in-progress: false
+
 jobs:
   deploy-and-verify:
     runs-on: ubuntu-latest
@@ -54,5 +58,5 @@ jobs:
             jq --arg name "$name" '{name:$name,product,price_usd,amount:.accepts[0].amount,payTo:.accepts[0].payTo,network:.accepts[0].network}' /tmp/payan.json
           }
           probe capture kh79t54410qb82yjcqsjmgv0d58dn7p3 '{"url":"https://example.com"}' '30000'
-          probe preflight kh72vd1kdv37109xxzzgmn2xfn8dncc6z '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' '30000'
+          probe preflight kh72vd1kdv37109xxzzgmn2xfn8dnc6z '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' '30000'
           probe guarded-action-pilot kh7dskbdz0mj2ctc0dvm6q1yb98dz8dm '{"urls":["https://example.com"],"preflight":{"url_index":0,"expected":{"contains":["Example Domain"]}}}' '10000000'
