@@ -1,0 +1,122 @@
+{
+  "run_at": "2026-09-09T09:37:36Z",
+  "treasury": {
+    "address": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "network": "eip155:8453",
+    "scanned_start_block": 51028209,
+    "scanned_end_block": 51078208,
+    "treasury_received": 0,
+    "revenue_usd": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "production": {
+    "status": "healthy",
+    "capture": {"price_usd": 0.03, "http_unpaid": 402},
+    "preflight": {"price_usd": 1.00, "http_unpaid": 402},
+    "guarded_action_pilot": {"price_usd": 10.00, "http_unpaid": 402}
+  },
+  "channels": [
+    {
+      "channel": "Agent402.Tools",
+      "source": "direct_free_registry",
+      "listing_status": "listed",
+      "discovery_status": "routable",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_registry_direct_response",
+      "details": {
+        "origin": "https://delta-witness-api.ruphussten.workers.dev",
+        "tool_count": 6,
+        "networks": ["eip155:8453"],
+        "health": 1,
+        "routable": true,
+        "registration_http": 200
+      }
+    },
+    {
+      "channel": "true402",
+      "source": "direct_free_registry",
+      "listing_status": "listed_existing_plus_redundant_exact_endpoint",
+      "discovery_status": "discoverable",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_registry",
+      "details": {
+        "canonical_guarded_listing_id": "7e147a75-78fb-4ef3-b35b-538a599df023",
+        "redundant_exact_endpoint_id_created_this_run": "def03e0e-205b-4c73-8b34-def9eb152e7b",
+        "price_usd": 10.00,
+        "trust_score": 0
+      }
+    },
+    {
+      "channel": "PayanAgent",
+      "source": "funded_buyer_request",
+      "listing_status": "existing",
+      "discovery_status": "active",
+      "buyer_count": 1,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 1,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_funded_escrow_request",
+      "details": {
+        "request_id": "ks76vc9pzpz3qfgf8aawjckn5n8bezhf",
+        "bid_id": "jd79ndx8s7y59tkcvjbars0vf18e33z9",
+        "escrow_deposited_cents": 4,
+        "accepted_bid_id": null,
+        "assigned_agent_id": null
+      }
+    },
+    {
+      "channel": "AuraGate",
+      "source": "testnet_registry",
+      "listing_status": "owner_authorization_required",
+      "discovery_status": "probe_valid_only",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": false,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "C_testnet",
+      "details": {
+        "probe_http": 200,
+        "registration_http": 403,
+        "channel_network": "eip155:5042002",
+        "production_network": "eip155:8453"
+      }
+    }
+  ],
+  "gated_opportunities": [
+    {"channel": "x402-list", "reason": "one_off_listing_fee", "autonomous_action": "skipped_financial_boundary"},
+    {"channel": "Agora402", "reason": "listing_fee", "autonomous_action": "skipped_financial_boundary"},
+    {"channel": "a2alist", "reason": "listing_fee_and_wallet_signature", "autonomous_action": "skipped_financial_boundary"},
+    {"channel": "PayAPI Market", "reason": "submission_requires_provider_email", "autonomous_action": "deferred_no_safe_project_business_email"},
+    {"channel": "gold-402", "reason": "direct_PR_requires_fork_and_connector_has_no_upstream_write_access", "autonomous_action": "direct_submission_exhausted_403"}
+  ]
+}
