@@ -1,0 +1,96 @@
+name: DELTA Growth Turn6 Execute
+
+on:
+  push:
+    paths:
+      - ".github/workflows/_temp_growth_turn6_execute_20260909.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute zero-spend growth and strict reconciliation
+        run: |
+          node <<'NODE'
+          const TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367';
+          const USDC='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
+          const BASE='https://delta-witness-api.ruphussten.workers.dev';
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function fetchRetry(url, opts={}, tries=3){
+            let last;
+            for(let i=0;i<tries;i++){
+              try{
+                const r=await fetch(url,opts); const text=await r.text();
+                if(r.status===429 || r.status>=500){ last=new Error(`${r.status} ${text.slice(0,300)}`); await sleep(300*(2**i)); continue; }
+                return {status:r.status,headers:Object.fromEntries(r.headers),text};
+              }catch(e){last=e; await sleep(300*(2**i));}
+            }
+            throw last;
+          }
+          function parse(s){try{return JSON.parse(s)}catch{return {raw:s}}}
+          function collect(obj,key,out=[]){ if(!obj||typeof obj!=='object') return out; for(const [k,v] of Object.entries(obj)){ if(k.toLowerCase()===key.toLowerCase()) out.push(v); collect(v,key,out); } return out; }
+          console.log('=== PRODUCTION 402 ===');
+          const probes=[
+            ['capture','/v1/capture',{url:'https://example.com'}],
+            ['preflight','/v1/preflight',{url:'https://example.com',expected:{contains:['Example Domain']}}],
+            ['guarded_action_pilot','/v1/guarded-action-pilot',{urls:['https://example.com']}],
+          ];
+          for(const [name,path,body] of probes){
+            const r=await fetchRetry(BASE+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+            const j=parse(r.text);
+            console.log('PROD',JSON.stringify({name,status:r.status,amounts:collect(j,'amount'),payTo:collect(j,'payTo'),network:collect(j,'network'),x402Version:collect(j,'x402Version')}));
+          }
+
+          console.log('=== PAYAN FUNDED REQUEST ===');
+          const reqId='ks76vc9pzpz3qfgf8aawjckn5n8bezhf';
+          const pr=await fetchRetry(`https://payanagent.com/api/v1/requests/${reqId}`);
+          const pj=parse(pr.text);
+          console.log('PAYAN',JSON.stringify({http:pr.status,request:pj.request||pj,bids:pj.bids||[]}));
+
+          console.log('=== AGENT EXCHANGE DIRECTORY ===');
+          const d=await fetchRetry('https://store.agentexchange.work/directory');
+          console.log('DIRECTORY_HTTP',d.status);
+          const lower=d.text.toLowerCase();
+          const already=lower.includes('delta-witness')||lower.includes('delta witness')||lower.includes('ruphussten.workers.dev');
+          console.log('DIRECTORY_DELTA_PRESENT',already);
+          if(!already){
+            const message='DELTA Witness integration/discovery request: public x402 v2 Base USDC service for browser-verifiable page-state evidence and deterministic preflight before autonomous actions. Machine discovery: https://delta-witness-api.ruphussten.workers.dev/.well-known/x402 ; OpenAPI: https://delta-witness-api.ruphussten.workers.dev/openapi.json ; Capture POST /v1/capture ($0.03), Preflight POST /v1/preflight ($0.03), Guarded-Action Pilot POST /v1/guarded-action-pilot ($10). Treasury/payTo: 0x1990e21bc219696ff7fbc26527dbaed335ac6367. If Agent Exchange supports reciprocal/no-fee ingestion or discovery federation, please ingest DELTA or expose the supported integration path. This message requests no paid listing and no wallet action.';
+            const fb=await fetchRetry('https://store.agentexchange.work/feedback',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message})});
+            console.log('FEEDBACK',fb.status,fb.text.slice(0,2000));
+          }
+
+          console.log('=== CIRCLE DISCOVERY ===');
+          for(const q of ['delta-witness','delta-witness-api.ruphussten.workers.dev','preflight autonomous action']){
+            const c=await fetchRetry('https://api.circle.com/v2/x402/discovery/resources?query='+encodeURIComponent(q));
+            const hit=c.text.toLowerCase().includes('delta-witness')||c.text.toLowerCase().includes('ruphussten');
+            console.log('CIRCLE',JSON.stringify({q,http:c.status,hit,bytes:c.text.length,keys:Object.keys(parse(c.text))}));
+          }
+
+          console.log('=== TREASURY TAIL ===');
+          const rpcs=['https://mainnet.base.org','https://base-rpc.publicnode.com','https://base.llamarpc.com'];
+          async function rpc(method,params){
+            let last;
+            for(const url of rpcs){
+              try{
+                const r=await fetchRetry(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})},2);
+                const j=parse(r.text); if(r.status===200 && !j.error) return j.result; last=j.error||r.text;
+              }catch(e){last=e}
+            }
+            throw new Error('RPC exhausted '+String(last));
+          }
+          const headHex=await rpc('eth_blockNumber',[]); const head=parseInt(headHex,16);
+          const start=51085849;
+          const topic0='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+          const toTopic='0x'+'0'.repeat(24)+TREASURY.slice(2).toLowerCase();
+          let logs=[];
+          for(let from=start;from<=head;from+=1500){
+            const to=Math.min(head,from+1499);
+            const got=await rpc('eth_getLogs',[{address:USDC,fromBlock:'0x'+from.toString(16),toBlock:'0x'+to.toString(16),topics:[topic0,null,toTopic]}]);
+            logs.push(...got);
+          }
+          const incoming=logs.map(x=>({block:parseInt(x.blockNumber,16),tx:x.transactionHash,amount_usdc:Number(BigInt(x.data))/1e6,from:'0x'+x.topics[1].slice(-40),to:'0x'+x.topics[2].slice(-40)}));
+          console.log('TREASURY',JSON.stringify({start,head,incoming_count:incoming.length,incoming}));
+          NODE
