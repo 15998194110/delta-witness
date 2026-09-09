@@ -1,0 +1,115 @@
+name: DELTA One-Shot MCPServers Listing
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/ops-mcpservers-submit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Submit free mcpservers.org listing
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/delta-mcpservers
+          cd /tmp/delta-mcpservers
+          npm init -y >/dev/null 2>&1
+          npm install --silent playwright-core@1.55.0
+          cat > submit.cjs <<'NODE'
+          const fs = require('node:fs');
+          const { chromium } = require('playwright-core');
+
+          const candidates = [
+            '/usr/bin/google-chrome',
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/chromium',
+            '/usr/bin/chromium-browser'
+          ];
+          const executablePath = candidates.find((p) => fs.existsSync(p));
+          if (!executablePath) throw new Error('No system Chromium/Chrome executable found');
+
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          async function gotoWithRetry(page, url) {
+            let last;
+            for (let attempt = 1; attempt <= 3; attempt++) {
+              try {
+                const res = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+                if (res && res.status() >= 500) throw new Error(`HTTP ${res.status()}`);
+                return res;
+              } catch (e) {
+                last = e;
+                console.log(JSON.stringify({ event: 'navigation_retry', attempt, error: String(e) }));
+                if (attempt < 3) await sleep(1000 * Math.pow(2, attempt - 1));
+              }
+            }
+            throw last;
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
+            const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+            await gotoWithRetry(page, 'https://mcpservers.org/submit');
+
+            const title = await page.title();
+            const bodyText = await page.locator('body').innerText();
+            if (!/Submit Your MCP Server/i.test(bodyText)) {
+              throw new Error(`Unexpected submit page: ${title} :: ${bodyText.slice(0, 300)}`);
+            }
+
+            const inputs = await page.locator('input').evaluateAll((els) => els.map((e) => ({
+              name: e.name, type: e.type, placeholder: e.placeholder, value: e.value
+            })));
+            const selects = await page.locator('select').evaluateAll((els) => els.map((e) => ({
+              name: e.name,
+              options: Array.from(e.options).map((o) => ({ value: o.value, text: o.textContent }))
+            })));
+            console.log(JSON.stringify({ event: 'form_discovered', title, inputs, selects }));
+
+            const byPlaceholder = async (needle, value) => {
+              const loc = page.locator(`input[placeholder*="${needle}"]`).first();
+              if (!(await loc.count())) throw new Error(`Missing input placeholder containing ${needle}`);
+              await loc.fill(value);
+            };
+
+            await byPlaceholder('Brave Search', 'DELTA Witness');
+            await byPlaceholder('One sentence', 'Deterministic preflight and evidence for autonomous web actions.');
+            await byPlaceholder('github.com/owner/repo', 'https://github.com/15998194110/delta-witness');
+            await byPlaceholder('you@example.com', 'ruphussten85@gmail.com');
+
+            const select = page.locator('select').first();
+            if (await select.count()) {
+              const options = await select.locator('option').evaluateAll((els) => els.map((o) => ({ value: o.value, text: (o.textContent || '').trim() })));
+              const preferred = options.find((o) => /security|web scraping|development|other/i.test(o.text) && o.value);
+              if (!preferred) throw new Error(`No usable category option: ${JSON.stringify(options)}`);
+              await select.selectOption(preferred.value);
+              console.log(JSON.stringify({ event: 'category_selected', option: preferred }));
+            }
+
+            const submitButton = page.getByRole('button', { name: 'Submit', exact: true });
+            if (!(await submitButton.count())) throw new Error('Free Submit button not found');
+
+            const beforeUrl = page.url();
+            await Promise.all([
+              submitButton.click(),
+              page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => null)
+            ]);
+            await sleep(1500);
+            const afterUrl = page.url();
+            const afterText = (await page.locator('body').innerText()).replace(/\s+/g, ' ').trim();
+            const success = /thank|submitted|review|success|received|12 hours|24 hours/i.test(afterText) || afterUrl !== beforeUrl;
+            console.log(JSON.stringify({ event: 'submission_result', success, beforeUrl, afterUrl, excerpt: afterText.slice(0, 1200) }));
+            if (!success) throw new Error(`Submission did not expose a success signal: ${afterText.slice(0, 500)}`);
+            await browser.close();
+          })().catch((err) => {
+            console.error(err.stack || String(err));
+            process.exit(1);
+          });
+          NODE
+          node submit.cjs
