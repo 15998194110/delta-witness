@@ -1,0 +1,56 @@
+name: DELTA Growth Turn 5 Final Verify
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn5_final_verify_20260909.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify x402 Arena DELTA identities and Market402 visibility
+        shell: bash
+        run: |
+          set +e
+          curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 40 'https://core.x402arena.gg/operator/agents' -o /tmp/arena.json || echo '{}' >/tmp/arena.json
+          echo '=== ARENA_DELTA_RAW_MATCHES ==='
+          node <<'NODE'
+          const fs=require('fs'); let p={}; try{p=JSON.parse(fs.readFileSync('/tmp/arena.json','utf8'))}catch{}
+          const out=[]; const seen=new Set();
+          function walk(x){ if(!x||typeof x!=='object') return; if(!Array.isArray(x)){ const s=JSON.stringify(x).toLowerCase(); if(s.includes('delta-witness')){ const k=JSON.stringify(x); if(!seen.has(k)){seen.add(k); out.push(x);} } } for(const v of Object.values(x)) walk(v); }
+          walk(p); console.log(JSON.stringify(out.slice(0,30),null,2));
+          NODE
+          echo '=== MARKET402_SEARCH_DELTA ==='
+          curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 40 -G 'https://market402.com/search.json' --data-urlencode 'q=delta witness' -o /tmp/market-search.json || echo '{}' >/tmp/market-search.json
+          node <<'NODE'
+          const fs=require('fs'); let p={}; try{p=JSON.parse(fs.readFileSync('/tmp/market-search.json','utf8'))}catch{}
+          const s=JSON.stringify(p); console.log(s.slice(0,12000));
+          NODE
+          exit 0
+
+      - name: Final canonical Treasury tail scan
+        shell: bash
+        run: |
+          set +e
+          FROM='0x30b71eb'
+          USDC='0x833589fCD6eDb6E08f4c7C32d4f71b54bdA02913'
+          T0='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
+          T2='0x0000000000000000000000001990e21bc219696ff7fbc26527dbaed335ac6367'
+          rpc='https://mainnet.base.org'
+          latest=$(curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --max-time 40 -H 'content-type: application/json' --data-binary '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}' "$rpc" | jq -r '.result // empty')
+          if [ -z "$latest" ]; then rpc='https://base-rpc.publicnode.com'; latest=$(curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --max-time 40 -H 'content-type: application/json' --data-binary '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}' "$rpc" | jq -r '.result // empty'); fi
+          echo "TREASURY_FINAL_LATEST=$latest rpc=$rpc"
+          if [ -z "$latest" ]; then echo 'TREASURY_FINAL_DEGRADED=no_latest'; exit 0; fi
+          jq -n --arg a "$USDC" --arg f "$FROM" --arg t "$latest" --arg t0 "$T0" --arg t2 "$T2" '{jsonrpc:"2.0",id:2,method:"eth_getLogs",params:[{address:$a,fromBlock:$f,toBlock:$t,topics:[$t0,null,$t2]}]}' >/tmp/q.json
+          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --max-time 40 -H 'content-type: application/json' --data-binary @/tmp/q.json "$rpc" -o /tmp/logs.json || echo '{}' >/tmp/logs.json
+          node <<'NODE'
+          const fs=require('fs'); let p={}; try{p=JSON.parse(fs.readFileSync('/tmp/logs.json','utf8'))}catch{}
+          const rows=(Array.isArray(p.result)?p.result:[]).map(x=>({txHash:x.transactionHash,blockNumber:parseInt(x.blockNumber,16),from:'0x'+String(x.topics?.[1]||'').slice(-40),raw:BigInt(x.data||'0x0').toString(),usdc:Number(BigInt(x.data||'0x0'))/1e6}));
+          console.log(JSON.stringify({TREASURY_FINAL_CANDIDATES:rows.length,rows},null,2));
+          NODE
+          exit 0
