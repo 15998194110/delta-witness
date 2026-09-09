@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-09-09T03:15:42.820Z",
+  "channel": "MCP.Directory",
+  "http_status": 200,
+  "request": {
+    "githubUrl": "https://github.com/15998194110/delta-witness",
+    "npmPackage": "delta-witness-mcp",
+    "description": "Paid web evidence capture, preflight verification and guarded-action checks over x402.",
+    "email_omitted": true
+  },
+  "response": {
+    "ok": true,
+    "message": "Server submitted for review!"
+  }
+}
