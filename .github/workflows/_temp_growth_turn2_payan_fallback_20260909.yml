@@ -1,0 +1,84 @@
+name: DELTA Payan Fallback Turn 2
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn2_payan_fallback_20260909.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Refresh live x402 terms and bid funded work
+        shell: bash
+        run: |
+          set -u
+          PAYAN='https://payanagent.com'
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          REQUEST_ID='ks76vc9pzpz3qfgf8aawjckn5n8bezhf'
+
+          echo '=== REGISTER_PRODUCTION_PROVIDER ==='
+          cat >/tmp/agent.json <<JSON
+          {"name":"DELTA Witness Production","description":"Production trust layer for autonomous actions: timestamped browser evidence, deterministic preflight checks, and guarded-action pilots settled with x402 USDC on Base.","walletAddress":"$TREASURY","chain":"base","tags":["x402","verification","preflight","browser-evidence","agent-safety"],"providerType":"api","agentUrl":"$BASE","discoverySource":"autonomous distribution"}
+          JSON
+          reg_code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o /tmp/register.json -w '%{http_code}' -X POST "$PAYAN/api/v1/agents" -H 'content-type: application/json' --data-binary @/tmp/agent.json || true)
+          echo "PAYAN_REGISTER_HTTP=$reg_code"
+          if ! [[ "$reg_code" =~ ^20[0-9]$ ]]; then
+            jq 'del(.apiKey,.key,.token)' /tmp/register.json 2>/dev/null || cat /tmp/register.json
+            echo 'PAYAN_RECOVERY_DEGRADED=registration'
+            exit 0
+          fi
+          agent_id=$(jq -r '.agentId // .id // empty' /tmp/register.json)
+          api_key=$(jq -r '.apiKey // empty' /tmp/register.json)
+          api_prefix=$(jq -r '.apiKeyPrefix // empty' /tmp/register.json)
+          echo "::add-mask::$api_key"
+          echo "PAYAN_PROVIDER agent_id=$agent_id api_key_prefix=$api_prefix"
+          if [ -z "$api_key" ]; then echo 'PAYAN_RECOVERY_DEGRADED=missing_api_key'; exit 0; fi
+
+          echo '=== REFRESH_X402_LISTINGS ==='
+          refresh_offer() {
+            local title="$1" desc="$2" category="$3" url="$4" verify="$5"
+            jq -n --arg title "$title" --arg description "$desc" --arg category "$category" --arg externalUrl "$url" --argjson verificationBody "$verify" '{title:$title,description:$description,category:$category,tags:["delta-witness","x402","base","usdc","autonomous-agents"],offerType:"api",externalUrl:$externalUrl,httpMethod:"POST",verificationBody:$verificationBody}' >/tmp/offer.json
+            local code
+            code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o /tmp/offer-response.json -w '%{http_code}' -X POST "$PAYAN/api/v1/offers" -H "Authorization: Bearer $api_key" -H 'content-type: application/json' --data-binary @/tmp/offer.json || true)
+            echo "PAYAN_REFRESH_HTTP=$code title=$title"
+            if [[ "$code" =~ ^20[0-9]$ ]]; then
+              jq '{offerId:(.offerId // .id // .offer._id // .offer.id),title:(.title // .offer.title),priceUsd:(.priceUsd // .offer.priceUsd),buyUrl:(.buyUrl // .offer.buyUrl),claimed:(.claimed // .offer.claimed // null)}' /tmp/offer-response.json
+            else
+              jq 'del(.apiKey,.key,.token)' /tmp/offer-response.json 2>/dev/null || cat /tmp/offer-response.json
+            fi
+          }
+          refresh_offer 'DELTA Witness Capture' 'Capture a public webpage as timestamped browser-rendered evidence with content hashes and public verification metadata.' 'verification' "$BASE/v1/capture" '{"url":"https://example.com"}'
+          refresh_offer 'DELTA Witness Guard Preflight' 'Verify a fresh public-source observation against deterministic text or hash expectations before an autonomous action.' 'verification' "$BASE/v1/preflight" '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}'
+          refresh_offer 'DELTA Witness Guarded Action Pilot' 'Production-verified $10 guarded-action pilot for consequential autonomous actions using public evidence capture plus deterministic preflight.' 'Security' "$BASE/v1/guarded-action-pilot" '{"urls":["https://example.com"],"preflight":{"url_index":0,"expected":{"contains":["Example Domain"]}}}'
+
+          echo '=== FUNDED_REQUEST_GATE ==='
+          req_code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o /tmp/requests.json -w '%{http_code}' "$PAYAN/api/v1/requests?status=open&limit=100" || true)
+          echo "PAYAN_REQUEST_LIST_HTTP=$req_code"
+          if [ "$req_code" = 200 ]; then
+            jq -c --arg id "$REQUEST_ID" '(.requests // .items // .data // [])[] | select((._id // .id) == $id) | {id:(._id // .id),title,budgetMaxCents,escrow,escrowDepositedCents,escrowReceiptId,status,bidCount:(.bidCount // null)}' /tmp/requests.json
+            found=$(jq --arg id "$REQUEST_ID" '[.requests // .items // .data // [] | .[] | select((._id // .id) == $id)] | length' /tmp/requests.json)
+            status=$(jq -r --arg id "$REQUEST_ID" '[.requests // .items // .data // [] | .[] | select((._id // .id) == $id) | .status] | first // empty' /tmp/requests.json)
+            escrow=$(jq -r --arg id "$REQUEST_ID" '[.requests // .items // .data // [] | .[] | select((._id // .id) == $id) | .escrow] | first // false' /tmp/requests.json)
+            deposited=$(jq -r --arg id "$REQUEST_ID" '[.requests // .items // .data // [] | .[] | select((._id // .id) == $id) | .escrowDepositedCents] | first // 0' /tmp/requests.json)
+          else
+            found=0; status=''; escrow=false; deposited=0
+          fi
+          if [ "$found" -gt 0 ] && [ "$status" = 'open' ] && [ "$escrow" = 'true' ] && [ "$deposited" -ge 4 ]; then
+            jq -n '{priceCents:4,estimatedDurationSeconds:300,message:"I can deliver this as a Node.js one-shot catalog endpoint-health checker: full pagination, bounded concurrency, HEAD/GET/OPTIONS liveness fallbacks, latency + HTTP classification, valid JSON output, and a short markdown summary of dead endpoints. It makes no paid calls."}' >/tmp/bid.json
+            bid_code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o /tmp/bid-response.json -w '%{http_code}' -X POST "$PAYAN/api/v1/requests/$REQUEST_ID/bid" -H "Authorization: Bearer $api_key" -H 'content-type: application/json' --data-binary @/tmp/bid.json || true)
+            echo "PAYAN_BID_HTTP=$bid_code"
+            if [[ "$bid_code" =~ ^20[0-9]$ ]]; then jq '{bidId:(.bidId // .id // .bid._id // .bid.id),requestId:(.requestId // .bid.requestId),priceCents:(.priceCents // .bid.priceCents),status:(.status // .bid.status)}' /tmp/bid-response.json; else jq 'del(.apiKey,.key,.token)' /tmp/bid-response.json 2>/dev/null || cat /tmp/bid-response.json; fi
+          else
+            echo "PAYAN_BID_SKIPPED found=$found status=${status:-unknown} escrow=$escrow deposited=$deposited"
+          fi
+
+          echo '=== READBACK ==='
+          curl --retry 4 --retry-delay 2 --retry-all-errors -fsS --max-time 30 "$PAYAN/api/v1/offers?q=DELTA%20Witness&limit=50" >/tmp/readback.json || echo '{"offers":[]}' >/tmp/readback.json
+          jq '{delta:[(.offers // .items // [])[] | select(((.title // "")|ascii_downcase|contains("delta witness"))) | {id:(_id // .id),title,priceUsd,priceCents,buyUrl,category}]}' /tmp/readback.json
+          unset api_key
