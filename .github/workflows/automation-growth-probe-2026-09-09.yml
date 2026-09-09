@@ -5,137 +5,59 @@ on:
       - '.github/workflows/automation-growth-probe-2026-09-09.yml'
 
 jobs:
-  growth-probe:
+  allmcps-submit:
     runs-on: ubuntu-latest
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v6
-
-      - name: Verify DELTA production integrity and current x402 prices
-        id: core
+      - name: Submit DELTA Witness to AllMCPs public directory
         shell: bash
         run: |
           set -euo pipefail
-          BASE='https://delta-witness-api.ruphussten.workers.dev'
-          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-          curl --retry 3 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -fsS "$BASE/health" | tee /tmp/health.json
-          curl --retry 3 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -fsS "$BASE/.well-known/x402" -o /tmp/x402.json
-          curl --retry 3 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -fsS "$BASE/openapi.json" >/dev/null
-          jq -e '.resources[] | select(.path=="/v1/guarded-action-pilot" and .price_usd==10)' /tmp/x402.json >/dev/null
-          probe() {
-            local path="$1" body="$2" label="$3" expected_amount="$4"
-            local code
-            code=$(curl --retry 3 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -sS -o "/tmp/${label}.json" -D "/tmp/${label}.headers" -w '%{http_code}' -X POST "$BASE$path" -H 'content-type: application/json' --data "$body")
-            echo "$label HTTP=$code"
-            jq -c '{error,product,price_usd,accepts:[.accepts[]|{network,amount,asset,payTo}]}' "/tmp/${label}.json"
-            test "$code" = '402'
-            test "$(jq -r '.accepts[0].amount' "/tmp/${label}.json")" = "$expected_amount"
-            test "$(jq -r '.accepts[0].network' "/tmp/${label}.json")" = 'eip155:8453'
-            test "$(jq -r '.accepts[0].asset|ascii_downcase' "/tmp/${label}.json")" = "${USDC,,}"
-            test "$(jq -r '.accepts[0].payTo|ascii_downcase' "/tmp/${label}.json")" = "${TREASURY,,}"
+          API='https://allmcps.com/api/v1'
+          NAME='DELTA Witness'
+          REPO='https://github.com/15998194110/delta-witness'
+          CONTACT_EMAIL=$(git log -1 --format='%ae')
+          echo '--- duplicate search ---'
+          curl --retry 3 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -fsS "$API/search?q=delta-witness&limit=20" -o /tmp/search-before.json || echo '{"degraded":true}' > /tmp/search-before.json
+          jq -c '.' /tmp/search-before.json | head -c 6000; echo
+          PAYLOAD=$(jq -cn \
+            --arg name "$NAME" \
+            --arg url "$REPO" \
+            --arg description 'Evidence-backed web verification for autonomous agents: timestamped public-source capture, deterministic preflight checks, and x402-paid Base USDC execution via MCP.' \
+            --arg category 'Search & Data Extraction' \
+            --arg email "$CONTACT_EMAIL" \
+            --arg support 'https://github.com/15998194110/delta-witness/issues' \
+            '{name:$name,url:$url,description:$description,category:$category,email:$email,tags:["x402","web-verification","proof","autonomous-agents","preflight"],license:"Apache-2.0",authType:"none",pricingModel:"paid",maintenanceStatus:"active",compatibleClients:["Claude Desktop","Claude Code","Cursor","Windsurf","Cline","VS Code"],supportUrl:$support}')
+          submit() {
+            local payload="$1"
+            local code='000'
+            for delay in 0 2 5 10; do
+              [ "$delay" = 0 ] || sleep "$delay"
+              code=$(curl -sS --connect-timeout 10 --max-time 35 -o /tmp/submit.body -D /tmp/submit.headers -w '%{http_code}' -X POST "$API/submit" -H 'content-type: application/json' --data "$payload" || echo '000')
+              echo "AllMCPs HTTP=$code"
+              case "$code" in
+                200|201|202|409) break ;;
+                429|500|502|503|504|000) continue ;;
+                *) break ;;
+              esac
+            done
+            printf '%s' "$code"
           }
-          probe '/v1/capture' '{"url":"https://example.com"}' capture 30000
-          probe '/v1/preflight' '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' preflight 1000000
-          probe '/v1/guarded-action-pilot' '{"urls":["https://example.com"]}' pilot 10000000
-          echo 'CORE_PRODUCTION=verified capture=0.03 preflight=1 pilot=10 treasury=expected'
-
-      - name: Audit DELTA paid-funnel telemetry candidates
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/query-revenue-candidates.mjs
-
-      - name: Reconcile canonical Base USDC Treasury since prior checkpoint
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-          FROM_DEC=51065282
-          TOPIC0='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
-          TOPIC2='0x0000000000000000000000001990e21bc219696ff7fbc26527dbaed335ac6367'
-          FROM_HEX=$(printf '0x%x' "$FROM_DEC")
-          RPCS=('https://mainnet.base.org' 'https://base-rpc.publicnode.com' 'https://base.llamarpc.com')
-          success=0
-          for rpc in "${RPCS[@]}"; do
-            echo "RPC attempt: $rpc"
-            latest_json=''
-            for delay in 0 2 5; do
-              [ "$delay" = 0 ] || sleep "$delay"
-              latest_json=$(curl -sS --connect-timeout 8 --max-time 20 -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}' "$rpc" || true)
-              jq -e '.result' >/dev/null 2>&1 <<<"$latest_json" && break
-            done
-            latest_hex=$(jq -r '.result // empty' <<<"$latest_json")
-            [ -n "$latest_hex" ] || { echo 'latest block unavailable'; continue; }
-            latest_dec=$((16#${latest_hex#0x}))
-            echo "latest_block=$latest_dec prior_checkpoint=51065281 from=$FROM_DEC"
-            if [ "$latest_dec" -lt "$FROM_DEC" ]; then
-              echo 'treasury_canonical_usdc_incoming_count=0 no_new_blocks=1'
-              success=1
-              break
-            fi
-            payload=$(jq -cn --arg address "$USDC" --arg from "$FROM_HEX" --arg to "$latest_hex" --arg t0 "$TOPIC0" --arg t2 "$TOPIC2" '{jsonrpc:"2.0",id:2,method:"eth_getLogs",params:[{address:$address,fromBlock:$from,toBlock:$to,topics:[$t0,null,$t2]}]}')
-            logs_json=''
-            for delay in 0 2 5; do
-              [ "$delay" = 0 ] || sleep "$delay"
-              logs_json=$(curl -sS --connect-timeout 8 --max-time 30 -H 'content-type: application/json' --data "$payload" "$rpc" || true)
-              jq -e '.result | type == "array"' >/dev/null 2>&1 <<<"$logs_json" && break
-            done
-            if jq -e '.result | type == "array"' >/dev/null 2>&1 <<<"$logs_json"; then
-              count=$(jq '.result|length' <<<"$logs_json")
-              echo "treasury_canonical_usdc_incoming_count=$count latest_block=$latest_dec"
-              jq -r '.result[] | [.blockNumber,.transactionHash,.data] | @tsv' <<<"$logs_json" | while IFS=$'\t' read -r block tx data; do
-                value=$((16#${data#0x}))
-                usdc=$(awk -v v="$value" 'BEGIN{printf "%.6f", v/1000000}')
-                printf 'incoming block=%d tx=%s raw=%d usdc=%s\n' "$((16#${block#0x}))" "$tx" "$value" "$usdc"
-              done
-              success=1
-              break
-            fi
-            echo "eth_getLogs failed on $rpc: $logs_json"
-          done
-          if [ "$success" != 1 ]; then
-            echo 'Direct RPCs degraded; Blockscout fallback'
-            url="https://base.blockscout.com/api/v2/addresses/${TREASURY}/token-transfers?type=ERC-20"
-            body=''
-            for delay in 0 2 5; do
-              [ "$delay" = 0 ] || sleep "$delay"
-              body=$(curl -sS --connect-timeout 8 --max-time 30 "$url" || true)
-              jq -e '.items | type == "array"' >/dev/null 2>&1 <<<"$body" && break
-            done
-            jq -e '.items | type == "array"' >/dev/null 2>&1 <<<"$body" || { echo 'All Treasury reconciliation channels degraded'; exit 30; }
-            jq -c --arg usdc "${USDC,,}" --arg treasury "${TREASURY,,}" --argjson from "$FROM_DEC" '[.items[] | select((.token.address|ascii_downcase)==$usdc and (.to.hash|ascii_downcase)==$treasury and (.block_number|tonumber) >= $from)]' <<<"$body" > /tmp/fallback.json
-            echo "treasury_canonical_usdc_incoming_count=$(jq length /tmp/fallback.json) via=blockscout"
-            jq -c '.[] | {block_number,transaction_hash,total}' /tmp/fallback.json
+          CODE=$(submit "$PAYLOAD" | tail -n1)
+          if [ "$CODE" = '400' ] && grep -qi 'categor' /tmp/submit.body; then
+            echo 'Category label rejected; retrying official slug.'
+            PAYLOAD=$(jq -c '.category="search-and-data-extraction"' <<<"$PAYLOAD")
+            CODE=$(submit "$PAYLOAD" | tail -n1)
           fi
-
-      - name: Directly submit DELTA MCP to mcp.so free programmatic endpoint
-        if: success()
-        shell: bash
-        run: |
-          set -euo pipefail
-          URL='https://mcp.so/api/submit-project'
-          PAYLOAD='{"url":"https://github.com/15998194110/delta-witness","avatar_url":"https://raw.githubusercontent.com/15998194110/delta-witness/master/channels/base-app/public/icon.png"}'
-          final_code=''
-          for delay in 0 2 5 10; do
-            [ "$delay" = 0 ] || sleep "$delay"
-            code=$(curl -sS --connect-timeout 10 --max-time 35 -o /tmp/mcpso.body -D /tmp/mcpso.headers -w '%{http_code}' -X POST "$URL" -H 'content-type: application/json' --data "$PAYLOAD" || echo '000')
-            echo "mcp.so HTTP=$code"
-            final_code="$code"
-            case "$code" in
-              200|201|202|204|409) break ;;
-              429|500|502|503|504|000) continue ;;
-              *) break ;;
-            esac
-          done
-          echo '--- response body ---'; head -c 8000 /tmp/mcpso.body 2>/dev/null || true; echo
-          case "$final_code" in
-            200|201|202|204) echo 'MCP_SO_SUBMISSION=accepted' ;;
-            409) echo 'MCP_SO_SUBMISSION=already_exists' ;;
-            *) echo "MCP_SO_SUBMISSION=not_accepted_http_${final_code}" ;;
+          echo '--- submission response ---'
+          jq 'del(.email,.contact_email,.contactEmail)' /tmp/submit.body 2>/dev/null || head -c 8000 /tmp/submit.body
+          echo
+          case "$CODE" in
+            200|201|202) echo 'ALLMCPS_SUBMISSION=accepted' ;;
+            409) echo 'ALLMCPS_SUBMISSION=already_exists' ;;
+            *) echo "ALLMCPS_SUBMISSION=not_accepted_http_${CODE}" ; exit 1 ;;
           esac
+          echo '--- public search after submission ---'
+          curl --retry 3 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -fsS "$API/search?q=delta-witness&limit=20" -o /tmp/search-after.json || true
+          jq -c '.' /tmp/search-after.json 2>/dev/null | head -c 8000 || true
+          echo
