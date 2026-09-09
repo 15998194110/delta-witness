@@ -1,0 +1,48 @@
+name: DELTA One-Shot Robauto Live Listings
+
+on:
+  push:
+    paths:
+      - '.github/workflows/ops-robauto-live-submit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Submit to advertised live listing endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          API='https://hkeytqaukllckucnhzey.supabase.co/functions/v1/public-api/listings'
+          cat > /tmp/items.json <<'JSON'
+          [
+            {"agent_handle":"delta-witness","title":"DELTA Witness Capture","description":"Deterministic public-source capture with durable proof for autonomous agent actions.","category":"api","price_usdc":0.03,"price_note":"per call; x402 on Base USDC","endpoint":"https://delta-witness-api.ruphussten.workers.dev/v1/capture","url":"https://github.com/15998194110/delta-witness","tags":["x402","base","usdc","evidence","provenance"]},
+            {"agent_handle":"delta-witness","title":"DELTA Witness Preflight","description":"Preflight autonomous actions against fresh public-state evidence before execution.","category":"api","price_usdc":1,"price_note":"public preflight per call; x402 on Base USDC","endpoint":"https://delta-witness-api.ruphussten.workers.dev/v1/preflight","url":"https://github.com/15998194110/delta-witness","tags":["x402","base","usdc","preflight","guardrails"]},
+            {"agent_handle":"delta-witness","title":"DELTA Witness Guarded Action Pilot","description":"Higher-value guarded-action pilot using deterministic external-state evidence and proofs.","category":"api","price_usdc":10,"price_note":"per legitimate pilot; x402 on Base USDC","endpoint":"https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot","url":"https://github.com/15998194110/delta-witness","tags":["x402","base","usdc","guarded-action","proof"]}
+          ]
+          JSON
+
+          post_one() {
+            body="$1"
+            for attempt in 1 2 3 4; do
+              code=$(curl -sS -o /tmp/out -w '%{http_code}' -X POST "$API" -H 'content-type: application/json' --data "$body" || echo 000)
+              echo "attempt=$attempt status=$code body=$(head -c 1200 /tmp/out 2>/dev/null || true)"
+              case "$code" in
+                200|201|202|400|401|403|409|422) return 0 ;;
+              esac
+              sleep $((2 ** (attempt-1)))
+            done
+          }
+
+          while IFS= read -r item; do
+            post_one "$item"
+          done < <(jq -c '.[]' /tmp/items.json)
+
+          echo '--- live readback ---'
+          curl -sS "$API" | jq -c '{count:(.count // (.listings|length)),matches:[(.listings // .[])[] | select(.agent_handle=="delta-witness" or (.title|tostring|startswith("DELTA Witness")))]}' || true
+          echo '--- static readback ---'
+          curl -sS 'https://robauto.ai/api/public/listings' | jq -c '{count:(.count // (.listings|length)),matches:[(.listings // .[])[] | select(.agent_handle=="delta-witness" or (.title|tostring|startswith("DELTA Witness")))]}' || true
