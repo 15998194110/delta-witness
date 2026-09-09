@@ -1,0 +1,25 @@
+name: DELTA AllMCPs readback 2026-09-09
+on:
+  push:
+    paths:
+      - '.github/workflows/automation-allmcps-readback-2026-09-09.yml'
+
+jobs:
+  readback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read public AllMCPs listing state
+        shell: bash
+        run: |
+          set -euo pipefail
+          API='https://allmcps.com/api/v1'
+          for delay in 0 2 5; do
+            [ "$delay" = 0 ] || sleep "$delay"
+            code=$(curl -sS --connect-timeout 10 --max-time 30 -o /tmp/detail.json -w '%{http_code}' "$API/servers/delta-witness" || echo '000')
+            echo "detail_http=$code"
+            [ "$code" = 200 ] && break
+          done
+          test "$code" = 200
+          jq -c '{id,name,description,category,url,isOfficial,isVerifiedActive,qualityScore,installName,installKind,installConfidence,claudeConfigSnippet,pricingModel,authType,maintenanceStatus,views,installs,upvotes}' /tmp/detail.json
+          echo '--- search ---'
+          curl --retry 3 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -fsS "$API/search?q=delta-witness&limit=5" | jq -c '{total,servers:[.servers[]|{id,name,url,isOfficial,isVerifiedActive,qualityScore,installName,installKind,detailUrl}]}'
