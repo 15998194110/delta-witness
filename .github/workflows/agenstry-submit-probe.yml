@@ -1,0 +1,32 @@
+name: Agenstry submission probe
+on:
+  push:
+    paths:
+      - '.github/workflows/agenstry-submit-probe.yml'
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect no-login submission rail
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re, urllib.request
+          url='https://agenstry.com/submit'
+          req=urllib.request.Request(url,headers={'User-Agent':'DELTA-Witness-growth/1.0'})
+          with urllib.request.urlopen(req,timeout=30) as r:
+              html=r.read().decode('utf-8','replace')
+              print('HTTP',r.status,'LEN',len(html))
+          forms=re.findall(r'<form\b[^>]*>',html,re.I)
+          print('FORMS',forms[:10])
+          hits=[]
+          for pat in [r'action=["\']([^"\']+)',r'fetch\(["\']([^"\']+)',r'axios\.(?:post|get)\(["\']([^"\']+)',r'(/api/[A-Za-z0-9_./?=-]*(?:submit|index|resource)[A-Za-z0-9_./?=&-]*)']:
+              hits.extend(re.findall(pat,html,re.I))
+          print('ENDPOINT_HINTS',sorted(set(hits))[:50])
+          for needle in ['Submit and index','No login required','submit_resource','resource_url','identifier']:
+              p=html.find(needle)
+              if p>=0: print('CTX',needle,html[max(0,p-700):p+1200].replace('\n',' ')[:2200])
+          scripts=re.findall(r'<script[^>]+src=["\']([^"\']+)',html,re.I)
+          print('SCRIPTS',scripts[-20:])
+          PY
