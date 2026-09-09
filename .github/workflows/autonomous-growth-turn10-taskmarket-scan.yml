@@ -1,0 +1,28 @@
+name: Autonomous Growth Turn 10 Taskmarket Scan
+on:
+  push:
+    paths:
+      - '.github/workflows/autonomous-growth-turn10-taskmarket-scan.yml'
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scan current Taskmarket funded work
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL='https://api.taskmarket.dev/api/tasks?status=open&sort=reward_desc&limit=50'
+          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o /tmp/tasks.json -w '%{http_code}' "$URL" || true)
+          echo "HTTP=$code"
+          if [ "$code" != 200 ]; then cat /tmp/tasks.json || true; exit 0; fi
+          jq -c '{count:(.tasks|length),tasks:[.tasks[]|{id,description,reward,mode,status,tags,expiryTime,submissionWindowOpen,requester,submissionCount,pitchCount,claimedBy,taskVisibility}]}' /tmp/tasks.json
+          echo '=== DETAILS ==='
+          jq -r '.tasks[].id' /tmp/tasks.json | while read -r id; do
+            dcode=$(curl --retry 3 --retry-delay 1 --retry-all-errors -sS --max-time 20 -o /tmp/detail.json -w '%{http_code}' "https://api.taskmarket.dev/api/tasks/$id" || true)
+            if [ "$dcode" = 200 ]; then
+              jq -c '{id,description,reward,mode,status,tags,expiryTime,submissionWindowOpen,requester,submissionCount,pitchCount,claimedBy,pendingActions}' /tmp/detail.json
+            else
+              echo "DETAIL_FAIL $id HTTP=$dcode"
+            fi
+          done
