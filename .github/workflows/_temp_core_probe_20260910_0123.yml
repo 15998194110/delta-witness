@@ -1,0 +1,34 @@
+name: DELTA Core Probe 0123
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_core_probe_20260910_0123.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Probe production x402 gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=https://delta-witness-api.ruphussten.workers.dev
+          echo 'HEALTH'
+          curl --retry 3 --retry-all-errors -fsS "$BASE/health"
+          for product in capture preflight guarded-action-pilot; do
+            case "$product" in
+              capture) BODY='{"url":"https://example.com"}' ;;
+              preflight) BODY='{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' ;;
+              guarded-action-pilot) BODY='{"urls":["https://example.com"],"preflight":{"url_index":0,"expected":{"contains":["Example Domain"]}}}' ;;
+            esac
+            code=$(curl --retry 3 --retry-all-errors -sS -o "/tmp/$product.json" -D "/tmp/$product.headers" -w '%{http_code}' -X POST "$BASE/v1/$product" -H 'content-type: application/json' -d "$BODY")
+            echo "PROD_HTTP $product $code"
+            test "$code" = 402
+            grep -i '^payment-required:' "/tmp/$product.headers" | head -1
+            cat "/tmp/$product.json"
+          done
