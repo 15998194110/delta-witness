@@ -12,23 +12,34 @@ concurrency:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v6
-      - name: Inspect public no-account submission page
+      - name: Resolve public no-account submission endpoint
         shell: bash
         run: |
           set -euo pipefail
-          curl --retry 4 --retry-delay 2 --retry-all-errors -fsSL --max-time 30 'https://mcp.directory/submit' -o /tmp/page.html
-          node <<'NODE' > docs/_temp-mcpdirectory-inspect.json
-          const fs=require('fs');
-          const h=fs.readFileSync('/tmp/page.html','utf8');
-          const forms=[...h.matchAll(/<form\b[\s\S]*?<\/form>/gi)].map(m=>m[0]);
-          const out={fetched:true,bytes:h.length,forms:forms.map(f=>({opening:(f.match(/<form\b[^>]*>/i)||[''])[0],inputs:[...f.matchAll(/<(?:input|textarea|select)\b[^>]*(?:name|id)=["']([^"']+)["'][^>]*>/gi)].map(x=>x[0].replace(/\s+/g,' ').slice(0,500)),buttons:[...f.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/gi)].map(x=>x[0].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,200))})),api_paths:[...new Set([...h.matchAll(/(?:fetch\(|axios\.(?:post|get)\(|action=)["']([^"']+)["']/g)].map(m=>m[1]).filter(x=>x.includes('/')))].slice(0,50),script_srcs:[...h.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m=>m[1]).slice(0,50)};
-          console.log(JSON.stringify(out,null,2));
+          BASE='https://mcp.directory'
+          curl --retry 4 --retry-delay 2 --retry-all-errors -fsSL --max-time 30 "$BASE/submit" -o /tmp/page.html
+          node <<'NODE' >/tmp/scripts.txt
+          const fs=require('fs'); const h=fs.readFileSync('/tmp/page.html','utf8');
+          for(const m of h.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)) if(m[1].startsWith('/')) console.log(m[1]);
           NODE
+          : >/tmp/bundles.js
+          while read -r p; do curl --retry 3 --retry-delay 1 --retry-all-errors -fsSL --max-time 30 "$BASE$p" >>/tmp/bundles.js || true; echo >>/tmp/bundles.js; done </tmp/scripts.txt
+          node <<'NODE' > /tmp/out.json
+          const fs=require('fs');
+          const h=fs.readFileSync('/tmp/page.html','utf8'); const j=fs.readFileSync('/tmp/bundles.js','utf8');
+          const needles=['Submit for Review','githubUrl','github_url','repositoryUrl','repository_url','npmPackage','pypiPackage','shortDescription','/api/submit','/api/submissions','submit-server','submission'];
+          const excerpts=[];
+          for(const n of needles){let pos=0,count=0;while((pos=j.indexOf(n,pos))>=0&&count<8){excerpts.push({needle:n,text:j.slice(Math.max(0,pos-700),Math.min(j.length,pos+1400)).replace(/\s+/g,' ')});pos+=n.length;count++;}}
+          const urls=[...new Set([...j.matchAll(/["'`](\/api\/[A-Za-z0-9_?=&.\/-]{2,120})["'`]/g)].map(m=>m[1]))].filter(x=>/submit|server|mcp|listing/i.test(x)).slice(0,100);
+          const terms=/(agree|terms of service|terms and conditions|privacy policy|checkbox|required.*terms)/i.test(h.match(/<form\b[\s\S]*?<\/form>/i)?.[0]||'');
+          console.log(JSON.stringify({page_bytes:h.length,bundle_bytes:j.length,api_candidates:urls,terms_language_in_form:terms,excerpts},null,2));
+          NODE
+          cp /tmp/out.json docs/_temp-mcpdirectory-inspect.json
           git config user.name 'DELTA Automation'
           git config user.email 'actions@users.noreply.github.com'
           git add docs/_temp-mcpdirectory-inspect.json
-          git commit -m 'ops: record MCP.Directory submit contract inspection'
+          git commit -m 'ops: resolve MCP.Directory submit endpoint'
           git push
