@@ -1,0 +1,34 @@
+name: DELTA MCP.Directory inspect
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/_temp-mcpdirectory-inspect.yml"
+permissions:
+  contents: write
+concurrency:
+  group: delta-mcpdirectory-inspect
+  cancel-in-progress: false
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Inspect public no-account submission page
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --retry 4 --retry-delay 2 --retry-all-errors -fsSL --max-time 30 'https://mcp.directory/submit' -o /tmp/page.html
+          node <<'NODE' > docs/_temp-mcpdirectory-inspect.json
+          const fs=require('fs');
+          const h=fs.readFileSync('/tmp/page.html','utf8');
+          const forms=[...h.matchAll(/<form\b[\s\S]*?<\/form>/gi)].map(m=>m[0]);
+          const out={fetched:true,bytes:h.length,forms:forms.map(f=>({opening:(f.match(/<form\b[^>]*>/i)||[''])[0],inputs:[...f.matchAll(/<(?:input|textarea|select)\b[^>]*(?:name|id)=["']([^"']+)["'][^>]*>/gi)].map(x=>x[0].replace(/\s+/g,' ').slice(0,500)),buttons:[...f.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/gi)].map(x=>x[0].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,200))})),api_paths:[...new Set([...h.matchAll(/(?:fetch\(|axios\.(?:post|get)\(|action=)["']([^"']+)["']/g)].map(m=>m[1]).filter(x=>x.includes('/')))].slice(0,50),script_srcs:[...h.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m=>m[1]).slice(0,50)};
+          console.log(JSON.stringify(out,null,2));
+          NODE
+          git config user.name 'DELTA Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/_temp-mcpdirectory-inspect.json
+          git commit -m 'ops: record MCP.Directory submit contract inspection'
+          git push
