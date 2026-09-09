@@ -40,4 +40,4 @@ Therefore this distribution action does not increment buyer count, paid settleme
 
 ## Credential hygiene
 
-Robauto's create response emitted one-time listing claim tokens. Those values are deliberately omitted from this evidence record. The Actions run that captured the raw create responses is treated as containing sensitive management material and should be deleted rather than used as a durable evidence source. The listing IDs and live readback above are the durable non-secret evidence.
+Robauto's create response emitted one-time listing claim tokens. Those values are deliberately omitted from this evidence record. The Actions run that captured the raw create responses was deleted through GitHub's workflow-run API with HTTP `204`; a subsequent fetch returned `404 Not Found`. The claim-token-bearing raw log is therefore no longer retained as a public Actions run. The listing IDs and live readback above are the durable non-secret evidence.
