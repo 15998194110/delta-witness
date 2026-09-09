@@ -1,0 +1,32 @@
+name: DELTA Payan Routed Listing Probe Turn 4
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn4_payan_route_probe_20260909.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe DELTA Payan buy routes without payment
+        shell: bash
+        run: |
+          set -u
+          probe() {
+            name="$1"; id="$2"; body="$3"
+            echo "=== $name ==="
+            : >/tmp/h; : >/tmp/b
+            code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -D /tmp/h -o /tmp/b -w '%{http_code}' -X POST "https://payanagent.com/x402/$id" -H 'content-type: application/json' --data-binary "$body" || true)
+            echo "HTTP=$code"
+            grep -Ei '^(payment-required|www-authenticate|x-payment|x-receipt|x-tx-hash):' /tmp/h || true
+            jq 'if type=="object" then del(.apiKey,.key,.token,.privateKey,.signature) else . end' /tmp/b 2>/dev/null || head -c 4000 /tmp/b
+            echo
+          }
+          probe capture kh79t54410qb82yjcqsjmgv0d58dn7p3 '{"url":"https://example.com"}'
+          probe preflight kh72vd1kdv37109xxzzgmn2xfn8dnc6z '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}'
+          probe guarded-action-pilot kh7dskbdz0mj2ctc0dvm6q1yb98dz8dm '{"urls":["https://example.com"],"preflight":{"url_index":0,"expected":{"contains":["Example Domain"]}}}'
