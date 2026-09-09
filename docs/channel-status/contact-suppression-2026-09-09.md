@@ -1,0 +1,7 @@
+# Contact history update — September9 morning
+
+- Sunra `support@sunra.ai`: one permitted qualification follow-up was sent on the existing thread, message `1a083e84fba28e2d`, thread `1a0780c8dfc26f2d`. Existing all-address mail search found only the original routed inquiry and earlier bounced partnership inquiry. The follow-up asks current cash-funded eligibility, budget owner, acceptance and payment before September13; no price, advance percentage or delivery promise was repeated. This exhausts the unanswered follow-up allowance. Do not send another reminder, redirect around silence or produce unapproved content. Wait for a substantive response; no funded order established.
+- AgentWorld `shawn@x402-agent-pay.com`: actual Google delivery failure `1a083df66db6c355` on thread `1a083df61d80bdb8` states `550 5.1.1 Address does not exist`. Suppress this exact address; do not count the source email as delivered, a reply or a registry submission accepted by the platform. Do not guess replacement addresses. A newly verified official registry path may be considered separately within existing caps and authority.
+- Existing no-repeat controls remain: Dave's unanswered follow-up is exhausted; Agent402's price correction is closed; TOLL402 already accepted one free submission and should not be resubmitted while pending. CHISA/ART OF WAR is outside the cash sprint.
+
+The public Preflight quote remains1 USDC. No new canonical Base USDC transfers were observed from51036340 through51065064. These operational actions do not establish new paid demand or revenue.
