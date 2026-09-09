@@ -1,0 +1,29 @@
+name: DELTA PayAPI Public Verification Receipt
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn6_payapi_receipt_20260909_2358.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect public evidence only
+        shell: bash
+        run: |
+          node <<'NODE'
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function req(url,tries=4){let last;for(let i=0;i<tries;i++){try{const r=await fetch(url,{headers:{'user-agent':'DELTA-Witness-Evidence/0.7'}});const text=await r.text();if((r.status===429||r.status>=500)&&i<tries-1){last={status:r.status,text};await sleep(400*2**i);continue}return{status:r.status,text,headers:Object.fromEntries(r.headers)}}catch(e){last={error:String(e)};if(i<tries-1)await sleep(400*2**i)}}return last}
+          for(const path of ['/api/delta-witness','/api/delta-witness/','/agent/get?id=delta-witness','/api/listing/delta-witness','/api/public/listing/delta-witness','/api/ledger?listing=delta-witness']){
+            const r=await req('https://payapi.market'+path); console.log('\n===',path,r.status,r.headers?.['content-type'],'===');
+            console.log(r.text.slice(0,30000));
+            const tx=[...new Set(r.text.match(/0x[a-fA-F0-9]{64}/g)||[])];
+            const basescan=[...new Set(r.text.match(/https:\/\/basescan\.org\/tx\/0x[a-fA-F0-9]{64}/g)||[])];
+            console.log('TX_HASHES',JSON.stringify(tx)); console.log('BASESCAN',JSON.stringify(basescan));
+          }
+          NODE
