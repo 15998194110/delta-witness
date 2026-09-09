@@ -1,0 +1,200 @@
+{
+  "observed_at": "2026-09-09T00:58:30.870Z",
+  "walnut": {
+    "observed_at": "2026-09-09T00:58:19Z",
+    "channel": "walnut.world",
+    "source": "https://github.com/15998194110/delta-witness",
+    "home_fetch": {
+      "status": 200,
+      "errors": []
+    },
+    "discovery": {
+      "form": {
+        "action": "https://walnut.world/api/index/submit",
+        "method": "POST",
+        "inputs": [
+          {
+            "name": "url",
+            "value": "",
+            "placeholder": "https://github.com/owner/repo",
+            "type": "url"
+          }
+        ]
+      }
+    },
+    "submission": {
+      "mechanism": "html_form",
+      "target": "https://walnut.world/api/index/submit",
+      "field": "url",
+      "status": 303,
+      "location": "https://walnut.world/w/delta-witness",
+      "errors": [],
+      "response_excerpt": ""
+    },
+    "readback": {
+      "https://walnut.world/?q=delta-witness": {
+        "status": 200,
+        "contains_delta": true,
+        "contains_repo": false,
+        "errors": []
+      },
+      "https://walnut.world/?q=15998194110%2Fdelta-witness": {
+        "status": 200,
+        "contains_delta": true,
+        "contains_repo": true,
+        "errors": []
+      }
+    }
+  },
+  "pricing": {
+    "observed_at": "2026-09-09T00:58:28Z",
+    "quotes": {
+      "capture": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "version": "0.7.0",
+          "price": "$0.03",
+          "network": "eip155:8453",
+          "asset": "USDC",
+          "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+          "payment_flow": "upfront",
+          "economics": {
+            "product": "capture",
+            "grossPriceUsd": 0.03,
+            "configuredPriceUsd": 0.03,
+            "minimumPriceUsd": 0.008235714285714285,
+            "expectedVariableCostUsd": 0.0028824999999999996,
+            "targetMarginBps": 6500,
+            "estimatedContributionMarginUsd": 0.0271175,
+            "assumptions": {
+              "browserMs": 25000,
+              "storageBytes": 9000000,
+              "facilitatorFeeUsd": 0.001,
+              "r2Writes": 5
+            }
+          }
+        },
+        "errors": []
+      },
+      "preflight": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "version": "0.7.0",
+          "price": "$1",
+          "network": "eip155:8453",
+          "asset": "USDC",
+          "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+          "payment_flow": "upfront",
+          "economics": {
+            "product": "preflight",
+            "grossPriceUsd": 1,
+            "configuredPriceUsd": 1,
+            "minimumPriceUsd": 0.008235714285714285,
+            "expectedVariableCostUsd": 0.0028824999999999996,
+            "targetMarginBps": 6500,
+            "estimatedContributionMarginUsd": 0.9971175,
+            "assumptions": {
+              "browserMs": 25000,
+              "storageBytes": 9000000,
+              "facilitatorFeeUsd": 0.001,
+              "r2Writes": 5
+            }
+          }
+        },
+        "errors": []
+      },
+      "guarded-action-pilot": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "version": "0.7.0",
+          "product": "guarded_action_pilot",
+          "price": "$10",
+          "network": "eip155:8453",
+          "asset": "USDC",
+          "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+          "payment_flow": "upfront",
+          "max_urls": 3,
+          "economics": {
+            "product": "guarded_action_pilot",
+            "grossPriceUsd": 10,
+            "expectedVariableCostUsd": 0.0044475,
+            "estimatedContributionMarginUsd": 9.9955525,
+            "maxUrls": 3
+          }
+        },
+        "errors": []
+      }
+    },
+    "openapi": {
+      "status": 200,
+      "capture": {
+        "price": {
+          "mode": "fixed",
+          "currency": "USD",
+          "amount": "0.03"
+        },
+        "protocols": [
+          {
+            "x402": {}
+          }
+        ],
+        "network": "eip155:8453"
+      },
+      "preflight": {
+        "price": {
+          "mode": "fixed",
+          "currency": "USD",
+          "amount": "1"
+        },
+        "protocols": [
+          {
+            "x402": {}
+          }
+        ],
+        "network": "eip155:8453"
+      },
+      "pilot": {
+        "price": {
+          "mode": "fixed",
+          "currency": "USD",
+          "amount": "10"
+        },
+        "protocols": [
+          {
+            "x402": {}
+          }
+        ],
+        "network": "eip155:8453"
+      }
+    }
+  },
+  "treasury": {
+    "ok": true,
+    "canonical_asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "from_block": 51060235,
+    "latest_block": 51063081,
+    "incoming_count": 0,
+    "incoming": []
+  },
+  "d1_excerpt": "{\"ok\":true,\"candidate_rows\":0,\"rows\":[]}\n",
+  "metrics": {
+    "channel": "walnut.world",
+    "listing_status": "submitted_or_discovered_from_evidence",
+    "discovery_status": "pending_readback",
+    "buyer_count": 0,
+    "settlement_count": 0,
+    "verified_neighbor_demand": null,
+    "external_requests": 0,
+    "intents_402": 0,
+    "paid_settlements": 0,
+    "treasury_received_new": 0,
+    "revenue_usdc_new": 0,
+    "variable_cost_usdc_new": null,
+    "contribution_margin_usdc_new": null,
+    "evidence_quality": "B"
+  }
+}
