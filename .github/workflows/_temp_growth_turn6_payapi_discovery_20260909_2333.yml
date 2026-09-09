@@ -1,0 +1,72 @@
+name: DELTA Growth PayAPI Discovery + Reconcile
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn6_payapi_discovery_20260909_2333.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Inspect free listing, funded demand, telemetry and treasury
+        shell: bash
+        run: |
+          set -u
+          node <<'NODE'
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function req(url,opts={},tries=4){let last;for(let i=0;i<tries;i++){try{const ac=new AbortController();const t=setTimeout(()=>ac.abort(),30000);const r=await fetch(url,{...opts,signal:ac.signal,headers:{'user-agent':'DELTA-Witness-Distribution/0.7 (+https://delta-witness-api.ruphussten.workers.dev)',...(opts.headers||{})}});clearTimeout(t);const text=await r.text();if((r.status===429||r.status>=500)&&i<tries-1){last={status:r.status,text};await sleep(500*2**i);continue}return {status:r.status,text,headers:Object.fromEntries(r.headers)}}catch(e){last={error:String(e)};if(i<tries-1)await sleep(500*2**i)}}return last}
+          const parse=t=>{try{return JSON.parse(t)}catch{return null}};
+          const ORIGIN='https://delta-witness-api.ruphussten.workers.dev';
+          const TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367';
+          const USDC='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
+
+          console.log('=== CORE_QUOTE ===');
+          for(const [path,body] of [['/v1/capture',{url:'https://example.com'}],['/v1/preflight',{url:'https://example.com',expected:{contains:['Example Domain']}}],['/v1/guarded-action-pilot',{urls:['https://example.com'],preflight:{url_index:0,expected:{contains:['Example Domain']}}}]]){
+            const r=await req(ORIGIN+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+            const j=parse(r.text); const a=j?.accepts?.[0]; console.log(path,JSON.stringify({status:r.status,amount:a?.amount,network:a?.network,payTo:a?.payTo,price_usd:j?.extensions?.price_usd||j?.extensions?.product_price_usd||j?.price_usd||null}));
+          }
+
+          console.log('=== PAYAPI_LIST_PAGE ===');
+          const p=await req('https://payapi.market/list'); console.log('status',p.status,'content-type',p.headers?.['content-type']);
+          console.log(p.text.slice(0,25000));
+          const scripts=[...p.text.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m=>m[1]);
+          const forms=[...p.text.matchAll(/<form\b[^>]*>/gi)].map(m=>m[0]);
+          console.log('FORMS',JSON.stringify(forms)); console.log('SCRIPTS',JSON.stringify(scripts));
+          for(const s of scripts.slice(0,12)){
+            const u=new URL(s,'https://payapi.market').href; const r=await req(u); console.log('--- SCRIPT',u,r.status,'---');
+            const hits=(r.text.match(/.{0,180}(?:\/api\/[A-Za-z0-9_?=&./${}:\-]+|fetch\(|XMLHttpRequest|provider|wallet|listing|submit|x402).{0,220}/gi)||[]).slice(0,80);
+            console.log(hits.join('\n'));
+          }
+          for(const path of ['/openapi.json','/agent','/llms.txt','/.well-known/x402','/api','/api/listings','/api/providers','/api/submit','/api/list']){
+            const r=await req('https://payapi.market'+path); console.log('PAYAPI_PROBE',path,r.status,r.text.slice(0,6000));
+          }
+
+          console.log('=== PAYAN_REQUEST ===');
+          const rid='ks76vc9pzpz3qfgf8aawjckn5n8bezhf';
+          for(const url of [`https://payanagent.com/api/v1/requests/${rid}`,'https://payanagent.com/api/v1/requests?status=open&limit=200']){const r=await req(url);console.log(url,r.status,r.text.slice(0,18000));}
+
+          console.log('=== D1_RECENT_SETTLEMENT_SIGNALS ===');
+          const account=process.env.CLOUDFLARE_ACCOUNT_ID, token=process.env.CLOUDFLARE_API_TOKEN, db='c9431b00-27c5-4609-9f3d-6af20cb162df';
+          if(account&&token){
+            const sql=`SELECT channel,event,success,sum(event_count) event_count,round(sum(gross_usd),6) gross_usd,round(sum(variable_cost_usd),6) variable_cost_usd,round(sum(contribution_margin_usd),6) contribution_margin_usd,min(created_at) first_at,max(created_at) last_at FROM telemetry_events WHERE created_at>=datetime('now','-3 hours') GROUP BY channel,event,success ORDER BY last_at DESC LIMIT 200`;
+            const r=await req(`https://api.cloudflare.com/client/v4/accounts/${account}/d1/database/${db}/query`,{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify({sql})}); console.log(r.status,r.text.slice(0,20000));
+          } else console.log('D1 credentials unavailable');
+
+          console.log('=== TREASURY_TAIL ===');
+          const rpcs=['https://mainnet.base.org','https://base-rpc.publicnode.com','https://base.llamarpc.com'];
+          async function rpc(method,params){let last;for(const url of rpcs){for(let i=0;i<3;i++){const r=await req(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})},2);const j=parse(r.text);if(r.status===200&&j&&!j.error)return j.result;last=j?.error||r.text;await sleep(300*2**i)}}throw new Error(JSON.stringify(last))}
+          const start=51086663, head=parseInt(await rpc('eth_blockNumber',[]),16);
+          const topic0='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+          const toTopic='0x'+'0'.repeat(24)+TREASURY.slice(2).toLowerCase(); let logs=[];
+          for(let from=start;from<=head;from+=1500){const to=Math.min(head,from+1499);logs.push(...await rpc('eth_getLogs',[{address:USDC,fromBlock:'0x'+from.toString(16),toBlock:'0x'+to.toString(16),topics:[topic0,null,toTopic]}]));}
+          const incoming=logs.map(x=>({block:parseInt(x.blockNumber,16),tx:x.transactionHash,amount_usdc:Number(BigInt(x.data))/1e6,from:'0x'+x.topics[1].slice(-40)}));
+          console.log(JSON.stringify({start,head,incoming_count:incoming.length,incoming},null,2));
+          NODE
