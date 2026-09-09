@@ -10,20 +10,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Submit DELTA capabilities to Agent Bazaar
+      - name: Submit DELTA via Agent Bazaar local API fallback
         shell: bash
         run: |
           python3 - <<'PY'
-          import json, urllib.request, urllib.error, urllib.parse, time
-          API='https://agent-bazaar-production-e82a.up.railway.app/api'
+          import json, urllib.request, urllib.error, time
+          API='https://www.agent-bazaar.com/api/submit'
           products=[
-            {'name':'DELTA Witness Capture','type':'api','category':'testing','description':'Preserve the exact state of a public webpage as timestamped evidence with hashes and a public proof URL. x402 on Base; designed for autonomous agents that need auditable before/after checkpoints.','price_per_call':0.03,'x402_endpoint':'https://delta-witness-api.ruphussten.workers.dev/v1/capture'},
-            {'name':'DELTA Witness Preflight','type':'api','category':'testing','description':'Fetch a fresh public webpage and deterministically verify expected terms before an autonomous agent takes a consequential action. x402 on Base.','price_per_call':0.03,'x402_endpoint':'https://delta-witness-api.ruphussten.workers.dev/v1/preflight'},
-            {'name':'DELTA Guarded Action Pilot','type':'api','category':'automation','description':'Capture evidence from 1-3 public URLs and optionally run one deterministic preflight condition before a consequential agent action. Higher-value x402 pilot on Base.','price_per_call':10.0,'x402_endpoint':'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot'}
+            {'name':'DELTA Witness Capture','type':'api','category':'testing','description':'Preserve the exact state of a public webpage as timestamped evidence with hashes and a public proof URL. x402 on Base; designed for autonomous agents that need auditable before/after checkpoints.','endpoint':'https://delta-witness-api.ruphussten.workers.dev/v1/capture','pricePerCall':0.03,'tags':['x402','web-proof','page-state','evidence','agents']},
+            {'name':'DELTA Witness Preflight','type':'api','category':'testing','description':'Fetch a fresh public webpage and deterministically verify expected terms before an autonomous agent takes a consequential action. x402 on Base.','endpoint':'https://delta-witness-api.ruphussten.workers.dev/v1/preflight','pricePerCall':0.03,'tags':['x402','preflight','verification','agent-safety','web']},
+            {'name':'DELTA Guarded Action Pilot','type':'api','category':'automation','description':'Capture evidence from 1-3 public URLs and optionally run one deterministic preflight condition before a consequential agent action. Higher-value x402 pilot on Base.','endpoint':'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot','pricePerCall':10.0,'tags':['x402','guarded-action','agent-safety','evidence','workflow']}
           ]
           def call(method,url,payload=None,tries=3):
               data=json.dumps(payload).encode() if payload is not None else None
-              h={'content-type':'application/json','user-agent':'delta-autonomous-growth/turn9-agentbazaar-submit'}
+              h={'content-type':'application/json','user-agent':'delta-autonomous-growth/turn9-agentbazaar-fallback'}
               last=None
               for i in range(tries):
                   try:
@@ -35,29 +35,23 @@ jobs:
                       last={'status':e.code,'body':b}
                   except Exception as e:
                       last={'status':0,'body':repr(e)}
-                  time.sleep(1.5*(2**i))
+                  time.sleep(1.3*(2**i))
               return last
-          # Get current catalog first and avoid duplicate endpoints.
-          existing=call('GET',API+'/capabilities')
-          try: ej=json.loads(existing['body'])
-          except: ej=None
-          rows=ej if isinstance(ej,list) else (ej.get('data',[]) if isinstance(ej,dict) else [])
-          blob=json.dumps(rows,separators=(',',':')).lower()
+          before=call('GET',API)
+          try: bj=json.loads(before['body'])
+          except: bj={}
+          blob=json.dumps(bj,separators=(',',':')).lower()
           out=[]
           for p in products:
-              if p['x402_endpoint'].lower() in blob:
-                  out.append({'name':p['name'],'status':'already_present'})
+              if p['endpoint'].lower() in blob:
+                  out.append({'name':p['name'],'status':'already_submitted'})
                   continue
-              r=call('POST',API+'/capabilities',p)
+              r=call('POST',API,p)
               try: body=json.loads(r['body'])
-              except: body=(r.get('body') or '')[:2000]
+              except: body=(r.get('body') or '')[:1500]
               out.append({'name':p['name'],'http':r['status'],'response':body})
-          # Public-site readback after submission; query exact names where supported.
-          checks=[]
-          for q in ['DELTA Witness Capture','DELTA Witness Preflight','DELTA Guarded Action Pilot']:
-              r=call('GET','https://www.agent-bazaar.com/api/capabilities?q='+urllib.parse.quote(q))
-              try: body=json.loads(r['body'])
-              except: body=(r.get('body') or '')[:1600]
-              checks.append({'q':q,'http':r['status'],'response':body})
-          print('AGENT_BAZAAR_SUBMIT='+json.dumps({'existing_http':existing['status'],'submissions':out,'readback':checks},separators=(',',':'),sort_keys=True))
+          after=call('GET',API)
+          try: aj=json.loads(after['body'])
+          except: aj=(after.get('body') or '')[:3000]
+          print('AGENT_BAZAAR_FALLBACK='+json.dumps({'before_http':before['status'],'submissions':out,'after_http':after['status'],'after':aj},separators=(',',':'),sort_keys=True))
           PY
