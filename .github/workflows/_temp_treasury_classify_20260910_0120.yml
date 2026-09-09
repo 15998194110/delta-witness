@@ -1,0 +1,17 @@
+name: DELTA Treasury Classify 0120
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_treasury_classify_20260910_0120.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - run: node scripts/reconcile-treasury.mjs
