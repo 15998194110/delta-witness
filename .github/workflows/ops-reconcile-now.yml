@@ -1,0 +1,41 @@
+name: DELTA One-Shot Reconcile
+
+on:
+  push:
+    paths:
+      - '.github/workflows/ops-reconcile-now.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify live x402 prices
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          check() {
+            name="$1"; path="$2"; payload="$3"; expected="$4"
+            code=$(curl -sS -o /tmp/body -D /tmp/headers -w '%{http_code}' -X POST "$BASE$path" -H 'content-type: application/json' -d "$payload")
+            hdr=$(awk 'BEGIN{IGNORECASE=1} /^payment-required:/{sub(/^[^:]+:[[:space:]]*/,""); gsub(/\r/,""); print; exit}' /tmp/headers)
+            decoded=$(printf '%s' "$hdr" | base64 -d 2>/dev/null || true)
+            amount=$(printf '%s' "$decoded" | jq -r '.. | .amount? // empty' 2>/dev/null | head -1)
+            payto=$(printf '%s' "$decoded" | jq -r '.. | .payTo? // empty' 2>/dev/null | head -1)
+            network=$(printf '%s' "$decoded" | jq -r '.. | .network? // empty' 2>/dev/null | head -1)
+            echo "product=$name status=$code amount=$amount expected=$expected payTo=$payto network=$network"
+            test "$code" = 402
+            test "$amount" = "$expected"
+            test "${payto,,}" = '0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+            test "$network" = 'eip155:8453'
+          }
+          check capture '/v1/capture' '{"url":"https://example.com"}' 30000
+          check preflight '/v1/preflight' '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' 1000000
+          check pilot '/v1/guarded-action-pilot' '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' 10000000
+      - name: Reconcile canonical Base USDC Treasury
+        shell: bash
+        run: node scripts/reconcile-treasury.mjs
