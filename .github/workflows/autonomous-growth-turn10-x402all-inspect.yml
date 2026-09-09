@@ -1,0 +1,38 @@
+name: Autonomous Growth Turn 10 x402all Inspect
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/autonomous-growth-turn10-x402all-inspect.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect official x402all seller registration contract
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re,json,requests,urllib.parse
+          s=requests.Session(); s.headers['User-Agent']='DELTA-Witness-Autonomous-Growth/turn10-x402all'
+          u='https://x402all.com/register'
+          r=s.get(u,timeout=25)
+          html=r.text
+          out={'http':r.status_code,'forms':re.findall(r'<form[^>]*>',html,re.I),'inputs':re.findall(r'<input[^>]*>',html,re.I)[:30]}
+          scripts=re.findall(r'<script[^>]+src=["\']([^"\']+)["\']',html,re.I)
+          hits=[]
+          for src in scripts:
+            su=urllib.parse.urljoin(u,src)
+            try:
+              rr=s.get(su,timeout=20)
+              b=rr.text
+              if any(k in b.lower() for k in ['api/register','submit for review','contactemail','contact email']):
+                for pat in [r'.{0,500}/api/register.{0,1000}',r'.{0,500}submit for review.{0,1000}',r'.{0,500}contactEmail.{0,1000}',r'.{0,500}contact_email.{0,1000}']:
+                  for m in re.findall(pat,b,re.I|re.S): hits.append({'script':su,'match':m[:2000]})
+            except Exception as e: hits.append({'script':su,'error':repr(e)})
+          out['scripts']=scripts
+          out['hits']=hits[:30]
+          out['html_snippet']=html[:10000]
+          print('X402ALL_INSPECT='+json.dumps(out,separators=(',',':'),sort_keys=True))
+          PY
