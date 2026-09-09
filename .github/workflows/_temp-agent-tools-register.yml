@@ -1,0 +1,89 @@
+name: DELTA one-shot Agent Tools registration and reconcile
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp-agent-tools-register.yml'
+permissions:
+  contents: read
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify production quotes
+        run: |
+          set -euo pipefail
+          BASE=https://delta-witness-api.ruphussten.workers.dev
+          for product in capture preflight guarded-action-pilot; do
+            curl --retry 3 --retry-delay 1 --retry-all-errors -fsS "$BASE/v1/quote?product=$product"
+            echo
+          done
+      - name: Register with agent-tools.cloud via free MCP register
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, time, requests
+          URL='https://agent-tools.cloud/mcp-discovery/'
+          H={'content-type':'application/json','accept':'application/json, text/event-stream'}
+          def post(payload, headers=None):
+              last=None
+              for i in range(3):
+                  try:
+                      r=requests.post(URL,headers=headers or H,json=payload,timeout=25)
+                      if r.status_code in (429,500,502,503,504):
+                          last=f'http_{r.status_code}:{r.text[:300]}'
+                          time.sleep(i+1)
+                          continue
+                      r.raise_for_status()
+                      return r
+                  except Exception as e:
+                      last=str(e); time.sleep(i+1)
+              raise RuntimeError(last or 'request_failed')
+          init=post({'jsonrpc':'2.0','id':1,'method':'initialize','params':{'protocolVersion':'2025-06-18','capabilities':{},'clientInfo':{'name':'delta-witness','version':'0.7.0'}}})
+          sid=init.headers.get('mcp-session-id') or init.headers.get('Mcp-Session-Id')
+          print('MCP_INIT_STATUS',init.status_code,'SESSION',bool(sid))
+          if not sid:
+              print(init.text[:1500]); raise RuntimeError('missing_mcp_session_id')
+          SH=dict(H); SH['Mcp-Session-Id']=sid
+          post({'jsonrpc':'2.0','method':'notifications/initialized','params':{}},SH)
+          args={
+            'url':'https://delta-witness-api.ruphussten.workers.dev/v1/capture',
+            'name':'DELTA Witness',
+            'description':'Trust layer for autonomous actions: paid Base x402 page capture and deterministic preflight verification with timestamped proof hashes.',
+            'category':'verification',
+            'chains':['base'],
+            'price_min_usdc':0.03,
+            'price_max_usdc':10.0
+          }
+          res=post({'jsonrpc':'2.0','id':2,'method':'tools/call','params':{'name':'register','arguments':args}},SH)
+          print('MCP_REGISTER_HTTP',res.status_code)
+          print(res.text[:12000])
+          # Direct readback is independent of the MCP result formatting.
+          for q in ['DELTA Witness','delta-witness-api.ruphussten.workers.dev']:
+              rr=requests.get('https://agent-tools.cloud/api/v1/search',params={'q':q,'chain':'base','limit':50},timeout=25)
+              print('READBACK',q,rr.status_code,rr.text[:12000])
+          PY
+      - name: Audit paid funnel telemetry
+        run: node scripts/query-revenue-candidates.mjs
+      - name: Reconcile canonical Base USDC Treasury
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367';
+          const USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+          const START=51064825n;
+          const TRANSFER='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+          const TO_TOPIC='0x'+'0'.repeat(24)+TREASURY.slice(2).toLowerCase();
+          const RPCS=['https://mainnet.base.org','https://base-rpc.publicnode.com','https://1rpc.io/base'];
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function rpc(method,params){const errors=[];for(const url of RPCS){for(let a=1;a<=3;a++){try{const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),12000);const res=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:ctl.signal});clearTimeout(t);const text=await res.text();if(!res.ok)throw new Error(`http_${res.status}:${text.slice(0,120)}`);const body=JSON.parse(text);if(body.error)throw new Error(JSON.stringify(body.error));if(body.result===undefined)throw new Error('missing_result');return body.result}catch(e){errors.push(`${url}#${a}:${e?.message||e}`);if(a<3)await sleep(750*a)}}}throw new Error(`${method} failed: ${errors.join(' | ')}`)}
+          const hex=n=>'0x'+n.toString(16);
+          const latest=BigInt(await rpc('eth_blockNumber',[]));
+          const all=[];
+          if(latest>=START){for(let from=START;from<=latest;from+=1500n){const to=(from+1499n>latest?latest:from+1499n);const logs=await rpc('eth_getLogs',[{address:USDC,fromBlock:hex(from),toBlock:hex(to),topics:[TRANSFER,null,TO_TOPIC]}]);all.push(...logs)}}
+          const incoming=all.map(log=>({block_number:Number(BigInt(log.blockNumber)),tx_hash:log.transactionHash,from:'0x'+log.topics[1].slice(-40),to:TREASURY,raw_amount:BigInt(log.data).toString(),usdc:Number(BigInt(log.data))/1e6}));
+          console.log(JSON.stringify({ok:true,canonical_asset:USDC,treasury:TREASURY,from_block:Number(START),latest_block:Number(latest),incoming_count:incoming.length,incoming},null,2));
+          NODE
