@@ -1,0 +1,42 @@
+{
+  "fetched": true,
+  "bytes": 65876,
+  "forms": [
+    {
+      "opening": "<form class=\"space-y-6\">",
+      "inputs": [],
+      "buttons": [
+        "Submit for Review"
+      ]
+    },
+    {
+      "opening": "<form class=\"flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start\">",
+      "inputs": [],
+      "buttons": [
+        "Subscribe"
+      ]
+    }
+  ],
+  "api_paths": [],
+  "script_srcs": [
+    "/_next/static/chunks/d598f1f652e2d146.js",
+    "/_next/static/chunks/961311cbebbffb6d.js",
+    "/_next/static/chunks/833e2f0e336bbfd7.js",
+    "/_next/static/chunks/turbopack-0008a14a542d3508.js",
+    "/_next/static/chunks/009a04e6942dd5a3.js",
+    "/_next/static/chunks/e9484b2478252d5f.js",
+    "/_next/static/chunks/abbaad18e04b9d49.js",
+    "/_next/static/chunks/5c1d31cb425c0efb.js",
+    "/_next/static/chunks/877b5513d8845c7c.js",
+    "/_next/static/chunks/b43984fec247f8ef.js",
+    "/_next/static/chunks/a04537e137347ebf.js",
+    "/_next/static/chunks/d96012bcfc98706a.js",
+    "/_next/static/chunks/73e3194f06db260e.js",
+    "/_next/static/chunks/3a8bb390aba194ba.js",
+    "https://www.googletagmanager.com/gtag/js?id=G-QMJ7PSXKZ1",
+    "/_next/static/chunks/3ad59d357473425a.js",
+    "/_next/static/chunks/a6dad97d9634a72d.js",
+    "/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js",
+    "/_next/static/chunks/fb309b6637162809.js"
+  ]
+}
