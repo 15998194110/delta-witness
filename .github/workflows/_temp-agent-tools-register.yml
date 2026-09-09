@@ -22,6 +22,7 @@ jobs:
             echo
           done
       - name: Register with agent-tools.cloud via free MCP register
+        continue-on-error: true
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -37,18 +38,18 @@ jobs:
                           last=f'http_{r.status_code}:{r.text[:300]}'
                           time.sleep(i+1)
                           continue
-                      r.raise_for_status()
-                      return r
+                      r.raise_for_status(); return r
                   except Exception as e:
                       last=str(e); time.sleep(i+1)
               raise RuntimeError(last or 'request_failed')
           init=post({'jsonrpc':'2.0','id':1,'method':'initialize','params':{'protocolVersion':'2025-06-18','capabilities':{},'clientInfo':{'name':'delta-witness','version':'0.7.0'}}})
           sid=init.headers.get('mcp-session-id') or init.headers.get('Mcp-Session-Id')
           print('MCP_INIT_STATUS',init.status_code,'SESSION',bool(sid))
-          if not sid:
-              print(init.text[:1500]); raise RuntimeError('missing_mcp_session_id')
-          SH=dict(H); SH['Mcp-Session-Id']=sid
-          post({'jsonrpc':'2.0','method':'notifications/initialized','params':{}},SH)
+          SH=dict(H)
+          if sid: SH['Mcp-Session-Id']=sid
+          # FastMCP can run stateless and omit a session id; in that mode use the same headers.
+          try: post({'jsonrpc':'2.0','method':'notifications/initialized','params':{}},SH)
+          except Exception as e: print('INITIALIZED_NOTIFICATION_DEGRADED',e)
           args={
             'url':'https://delta-witness-api.ruphussten.workers.dev/v1/capture',
             'name':'DELTA Witness',
@@ -61,14 +62,21 @@ jobs:
           res=post({'jsonrpc':'2.0','id':2,'method':'tools/call','params':{'name':'register','arguments':args}},SH)
           print('MCP_REGISTER_HTTP',res.status_code)
           print(res.text[:12000])
-          # Direct readback is independent of the MCP result formatting.
           for q in ['DELTA Witness','delta-witness-api.ruphussten.workers.dev']:
-              rr=requests.get('https://agent-tools.cloud/api/v1/search',params={'q':q,'chain':'base','limit':50},timeout=25)
-              print('READBACK',q,rr.status_code,rr.text[:12000])
+              last=None
+              for i in range(3):
+                  try:
+                      rr=requests.get('https://agent-tools.cloud/api/v1/search',params={'q':q,'chain':'base','limit':50},timeout=25)
+                      if rr.status_code in (429,500,502,503,504): last=f'http_{rr.status_code}'; time.sleep(i+1); continue
+                      print('READBACK',q,rr.status_code,rr.text[:12000]); break
+                  except Exception as e: last=str(e); time.sleep(i+1)
+              else: print('READBACK_DEGRADED',q,last)
           PY
       - name: Audit paid funnel telemetry
+        if: always()
         run: node scripts/query-revenue-candidates.mjs
       - name: Reconcile canonical Base USDC Treasury
+        if: always()
         run: |
           set -euo pipefail
           node <<'NODE'
