@@ -1,0 +1,27 @@
+name: DELTA Turn 6 D1 Reconcile
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn6_d1_reconcile_20260909.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Require read credentials
+        run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Query recent paid-funnel candidates
+        run: node scripts/query-revenue-candidates.mjs
+      - name: Query current channel funnel
+        run: node scripts/query-funnel.mjs 1
