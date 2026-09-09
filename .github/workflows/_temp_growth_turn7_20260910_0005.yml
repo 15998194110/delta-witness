@@ -1,0 +1,113 @@
+name: DELTA Growth Turn 7
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn7_20260910_0005.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Reconcile production, treasury, funded demand, and free listings
+        shell: bash
+        run: |
+          set +e
+          node <<'NODE'
+          const sleep = ms => new Promise(r=>setTimeout(r,ms));
+          const TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'.toLowerCase();
+          const BASE='https://delta-witness-api.ruphussten.workers.dev';
+          const START_BLOCK=51089738n;
+          const USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+          const TRANSFER_TOPIC='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+          const TO_TOPIC='0x'+'0'.repeat(24)+TREASURY.slice(2);
+          async function req(url, opts={}, tries=4){
+            let last={};
+            for(let i=0;i<tries;i++){
+              try{
+                const r=await fetch(url,{...opts,headers:{'user-agent':'DELTA-Witness-Growth/0.7',...(opts.headers||{})}});
+                const text=await r.text();
+                last={status:r.status,text,headers:Object.fromEntries(r.headers)};
+                if((r.status===429||r.status>=500)&&i<tries-1){await sleep(500*2**i);continue;}
+                return last;
+              }catch(e){last={status:0,text:'',error:String(e)};if(i<tries-1)await sleep(500*2**i)}
+            }
+            return last;
+          }
+          function safeJson(s){try{return JSON.parse(s)}catch{return null}}
+          function firstAccept(obj){
+            const candidates=[obj?.accepts,obj?.paymentRequirements,obj?.payment?.accepts,obj?.x402?.accepts,obj?.error?.accepts];
+            for(const a of candidates){if(Array.isArray(a)&&a.length)return a[0]}
+            return null;
+          }
+          async function prod(name,path,body){
+            const r=await req(BASE+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+            const j=safeJson(r.text)||{}; const a=firstAccept(j)||{};
+            console.log('PROD',JSON.stringify({name,http:r.status,amount:a.maxAmountRequired??a.amount??a.maxAmount??null,network:a.network??null,payTo:(a.payTo??a.pay_to??null),scheme:a.scheme??null,bodyKeys:Object.keys(j).slice(0,10)}));
+          }
+          await prod('capture','/v1/capture',{url:'https://example.com'});
+          await prod('preflight','/v1/preflight',{url:'https://example.com',expected:{contains:['Example Domain']}});
+          await prod('pilot','/v1/guarded-action-pilot',{urls:['https://example.com'],preflight:{url_index:0,expected:{contains:['Example Domain']}}});
+
+          async function rpc(endpoint,method,params){
+            const r=await req(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})},3);
+            if(r.status!==200) throw new Error(`http_${r.status}`);
+            const j=safeJson(r.text); if(!j||j.error) throw new Error(j?.error?.message||'bad_rpc'); return j.result;
+          }
+          const rpcs=['https://mainnet.base.org','https://base.llamarpc.com','https://base-rpc.publicnode.com'];
+          let latest=null, rpcUsed=null;
+          for(const ep of rpcs){try{latest=BigInt(await rpc(ep,'eth_blockNumber',[]));rpcUsed=ep;break}catch(e){console.log('TREASURY_RPC_DEGRADED',ep,String(e))}}
+          const receipts=[];
+          if(latest!==null){
+            console.log('TREASURY_HEAD',JSON.stringify({rpc:rpcUsed,start:Number(START_BLOCK),latest:Number(latest)}));
+            let from=START_BLOCK;
+            const step=1500n;
+            while(from<=latest){
+              const to=from+step-1n>latest?latest:from+step-1n;
+              let logs=null;
+              for(const ep of [rpcUsed,...rpcs.filter(x=>x!==rpcUsed)]){
+                try{logs=await rpc(ep,'eth_getLogs',[{address:USDC,fromBlock:'0x'+from.toString(16),toBlock:'0x'+to.toString(16),topics:[TRANSFER_TOPIC,null,TO_TOPIC]}]);rpcUsed=ep;break}catch(e){console.log('TREASURY_LOG_DEGRADED',JSON.stringify({ep,from:Number(from),to:Number(to),error:String(e)}))}
+              }
+              if(!Array.isArray(logs)){console.log('TREASURY_CHUNK_UNRESOLVED',Number(from),Number(to));from=to+1n;continue;}
+              for(const l of logs){
+                const value=BigInt(l.data||'0x0'); const fromAddr='0x'+String(l.topics?.[1]||'').slice(-40);
+                receipts.push({block:Number(BigInt(l.blockNumber)),txHash:l.transactionHash,from:fromAddr.toLowerCase(),to:TREASURY,raw:value.toString(),usdc:Number(value)/1e6});
+              }
+              from=to+1n;
+            }
+            console.log('TREASURY_INCOMING',JSON.stringify(receipts));
+          } else console.log('TREASURY_UNRESOLVED_ALL_RPC');
+
+          const PAYAN='https://payanagent.com';
+          const RID='ks76vc9pzpz3qfgf8aawjckn5n8bezhf';
+          const BID='jd79ndx8s7y59tkcvjbars0vf18e33z9';
+          for(const u of [`${PAYAN}/api/v1/requests/${RID}`,`${PAYAN}/api/v1/receipts?limit=300`,`${PAYAN}/api/v1/requests?status=open&limit=200`,`${PAYAN}/api/v1/offers?q=DELTA%20Witness&limit=50`]){
+            const r=await req(u); let out={url:u,http:r.status}; const j=safeJson(r.text);
+            if(u.includes('/requests/'+RID)&&j) out.request=j;
+            else if(u.includes('/receipts')&&j){
+              const found=[]; const seen=new Set();
+              function walk(x){if(!x||typeof x!=='object')return;if(Array.isArray(x)){for(const v of x)walk(v);return;} const bid=x.bidId??x.bid_id; const rid=x.requestId??x.request_id; if(bid===BID||rid===RID){const key=x._id??x.id??x.receiptId??x.txHash??JSON.stringify(x);if(!seen.has(key)){seen.add(key);found.push(x)}} for(const v of Object.values(x))walk(v)}
+              walk(j); out.matches=found.slice(0,20);
+            } else if(u.includes('status=open')&&j){
+              const arr=j.requests??j.items??j.data??[];
+              out.funded=(Array.isArray(arr)?arr:[]).filter(x=>x&&x.escrow===true&&Number(x.escrowDepositedCents??0)>0).map(x=>({id:x._id??x.id,title:x.title,description:x.description,budgetMaxCents:x.budgetMaxCents,escrow:x.escrow,escrowDepositedCents:x.escrowDepositedCents,status:x.status,bidCount:x.bidCount,createdAt:x.createdAt})).slice(0,50);
+            } else if(j){const arr=j.offers??j.items??j.data??[];out.delta=(Array.isArray(arr)?arr:[]).filter(x=>String(x.title??'').toLowerCase().includes('delta witness')).map(x=>({id:x._id??x.id,title:x.title,priceUsd:x.priceUsd,priceCents:x.priceCents,buyUrl:x.buyUrl,category:x.category,claimed:x.claimed}));}
+            else out.preview=r.text.slice(0,500);
+            console.log('PAYAN',JSON.stringify(out).slice(0,25000));
+          }
+
+          for(const u of ['https://payapi.market/agent/search?q=delta%20witness&verified_only=false&limit=50','https://payapi.market/agent/list?verified_only=false&limit=500']){
+            const r=await req(u); const j=safeJson(r.text); let matches=[];
+            if(j){const arr=j.apis??j.items??j.data??j.results??(Array.isArray(j)?j:[]); if(Array.isArray(arr)) matches=arr.filter(x=>JSON.stringify(x).toLowerCase().includes('delta')).slice(0,20)}
+            console.log('PAYAPI',JSON.stringify({url:u,http:r.status,matches,preview:matches.length?undefined:r.text.slice(0,700)}).slice(0,20000));
+          }
+
+          const ar=await req('https://agent402.tools/api/index/register',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({origin:BASE})});
+          console.log('AGENT402_REGISTER',JSON.stringify({http:ar.status,body:ar.text.slice(0,5000)}));
+          const af=await req('https://agent402.tools/api/find?q=verification%20preflight%20browser%20evidence');
+          console.log('AGENT402_FIND',JSON.stringify({http:af.status,body:af.text.slice(0,10000)}));
+          NODE
