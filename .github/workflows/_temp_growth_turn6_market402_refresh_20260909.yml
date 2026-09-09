@@ -1,0 +1,25 @@
+name: DELTA Turn 6 Market402 Refresh
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn6_market402_refresh_20260909.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Refresh Bazaar-listed DELTA Preflight
+        shell: bash
+        run: |
+          set +e
+          RESOURCE='https://delta-witness-api.ruphussten.workers.dev/v1/preflight'
+          jq -n --arg resource "$RESOURCE" '{resource:$resource,declared_price_usd:0.03}' >/tmp/submit.json
+          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 45 -o /tmp/response.json -w '%{http_code}' -X POST 'https://market402.com/submit' -H 'content-type: application/json' --data-binary @/tmp/submit.json || true)
+          echo "MARKET402_REFRESH_HTTP=$code"
+          cat /tmp/response.json; echo
+          exit 0
