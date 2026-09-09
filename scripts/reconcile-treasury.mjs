@@ -10,6 +10,16 @@ const RPCS = [
   'https://base.llamarpc.com',
 ];
 
+// These addresses have positive first-party/platform evidence tying them to
+// verification probes rather than independent customer purchases. Receipts
+// remain canonical treasury_received events, but must never be recognized as
+// customer revenue unless contrary evidence is established and this map is
+// deliberately revised.
+const KNOWN_NON_CUSTOMER_PAYERS = new Map([
+  ['0x54e163e9b8edda194d83f46add921bfa5fc5f4e0', 'nohumans_platform_verification'],
+  ['0x7e6b6556322c4e26c567a867964ac793f5ee2b1c', 'payapi_platform_verification'],
+]);
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function rpc(method, params) {
@@ -69,19 +79,30 @@ for (let fromBlock = startBlock; fromBlock <= latestBlock; fromBlock += CHUNK_BL
 }
 
 const unique = [...new Map(logs.map((log) => [`${log.transactionHash}:${log.logIndex}`, log])).values()];
-const transfers = unique.map((log) => ({
-  tx_hash: log.transactionHash,
-  block_number: parseInt(log.blockNumber, 16),
-  log_index: parseInt(log.logIndex, 16),
-  from: `0x${log.topics[1].slice(-40)}`,
-  to: `0x${log.topics[2].slice(-40)}`,
-  raw_amount: BigInt(log.data).toString(),
-  usdc: Number(BigInt(log.data)) / 1e6,
-  treasury_received: true,
-  customer_revenue: 'unclassified',
-})).sort((a, b) => a.block_number - b.block_number || a.log_index - b.log_index);
+const transfers = unique.map((log) => {
+  const from = `0x${log.topics[1].slice(-40)}`.toLowerCase();
+  const payerClassification = KNOWN_NON_CUSTOMER_PAYERS.get(from) || 'unclassified';
+  return {
+    tx_hash: log.transactionHash,
+    block_number: parseInt(log.blockNumber, 16),
+    log_index: parseInt(log.logIndex, 16),
+    from,
+    to: `0x${log.topics[2].slice(-40)}`.toLowerCase(),
+    raw_amount: BigInt(log.data).toString(),
+    usdc: Number(BigInt(log.data)) / 1e6,
+    treasury_received: true,
+    payer_classification: payerClassification,
+    customer_revenue: payerClassification === 'unclassified' ? 'unclassified' : false,
+  };
+}).sort((a, b) => a.block_number - b.block_number || a.log_index - b.log_index);
 
 const totalRaw = transfers.reduce((sum, transfer) => sum + BigInt(transfer.raw_amount), 0n);
+const knownNonCustomerRaw = transfers
+  .filter((transfer) => transfer.customer_revenue === false)
+  .reduce((sum, transfer) => sum + BigInt(transfer.raw_amount), 0n);
+const unclassifiedRaw = transfers
+  .filter((transfer) => transfer.customer_revenue === 'unclassified')
+  .reduce((sum, transfer) => sum + BigInt(transfer.raw_amount), 0n);
 
 console.log(JSON.stringify({
   ok: true,
@@ -96,7 +117,11 @@ console.log(JSON.stringify({
   treasury_received_candidates: transfers.length,
   total_raw: totalRaw.toString(),
   total_usdc: Number(totalRaw) / 1e6,
-  revenue_classification: 'unclassified_until_non_project_payer_and_DELTA_proof_are_reconciled',
+  known_non_customer_raw: knownNonCustomerRaw.toString(),
+  known_non_customer_usdc: Number(knownNonCustomerRaw) / 1e6,
+  unclassified_raw: unclassifiedRaw.toString(),
+  unclassified_usdc: Number(unclassifiedRaw) / 1e6,
+  revenue_classification: 'known platform/test payers are explicitly excluded; remaining receipts stay unclassified until non-project payer and DELTA proof/telemetry are reconciled',
   evidence_quality: 'A_direct_canonical_USDC_log',
   transfers,
 }, null, 2));
