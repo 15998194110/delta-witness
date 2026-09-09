@@ -1,0 +1,130 @@
+name: DELTA Growth Turn 6 Verify + Demand
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn6_20260909.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify core production 402 integrity
+        shell: bash
+        run: |
+          set +e
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          probe() {
+            local label="$1" path="$2" body="$3" expected="$4"
+            code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 40 -D "/tmp/${label}.headers" -o "/tmp/${label}.json" -w '%{http_code}' -X POST "$BASE$path" -H 'content-type: application/json' --data-binary "$body" || true)
+            echo "CORE_PROBE label=$label http=$code expected_usd=$expected"
+            head -c 7000 "/tmp/${label}.json"; echo
+            node - "$label" "$expected" "$TREASURY" "/tmp/${label}.json" <<'NODE'
+          const fs=require('fs'); const [label,expected,payTo,file]=process.argv.slice(2);
+          let p={}; try{p=JSON.parse(fs.readFileSync(file,'utf8'))}catch{}
+          const s=JSON.stringify(p).toLowerCase();
+          const expRaw=Math.round(Number(expected)*1e6).toString();
+          const okPrice=s.includes(expRaw)||s.includes(`\"amount\":\"${expected}\"`)||s.includes(`\"price\":\"$${expected}\"`);
+          const okNetwork=s.includes('eip155:8453')||s.includes('base');
+          const okPay=s.includes(payTo.toLowerCase());
+          console.log(JSON.stringify({label,expected_usd:Number(expected),expected_raw:expRaw,price_marker:okPrice,network_marker:okNetwork,pay_to_marker:okPay},null,2));
+          NODE
+          }
+          probe capture '/v1/capture' '{"url":"https://example.com"}' 0.03
+          probe preflight '/v1/preflight' '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' 0.03
+          probe pilot '/v1/guarded-action-pilot' '{"urls":["https://example.com"],"preflight":{"url_index":0,"expected":{"contains":["Example Domain"]}}}' 10
+          exit 0
+
+      - name: Strict canonical Base Treasury tail reconciliation
+        shell: bash
+        run: |
+          set +e
+          FROM='0x30b71eb'
+          USDC='0x833589fCD6eDb6E08f4c7C32d4f71b54bdA02913'
+          T0='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
+          T2='0x0000000000000000000000001990e21bc219696ff7fbc26527dbaed335ac6367'
+          for rpc in 'https://mainnet.base.org' 'https://base-rpc.publicnode.com' 'https://base.llamarpc.com'; do
+            latest=$(curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --max-time 35 -H 'content-type: application/json' --data-binary '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}' "$rpc" 2>/dev/null | jq -r '.result // empty')
+            [ -n "$latest" ] && break
+          done
+          echo "TREASURY_LATEST=$latest rpc=$rpc"
+          if [ -z "$latest" ]; then echo 'TREASURY_DEGRADED=no_rpc_after_fallbacks'; exit 0; fi
+          jq -n --arg a "$USDC" --arg f "$FROM" --arg t "$latest" --arg t0 "$T0" --arg t2 "$T2" '{jsonrpc:"2.0",id:2,method:"eth_getLogs",params:[{address:$a,fromBlock:$f,toBlock:$t,topics:[$t0,null,$t2]}]}' >/tmp/q.json
+          curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --max-time 45 -H 'content-type: application/json' --data-binary @/tmp/q.json "$rpc" -o /tmp/logs.json || echo '{}' >/tmp/logs.json
+          node <<'NODE'
+          const fs=require('fs'); let p={}; try{p=JSON.parse(fs.readFileSync('/tmp/logs.json','utf8'))}catch{}
+          const rows=(Array.isArray(p.result)?p.result:[]).map(x=>({txHash:x.transactionHash,blockNumber:parseInt(x.blockNumber,16),from:'0x'+String(x.topics?.[1]||'').slice(-40),raw:BigInt(x.data||'0x0').toString(),usdc:Number(BigInt(x.data||'0x0'))/1e6}));
+          console.log(JSON.stringify({TREASURY_NEW_CANDIDATES:rows.length,rows},null,2));
+          NODE
+          exit 0
+
+      - name: Scan Payan funded demand and settlement receipts
+        shell: bash
+        run: |
+          set +e
+          PAYAN='https://payanagent.com'
+          RID='ks76vc9pzpz3qfgf8aawjckn5n8bezhf'
+          BID='jd79ndx8s7y59tkcvjbars0vf18e33z9'
+          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 35 -o /tmp/requests.json -w '%{http_code}' "$PAYAN/api/v1/requests?status=open&limit=200" || true)
+          echo "PAYAN_OPEN_HTTP=$code"
+          if [ "$code" = 200 ]; then
+            jq '{funded:[(.requests // .items // .data // [])[] | select(((.escrow // false)==true) and ((.escrowDepositedCents // 0)>0)) | {id:(._id // .id),title,description,budgetMaxCents,escrowDepositedCents,status,bidCount,acceptedBidId,providerId,createdAt,updatedAt}]}' /tmp/requests.json
+            echo '=== PAYAN_HIGH_MATCH_FUNDED ==='
+            jq '[.requests // .items // .data // [] | .[] | select(((.escrow // false)==true) and ((.escrowDepositedCents // 0)>0)) | select((((.title // "") + " " + (.description // "")) | ascii_downcase) | test("verify|verification|preflight|audit|evidence|browser|health|endpoint|trust|proof|monitor|web|url|agent|catalog")) | {id:(._id // .id),title,description,budgetMaxCents,escrowDepositedCents,status,bidCount,acceptedBidId}]' /tmp/requests.json
+          else
+            head -c 4000 /tmp/requests.json; echo
+          fi
+          rcode=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 35 -o /tmp/receipts.json -w '%{http_code}' "$PAYAN/api/v1/receipts?limit=300" || true)
+          echo "PAYAN_RECEIPTS_HTTP=$rcode"
+          if [ "$rcode" = 200 ]; then
+            jq --arg rid "$RID" --arg bid "$BID" '[.. | objects | select(((.bidId // .bid_id // "") == $bid) or ((.requestId // .request_id // "") == $rid)) | {id:(_id // .id // .receiptId),bidId:(.bidId // .bid_id),requestId:(.requestId // .request_id),status,amountCents,txHash:(.txHash // .transactionHash),createdAt,updatedAt}] | unique_by(.id // .txHash)' /tmp/receipts.json
+          else
+            head -c 3000 /tmp/receipts.json; echo
+          fi
+          exit 0
+
+      - name: Recheck Market402 paid-probe and catalog visibility
+        shell: bash
+        run: |
+          set +e
+          MARKET='https://market402.com'
+          curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 35 "$MARKET/optin.json" -o /tmp/optin.json || echo '{}' >/tmp/optin.json
+          echo '=== MARKET402_OPTIN_DELTA ==='
+          jq '[.. | objects | select(((.resource // .url // "") | contains("delta-witness-api.ruphussten.workers.dev"))) ]' /tmp/optin.json 2>/dev/null || head -c 8000 /tmp/optin.json
+          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 35 -G -o /tmp/search.json -w '%{http_code}' "$MARKET/search.json" --data-urlencode 'q=delta witness' || true)
+          echo "MARKET402_SEARCH_HTTP=$code"
+          head -c 12000 /tmp/search.json; echo
+          exit 0
+
+      - name: Read Agent402 routing and x402.new discovery propagation
+        shell: bash
+        run: |
+          set +e
+          ORIGIN='https://delta-witness-api.ruphussten.workers.dev'
+          acode=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 35 -G -o /tmp/a402.json -w '%{http_code}' 'https://agent402.tools/api/index' --data-urlencode 'q=delta-witness-api.ruphussten.workers.dev' --data-urlencode 'limit=100' || true)
+          echo "AGENT402_INDEX_HTTP=$acode"
+          if [ "$acode" = 200 ]; then jq --arg origin "$ORIGIN" '[.. | objects | select(((.origin // .url // .sellerOrigin // "") | startswith($origin))) | {origin,url,sellerOrigin,name,healthy,health,lastCrawl,toolCount,chains,networks,payTo,routerDispatchEligible,routerDispatchReason,settlements,settledVolumeUsd,distinctPayers}] | unique_by(.origin // .url // .sellerOrigin // .name)' /tmp/a402.json; else head -c 5000 /tmp/a402.json; echo; fi
+          xcode=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 35 -G -o /tmp/xnew.json -w '%{http_code}' 'https://x402.new/api/services' --data-urlencode 'search=delta-witness' --data-urlencode 'perPage=100' || true)
+          echo "X402NEW_SEARCH_HTTP=$xcode"
+          if [ "$xcode" = 200 ]; then jq '{total,items:[(.items // [])[] | select(((.host // "")|contains("delta-witness")) or ((.resource // "")|contains("delta-witness")) or ((.name // "")|ascii_downcase|contains("delta"))) | {slug,name,provider,host,resource,description,priceUsd,network,calls30d,payers30d}]}' /tmp/xnew.json; else head -c 5000 /tmp/xnew.json; echo; fi
+          exit 0
+
+      - name: Read PayAI Bazaar discovery for DELTA
+        shell: bash
+        env:
+          BAZAAR_MAX_PAGES: '400'
+        run: |
+          set +e
+          timeout 420s node scripts/check-bazaar.mjs > /tmp/bazaar.json 2>/tmp/bazaar.err
+          ec=$?
+          echo "BAZAAR_SCAN_EXIT=$ec"
+          cat /tmp/bazaar.err | tail -n 20
+          if [ -s /tmp/bazaar.json ]; then cat /tmp/bazaar.json | head -c 16000; echo; fi
+          exit 0
