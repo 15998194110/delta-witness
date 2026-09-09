@@ -30,3 +30,4 @@ jobs:
           scripts=re.findall(r'<script[^>]+src=["\']([^"\']+)',html,re.I)
           print('SCRIPTS',scripts[-20:])
           PY
+          # trigger run after workflow exists on default branch
