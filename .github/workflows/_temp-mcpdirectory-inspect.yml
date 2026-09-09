@@ -1,4 +1,4 @@
-name: DELTA MCP.Directory inspect
+name: DELTA MCP.Directory submit
 on:
   push:
     branches: ["master"]
@@ -7,39 +7,36 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: delta-mcpdirectory-inspect
+  group: delta-mcpdirectory-submit
   cancel-in-progress: false
 jobs:
-  inspect:
+  submit:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
-      - name: Resolve public no-account submission endpoint
+      - name: Submit DELTA MCP server via public free endpoint
         shell: bash
         run: |
           set -euo pipefail
-          BASE='https://mcp.directory'
-          curl --retry 4 --retry-delay 2 --retry-all-errors -fsSL --max-time 30 "$BASE/submit" -o /tmp/page.html
-          node <<'NODE' >/tmp/scripts.txt
-          const fs=require('fs'); const h=fs.readFileSync('/tmp/page.html','utf8');
-          for(const m of h.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)) if(m[1].startsWith('/')) console.log(m[1]);
-          NODE
-          : >/tmp/bundles.js
-          while read -r p; do curl --retry 3 --retry-delay 1 --retry-all-errors -fsSL --max-time 30 "$BASE$p" >>/tmp/bundles.js || true; echo >>/tmp/bundles.js; done </tmp/scripts.txt
-          node <<'NODE' > /tmp/out.json
+          payload=$(jq -nc '{githubUrl:"https://github.com/15998194110/delta-witness",npmPackage:"delta-witness-mcp",description:"Paid web evidence capture, preflight verification and guarded-action checks over x402."}')
+          tmp=$(mktemp)
+          code=''
+          for delay in 0 1 2 4; do
+            [ "$delay" = 0 ] || sleep "$delay"
+            code=$(curl -sS --max-time 30 -o "$tmp" -w '%{http_code}' -H 'content-type: application/json' -X POST 'https://mcp.directory/api/submit-server' -d "$payload" || true)
+            if [[ "$code" =~ ^2 ]]; then break; fi
+            if [[ ! "$code" =~ ^(429|500|502|503|504|000)$ ]]; then break; fi
+          done
+          node - "$code" "$tmp" <<'NODE' > docs/_temp-mcpdirectory-submit.json
           const fs=require('fs');
-          const h=fs.readFileSync('/tmp/page.html','utf8'); const j=fs.readFileSync('/tmp/bundles.js','utf8');
-          const needles=['Submit for Review','githubUrl','github_url','repositoryUrl','repository_url','npmPackage','pypiPackage','shortDescription','/api/submit','/api/submissions','submit-server','submission'];
-          const excerpts=[];
-          for(const n of needles){let pos=0,count=0;while((pos=j.indexOf(n,pos))>=0&&count<8){excerpts.push({needle:n,text:j.slice(Math.max(0,pos-700),Math.min(j.length,pos+1400)).replace(/\s+/g,' ')});pos+=n.length;count++;}}
-          const urls=[...new Set([...j.matchAll(/["'`](\/api\/[A-Za-z0-9_?=&.\/-]{2,120})["'`]/g)].map(m=>m[1]))].filter(x=>/submit|server|mcp|listing/i.test(x)).slice(0,100);
-          const terms=/(agree|terms of service|terms and conditions|privacy policy|checkbox|required.*terms)/i.test(h.match(/<form\b[\s\S]*?<\/form>/i)?.[0]||'');
-          console.log(JSON.stringify({page_bytes:h.length,bundle_bytes:j.length,api_candidates:urls,terms_language_in_form:terms,excerpts},null,2));
+          const [code,path]=process.argv.slice(2); let raw=fs.readFileSync(path,'utf8'); let body;
+          try{body=JSON.parse(raw)}catch{body={raw:raw.slice(0,1000)}}
+          console.log(JSON.stringify({observed_at:new Date().toISOString(),channel:'MCP.Directory',http_status:Number(code)||0,request:{githubUrl:'https://github.com/15998194110/delta-witness',npmPackage:'delta-witness-mcp',description:'Paid web evidence capture, preflight verification and guarded-action checks over x402.',email_omitted:true},response:body},null,2));
           NODE
-          cp /tmp/out.json docs/_temp-mcpdirectory-inspect.json
+          if [[ ! "$code" =~ ^2 ]]; then cat docs/_temp-mcpdirectory-submit.json; exit 1; fi
           git config user.name 'DELTA Automation'
           git config user.email 'actions@users.noreply.github.com'
-          git add docs/_temp-mcpdirectory-inspect.json
-          git commit -m 'ops: resolve MCP.Directory submit endpoint'
+          git add docs/_temp-mcpdirectory-submit.json
+          git commit -m 'growth: record MCP.Directory submission response'
           git push
