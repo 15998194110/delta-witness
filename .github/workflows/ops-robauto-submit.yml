@@ -1,0 +1,104 @@
+name: DELTA One-Shot Robauto Listings
+
+on:
+  push:
+    paths:
+      - '.github/workflows/ops-robauto-submit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Submit free AgentHub listings with bounded retry
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/robauto.mjs <<'NODE'
+          const API = 'https://robauto.ai/api/public/listings';
+          const listings = [
+            {
+              agent_handle: 'delta-witness',
+              title: 'DELTA Witness Capture',
+              description: 'Deterministic public-source capture with durable proof for autonomous agent actions.',
+              category: 'api',
+              price_usdc: 0.03,
+              price_note: 'per call; x402 on Base USDC',
+              endpoint: 'https://delta-witness-api.ruphussten.workers.dev/v1/capture',
+              url: 'https://github.com/15998194110/delta-witness',
+              tags: ['x402','base','usdc','evidence','provenance']
+            },
+            {
+              agent_handle: 'delta-witness',
+              title: 'DELTA Witness Preflight',
+              description: 'Preflight autonomous actions against fresh public-state evidence before execution.',
+              category: 'api',
+              price_usdc: 1,
+              price_note: 'public preflight per call; x402 on Base USDC',
+              endpoint: 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight',
+              url: 'https://github.com/15998194110/delta-witness',
+              tags: ['x402','base','usdc','preflight','guardrails']
+            },
+            {
+              agent_handle: 'delta-witness',
+              title: 'DELTA Witness Guarded Action Pilot',
+              description: 'Higher-value guarded-action pilot using deterministic external-state evidence and proofs.',
+              category: 'api',
+              price_usdc: 10,
+              price_note: 'per legitimate pilot; x402 on Base USDC',
+              endpoint: 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot',
+              url: 'https://github.com/15998194110/delta-witness',
+              tags: ['x402','base','usdc','guarded-action','proof']
+            }
+          ];
+
+          async function call(url, options = {}) {
+            let last;
+            for (let attempt = 1; attempt <= 4; attempt++) {
+              try {
+                const res = await fetch(url, options);
+                const text = await res.text();
+                last = { status: res.status, text };
+                console.log(JSON.stringify({event:'robauto_attempt',attempt,status:res.status,body:text.slice(0,1200)}));
+                if (res.status !== 429 && res.status < 500) return last;
+              } catch (e) {
+                last = { status: 0, text: String(e) };
+                console.log(JSON.stringify({event:'robauto_attempt',attempt,status:0,error:String(e)}));
+              }
+              await new Promise(r => setTimeout(r, 1000 * (2 ** (attempt - 1))));
+            }
+            return last;
+          }
+
+          const before = await call(API);
+          console.log(JSON.stringify({event:'robauto_board_before',status:before.status,body:before.text.slice(0,3000)}));
+
+          let blocked = false;
+          const results = [];
+          for (const listing of listings) {
+            if (blocked) break;
+            const out = await call(API, {
+              method: 'POST',
+              headers: {'content-type':'application/json'},
+              body: JSON.stringify(listing)
+            });
+            results.push({title:listing.title,status:out.status,body:out.text.slice(0,2000)});
+            if ([401,403].includes(out.status)) blocked = true;
+          }
+          console.log(JSON.stringify({event:'robauto_submit_results',results}));
+
+          const after = await call(API);
+          let parsed = null;
+          try { parsed = JSON.parse(after.text); } catch {}
+          const rows = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.listings) ? parsed.listings : []);
+          const matches = rows.filter(x => x?.agent_handle === 'delta-witness' || /DELTA Witness/i.test(String(x?.title || '')));
+          console.log(JSON.stringify({event:'robauto_readback',status:after.status,match_count:matches.length,matches}));
+
+          if (results.some(r => r.status >= 500 || r.status === 429 || r.status === 0)) {
+            console.log(JSON.stringify({event:'robauto_channel_degraded',recoverable:true}));
+          }
+          NODE
+          node /tmp/robauto.mjs
