@@ -10,36 +10,53 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Validate CDP Bazaar discovery
+      - name: Register DELTA endpoints on x402dash
         shell: bash
         run: |
           python3 - <<'PY'
-          import json, urllib.request, urllib.error, urllib.parse, time
-          ORIGIN='https://delta-witness-api.ruphussten.workers.dev'
-          routes=['/v1/capture','/v1/preflight','/v1/guarded-action-pilot']
-          def req(method,url,payload=None):
+          import json, urllib.request, urllib.error, time
+          API='https://api.x402dash.com'
+          repo='https://github.com/15998194110/delta-witness'
+          endpoints=[
+            {'url':'https://delta-witness-api.ruphussten.workers.dev/v1/capture','name':'DELTA Witness Capture','description':'Preserve what a public webpage says now as timestamped page-state evidence with hashes and a public proof URL. Base x402, $0.03 per call.','category':'Developer Tools','tags':['x402','web-proof','page-state','evidence','agents'],'contact':repo},
+            {'url':'https://delta-witness-api.ruphussten.workers.dev/v1/preflight','name':'DELTA Witness Preflight','description':'Preflight an autonomous action by comparing a fresh public-source observation with deterministic expectations. Base x402, $0.03 per call.','category':'Developer Tools','tags':['x402','preflight','verification','agent-safety','web'],'contact':repo},
+            {'url':'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot','name':'DELTA Guarded Action Pilot','description':'Capture 1-3 public URLs as evidence and optionally run one deterministic preflight check before a consequential agent action. Base x402, $10 per pilot.','category':'Developer Tools','tags':['x402','guarded-action','agent-safety','evidence','workflow'],'contact':repo}
+          ]
+          def call(method,url,payload=None):
               data=json.dumps(payload).encode() if payload is not None else None
-              h={'user-agent':'delta-autonomous-growth/turn9-cdp','content-type':'application/json'}
+              h={'content-type':'application/json','user-agent':'delta-autonomous-growth/turn9-x402dash'}
+              last=None
               for i in range(3):
                   try:
-                      r=urllib.request.urlopen(urllib.request.Request(url,data=data,headers=h,method=method),timeout=30)
-                      return {'status':r.status,'body':r.read().decode('utf-8','replace')}
+                      with urllib.request.urlopen(urllib.request.Request(url,data=data,headers=h,method=method),timeout=30) as r:
+                          return {'status':r.status,'body':r.read().decode('utf-8','replace')}
                   except urllib.error.HTTPError as e:
                       b=e.read().decode('utf-8','replace')
                       if e.code not in (429,500,502,503,504) or i==2: return {'status':e.code,'body':b}
+                      last={'status':e.code,'body':b[:500]}
                   except Exception as e:
-                      if i==2: return {'status':0,'body':repr(e)}
+                      last={'status':0,'body':repr(e)}
                   time.sleep(1.5*(2**i))
-          out={}
-          for path in routes:
-              v=req('POST','https://api.cdp.coinbase.com/platform/v2/x402/validate',{'resource':ORIGIN+path,'method':'POST'})
-              try: body=json.loads(v['body'])
-              except: body=v['body'][:2500]
-              out[path]={'validate_http':v['status'],'validation':body}
-              q=urllib.parse.quote(ORIGIN+path,safe='')
-              s=req('GET','https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?query='+q+'&limit=20')
-              try: sb=json.loads(s['body'])
-              except: sb=s['body'][:2500]
-              out[path]['search_http']=s['status']; out[path]['search']=sb
-          print('CDP_BAZAAR_RESULT='+json.dumps(out,separators=(',',':'),sort_keys=True))
+              return last or {'status':0,'body':'unknown'}
+          out=[]
+          for ep in endpoints:
+              r=call('POST',API+'/v1/register',ep)
+              try: body=json.loads(r['body'])
+              except: body=r['body'][:2000]
+              out.append({'url':ep['url'],'http':r['status'],'response':body})
+          # Free readback; scan the current endpoint page for exact DELTA URLs when possible.
+          rb=call('GET',API+'/v1/endpoints')
+          try: data=json.loads(rb['body'])
+          except: data=rb['body'][:3000]
+          matches=[]
+          rows=[]
+          if isinstance(data,list): rows=data
+          elif isinstance(data,dict):
+              for k in ('endpoints','resources','data','items'):
+                  if isinstance(data.get(k),list): rows=data[k]; break
+          targets={e['url'] for e in endpoints}
+          for row in rows:
+              s=json.dumps(row,separators=(',',':'))
+              if any(t in s for t in targets): matches.append(row)
+          print('X402DASH_RESULT='+json.dumps({'registrations':out,'readback_http':rb['status'],'matches':matches,'readback_shape':type(data).__name__},separators=(',',':'),sort_keys=True))
           PY
