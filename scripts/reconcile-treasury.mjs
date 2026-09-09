@@ -3,7 +3,7 @@ const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'.toLowerCase();
 const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const TO_TOPIC = `0x${TREASURY.slice(2).padStart(64, '0')}`;
 const LOOKBACK_BLOCKS = Number(process.env.DELTA_TREASURY_LOOKBACK_BLOCKS || 50000);
-const CHUNK_BLOCKS = Number(process.env.DELTA_TREASURY_CHUNK_BLOCKS || 4000);
+const CHUNK_BLOCKS = Math.max(1, Math.min(Number(process.env.DELTA_TREASURY_CHUNK_BLOCKS || 1900), 1900));
 const RPCS = [
   'https://mainnet.base.org',
   'https://base-rpc.publicnode.com',
