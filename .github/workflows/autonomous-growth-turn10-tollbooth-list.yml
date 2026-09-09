@@ -1,0 +1,40 @@
+name: Autonomous Growth Turn 10 Tollbooth List
+on:
+  push:
+    paths:
+      - '.github/workflows/autonomous-growth-turn10-tollbooth-list.yml'
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Register DELTA services on Tollbooth and verify readback
+        shell: bash
+        run: |
+          set -u
+          BASE='https://www.trytollbooth.com'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          echo '=== BEFORE ==='
+          curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 "$BASE/api/services?q=DELTA" || true
+          echo
+          register() {
+            local name="$1" endpoint="$2" category="$3" price="$4" description="$5"
+            echo "=== REGISTER $name ==="
+            body=$(jq -nc --arg name "$name" --arg endpoint "$endpoint" --arg category "$category" --argjson price "$price" --arg wallet "$TREASURY" --arg description "$description" '{name:$name,endpoint:$endpoint,category:$category,priceUsdc:$price,wallet:$wallet,chain:"base",description:$description}')
+            code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 60 -o /tmp/out.json -w '%{http_code}' -X POST "$BASE/api/services" -H 'content-type: application/json' -d "$body" || true)
+            echo "HTTP=$code"
+            cat /tmp/out.json || true
+            echo
+          }
+          register 'DELTA Witness Capture' 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 'developer-tools' '0.03' 'Timestamped public-web capture with deterministic artifact hashes and verifiable proof URLs.'
+          register 'DELTA Witness Preflight' 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 'developer-tools' '0.03' 'Preflight an autonomous action against fresh public evidence and deterministic expectations before committing.'
+          register 'DELTA Witness Guarded Action Pilot' 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action' 'automation' '10' 'Higher-value guarded-action pilot: verify public evidence before executing a constrained autonomous action.'
+          echo '=== AFTER ==='
+          curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 "$BASE/api/services?q=DELTA" || true
+          echo
+      - name: Reconcile Base Treasury independently after listing verification
+        shell: bash
+        run: |
+          node scripts/query-revenue-candidates.mjs || true
+          node scripts/reconcile-treasury.mjs
