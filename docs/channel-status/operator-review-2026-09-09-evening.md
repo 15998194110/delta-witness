@@ -1,0 +1,13 @@
+# Operator review — September 9 evening
+
+Owner authority remains the approved existing DELTA public Preflight 1 USDC experiment and free distribution. The separate commercial sprint requires approval before new offer prices or delivery commitments; a previous agent-sent bid is not owner approval.
+
+- Live origin quote checked September 9 10:05 UTC: Preflight 1 USDC, HTTP 200. No deployment or new pricing change.
+- TOLL402's one due public lookup returned HTTP 200, total 0, items empty. Its generatedAt field is August 25, so this does not establish a fresh rejection or review completion. Existing submission remains unconfirmed/pending; do not resubmit or repeatedly poll. Reopen on review mail or actual listing/payment evidence.
+- PayanAgent request `ks76vc9pzpz3qfgf8aawjckn5n8bezhf` is publicly open with budgetMaxCents 4 and escrowDepositedCents 4. That is 0.04 USDC, not 4 USDC. The provider list reports escrow; no owner treasury receipt or assignment is established by that projection.
+- Existing growth records report bid `jd79ndx8s7y59tkcvjbars0vf18e33z9`. Do not submit another bid or treat that record as owner approval. A new catalog-checker service is outside the bounded existing Preflight price experiment. No acceptance, fulfillment, rights grant, wallet action, or additional promise should be made without matching actual authorization. This review does not withdraw or modify the existing bid.
+- Prepared checker probes a public relay when upstream endpoints are hidden. A relay's 402 alone does not prove its seller's upstream service is alive. Buyer acceptance of this substitution is not evidenced; do not claim full fulfillment of the original endpoint-health request. Do not expand this into a free 100-offer production job while unassigned.
+- Economic assessment: this four-cent request does not justify more speculative work or owner interruption. Park unless substantive assignment/acceptance evidence arrives, then inspect the actual bid and permitted scope before any action. Do not invent timing or margin from escrow.
+- Canonical Base USDC incoming logs, blocks 51065065–51079488: none. D1 since September 9 02:04:37.626 UTC: no payment_verified/capture_completed/capture_failed events. Sprint verified net remains zero; old 0.03 USDC stays unclassified.
+
+Detailed evidence is in the existing operator workspace: `evidence/market_readback_20260909_evening.json`, `evidence/treasury_incremental_2026-09-09_evening.json`, and `evidence/scheduled_batch_2026-09-09_1801.json`. No emails, bids, paid calls or wallet signatures were sent in this batch. Sunra and Dave have exhausted their unanswered follow-ups; exact AgentWorld bounced recipient remains suppressed.
