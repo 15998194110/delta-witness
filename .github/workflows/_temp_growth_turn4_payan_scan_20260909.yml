@@ -1,0 +1,39 @@
+name: DELTA Payan Demand Scan Turn 4
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn4_payan_scan_20260909.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Scan funded demand and DELTA state
+        shell: bash
+        run: |
+          set -u
+          PAYAN='https://payanagent.com'
+          REQUEST_ID='ks76vc9pzpz3qfgf8aawjckn5n8bezhf'
+          echo '=== OPEN_REQUESTS ==='
+          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o /tmp/requests.json -w '%{http_code}' "$PAYAN/api/v1/requests?status=open&limit=200" || true)
+          echo "HTTP=$code"
+          if [ "$code" = 200 ]; then
+            jq '{count:((.requests // .items // .data // [])|length), funded:[(.requests // .items // .data // [])[] | select(((.escrow // false)==true) and ((.escrowDepositedCents // 0)>0)) | {id:(._id // .id),title,description,budgetMaxCents,escrowDepositedCents,status,bidCount,createdAt,updatedAt}]}' /tmp/requests.json
+            echo '=== HIGH_MATCH_FUNDED ==='
+            jq '[.requests // .items // .data // [] | .[] | select(((.escrow // false)==true) and ((.escrowDepositedCents // 0)>0)) | select((((.title // "") + " " + (.description // "")) | ascii_downcase) | test("verify|verification|preflight|security|audit|evidence|browser|health|endpoint|trust|proof|monitor|web|url|agent")) | {id:(._id // .id),title,description,budgetMaxCents,escrowDepositedCents,status,bidCount}]' /tmp/requests.json
+          else
+            head -c 4000 /tmp/requests.json; echo
+          fi
+          echo '=== EXISTING_REQUEST_DETAIL ==='
+          dcode=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o /tmp/detail.json -w '%{http_code}' "$PAYAN/api/v1/requests/$REQUEST_ID" || true)
+          echo "HTTP=$dcode"
+          if [ "$dcode" = 200 ]; then jq '{request:.request,bids:[.bids[]? | {id:(._id // .id),providerId,priceCents,estimatedDurationSeconds,status,createdAt,message}]}' /tmp/detail.json; else head -c 4000 /tmp/detail.json; echo; fi
+          echo '=== DELTA_OFFERS ==='
+          ocode=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o /tmp/offers.json -w '%{http_code}' "$PAYAN/api/v1/offers?q=DELTA%20Witness&limit=100" || true)
+          echo "HTTP=$ocode"
+          if [ "$ocode" = 200 ]; then jq '{offers:[(.offers // .items // .data // [])[] | {id:(._id // .id),title,priceUsd,priceCents,buyUrl,category,providerId,createdAt,updatedAt}]}' /tmp/offers.json; else head -c 4000 /tmp/offers.json; echo; fi
