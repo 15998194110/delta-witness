@@ -13,31 +13,48 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 7
     steps:
-      - name: Inspect public marketplace app and API contracts without auth
+      - name: Inspect Hober marketplace public job data and route contracts
         shell: bash
         run: |
           set +e
-          for url in \
-            'https://app.hober.dev/marketplace/jobs' \
-            'https://app.hober.dev/marketplace/register' \
-            'https://api.hober.dev/openapi.json' \
-            'https://api.hober.dev/v1/jobs' \
-            'https://api.hober.dev/jobs' \
-            'https://api.hober.dev/v1/marketplace/jobs' \
-            'https://api.hober.dev/marketplace/jobs'; do
-            slug=$(echo "$url" | sed 's#https://##;s#[^A-Za-z0-9]#_#g')
-            code=$(curl --retry 3 --retry-delay 2 --retry-all-errors -L -sS --max-time 35 -D "/tmp/${slug}.h" -o "/tmp/${slug}.b" -w '%{http_code}' "$url" || true)
-            type=$(grep -i '^content-type:' "/tmp/${slug}.h" | tail -1 | tr -d '\r')
-            echo "HOBER url=$url http=$code $type"
-            head -c 2500 "/tmp/${slug}.b" | tr '\n' ' '; echo
-          done
-          echo '=== APP JS API HINTS ==='
-          curl --retry 3 --retry-delay 2 --retry-all-errors -L -sS --max-time 35 'https://app.hober.dev/marketplace/jobs' -o /tmp/app.html || true
-          grep -oE 'src="[^"]+\.js[^"]*"' /tmp/app.html | head -n 20
+          APP='https://app.hober.dev'
+          curl --retry 4 --retry-delay 2 --retry-all-errors -L -sS --max-time 40 "$APP/marketplace/jobs" -o /tmp/jobs.html || true
+          curl --retry 4 --retry-delay 2 --retry-all-errors -L -sS --max-time 40 "$APP/marketplace/register" -o /tmp/register.html || true
+          echo "HOBER_JOBS_HTML_BYTES=$(wc -c </tmp/jobs.html)"
+          echo '=== SERVER-RENDERED JOB SIGNALS ==='
           python - <<'PY'
-          import re, pathlib
-          t=pathlib.Path('/tmp/app.html').read_text(errors='ignore') if pathlib.Path('/tmp/app.html').exists() else ''
-          for s in sorted(set(re.findall(r'https?://[^"\x27 <]+|/api/[A-Za-z0-9_?&=./:-]+',t))):
-              if 'hober' in s.lower() or s.startswith('/api/'): print(s[:500])
+          import re, html, pathlib, json
+          t=html.unescape(pathlib.Path('/tmp/jobs.html').read_text(errors='ignore'))
+          needles=['USDC','budget','open','job','deadline','escrow','agent','bid','capabilities','price']
+          for n in needles:
+              print(n, t.lower().count(n.lower()))
+          # emit compact visible text fragments likely to contain job rows, excluding script bulk where possible
+          s=re.sub(r'<script[^>]*>.*?</script>',' ',t,flags=re.S|re.I)
+          s=re.sub(r'<style[^>]*>.*?</style>',' ',s,flags=re.S|re.I)
+          s=re.sub(r'<[^>]+>',' ',s)
+          s=re.sub(r'\s+',' ',s)
+          print('VISIBLE_TEXT',s[:12000])
+          # inspect hydration JSON-ish text around economic words
+          for m in re.finditer(r'(?i)(budget|usdc|escrow|open job|bid)',t):
+              a=max(0,m.start()-300); b=min(len(t),m.start()+900)
+              frag=re.sub(r'\s+',' ',t[a:b])
+              print('HYDRATION_FRAGMENT',frag[:1300])
+              if m.start()>50000: break
+          PY
+          echo '=== DISCOVER JS CHUNKS AND API ROUTES ==='
+          grep -oE 'src="[^"]+\.js[^"]*"' /tmp/jobs.html | sed 's/^src="//;s/"$//' | head -n 60 >/tmp/chunks.txt
+          while read -r p; do
+            case "$p" in http*) u="$p";; *) u="$APP$p";; esac
+            f="/tmp/$(echo "$p"|tr '/?&=' '____')"
+            curl --retry 2 --retry-delay 1 --retry-all-errors -sS --max-time 30 "$u" -o "$f" || continue
+            grep -oE 'https://api\.hober\.dev[^"'"'"' ]+|/api/[A-Za-z0-9_?&=./:{}-]+|/v1/[A-Za-z0-9_?&=./:{}-]+' "$f" 2>/dev/null | sort -u | head -n 100
+          done </tmp/chunks.txt | sort -u
+          echo '=== AUTH/REGISTRATION SIGNALS ==='
+          python - <<'PY'
+          import re, html, pathlib
+          t=html.unescape(pathlib.Path('/tmp/register.html').read_text(errors='ignore'))
+          s=re.sub(r'<script[^>]*>.*?</script>',' ',t,flags=re.S|re.I)
+          s=re.sub(r'<[^>]+>',' ',s); s=re.sub(r'\s+',' ',s)
+          print(s[:10000])
           PY
           exit 0
