@@ -25,10 +25,7 @@ jobs:
           cat > submit.cjs <<'NODE'
           const fs = require('node:fs');
           const { chromium } = require('playwright-core');
-
-          const candidates = [
-            '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser'
-          ];
+          const candidates = ['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium','/usr/bin/chromium-browser'];
           const executablePath = candidates.find((p) => fs.existsSync(p));
           if (!executablePath) throw new Error('No system Chromium/Chrome executable found');
           const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -56,54 +53,56 @@ jobs:
             const bodyText = await page.locator('body').innerText();
             if (!/Submit Your MCP Server/i.test(bodyText)) throw new Error(`Unexpected submit page: ${bodyText.slice(0, 300)}`);
 
-            const checkbox = page.locator('input[type="checkbox"]:visible').first();
+            const formInfo = await page.locator('form').evaluateAll((forms) => forms.map((f, i) => ({
+              i, action: f.action, method: f.method,
+              inputs: Array.from(f.querySelectorAll('input,select')).map((e) => ({name:e.name,type:e.type,value:e.value,required:!!e.required})),
+              text: (f.innerText || '').replace(/\s+/g,' ').trim().slice(0,700)
+            })));
+            console.log(JSON.stringify({ event: 'forms', formInfo }));
+
+            const checkbox = page.locator('input[type="checkbox"]').first();
             if (await checkbox.count()) {
               const ctx = await checkbox.evaluate((e) => ({
                 checked: e.checked, required: e.required,
-                parentText: (e.parentElement?.innerText || '').trim().slice(0, 500),
-                grandparentText: (e.parentElement?.parentElement?.innerText || '').trim().slice(0, 800)
+                parentText: (e.parentElement?.innerText || '').trim().slice(0, 500)
               }));
               console.log(JSON.stringify({ event: 'checkbox_context', ...ctx }));
               if (ctx.required) throw new Error(`Unexpected required checkbox; refusing implicit commitment: ${JSON.stringify(ctx)}`);
-              if (ctx.checked) await checkbox.uncheck();
+              if (ctx.checked) await checkbox.uncheck({ force: true });
             }
 
-            const fillVisible = async (selector, value) => {
-              const loc = page.locator(`${selector}:visible`).first();
-              if (!(await loc.count())) throw new Error(`Visible field not found: ${selector}`);
-              await loc.fill(value);
-            };
-            await fillVisible('input[name="name"]', 'DELTA Witness');
-            await fillVisible('input[name="description"]', 'Deterministic preflight and evidence for autonomous web actions.');
-            await fillVisible('input[name="url"]', 'https://github.com/15998194110/delta-witness');
-            await fillVisible('input[name="email"]', 'ruphussten85@gmail.com');
+            const first = (selector) => page.locator(selector).first();
+            await first('input[name="name"]').fill('DELTA Witness', { force: true });
+            await first('input[name="description"]').fill('Deterministic preflight and evidence for autonomous web actions.', { force: true });
+            await first('input[name="url"]').fill('https://github.com/15998194110/delta-witness', { force: true });
+            await first('input[name="email"]').fill('ruphussten85@gmail.com', { force: true });
+            await first('select[name="category"]').selectOption('development', { force: true });
 
-            const category = page.locator('select[name="category"]:visible').first();
-            if (!(await category.count())) throw new Error('Visible category select not found');
-            await category.selectOption('development');
-
-            const plan = await page.locator('input[name="plan"]:visible').first().inputValue().catch(async () => {
-              return await page.locator('input[name="plan"]').first().inputValue();
-            });
+            const plan = await first('input[name="plan"]').inputValue();
             if (plan !== 'free') throw new Error(`Refusing non-free plan: ${plan}`);
+            console.log(JSON.stringify({event:'free_form_ready', plan}));
 
-            const submitButton = page.getByRole('button', { name: 'Submit', exact: true }).filter({ visible: true }).first();
-            let button = submitButton;
-            if (!(await button.count())) button = page.locator('button:visible').filter({ hasText: /^Submit$/ }).first();
-            if (!(await button.count())) throw new Error('Free Submit button not found');
+            const submitButtons = page.getByRole('button', { name: 'Submit', exact: true });
+            const count = await submitButtons.count();
+            if (!count) throw new Error('Submit button not found');
+            let button = null;
+            for (let i = 0; i < count; i++) {
+              if (await submitButtons.nth(i).isVisible()) { button = submitButtons.nth(i); break; }
+            }
+            if (!button) button = submitButtons.first();
 
             const beforeUrl = page.url();
-            await button.click();
+            await button.click({ force: true });
             await Promise.race([
               page.waitForURL((url) => url.toString() !== beforeUrl, { timeout: 30000 }).catch(() => null),
-              page.waitForTimeout(3500)
+              page.waitForTimeout(4500)
             ]);
-            await sleep(1500);
+            await sleep(1800);
             const afterUrl = page.url();
             const afterText = (await page.locator('body').innerText()).replace(/\s+/g, ' ').trim();
             const success = /thank|submitted|review|success|received|12 hours|24 hours/i.test(afterText) || afterUrl !== beforeUrl;
-            console.log(JSON.stringify({ event: 'submission_result', success, plan, beforeUrl, afterUrl, excerpt: afterText.slice(0, 1800) }));
-            if (!success) throw new Error(`Submission did not expose a success signal: ${afterText.slice(0, 900)}`);
+            console.log(JSON.stringify({ event: 'submission_result', success, plan, beforeUrl, afterUrl, excerpt: afterText.slice(0, 2200) }));
+            if (!success) throw new Error(`Submission did not expose a success signal: ${afterText.slice(0, 1000)}`);
             await browser.close();
           })().catch((err) => { console.error(err.stack || String(err)); process.exit(1); });
           NODE
