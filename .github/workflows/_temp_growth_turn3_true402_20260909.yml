@@ -1,0 +1,47 @@
+name: DELTA true402 Listing Temp
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn3_true402_20260909.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Register production DELTA services on true402
+        shell: bash
+        run: |
+          set +e
+          REG='https://true402.dev/api/v1/services'
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          FACILITATOR='https://facilitator.payai.network'
+
+          register() {
+            slug="$1" name="$2" endpoint="$3" price="$4" caps="$5"
+            jq -n \
+              --arg url "$endpoint" \
+              --arg name "$name" \
+              --arg endpoint "$endpoint" \
+              --arg price "$price" \
+              --arg address "$TREASURY" \
+              --arg facilitator "$FACILITATOR" \
+              --argjson capabilities "$caps" \
+              '{url:$url,manifest:{x402:"1.0",name:$name,capabilities:$capabilities,pricing:{currency:"USDC",base:$price,unit:"request"},payment:{address:$address,chain:"base",facilitator:$facilitator},endpoint:$endpoint}}' > "/tmp/${slug}.json"
+            code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o "/tmp/${slug}.out" -w '%{http_code}' -X POST "$REG" -H 'content-type: application/json' --data-binary @"/tmp/${slug}.json" || true)
+            echo "TRUE402_REGISTER slug=$slug http=$code"
+            jq . "/tmp/${slug}.out" 2>/dev/null || head -c 2000 "/tmp/${slug}.out"; echo
+          }
+
+          register capture 'delta-witness-capture' "$BASE/v1/capture" '0.03' '["verification","browser-evidence","web-proof","capture","base-usdc"]'
+          register preflight 'delta-witness-guard-preflight' "$BASE/v1/preflight" '1.00' '["verification","preflight","agent-safety","deterministic-checks","base-usdc"]'
+          register guarded 'delta-witness-guarded-action-pilot' "$BASE/v1/guarded-action-pilot" '10.00' '["verification","guarded-action","workflow-safety","browser-agent","base-usdc"]'
+
+          echo '=== TRUE402_READBACK ==='
+          curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 'https://true402.dev/api/v1/services' -o /tmp/services.json || echo '[]' >/tmp/services.json
+          jq '[.. | objects | select((((.name // "") + " " + (.endpoint // "") + " " + (.url // "")) | ascii_downcase | contains("delta-witness"))) | {id,name,url,endpoint,capabilities,pricing,payment,createdAt,updatedAt,trustScore}] | unique_by(.id // .endpoint // .name)' /tmp/services.json 2>/dev/null || head -c 5000 /tmp/services.json
