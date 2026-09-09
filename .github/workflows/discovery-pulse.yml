@@ -33,6 +33,10 @@ jobs:
           grep -qi '^payment-required:' /tmp/delta-preflight.headers
       - name: Audit paid funnel candidates
         run: node scripts/query-revenue-candidates.mjs
+      - name: Reconcile Base Treasury
+        id: treasury
+        continue-on-error: true
+        run: node scripts/reconcile-treasury.mjs
       - name: Push core IndexNow
         id: indexnow-core
         continue-on-error: true
@@ -41,18 +45,20 @@ jobs:
         id: indexnow-base-app
         continue-on-error: true
         run: node scripts/indexnow-pulse.mjs base-app
-      - name: Record IndexNow diagnostics
+      - name: Record external-channel diagnostics
         if: always()
         env:
+          TREASURY_OUTCOME: ${{ steps.treasury.outcome }}
           CORE_OUTCOME: ${{ steps.indexnow-core.outcome }}
           BASE_APP_OUTCOME: ${{ steps.indexnow-base-app.outcome }}
         run: |
           {
-            echo '### IndexNow pulse'
-            echo "- Core: \`$CORE_OUTCOME\`"
-            echo "- Base app: \`$BASE_APP_OUTCOME\`"
+            echo '### External-channel diagnostics'
+            echo "- Treasury RPC reconciliation: \`$TREASURY_OUTCOME\`"
+            echo "- IndexNow core: \`$CORE_OUTCOME\`"
+            echo "- IndexNow Base app: \`$BASE_APP_OUTCOME\`"
             echo ''
-            echo 'IndexNow is retried and diagnostic-only. A provider outage does not fail machine-discovery or Bazaar checks.'
+            echo 'Treasury uses bounded retries plus multiple Base RPC fallbacks. External provider outages are isolated and do not block the remaining discovery checks.'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Check PayAI Bazaar visibility
         if: always()
