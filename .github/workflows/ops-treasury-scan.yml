@@ -1,0 +1,98 @@
+name: DELTA One-Shot Treasury Reconcile
+
+on:
+  push:
+    paths:
+      - .github/workflows/ops-treasury-scan.yml
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Scan canonical Base USDC receipts since prior checkpoint
+        env:
+          START_BLOCK: '51069902'
+        run: |
+          node <<'NODE'
+          const treasury = '0x1990e21bc219696ff7fbc26527dbaed335ac6367'.toLowerCase();
+          const usdc = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'.toLowerCase();
+          const transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+          const toTopic = '0x' + treasury.slice(2).padStart(64, '0');
+          const rpcs = [
+            'https://mainnet.base.org',
+            'https://base-rpc.publicnode.com',
+            'https://base.llamarpc.com'
+          ];
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          async function rpc(method, params) {
+            let last;
+            for (const url of rpcs) {
+              for (let attempt = 1; attempt <= 2; attempt++) {
+                try {
+                  const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {'content-type':'application/json'},
+                    body: JSON.stringify({jsonrpc:'2.0', id:1, method, params}),
+                    signal: AbortSignal.timeout(12000)
+                  });
+                  const text = await res.text();
+                  if (!res.ok) throw new Error(`${url} HTTP ${res.status}: ${text.slice(0,200)}`);
+                  const json = JSON.parse(text);
+                  if (json.error) throw new Error(`${url} RPC ${JSON.stringify(json.error)}`);
+                  return {url, result: json.result};
+                } catch (e) {
+                  last = e;
+                  console.error(JSON.stringify({event:'rpc_degraded', method, url, attempt, error:String(e)}));
+                  await sleep(700 * attempt);
+                }
+              }
+            }
+            throw last || new Error('all RPCs failed');
+          }
+          const latestResp = await rpc('eth_blockNumber', []);
+          const latest = parseInt(latestResp.result, 16);
+          const start = Number(process.env.START_BLOCK);
+          const logs = [];
+          if (latest >= start) {
+            for (let from = start; from <= latest; from += 4000) {
+              const to = Math.min(from + 3999, latest);
+              const filter = {
+                address: usdc,
+                fromBlock: '0x' + from.toString(16),
+                toBlock: '0x' + to.toString(16),
+                topics: [transferTopic, null, toTopic]
+              };
+              const resp = await rpc('eth_getLogs', [filter]);
+              console.error(JSON.stringify({event:'chunk_ok', from, to, rpc:resp.url, logs:resp.result.length}));
+              logs.push(...resp.result);
+            }
+          }
+          const uniq = [...new Map(logs.map(x => [`${x.transactionHash}:${x.logIndex}`, x])).values()];
+          const transfers = uniq.map(x => ({
+            tx_hash: x.transactionHash,
+            block_number: parseInt(x.blockNumber, 16),
+            log_index: parseInt(x.logIndex, 16),
+            from: '0x' + x.topics[1].slice(-40),
+            to: '0x' + x.topics[2].slice(-40),
+            raw_amount: BigInt(x.data).toString(),
+            usdc: Number(BigInt(x.data)) / 1e6
+          })).sort((a,b)=>a.block_number-b.block_number || a.log_index-b.log_index);
+          const totalRaw = transfers.reduce((a,x)=>a + BigInt(x.raw_amount), 0n);
+          console.log(JSON.stringify({
+            ok:true,
+            network:'eip155:8453',
+            asset:usdc,
+            treasury,
+            start_block:start,
+            latest_block:latest,
+            latest_rpc:latestResp.url,
+            incoming_count:transfers.length,
+            total_raw:totalRaw.toString(),
+            total_usdc:Number(totalRaw)/1e6,
+            transfers
+          }, null, 2));
+          NODE
