@@ -14,44 +14,43 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Verify DELTA production integrity and current x402 prices
+        id: core
         shell: bash
         run: |
           set -euo pipefail
           BASE='https://delta-witness-api.ruphussten.workers.dev'
           TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
           curl --retry 3 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -fsS "$BASE/health" | tee /tmp/health.json
           curl --retry 3 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -fsS "$BASE/.well-known/x402" -o /tmp/x402.json
           curl --retry 3 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -fsS "$BASE/openapi.json" >/dev/null
-          echo '--- DELTA x402 resources ---'
-          jq -c '.' /tmp/x402.json | head -c 12000; echo
-          echo '--- explicit 402 probes ---'
+          jq -e '.resources[] | select(.path=="/v1/guarded-action-pilot" and .price_usd==10)' /tmp/x402.json >/dev/null
           probe() {
-            local path="$1" body="$2" label="$3"
+            local path="$1" body="$2" label="$3" expected_amount="$4"
             local code
             code=$(curl --retry 3 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -sS -o "/tmp/${label}.json" -D "/tmp/${label}.headers" -w '%{http_code}' -X POST "$BASE$path" -H 'content-type: application/json' --data "$body")
             echo "$label HTTP=$code"
-            grep -i '^payment-required:' "/tmp/${label}.headers" || true
-            cat "/tmp/${label}.json"; echo
+            jq -c '{error,product,price_usd,accepts:[.accepts[]|{network,amount,asset,payTo}]}' "/tmp/${label}.json"
             test "$code" = '402'
+            test "$(jq -r '.accepts[0].amount' "/tmp/${label}.json")" = "$expected_amount"
+            test "$(jq -r '.accepts[0].network' "/tmp/${label}.json")" = 'eip155:8453'
+            test "$(jq -r '.accepts[0].asset|ascii_downcase' "/tmp/${label}.json")" = "${USDC,,}"
+            test "$(jq -r '.accepts[0].payTo|ascii_downcase' "/tmp/${label}.json")" = "${TREASURY,,}"
           }
-          probe '/v1/capture' '{"url":"https://example.com"}' capture
-          probe '/v1/preflight' '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' preflight
-          PILOT_PATH=$(jq -r '.. | objects | select((.price? // .amount? // empty) != empty) | (.path? // .url? // .endpoint? // empty)' /tmp/x402.json 2>/dev/null | grep -E 'pilot|guarded' | head -n1 || true)
-          if [ -n "$PILOT_PATH" ]; then
-            if [[ "$PILOT_PATH" =~ ^https?:// ]]; then PILOT_PATH="${PILOT_PATH#${BASE}}"; fi
-            echo "pilot catalog path=$PILOT_PATH"
-          else
-            echo 'pilot catalog path not mechanically extracted; no paid/self test performed'
-          fi
-          grep -qi "$TREASURY" /tmp/x402.json || { echo 'ERROR: Treasury absent from x402 discovery'; exit 20; }
+          probe '/v1/capture' '{"url":"https://example.com"}' capture 30000
+          probe '/v1/preflight' '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' preflight 1000000
+          probe '/v1/guarded-action-pilot' '{"urls":["https://example.com"]}' pilot 10000000
+          echo 'CORE_PRODUCTION=verified capture=0.03 preflight=1 pilot=10 treasury=expected'
 
       - name: Audit DELTA paid-funnel telemetry candidates
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
           node scripts/query-revenue-candidates.mjs
 
       - name: Reconcile canonical Base USDC Treasury since prior checkpoint
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
@@ -60,8 +59,7 @@ jobs:
           FROM_DEC=51065282
           TOPIC0='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
           TOPIC2='0x0000000000000000000000001990e21bc219696ff7fbc26527dbaed335ac6367'
-          hex() { printf '0x%x' "$1"; }
-          FROM_HEX=$(hex "$FROM_DEC")
+          FROM_HEX=$(printf '0x%x' "$FROM_DEC")
           RPCS=('https://mainnet.base.org' 'https://base-rpc.publicnode.com' 'https://base.llamarpc.com')
           success=0
           for rpc in "${RPCS[@]}"; do
@@ -77,7 +75,7 @@ jobs:
             latest_dec=$((16#${latest_hex#0x}))
             echo "latest_block=$latest_dec prior_checkpoint=51065281 from=$FROM_DEC"
             if [ "$latest_dec" -lt "$FROM_DEC" ]; then
-              echo 'no blocks beyond prior checkpoint'
+              echo 'treasury_canonical_usdc_incoming_count=0 no_new_blocks=1'
               success=1
               break
             fi
@@ -93,7 +91,8 @@ jobs:
               echo "treasury_canonical_usdc_incoming_count=$count latest_block=$latest_dec"
               jq -r '.result[] | [.blockNumber,.transactionHash,.data] | @tsv' <<<"$logs_json" | while IFS=$'\t' read -r block tx data; do
                 value=$((16#${data#0x}))
-                printf 'incoming block=%d tx=%s raw=%d usdc=%.6f\n' "$((16#${block#0x}))" "$tx" "$value" "$(awk -v v="$value" 'BEGIN{printf "%.6f", v/1000000}')"
+                usdc=$(awk -v v="$value" 'BEGIN{printf "%.6f", v/1000000}')
+                printf 'incoming block=%d tx=%s raw=%d usdc=%s\n' "$((16#${block#0x}))" "$tx" "$value" "$usdc"
               done
               success=1
               break
@@ -116,12 +115,12 @@ jobs:
           fi
 
       - name: Directly submit DELTA MCP to mcp.so free programmatic endpoint
+        if: success()
         shell: bash
         run: |
           set -euo pipefail
           URL='https://mcp.so/api/submit-project'
           PAYLOAD='{"url":"https://github.com/15998194110/delta-witness","avatar_url":"https://raw.githubusercontent.com/15998194110/delta-witness/master/channels/base-app/public/icon.png"}'
-          echo 'Submitting DELTA Witness to mcp.so direct project endpoint (no payment/account/wallet action).'
           final_code=''
           for delay in 0 2 5 10; do
             [ "$delay" = 0 ] || sleep "$delay"
@@ -134,7 +133,6 @@ jobs:
               *) break ;;
             esac
           done
-          echo '--- response headers ---'; sed -n '1,30p' /tmp/mcpso.headers 2>/dev/null || true
           echo '--- response body ---'; head -c 8000 /tmp/mcpso.body 2>/dev/null || true; echo
           case "$final_code" in
             200|201|202|204) echo 'MCP_SO_SUBMISSION=accepted' ;;
