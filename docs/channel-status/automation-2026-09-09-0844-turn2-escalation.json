@@ -1,0 +1,23 @@
+{
+  "observed_at": "2026-09-09T08:43:51Z",
+  "channel_source": "PayanAgent",
+  "listing_status": "existing_capture_and_guarded_live_preflight_stale",
+  "discovery_status": "relay_refresh_bug_escalated_after_retries_and_source-level fallback analysis",
+  "external_requests": 1,
+  "402_intents": 0,
+  "paid_settlements": 0,
+  "treasury_received": 0,
+  "revenue": 0,
+  "variable_cost": 0,
+  "contribution_margin": 0,
+  "evidence_quality": "A_direct_api_reproduction_plus_public_source_inspection",
+  "issue": {
+    "repository": "derNif/payanagent",
+    "number": 126,
+    "url": "https://github.com/derNif/payanagent/issues/126",
+    "title": "Relay re-registration returns generic 400 for same-wallet x402 URLs; stale terms cannot be refreshed",
+    "state": "open"
+  },
+  "reason": "Direct relay re-registration was retried using the documented externalUrl+POST+verificationBody pattern with no priceCents and still returned generic HTTP 400 for Capture, Preflight, and Guarded Action Pilot. Public source inspection indicates an existing sellerId can block re-claim even when the live x402 payTo wallet is identical. The issue requests a same-wallet reclaim/refresh path or an explicit actionable conflict response.",
+  "revenue_boundary": "No funds moved, no wallet signature performed, no fee paid, and no customer revenue recognized."
+}
