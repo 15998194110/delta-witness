@@ -1,0 +1,39 @@
+name: TMP DELTA Cinderwright Submit 20260910 0310
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-cinderwright-submit-20260910-0310.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Cinderwright discovery and submit only if absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          API='https://api.ideafactorylab.org'
+          ORIGIN='https://delta-witness-api.ruphussten.workers.dev'
+          echo '=== discover delta-witness ==='
+          curl -fsS --max-time 30 "$API/discover?q=delta-witness" -o /tmp/discover.json
+          cat /tmp/discover.json
+          if grep -Fqi "$ORIGIN" /tmp/discover.json; then
+            echo 'CINDERWRIGHT_RESULT=already_indexed'
+            exit 0
+          fi
+          echo '=== free submit ==='
+          code=$(curl -sS --max-time 45 -o /tmp/submit.json -w '%{http_code}' \
+            -X POST "$API/submit" \
+            -H 'content-type: application/json' \
+            --data "{\"url\":\"$ORIGIN\"}")
+          echo "CINDERWRIGHT_HTTP=$code"
+          cat /tmp/submit.json
+          test "$code" -ge 200 -a "$code" -lt 300
+          echo '=== readback ==='
+          sleep 2
+          curl -fsS --max-time 30 "$API/discover?q=delta-witness" || true
