@@ -1,4 +1,4 @@
-name: DELTA true402 Targeted Readback Temp
+name: DELTA Agent402 Register Temp
 
 on:
   push:
@@ -9,18 +9,24 @@ permissions:
   contents: read
 
 jobs:
-  readback:
+  register:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
-      - name: Read back targeted DELTA true402 listings
+      - name: Register DELTA origin with Agent402 index
         shell: bash
         run: |
           set +e
-          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -G -o /tmp/true402.json -w '%{http_code}' 'https://true402.dev/api/v1/services' --data-urlencode 'q=delta-witness' --data-urlencode 'limit=100' || true)
-          echo "TRUE402_TARGETED_HTTP=$code"
-          if [ "$code" = 200 ]; then
-            jq '{object,has_more,next_cursor,data:[(.data // [])[] | {id,url,manifest,reputation}]}' /tmp/true402.json
+          ORIGIN='https://delta-witness-api.ruphussten.workers.dev'
+          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o /tmp/register.json -w '%{http_code}' -X POST 'https://agent402.tools/api/index/register' -H 'content-type: application/json' --data-binary "{\"origin\":\"$ORIGIN\"}" || true)
+          echo "AGENT402_REGISTER_HTTP=$code"
+          jq . /tmp/register.json 2>/dev/null || head -c 4000 /tmp/register.json; echo
+
+          echo '=== INDEX_LOOKUP ==='
+          icode=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -G -o /tmp/index.json -w '%{http_code}' 'https://agent402.tools/api/index' --data-urlencode 'q=delta-witness-api.ruphussten.workers.dev' --data-urlencode 'limit=100' || true)
+          echo "AGENT402_INDEX_HTTP=$icode"
+          if [ "$icode" = 200 ]; then
+            jq --arg origin "$ORIGIN" '[.. | objects | select(((.origin // .url // .sellerOrigin // "") | startswith($origin))) | {origin,url,sellerOrigin,name,healthy,health,lastCrawl,toolCount,chains,networks,payTo,routerDispatchEligible,routerDispatchReason,settlements,settledVolumeUsd,distinctPayers}] | unique_by(.origin // .url // .sellerOrigin // .name)' /tmp/index.json 2>/dev/null || head -c 5000 /tmp/index.json
           else
-            head -c 4000 /tmp/true402.json; echo
+            head -c 4000 /tmp/index.json; echo
           fi
