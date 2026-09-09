@@ -1,0 +1,160 @@
+name: DELTA Growth Turn 5 Arena + Reconcile
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn5_arena_reconcile_20260909.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DELTA_D1_DATABASE_ID: c9431b00-27c5-4609-9f3d-6af20cb162df
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+
+      - name: Register DELTA endpoints with x402 Arena
+        shell: bash
+        run: |
+          set +e
+          ARENA='https://core.x402arena.gg'
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+
+          register_one() {
+            local name="$1" endpoint="$2" description="$3" niche="$4" input_schema="$5"
+            jq -n \
+              --arg name "$name" \
+              --arg endpoint "$endpoint" \
+              --arg description "$description" \
+              --arg niche "$niche" \
+              --arg walletAddress "$TREASURY" \
+              --argjson inputSchema "$input_schema" \
+              '{name:$name,endpoint:$endpoint,description:$description,niche:$niche,walletAddress:$walletAddress,method:"POST",inputSchema:$inputSchema,outputSchema:{type:"object"},resourceType:"http"}' >/tmp/arena-register.json
+            code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 35 -o /tmp/arena-response.json -w '%{http_code}' -X POST "$ARENA/register" -H 'content-type: application/json' --data-binary @/tmp/arena-register.json || true)
+            echo "ARENA_REGISTER name=$name http=$code"
+            jq '{id:(.id // .agent.id // null),name:(.name // .agent.name // null),endpoint:(.endpoint // .agent.endpoint // null),status:(.status // .agent.status // null),verified:(.verified // .agent.verified // null),message:(.message // null),error:(.error // null)}' /tmp/arena-response.json 2>/dev/null || head -c 2000 /tmp/arena-response.json
+            echo
+          }
+
+          register_one 'delta-witness-capture' "$BASE/v1/capture" 'Timestamped browser-rendered public page-state evidence with content hashes and public verification metadata, paid via x402 USDC on Base.' 'developer-tools' '{"type":"object","required":["url"],"properties":{"url":{"type":"string","format":"uri"}}}'
+          register_one 'delta-witness-preflight' "$BASE/v1/preflight" 'Deterministic preflight verification of a fresh public-source observation before an autonomous action, paid via x402 USDC on Base.' 'developer-tools' '{"type":"object","required":["url"],"properties":{"url":{"type":"string","format":"uri"},"expected":{"type":"object"},"prior_proof_id":{"type":"string"}}}'
+          register_one 'delta-witness-guarded-action-pilot' "$BASE/v1/guarded-action-pilot" 'Bounded 1-3 URL guarded-action evidence package with optional deterministic preflight for consequential autonomous actions, paid via x402 USDC on Base.' 'security' '{"type":"object","required":["urls"],"properties":{"urls":{"type":"array","minItems":1,"maxItems":3,"items":{"type":"string","format":"uri"}},"preflight":{"type":"object"}}}'
+
+          echo '=== ARENA_READBACK ==='
+          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 35 -o /tmp/arena-agents.json -w '%{http_code}' "$ARENA/operator/agents" || true)
+          echo "ARENA_READBACK_HTTP=$code"
+          if [ "$code" = 200 ]; then
+            jq '[.. | objects | select(((.endpoint // "") | contains("delta-witness-api.ruphussten.workers.dev"))) | {id,name,endpoint,description,niche,walletAddress,status,verified,totalRevenue,totalQueries,buyers}] | unique_by(.id // .endpoint)' /tmp/arena-agents.json 2>/dev/null || head -c 8000 /tmp/arena-agents.json
+          else
+            head -c 3000 /tmp/arena-agents.json; echo
+          fi
+          exit 0
+
+      - name: Recheck funded Payan request and bid
+        shell: bash
+        run: |
+          set +e
+          PAYAN='https://payanagent.com'
+          REQUEST_ID='ks76vc9pzpz3qfgf8aawjckn5n8bezhf'
+          BID_ID='jd79ndx8s7y59tkcvjbars0vf18e33z9'
+          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 35 -o /tmp/payan-request.json -w '%{http_code}' "$PAYAN/api/v1/requests/$REQUEST_ID" || true)
+          echo "PAYAN_REQUEST_HTTP=$code"
+          if [ "$code" = 200 ]; then
+            jq --arg bid "$BID_ID" '{request:(.request // .data.request // .data // .) | {id:(._id // .id),title,status,budgetMaxCents,escrow,escrowDepositedCents,escrowReceiptId,bidCount,acceptedBidId,providerId,updatedAt},matching_bid:[(.bids // .data.bids // [])[] | select((._id // .id) == $bid) | {id:(._id // .id),status,priceCents,providerId,acceptedAt,createdAt,updatedAt}]}' /tmp/payan-request.json 2>/dev/null || head -c 8000 /tmp/payan-request.json
+          else
+            head -c 3000 /tmp/payan-request.json; echo
+          fi
+
+          echo '=== PAYAN_RECEIPT_READBACK ==='
+          rcode=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 35 -o /tmp/payan-receipts.json -w '%{http_code}' "$PAYAN/api/v1/receipts?limit=100" || true)
+          echo "PAYAN_RECEIPTS_HTTP=$rcode"
+          if [ "$rcode" = 200 ]; then
+            jq --arg req "$REQUEST_ID" '[.. | objects | select(((.requestId // .request_id // "") == $req)) | {id:(_id // .id // .receiptId),requestId:(.requestId // .request_id),status,amountCents,amount,txHash,transactionHash,createdAt,updatedAt}] | unique_by(.id // .txHash // .transactionHash)' /tmp/payan-receipts.json 2>/dev/null || true
+          fi
+          exit 0
+
+      - name: Verify production unpaid x402 challenges
+        shell: bash
+        run: |
+          set +e
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          probe() {
+            local label="$1" path="$2" body="$3"
+            code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 35 -D "/tmp/${label}.headers" -o "/tmp/${label}.body" -w '%{http_code}' -X POST "$BASE$path" -H 'content-type: application/json' --data-binary "$body" || true)
+            echo "DELTA_402 label=$label http=$code"
+            grep -iE '^(payment-required|x-payment-required|content-type):' "/tmp/${label}.headers" || true
+            jq '{error,price,amount,amountRaw,maxAmountRequired,network,payTo,resource}' "/tmp/${label}.body" 2>/dev/null || head -c 1500 "/tmp/${label}.body"
+            echo
+          }
+          probe capture '/v1/capture' '{"url":"https://example.com"}'
+          probe preflight '/v1/preflight' '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}'
+          probe pilot '/v1/guarded-action-pilot' '{"urls":["https://example.com"],"preflight":{"url_index":0,"expected":{"contains":["Example Domain"]}}}'
+          exit 0
+
+      - name: Strict Base Treasury reconciliation
+        shell: bash
+        run: |
+          set +e
+          FROM_BLOCK_DEC=51080565
+          USDC='0x833589fCD6eDb6E08f4c7C32d4f71b54bdA02913'
+          TRANSFER_TOPIC='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
+          TO_TOPIC='0x0000000000000000000000001990e21bc219696ff7fbc26527dbaed335ac6367'
+
+          rpc_call() {
+            local rpc="$1" payload="$2" out="$3"
+            curl --retry 3 --retry-delay 2 --retry-all-errors -sS --max-time 40 -o "$out" -w '%{http_code}' -H 'content-type: application/json' --data-binary "$payload" "$rpc" || true
+          }
+
+          RPC='https://mainnet.base.org'
+          code=$(rpc_call "$RPC" '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}' /tmp/block.json)
+          latest=$(jq -r '.result // empty' /tmp/block.json 2>/dev/null)
+          if [ "$code" != 200 ] || [ -z "$latest" ]; then
+            echo "BASE_RPC_PRIMARY_DEGRADED http=$code"
+            RPC='https://base-rpc.publicnode.com'
+            code=$(rpc_call "$RPC" '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}' /tmp/block.json)
+            latest=$(jq -r '.result // empty' /tmp/block.json 2>/dev/null)
+          fi
+          echo "BASE_RPC_SELECTED=$RPC latest=$latest http=$code"
+          if [ "$code" != 200 ] || [ -z "$latest" ]; then
+            echo 'TREASURY_RECON_DEGRADED=no_latest_block'
+            exit 0
+          fi
+          from=$(printf '0x%x' "$FROM_BLOCK_DEC")
+          jq -n --arg address "$USDC" --arg fromBlock "$from" --arg toBlock "$latest" --arg t0 "$TRANSFER_TOPIC" --arg t2 "$TO_TOPIC" '{jsonrpc:"2.0",id:2,method:"eth_getLogs",params:[{address:$address,fromBlock:$fromBlock,toBlock:$toBlock,topics:[$t0,null,$t2]}]}' >/tmp/log-query.json
+          lcode=$(rpc_call "$RPC" "$(cat /tmp/log-query.json)" /tmp/logs.json)
+          if [ "$lcode" != 200 ] || [ "$(jq -r 'has("result")' /tmp/logs.json 2>/dev/null)" != true ]; then
+            echo "BASE_LOG_PRIMARY_DEGRADED http=$lcode"
+            if [ "$RPC" = 'https://mainnet.base.org' ]; then RPC='https://base-rpc.publicnode.com'; else RPC='https://mainnet.base.org'; fi
+            lcode=$(rpc_call "$RPC" "$(cat /tmp/log-query.json)" /tmp/logs.json)
+          fi
+          echo "TREASURY_SCAN from=$from to=$latest http=$lcode rpc=$RPC"
+          node <<'NODE'
+          const fs=require('fs');
+          let p={}; try{p=JSON.parse(fs.readFileSync('/tmp/logs.json','utf8'))}catch{}
+          const logs=Array.isArray(p.result)?p.result:[];
+          const rows=logs.map(x=>({txHash:x.transactionHash,blockNumber:parseInt(x.blockNumber,16),from:'0x'+String(x.topics?.[1]||'').slice(-40),to:'0x'+String(x.topics?.[2]||'').slice(-40),raw:BigInt(x.data||'0x0').toString(),usdc:Number(BigInt(x.data||'0x0'))/1e6}));
+          console.log(JSON.stringify({TREASURY_CANONICAL_USDC_CANDIDATES:rows.length,rows},null,2));
+          NODE
+          exit 0
+
+      - name: DELTA telemetry candidate reconciliation
+        shell: bash
+        run: |
+          set +e
+          if [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ] || [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo 'DELTA_TELEMETRY_DEGRADED=missing_cloudflare_read_credentials'
+            exit 0
+          fi
+          node scripts/query-revenue-candidates.mjs
+          rc=$?
+          echo "DELTA_TELEMETRY_EXIT=$rc"
+          exit 0
