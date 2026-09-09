@@ -45,3 +45,5 @@ jobs:
           echo '=== TRUE402_READBACK ==='
           curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 'https://true402.dev/api/v1/services' -o /tmp/services.json || echo '[]' >/tmp/services.json
           jq '[.. | objects | select((((.name // "") + " " + (.endpoint // "") + " " + (.url // "")) | ascii_downcase | contains("delta-witness"))) | {id,name,url,endpoint,capabilities,pricing,payment,createdAt,updatedAt,trustScore}] | unique_by(.id // .endpoint // .name)' /tmp/services.json 2>/dev/null || head -c 5000 /tmp/services.json
+
+          echo 'TRUE402_TURN3_DONE=1'
