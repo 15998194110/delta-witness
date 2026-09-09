@@ -63,49 +63,42 @@ jobs:
               throw new Error(`Unexpected submit page: ${title} :: ${bodyText.slice(0, 300)}`);
             }
 
-            const inputs = await page.locator('input').evaluateAll((els) => els.map((e) => ({
-              name: e.name, type: e.type, placeholder: e.placeholder, value: e.value
-            })));
-            const selects = await page.locator('select').evaluateAll((els) => els.map((e) => ({
-              name: e.name,
-              options: Array.from(e.options).map((o) => ({ value: o.value, text: o.textContent }))
-            })));
-            console.log(JSON.stringify({ event: 'form_discovered', title, inputs, selects }));
-
-            const byPlaceholder = async (needle, value) => {
-              const loc = page.locator(`input[placeholder*="${needle}"]`).first();
-              if (!(await loc.count())) throw new Error(`Missing input placeholder containing ${needle}`);
-              await loc.fill(value);
-            };
-
-            await byPlaceholder('Brave Search', 'DELTA Witness');
-            await byPlaceholder('One sentence', 'Deterministic preflight and evidence for autonomous web actions.');
-            await byPlaceholder('github.com/owner/repo', 'https://github.com/15998194110/delta-witness');
-            await byPlaceholder('you@example.com', 'ruphussten85@gmail.com');
-
-            const select = page.locator('select').first();
-            if (await select.count()) {
-              const options = await select.locator('option').evaluateAll((els) => els.map((o) => ({ value: o.value, text: (o.textContent || '').trim() })));
-              const preferred = options.find((o) => /security|web scraping|development|other/i.test(o.text) && o.value);
-              if (!preferred) throw new Error(`No usable category option: ${JSON.stringify(options)}`);
-              await select.selectOption(preferred.value);
-              console.log(JSON.stringify({ event: 'category_selected', option: preferred }));
+            const checkbox = page.locator('input[type="checkbox"]').first();
+            if (await checkbox.count()) {
+              const checkboxContext = await checkbox.evaluate((e) => ({
+                checked: e.checked,
+                required: e.required,
+                parentText: (e.parentElement?.innerText || '').trim().slice(0, 500),
+                grandparentText: (e.parentElement?.parentElement?.innerText || '').trim().slice(0, 800)
+              }));
+              console.log(JSON.stringify({ event: 'checkbox_context', ...checkboxContext }));
+              if (checkboxContext.required) throw new Error(`Unexpected required checkbox; refusing implicit commitment: ${JSON.stringify(checkboxContext)}`);
             }
+
+            await page.locator('input[name="name"]').fill('DELTA Witness');
+            await page.locator('input[name="description"]').fill('Deterministic preflight and evidence for autonomous web actions.');
+            await page.locator('input[name="url"]').fill('https://github.com/15998194110/delta-witness');
+            await page.locator('input[name="email"]').fill('ruphussten85@gmail.com');
+            await page.locator('select[name="category"]').selectOption('development');
+
+            const plan = await page.locator('input[name="plan"]').inputValue();
+            if (plan !== 'free') throw new Error(`Refusing non-free plan: ${plan}`);
 
             const submitButton = page.getByRole('button', { name: 'Submit', exact: true });
             if (!(await submitButton.count())) throw new Error('Free Submit button not found');
 
             const beforeUrl = page.url();
-            await Promise.all([
-              submitButton.click(),
-              page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => null)
+            await submitButton.click();
+            await Promise.race([
+              page.waitForURL((url) => url.toString() !== beforeUrl, { timeout: 30000 }).catch(() => null),
+              page.waitForTimeout(2500)
             ]);
-            await sleep(1500);
+            await sleep(1200);
             const afterUrl = page.url();
             const afterText = (await page.locator('body').innerText()).replace(/\s+/g, ' ').trim();
             const success = /thank|submitted|review|success|received|12 hours|24 hours/i.test(afterText) || afterUrl !== beforeUrl;
-            console.log(JSON.stringify({ event: 'submission_result', success, beforeUrl, afterUrl, excerpt: afterText.slice(0, 1200) }));
-            if (!success) throw new Error(`Submission did not expose a success signal: ${afterText.slice(0, 500)}`);
+            console.log(JSON.stringify({ event: 'submission_result', success, plan, beforeUrl, afterUrl, excerpt: afterText.slice(0, 1600) }));
+            if (!success) throw new Error(`Submission did not expose a success signal: ${afterText.slice(0, 700)}`);
             await browser.close();
           })().catch((err) => {
             console.error(err.stack || String(err));
