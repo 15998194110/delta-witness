@@ -1,0 +1,43 @@
+name: DELTA Turn 6 Hober Discovery
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn6_hober_discovery_20260909.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Inspect public marketplace app and API contracts without auth
+        shell: bash
+        run: |
+          set +e
+          for url in \
+            'https://app.hober.dev/marketplace/jobs' \
+            'https://app.hober.dev/marketplace/register' \
+            'https://api.hober.dev/openapi.json' \
+            'https://api.hober.dev/v1/jobs' \
+            'https://api.hober.dev/jobs' \
+            'https://api.hober.dev/v1/marketplace/jobs' \
+            'https://api.hober.dev/marketplace/jobs'; do
+            slug=$(echo "$url" | sed 's#https://##;s#[^A-Za-z0-9]#_#g')
+            code=$(curl --retry 3 --retry-delay 2 --retry-all-errors -L -sS --max-time 35 -D "/tmp/${slug}.h" -o "/tmp/${slug}.b" -w '%{http_code}' "$url" || true)
+            type=$(grep -i '^content-type:' "/tmp/${slug}.h" | tail -1 | tr -d '\r')
+            echo "HOBER url=$url http=$code $type"
+            head -c 2500 "/tmp/${slug}.b" | tr '\n' ' '; echo
+          done
+          echo '=== APP JS API HINTS ==='
+          curl --retry 3 --retry-delay 2 --retry-all-errors -L -sS --max-time 35 'https://app.hober.dev/marketplace/jobs' -o /tmp/app.html || true
+          grep -oE 'src="[^"]+\.js[^"]*"' /tmp/app.html | head -n 20
+          python - <<'PY'
+          import re, pathlib
+          t=pathlib.Path('/tmp/app.html').read_text(errors='ignore') if pathlib.Path('/tmp/app.html').exists() else ''
+          for s in sorted(set(re.findall(r'https?://[^"\x27 <]+|/api/[A-Za-z0-9_?&=./:-]+',t))):
+              if 'hober' in s.lower() or s.startswith('/api/'): print(s[:500])
+          PY
+          exit 0
