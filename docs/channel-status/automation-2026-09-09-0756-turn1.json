@@ -1,0 +1,132 @@
+{
+  "observed_at": "2026-09-09T07:56:10Z",
+  "treasury": {
+    "network": "Base mainnet",
+    "asset": "canonical USDC",
+    "address": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "scanned_through_block": 51075601,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "new_treasury_received_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "production": {
+    "health": "healthy",
+    "version": "0.7.0",
+    "capture": {"listing_status": "live", "discovery_status": "live", "quote_http": 402, "price_usdc": 0.03, "402_intents": 0, "paid_settlements": 0, "treasury_received": 0},
+    "preflight": {"listing_status": "live", "discovery_status": "live", "quote_http": 402, "price_usdc": 1.0, "402_intents": 0, "paid_settlements": 0, "treasury_received": 0},
+    "guarded_action_pilot": {"listing_status": "live_on_selected_channels", "discovery_status": "production_verified", "quote_http": 402, "price_usdc": 10.0, "402_intents": 0, "paid_settlements": 0, "treasury_received": 0}
+  },
+  "channels": [
+    {
+      "channel_source": "PayAI Bazaar",
+      "listing_status": "stale_preflight_record",
+      "discovery_status": "full_scan_complete_28341_resources",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_public_catalog_plus_live_origin_quote",
+      "contradiction": "Bazaar Preflight record lastUpdated 2026-09-07T05:42:01.916Z advertises 30000 atomic USDC ($0.03), while live production Preflight now requires 1000000 atomic USDC ($1.00). No Capture or Guarded Pilot match was present in the complete PayAI scan.",
+      "action": "isolated as external catalog staleness; no paid refresh/self-settlement performed"
+    },
+    {
+      "channel_source": "IndexNow base-app",
+      "listing_status": "submitted",
+      "discovery_status": "refresh_accepted_http_200",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": false,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_search_index_submission"
+    },
+    {
+      "channel_source": "IndexNow core",
+      "listing_status": "existing",
+      "discovery_status": "degraded_retry_exhausted_upstream_429",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": false,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_recoverable_channel_degradation",
+      "action": "bounded retries exhausted; deferred to next normal pulse without blocking other channels or treasury reconciliation"
+    },
+    {
+      "channel_source": "PayanAgent",
+      "listing_status": "provider_registered_and_existing_offers",
+      "discovery_status": "funded_request_observed",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 1,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_escrow_receipt_plus_public_request",
+      "candidate_request": {
+        "id": "ks76vc9pzpz3qfgf8aawjckn5n8bezhf",
+        "title": "Build a catalog endpoint-health checker (find dead ecosystem sellers)",
+        "budget_cents": 4,
+        "escrow_deposited_cents": 4,
+        "escrow_receipt_id": "kn76vdyp5sb7kk2bqs130mhrx98bf90e",
+        "escrow_tx_hash": "0x345bc8f17283645ea290ff96cdde92477e9a95fea6a3397692ae1d4c2c2143ba",
+        "fit": "compatible; no paid calls required; positive contribution margin before internal labor attribution",
+        "bid_status": "not_submitted",
+        "bid_blocker": "current GitHub connector safety gate blocked creation of a one-shot authenticated external-bid workflow; direct container DNS remained unavailable"
+      }
+    },
+    {
+      "channel_source": "Vibes-Coded public jobs",
+      "listing_status": "n/a",
+      "discovery_status": "3_public_jobs_checked",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_public_job_feed",
+      "action": "all three excluded because they require payment, wallet action, or pay-to-work behavior"
+    }
+  ],
+  "outreach": {
+    "natural_day": "2026-09-09 Asia/Shanghai",
+    "new_outreach_sent_this_run": 0,
+    "daily_suppression": true,
+    "reason": "daily first-contact ceiling already reached/exceeded by earlier DELTA outbound messages; no additional outreach sent"
+  },
+  "funnel": {
+    "external_requests": 1,
+    "402_intents": 0,
+    "paid_settlements": 0,
+    "new_treasury_received": 0,
+    "new_revenue_usdc": 0,
+    "new_variable_cost_usdc": 0,
+    "new_contribution_margin_usdc": 0
+  }
+}
