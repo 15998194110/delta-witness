@@ -1,0 +1,37 @@
+name: DELTA Growth Turn 5 Market402 Paid Probe Opt-in
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn5_market402_optin_20260909.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  optin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Opt eligible DELTA routes into independent paid delivery probes
+        shell: bash
+        run: |
+          set +e
+          MARKET='https://market402.com'
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          opt_one() {
+            local label="$1" resource="$2" body_json="$3"
+            jq -n --arg resource "$resource" --argjson body "$body_json" '{resource:$resource,declared_price_usd:0.03,paid_probe_optin:true,sample_input:{method:"POST",body:$body}}' >/tmp/optin.json
+            code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 40 -o "/tmp/optin-${label}.json" -w '%{http_code}' -X POST "$MARKET/submit" -H 'content-type: application/json' --data-binary @/tmp/optin.json || true)
+            echo "MARKET402_OPTIN label=$label http=$code"
+            jq . "/tmp/optin-${label}.json" 2>/dev/null || head -c 6000 "/tmp/optin-${label}.json"; echo
+          }
+          opt_one capture "$BASE/v1/capture" '{"url":"https://example.com"}'
+          opt_one preflight "$BASE/v1/preflight" '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}'
+          echo '=== OPTIN_ROSTER_MATCHES ==='
+          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 40 -o /tmp/optin-roster.json -w '%{http_code}' "$MARKET/optin.json" || true)
+          echo "MARKET402_OPTIN_ROSTER_HTTP=$code"
+          if [ "$code" = 200 ]; then
+            jq '[.. | objects | select(((.resource // .url // "") | contains("delta-witness-api.ruphussten.workers.dev"))) ]' /tmp/optin-roster.json 2>/dev/null || head -c 8000 /tmp/optin-roster.json
+          fi
+          exit 0
