@@ -8,108 +8,38 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 8
     steps:
-      - name: Reconcile treasury and diagnose buyer paths
+      - name: Validate CDP Bazaar discovery
         shell: bash
         run: |
           python3 - <<'PY'
-          import json, time, urllib.request, urllib.error, urllib.parse
-
+          import json, urllib.request, urllib.error, urllib.parse, time
           ORIGIN='https://delta-witness-api.ruphussten.workers.dev'
-          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-          START_BLOCK=51095815
-          OUT={"ts":time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
-
-          def http(method, url, payload=None, tries=3, timeout=30):
-              data=None; headers={'user-agent':'delta-autonomous-growth/turn9-indexer-fallback'}
-              if payload is not None:
-                  data=json.dumps(payload).encode(); headers['content-type']='application/json'
-              last=None
-              for i in range(tries):
+          routes=['/v1/capture','/v1/preflight','/v1/guarded-action-pilot']
+          def req(method,url,payload=None):
+              data=json.dumps(payload).encode() if payload is not None else None
+              h={'user-agent':'delta-autonomous-growth/turn9-cdp','content-type':'application/json'}
+              for i in range(3):
                   try:
-                      req=urllib.request.Request(url,data=data,headers=headers,method=method)
-                      with urllib.request.urlopen(req,timeout=timeout) as r:
-                          return {"status":r.status,"body":r.read().decode('utf-8','replace')}
+                      r=urllib.request.urlopen(urllib.request.Request(url,data=data,headers=h,method=method),timeout=30)
+                      return {'status':r.status,'body':r.read().decode('utf-8','replace')}
                   except urllib.error.HTTPError as e:
-                      body=e.read().decode('utf-8','replace')
-                      if e.code not in (429,500,502,503,504) or i==tries-1:
-                          return {"status":e.code,"body":body}
-                      last=f'HTTP {e.code}: {body[:300]}'
+                      b=e.read().decode('utf-8','replace')
+                      if e.code not in (429,500,502,503,504) or i==2: return {'status':e.code,'body':b}
                   except Exception as e:
-                      last=repr(e)
-                  time.sleep(1.2*(2**i))
-              return {"status":0,"body":"","error":last}
-
-          def j(res):
-              try: return json.loads(res.get('body') or 'null')
-              except Exception: return None
-
-          # Core production verification remains independent of explorer/indexer health.
-          products={
-            'capture':('/v1/capture',{'url':'https://example.com'},'30000'),
-            'preflight':('/v1/preflight',{'url':'https://example.com','expected':{'contains':['Example Domain']}},'30000'),
-            'pilot':('/v1/guarded-action-pilot',{'urls':['https://example.com'],'preflight':{'url_index':0,'expected':{'contains':['Example Domain']}}},'10000000'),
-          }
-          core={}
-          for name,(path,body,expected) in products.items():
-              r=http('POST',ORIGIN+path,body); bodyj=j(r) or {}
-              accepts=bodyj.get('accepts') if isinstance(bodyj,dict) else []
-              first=accepts[0] if isinstance(accepts,list) and accepts else {}
-              core[name]={"http":r.get('status'),"amount":str(first.get('amount','')),"payTo":first.get('payTo'),"network":first.get('network')}
-              core[name]['ok']=r.get('status')==402 and core[name]['amount']==expected and str(core[name]['payTo']).lower()==TREASURY.lower() and core[name]['network']=='eip155:8453'
-          OUT['production']=core; OUT['core_ok']=all(x['ok'] for x in core.values())
-
-          # Canonical transfer history via the Base Blockscout chain indexer API. Page until the baseline is crossed.
-          url=f'https://base.blockscout.com/api/v2/addresses/{TREASURY}/token-transfers?type=ERC-20'
-          transfers=[]; page_count=0; crossed=False; last_next=None
-          while url and page_count<20 and not crossed:
-              r=http('GET',url); data=j(r)
-              if r.get('status')!=200 or not isinstance(data,dict):
-                  OUT['treasury']={"ok":False,"source":"base.blockscout.com","http":r.get('status'),"error":(r.get('body') or r.get('error',''))[:500]}; break
-              page_count+=1
-              for item in data.get('items') or []:
-                  block=int(item.get('block_number') or 0)
-                  if block < START_BLOCK:
-                      crossed=True; continue
-                  token=item.get('token') or {}; to=item.get('to') or {}; fr=item.get('from') or {}
-                  token_addr=str(token.get('address_hash') or token.get('address') or '').lower()
-                  to_addr=str(to.get('hash') or '').lower()
-                  if token_addr==USDC.lower() and to_addr==TREASURY.lower():
-                      total=item.get('total') or {}; value=total.get('value',item.get('value','0')); decimals=int(total.get('decimals') or token.get('decimals') or 6)
-                      transfers.append({"block":block,"tx":item.get('transaction_hash'),"from":fr.get('hash'),"raw_amount":str(value),"amount_usdc":int(value)/(10**decimals),"timestamp":item.get('timestamp')})
-              np=data.get('next_page_params')
-              last_next=np
-              if crossed or not isinstance(np,dict) or not np: url=None
-              else: url=f'https://base.blockscout.com/api/v2/addresses/{TREASURY}/token-transfers?type=ERC-20&'+urllib.parse.urlencode(np)
-          else:
-              pass
-          if 'treasury' not in OUT:
-              # current chain height from Blockscout blocks endpoint, so scan coverage is explicit.
-              br=http('GET','https://base.blockscout.com/api/v2/blocks?type=block'); bj=j(br) or {}; items=bj.get('items') if isinstance(bj,dict) else []
-              head=max([int(x.get('height') or x.get('block_number') or 0) for x in (items or [])] or [0])
-              OUT['treasury']={"ok":True,"source":"base.blockscout.com/api/v2","start_block":START_BLOCK,"latest_indexed_block":head,"pages":page_count,"crossed_baseline":crossed,"receipts":transfers,"treasury_received_usdc":round(sum(x['amount_usdc'] for x in transfers),6),"pagination_tail":last_next}
-
-          # Free, non-settling buyer-path diagnostics: concrete retrieval tasks, no wallet and no payment.
-          queries={
-            'capture':'preserve the current public webpage state with timestamped hashes before a browser agent acts',
-            'preflight':'verify a public page still matches expected terms before an autonomous purchase',
-            'pilot':'capture 1-3 public pages and check a deterministic condition before a procurement action',
-          }
-          diagnostics={}
-          for name,(path,_,__) in products.items():
-              r=http('POST','https://ontarioprotocol.com/api/tools/agent-buyer-conversion-diagnostic',{'endpoint_url':ORIGIN+path,'buyer_query':queries[name],'source':'delta-autonomous-growth'})
-              diagnostics[name]={"http":r.get('status'),"data":j(r) or (r.get('body') or '')[:1800]}
-          OUT['buyer_path_diagnostics']=diagnostics
-
-          # Readbacks for existing distribution and funded demand remain independent.
-          cw=http('GET','https://api.ideafactorylab.org/discover?q=delta-witness'); OUT['cinderwright']={"http":cw.get('status'),"data":j(cw) or (cw.get('body') or '')[:800]}
-          a=http('POST','https://agent402.tools/api/index/register',{'origin':ORIGIN}); OUT['agent402_refresh']={"http":a.get('status'),"data":j(a) or (a.get('body') or '')[:800]}
-          p=http('GET','https://payanagent.com/api/v1/requests?status=open&q=catalog%20endpoint-health%20checker&limit=20'); OUT['payan_open']={"http":p.get('status'),"data":j(p) or (p.get('body') or '')[:1400]}
-          g=http('GET','https://24klabs.ai/api/directory/search?q=delta-witness'); OUT['gold402']={"http":g.get('status'),"data":j(g) or (g.get('body') or '')[:800]}
-
-          print('DELTA_AUTOMATION_RESULT='+json.dumps(OUT,separators=(',',':'),sort_keys=True))
-          if not OUT['core_ok'] or not OUT.get('treasury',{}).get('ok'):
-              raise SystemExit(2)
+                      if i==2: return {'status':0,'body':repr(e)}
+                  time.sleep(1.5*(2**i))
+          out={}
+          for path in routes:
+              v=req('POST','https://api.cdp.coinbase.com/platform/v2/x402/validate',{'resource':ORIGIN+path,'method':'POST'})
+              try: body=json.loads(v['body'])
+              except: body=v['body'][:2500]
+              out[path]={'validate_http':v['status'],'validation':body}
+              q=urllib.parse.quote(ORIGIN+path,safe='')
+              s=req('GET','https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?query='+q+'&limit=20')
+              try: sb=json.loads(s['body'])
+              except: sb=s['body'][:2500]
+              out[path]['search_http']=s['status']; out[path]['search']=sb
+          print('CDP_BAZAAR_RESULT='+json.dumps(out,separators=(',',':'),sort_keys=True))
           PY
