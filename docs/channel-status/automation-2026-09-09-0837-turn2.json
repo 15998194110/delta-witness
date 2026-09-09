@@ -1,0 +1,178 @@
+{
+  "observed_at": "2026-09-09T08:37:20Z",
+  "treasury": {
+    "network": "Base mainnet",
+    "asset": "canonical USDC",
+    "address": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "scanned_from_block": 51026757,
+    "scanned_through_block": 51076756,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "new_treasury_received_usdc": 0,
+    "customer_revenue_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "production": {
+    "health": "healthy",
+    "version": "0.7.0",
+    "capture": {
+      "listing_status": "live",
+      "quote_http": 402,
+      "payment_required_header": true,
+      "configured_price_usdc": 0.03
+    },
+    "preflight": {
+      "listing_status": "live",
+      "quote_http": 402,
+      "payment_required_header": true,
+      "configured_price_usdc": 1.0
+    },
+    "guarded_action_pilot": {
+      "listing_status": "live_on_selected_channels",
+      "quote_http": 402,
+      "payment_required_header": true,
+      "configured_price_usdc": 10.0,
+      "production_verified": true
+    }
+  },
+  "channels": [
+    {
+      "channel_source": "PayAI Bazaar",
+      "listing_status": "stale_preflight_record",
+      "discovery_status": "full_scan_complete_28348_resources",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_public_catalog_plus_live_origin_quote",
+      "contradiction": "Preflight remains indexed at 30000 atomic USDC ($0.03), lastUpdated 2026-09-07T05:42:01.916Z, while current production Preflight remains a live 402 route configured at $1.00. Capture and Guarded Pilot were not present in the complete Bazaar scan.",
+      "action": "kept isolated as stale external catalog metadata; no self-pay refresh"
+    },
+    {
+      "channel_source": "IndexNow base-app",
+      "listing_status": "submitted",
+      "discovery_status": "refresh_accepted_http_200",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": false,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_search_index_submission"
+    },
+    {
+      "channel_source": "IndexNow core",
+      "listing_status": "existing",
+      "discovery_status": "not_retested_this_run_due_local_invocation_argument_error",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": false,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "C_no_new_external_observation",
+      "action": "correct invocation requires target=core plus configured admin secret; prior upstream 429 remains recoverable and independent of treasury"
+    },
+    {
+      "channel_source": "PayanAgent",
+      "listing_status": "existing_capture_and_guarded_live_preflight_stale_refresh_degraded",
+      "discovery_status": "funded_request_open_and_bid_submitted",
+      "buyer_count": 1,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 1,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_escrow_receipt_chain_evidence_plus_direct_bid_http_201",
+      "current_listings": [
+        {
+          "title": "DELTA Witness Capture",
+          "price_usd": 0.03,
+          "buy_url": "/x402/kh79t54410qb82yjcqsjmgv0d58dn7p3"
+        },
+        {
+          "title": "DELTA Witness Guard Preflight",
+          "price_usd": 0.03,
+          "buy_url": "/x402/kh72vd1kdv37109xxzzgmn2xfn8dnc6z",
+          "contradiction": "stale versus production Preflight $1.00"
+        },
+        {
+          "title": "DELTA Witness Guarded Action Pilot",
+          "price_usd": 10.0,
+          "buy_url": "/x402/kh7dskbdz0mj2ctc0dvm6q1yb98dz8dm"
+        }
+      ],
+      "candidate_request": {
+        "id": "ks76vc9pzpz3qfgf8aawjckn5n8bezhf",
+        "title": "Build a catalog endpoint-health checker (find dead ecosystem sellers)",
+        "budget_cents": 4,
+        "escrow": true,
+        "escrow_deposited_cents": 4,
+        "escrow_receipt_id": "kn76vdyp5sb7kk2bqs130mhrx98bf90e",
+        "escrow_tx_hash": "0x345bc8f17283645ea290ff96cdde92477e9a95fea6a3397692ae1d4c2c2143ba",
+        "bid_status": "submitted",
+        "bid_id": "jd79ndx8s7y59tkcvjbars0vf18e33z9",
+        "bid_price_cents": 4,
+        "bid_http": 201,
+        "fit": "compatible; no paid calls required; positive contribution margin before internal labor attribution"
+      },
+      "refresh_attempts": {
+        "provider_registration": "succeeded",
+        "offer_refresh": "recoverable_degradation_http_400_server_error_after_documented_x402_relay_pattern",
+        "request_detail_endpoint": "recoverable_degradation_http_400",
+        "request_list_fallback": "http_200_success"
+      }
+    },
+    {
+      "channel_source": "x402 Arena",
+      "listing_status": "not_submitted",
+      "discovery_status": "evaluated_and_deprioritized",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": false,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "C_self_reported_marketplace_metrics",
+      "action": "not prioritized because public revenue events are self-reported rather than independently settled/on-chain verified"
+    }
+  ],
+  "outreach": {
+    "natural_day": "2026-09-09 Asia/Shanghai",
+    "new_outreach_sent_this_run": 0,
+    "daily_suppression": true,
+    "reason": "daily first-contact ceiling already reached by earlier DELTA outbound activity"
+  },
+  "funnel": {
+    "external_requests": 1,
+    "402_intents": 0,
+    "paid_settlements": 0,
+    "treasury_received": 0,
+    "revenue_usdc": 0,
+    "variable_cost_usdc": 0,
+    "contribution_margin_usdc": 0
+  },
+  "material_development": "A bid was successfully submitted (HTTP 201) to a Base-USDC escrow-funded, DELTA-compatible PayanAgent buyer request. This is not yet a settlement or revenue event."
+}
