@@ -1,0 +1,165 @@
+name: automation-turn9-probe
+on:
+  push:
+    paths:
+      - '.github/workflows/automation-turn9-probe.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Run independent revenue and distribution probes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, time, urllib.request, urllib.error
+
+          ORIGIN='https://delta-witness-api.ruphussten.workers.dev'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          USDC='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+          START_BLOCK=51095815
+          OUT={"ts":time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
+
+          def http(method, url, payload=None, headers=None, tries=3, timeout=25):
+              headers=dict(headers or {})
+              data=None
+              if payload is not None:
+                  if isinstance(payload,(dict,list)):
+                      data=json.dumps(payload).encode()
+                      headers.setdefault('content-type','application/json')
+                  elif isinstance(payload,str): data=payload.encode()
+                  else: data=payload
+              last=None
+              for i in range(tries):
+                  try:
+                      req=urllib.request.Request(url,data=data,headers=headers,method=method)
+                      with urllib.request.urlopen(req,timeout=timeout) as r:
+                          body=r.read().decode('utf-8','replace')
+                          return {"status":r.status,"body":body,"headers":dict(r.headers)}
+                  except urllib.error.HTTPError as e:
+                      body=e.read().decode('utf-8','replace')
+                      # HTTP protocol statuses are real responses; only retry transient server/rate errors.
+                      if e.code not in (429,500,502,503,504) or i==tries-1:
+                          return {"status":e.code,"body":body,"headers":dict(e.headers)}
+                      last=f'HTTP {e.code}: {body[:300]}'
+                  except Exception as e:
+                      last=repr(e)
+                  time.sleep(1.5*(2**i))
+              return {"status":0,"error":last,"body":"","headers":{}}
+
+          def parse_json(res):
+              try: return json.loads(res.get('body') or 'null')
+              except Exception: return None
+
+          # 1) DELTA core production integrity: unpaid probes only, never settlement.
+          prod={}
+          bodies={
+              'capture': {'url':'https://example.com'},
+              'preflight': {'url':'https://example.com','expected':{'contains':['Example Domain']}},
+              'pilot': {'urls':['https://example.com'],'preflight':{'url_index':0,'expected':{'contains':['Example Domain']}}},
+          }
+          paths={'capture':'/v1/capture','preflight':'/v1/preflight','pilot':'/v1/guarded-action-pilot'}
+          expected={'capture':'30000','preflight':'30000','pilot':'10000000'}
+          for k in ('capture','preflight','pilot'):
+              r=http('POST',ORIGIN+paths[k],bodies[k],headers={'user-agent':'delta-autonomous-growth/turn9'})
+              j=parse_json(r)
+              accepts=[]
+              if isinstance(j,dict):
+                  a=j.get('accepts')
+                  if isinstance(a,list): accepts=a
+                  elif isinstance(j.get('paymentRequirements'),list): accepts=j['paymentRequirements']
+              first=accepts[0] if accepts and isinstance(accepts[0],dict) else {}
+              amount=str(first.get('amount') or first.get('maxAmountRequired') or '')
+              payto=str(first.get('payTo') or '')
+              network=str(first.get('network') or '')
+              prod[k]={"http":r.get('status'),"amount":amount,"payTo":payto,"network":network,
+                       "ok":r.get('status')==402 and amount==expected[k] and payto.lower()==TREASURY.lower() and network=='eip155:8453',
+                       "body":j if isinstance(j,dict) else (r.get('body') or '')[:800]}
+          OUT['production']=prod
+          OUT['core_ok']=all(v['ok'] for v in prod.values())
+
+          # 2) Treasury reconciliation, isolated from all third-party channel health.
+          TRANSFER='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
+          to_topic='0x'+'0'*24+TREASURY[2:].lower()
+          rpcs=['https://mainnet.base.org','https://base-rpc.publicnode.com']
+          rpc_used=None
+          def rpc(method, params):
+              nonlocal_holder=None
+              global rpc_used
+              last=None
+              for endpoint in rpcs:
+                  for i in range(3):
+                      rr=http('POST',endpoint,{"jsonrpc":"2.0","id":1,"method":method,"params":params},tries=1,timeout=25)
+                      jj=parse_json(rr)
+                      if rr.get('status')==200 and isinstance(jj,dict) and 'result' in jj:
+                          rpc_used=endpoint
+                          return jj['result']
+                      last={"endpoint":endpoint,"http":rr.get('status'),"body":rr.get('body','')[:400]}
+                      time.sleep(1.0*(2**i))
+              raise RuntimeError('rpc_failed '+json.dumps(last))
+          treasury={"start_block":START_BLOCK,"receipts":[]}
+          try:
+              head=int(rpc('eth_blockNumber',[]),16)
+              treasury['head']=head
+              if head>=START_BLOCK:
+                  for s in range(START_BLOCK,head+1,1500):
+                      e=min(head,s+1499)
+                      logs=rpc('eth_getLogs',[{"address":USDC,"fromBlock":hex(s),"toBlock":hex(e),"topics":[TRANSFER,None,to_topic]}])
+                      for lg in logs:
+                          topics=lg.get('topics') or []
+                          sender='0x'+topics[1][-40:] if len(topics)>1 else None
+                          amount=int(lg.get('data','0x0'),16)/1_000_000
+                          treasury['receipts'].append({"block":int(lg['blockNumber'],16),"tx":lg['transactionHash'],"from":sender,"amount_usdc":amount})
+              treasury['rpc']=rpc_used
+              treasury['ok']=True
+          except Exception as e:
+              treasury['ok']=False; treasury['error']=repr(e); treasury['rpc']=rpc_used
+          treasury['treasury_received_usdc']=round(sum(x['amount_usdc'] for x in treasury['receipts']),6)
+          OUT['treasury']=treasury
+
+          # 3) Cinderwright queued listing readback. A transient failure remains isolated.
+          cw=http('GET','https://api.ideafactorylab.org/discover?q=delta-witness',headers={'user-agent':'delta-autonomous-growth/turn9'})
+          OUT['cinderwright']={"http":cw.get('status'),"data":parse_json(cw) or (cw.get('body') or '')[:1200]}
+
+          # 4) Refresh the already-live, free Agent402 listing directly (idempotent origin registration).
+          a402=http('POST','https://agent402.tools/api/index/register',{'origin':ORIGIN},headers={'user-agent':'delta-autonomous-growth/turn9'})
+          OUT['agent402_refresh']={"http":a402.get('status'),"data":parse_json(a402) or (a402.get('body') or '')[:1200]}
+
+          # 5) Payan funded buyer request: exact endpoint, then public fallback feed if degraded.
+          reqid='ks76vc9pzpz3qfgf8aawjckn5n8bezhf'
+          p=http('GET','https://payanagent.com/api/v1/requests/'+reqid,headers={'user-agent':'delta-autonomous-growth/turn9'})
+          pdetail=parse_json(p)
+          fallback=None
+          if p.get('status')!=200:
+              f=http('GET','https://payanagent.com/api/v1/requests?status=open&q=catalog%20endpoint-health%20checker&limit=20',headers={'user-agent':'delta-autonomous-growth/turn9'})
+              fallback={"http":f.get('status'),"data":parse_json(f) or (f.get('body') or '')[:1800]}
+          receipts=http('GET','https://payanagent.com/api/v1/receipts?limit=100',headers={'user-agent':'delta-autonomous-growth/turn9'})
+          rj=parse_json(receipts)
+          related=[]
+          rows=[]
+          if isinstance(rj,list): rows=rj
+          elif isinstance(rj,dict):
+              for key in ('receipts','data','items'):
+                  if isinstance(rj.get(key),list): rows=rj[key]; break
+          for row in rows:
+              if reqid in json.dumps(row,separators=(',',':')): related.append(row)
+          OUT['payan']={"request_http":p.get('status'),"request":pdetail or (p.get('body') or '')[:1800],"fallback":fallback,
+                        "receipt_http":receipts.get('status'),"related_receipts":related[:20]}
+
+          # 6) 24K free directory readback: avoid duplicate PR if already curated.
+          gold=http('GET','https://24klabs.ai/api/directory/search?q=delta-witness',headers={'user-agent':'delta-autonomous-growth/turn9'})
+          OUT['gold402']={"http":gold.get('status'),"data":parse_json(gold) or (gold.get('body') or '')[:1200]}
+
+          # 7) Free Ontario point-in-time public readiness evidence. No payment, no listing fee.
+          readiness=[]
+          for k in ('capture','preflight','pilot'):
+              rr=http('POST','https://ontarioprotocol.com/api/verify/x402-readiness',{'target_url':ORIGIN+paths[k]},headers={'user-agent':'delta-autonomous-growth/turn9'})
+              readiness.append({"product":k,"http":rr.get('status'),"data":parse_json(rr) or (rr.get('body') or '')[:1800]})
+          OUT['ontario_readiness']=readiness
+
+          print('DELTA_AUTOMATION_RESULT='+json.dumps(OUT,separators=(',',':'),sort_keys=True))
+          if not OUT['core_ok'] or not treasury.get('ok'):
+              raise SystemExit(2)
+          PY
