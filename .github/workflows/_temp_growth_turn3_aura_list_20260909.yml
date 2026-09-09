@@ -1,0 +1,39 @@
+name: DELTA AuraGate Listing Temp
+
+on:
+  push:
+    paths:
+      - '.github/workflows/_temp_growth_turn3_aura_list_20260909.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Register validated DELTA x402 endpoints on AuraGate
+        shell: bash
+        run: |
+          set +e
+          AURA='https://auragate.app'
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          DOCS='https://github.com/15998194110/delta-witness'
+
+          register() {
+            slug="$1" name="$2" description="$3" price="$4" url="$5" tags="$6"
+            jq -n --arg name "$name" --arg description "$description" --arg price "$price" --arg sellerName 'DELTA Witness' --arg sellerAddress "$TREASURY" --arg externalUrl "$url" --arg docsUrl "$DOCS" --argjson tags "$tags" '{name:$name,description:$description,category:"data",price:$price,method:"POST",sellerName:$sellerName,sellerAddress:$sellerAddress,externalUrl:$externalUrl,docsUrl:$docsUrl,tags:$tags}' > "/tmp/${slug}.json"
+            code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o "/tmp/${slug}.out" -w '%{http_code}' -X POST "$AURA/api/services" -H 'content-type: application/json' --data-binary @"/tmp/${slug}.json" || true)
+            echo "AURA_REGISTER slug=$slug http=$code"
+            jq . "/tmp/${slug}.out" 2>/dev/null || head -c 2000 "/tmp/${slug}.out"; echo
+          }
+
+          register capture 'DELTA Witness Capture' 'Timestamp a public webpage as browser-rendered evidence with content hashes and public proof metadata. Production x402 endpoint settles canonical USDC on Base.' '0.03' "$BASE/v1/capture" '["verification","browser-evidence","x402","base","usdc"]'
+          register preflight 'DELTA Witness Guard Preflight' 'Verify a fresh public-source observation against deterministic text or hash expectations before an autonomous action. Production x402 endpoint settles canonical USDC on Base.' '1.00' "$BASE/v1/preflight" '["preflight","agent-safety","verification","x402","base"]'
+          register guarded 'DELTA Witness Guarded Action Pilot' 'Production-verified guarded-action pilot: capture 1-3 public URLs and optionally run deterministic preflight before a consequential browser or workflow action. Production x402 endpoint settles canonical USDC on Base.' '10.00' "$BASE/v1/guarded-action-pilot" '["guarded-action","workflow-safety","verification","x402","base"]'
+
+          echo '=== READBACK ==='
+          curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 "$AURA/api/agent" -o /tmp/catalog.json || echo '{"services":[]}' >/tmp/catalog.json
+          jq '{delta:[(.services // [])[] | select((((.name//"")+" "+(.externalUrl//.url//""))|ascii_downcase|contains("delta"))) | {id,name,description,price,url,externalUrl,sellerAddress,method,category,tags}]}' /tmp/catalog.json
