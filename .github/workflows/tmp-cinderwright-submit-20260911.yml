@@ -1,0 +1,59 @@
+name: TMP Cinderwright DELTA submission 20260911
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-cinderwright-submit-20260911.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: "22" }
+      - run: npm ci
+      - name: Enforce owner pricing and live production quotes
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Reconcile Treasury independently
+        continue-on-error: true
+        run: node scripts/reconcile-treasury.mjs
+      - name: Discover then submit only if canonical DELTA is absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT='https://delta-witness-api.ruphussten.workers.dev'
+          DISCOVER='https://api.ideafactorylab.org/discover?q=DELTA%20Witness'
+          SUBMIT='https://api.ideafactorylab.org/submit'
+          code=000
+          for i in 1 2 3 4; do
+            code=$(curl --connect-timeout 10 --max-time 45 -sS -o /tmp/cw-discover.json -w '%{http_code}' "$DISCOVER") || code=000
+            echo "CINDERWRIGHT discover attempt=$i http=$code body=$(head -c 1200 /tmp/cw-discover.json 2>/dev/null || true)"
+            case "$code" in 200) break;; 429|500|502|503|504|000) sleep $((i*3));; *) break;; esac
+          done
+          if [ "$code" = 200 ] && grep -qi 'delta-witness-api.ruphussten.workers.dev\|DELTA Witness' /tmp/cw-discover.json; then
+            echo 'CINDERWRIGHT listing_status=already_present duplicate_created=false'
+            exit 0
+          fi
+          payload=$(jq -nc --arg url "$ROOT" --arg name 'DELTA Witness' --arg description 'Deterministic public-page state evidence, preflight verification, and guarded-action evidence for autonomous agents. Canonical Base USDC x402 prices: Capture $1, Public Preflight $5, Guarded-Action Pilot $10.' '{url:$url,name:$name,description:$description}')
+          rcode=000
+          for i in 1 2 3 4; do
+            rcode=$(curl --connect-timeout 10 --max-time 45 -sS -o /tmp/cw-submit.json -w '%{http_code}' -X POST "$SUBMIT" -H 'content-type: application/json' --data "$payload") || rcode=000
+            echo "CINDERWRIGHT submit attempt=$i http=$rcode body=$(head -c 2000 /tmp/cw-submit.json 2>/dev/null || true)"
+            case "$rcode" in 200|201|202|204|409) break;; 429|500|502|503|504|000) sleep $((i*3));; *) break;; esac
+          done
+          case "$rcode" in 200|201|202|204|409) echo "CINDERWRIGHT listing_status=accepted duplicate_created=false";; *) echo "CINDERWRIGHT channel=degraded recoverable=true http=$rcode"; exit 0;; esac
+          sleep 4
+          vcode=$(curl --connect-timeout 10 --max-time 45 -sS -o /tmp/cw-verify.json -w '%{http_code}' "$DISCOVER") || vcode=000
+          echo "CINDERWRIGHT verify http=$vcode body=$(head -c 2500 /tmp/cw-verify.json 2>/dev/null || true)"
+          if [ "$vcode" = 200 ] && grep -qi 'delta-witness-api.ruphussten.workers.dev\|DELTA Witness' /tmp/cw-verify.json; then
+            echo 'CINDERWRIGHT discovery_status=live_match'
+          else
+            echo 'CINDERWRIGHT discovery_status=pending recoverable=true'
+          fi
