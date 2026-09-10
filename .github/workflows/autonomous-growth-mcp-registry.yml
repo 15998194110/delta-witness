@@ -1,0 +1,67 @@
+name: DELTA Official MCP Registry Distribution
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/autonomous-growth-mcp-registry.yml']
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Render and verify public package + registry state
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/render-mcp-server.mjs
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import requests,json,time
+          expected=json.load(open('server.json'))
+          name=expected['name']; version=expected['version']; pkg=expected['packages'][0]['identifier']
+          def get(url):
+            last=None
+            for i in range(4):
+              try:
+                r=requests.get(url,timeout=20,headers={'accept':'application/json','user-agent':'DELTA-Witness-Registry-Publisher'})
+                if r.status_code not in (429,500,502,503,504): return r
+                last=r
+              except Exception as e: last=e
+              time.sleep(min(2**i,6))
+            if isinstance(last,Exception): raise last
+            return last
+          nr=get('https://registry.npmjs.org/'+pkg)
+          nr.raise_for_status(); npm=nr.json(); versions=npm.get('versions',{})
+          pkg_ok=version in versions
+          latest=(npm.get('dist-tags') or {}).get('latest')
+          pkg_mcp=(versions.get(version) or {}).get('mcpName')
+          rr=get('https://registry.modelcontextprotocol.io/v0.1/servers?search='+requests.utils.quote(name,safe=''))
+          rr.raise_for_status(); reg=rr.json()
+          match=next((x for x in reg.get('servers',[]) if (x.get('server') or {}).get('name')==name and (x.get('server') or {}).get('version')==version and ((x.get('_meta') or {}).get('io.modelcontextprotocol.registry/official') or {}).get('status')=='active'),None)
+          active=bool(match)
+          print(f'package_ok={str(pkg_ok).lower()}')
+          print(f'active={str(active).lower()}')
+          print('DELTA_MCP_GATE='+json.dumps({'name':name,'version':version,'npm_package':pkg,'npm_version_exists':pkg_ok,'npm_latest':latest,'npm_mcpName':pkg_mcp,'registry_active':active},separators=(',',':')))
+          PY
+      - name: Install current patched mcp-publisher
+        if: steps.gate.outputs.package_ok == 'true' && steps.gate.outputs.active != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 4 --retry-all-errors --retry-delay 2 "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          ./mcp-publisher --version
+      - name: Authenticate namespace with GitHub Actions OIDC
+        if: steps.gate.outputs.package_ok == 'true' && steps.gate.outputs.active != 'true'
+        run: ./mcp-publisher login github-oidc
+      - name: Publish directly to official MCP Registry
+        if: steps.gate.outputs.package_ok == 'true' && steps.gate.outputs.active != 'true'
+        run: ./mcp-publisher publish
+      - name: Verify public registry readback
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/check-mcp-registry.mjs server.json
+          echo 'DELTA_MCP_REGISTRY_VERIFIED=1'
