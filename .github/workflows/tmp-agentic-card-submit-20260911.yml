@@ -1,47 +1,20 @@
-name: TMP Agentic Card DELTA submission 20260911
+name: RETIRED - TMP Agentic Card DELTA submission 20260911
+
+# Probe completed without submission. Agentic Card is free/no-account and exposes
+# POST /api/submit, but its official submit page explicitly states that submitting
+# confirms agreement to its Terms of Service. Owner policy forbids autonomous legal
+# commitments without separate exact authorization, so no listing was created.
+# Public dedupe search showed no DELTA entry at probe time.
+# Current owner pricing remains Capture=1, Public Preflight=5, Pilot=10 USDC.
 on:
-  push:
-    branches: ["master"]
-    paths:
-      - ".github/workflows/tmp-agentic-card-submit-20260911.yml"
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
-  inspect:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - name: Inspect client submit endpoint with bounded browser-TLS fetch
-        run: |
-          set -euo pipefail
-          python -m pip -q install curl_cffi
-          python - <<'PY'
-          import re, html as h
-          from urllib.parse import urljoin
-          from curl_cffi import requests
-          O='https://www.agentic-card.com'
-          s=requests.Session(impersonate='chrome')
-          q=s.get(O+'/api/search',params={'q':'DELTA Witness','per_page':100},timeout=20)
-          print('SEARCH_HTTP',q.status_code,'HAS_DELTA',('delta-witness' in q.text.lower() or 'delta witness' in q.text.lower()))
-          p=s.get(O+'/submit',timeout=20)
-          p.raise_for_status()
-          srcs=re.findall(r'<script[^>]+src=["\']([^"\']+)',p.text,re.I)
-          print('SCRIPT_COUNT',len(srcs))
-          hits=[]
-          for src in srcs:
-              try:
-                  r=s.get(urljoin(O,src),timeout=20)
-                  if r.status_code!=200: continue
-                  text=r.text
-                  if any(x in text.lower() for x in ['/api/submit','submitagent','submit-agent','/api/agents/submit','/api/submissions']):
-                      for pat in ('/api/submit','/api/agents/submit','/api/submissions','submitAgent','submit-agent'):
-                          i=text.find(pat)
-                          if i>=0:
-                              snippet=text[max(0,i-700):i+1300].replace('\n',' ')
-                              hits.append((src,pat,snippet))
-              except Exception as e:
-                  print('SCRIPT_DEGRADED',src,type(e).__name__)
-          print('HITS',len(hits))
-          for src,pat,snip in hits[:12]:
-              print('HIT',src,pat,snip)
-          PY
+      - run: echo 'Agentic Card probe retired at owner legal-commitment boundary.'
