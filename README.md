@@ -6,11 +6,11 @@ DELTA Witness is a Trust Layer for Autonomous Actions. It observes public source
 
 ## Production products and current pricing
 
-- Capture: `POST /v1/capture` preserves what a public page says now — **$1.00 USDC**.
-- Guard: `POST /v1/preflight` compares a fresh observation with prior proof hashes or explicit text rules — **$5.00 USDC**.
-- Guarded-Action Pilot: `POST /v1/guarded-action-pilot` provides the higher-value evidence pilot — **$10.00 USDC**.
+- Capture: `POST /v1/capture` preserves what a public page says now — **$0.03 USDC**.
+- Guard: `POST /v1/preflight` compares a fresh observation with prior proof hashes or explicit text rules — **$0.03 USDC**.
+- Guarded-Action Pilot: `POST /v1/guarded-action-pilot` provides the higher-value evidence pilot — **$10.00 USDC**, only promoted for paid use after production verification on Base with the Treasury below.
 - Watch: authenticated resellers can prepay a finite number of checks and receive HMAC-signed webhooks — **$1.00 USDC per new check**.
-- Partner gateway: new authenticated Partner Capture and Partner Preflight calls use the **$1.00 USDC entry price** after the marketplace bills its customer.
+- Partner gateway: authenticated marketplace integrations use their separately configured commercial terms; public Capture and Guard remain at the prices above.
 
 Direct Capture, Guard, and Guarded-Action Pilot use x402 v2 with Base mainnet USDC. Settlement completes before Browser Run begins. The treasury is receive-only from the application:
 
@@ -18,7 +18,7 @@ Direct Capture, Guard, and Guarded-Action Pilot use x402 v2 with Base mainnet US
 
 Never place the treasury private key in Worker, CI, source, or chat.
 
-The `$1 / $5 / $10` public ladder is the current owner-authorized commercial policy. Historical settled/idempotent deliveries and already-prepaid obligations retain their original paid identity; they are not double-charged or retroactively repriced.
+The `$0.03 / $0.03` public Capture/Guard infrastructure is the current owner-authorized commercial policy. The Guarded-Action Pilot remains `$10.00` when production-verified. Historical settled/idempotent deliveries and already-prepaid obligations retain their original paid identity; they are not double-charged or retroactively repriced.
 
 ## Safety and economics
 
