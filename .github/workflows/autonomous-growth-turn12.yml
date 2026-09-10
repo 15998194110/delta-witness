@@ -6,98 +6,115 @@ on:
 permissions:
   contents: read
 jobs:
-  growth:
+  retry:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v6
-      - name: Verify DELTA production and reconcile Treasury
-        shell: bash
-        run: |
-          set -u
-          BASE=https://delta-witness-api.ruphussten.workers.dev
-          python3 - <<'PY'
-          import requests,base64,json
-          base='https://delta-witness-api.ruphussten.workers.dev'
-          routes=[('/v1/capture',{'url':'https://example.com'}),('/v1/preflight',{'url':'https://example.com','expected':{'contains':['Example Domain']}}),('/v1/guarded-action-pilot',{'urls':['https://example.com']})]
-          for path,body in routes:
-            try:
-              r=requests.post(base+path,json=body,timeout=30)
-              pr=r.headers.get('payment-required','')
-              decoded=None
-              if pr:
-                try: decoded=json.loads(base64.b64decode(pr+'===').decode())
-                except Exception: pass
-              print('DELTA_ROUTE='+path+' HTTP='+str(r.status_code)+' PAYMENT_REQUIRED='+pr[:1000]+' DECODED='+json.dumps(decoded,separators=(',',':')) if decoded else 'DELTA_ROUTE='+path+' HTTP='+str(r.status_code)+' PAYMENT_REQUIRED='+pr[:1000])
-            except Exception as e: print('DELTA_ROUTE_ERROR='+path+' '+repr(e))
-          PY
-          node scripts/reconcile-treasury.mjs || echo TREASURY_RECONCILE_DEGRADED=1
-      - name: Recheck funded Payan demand and receipts
+      - name: Focused Payan funded-request readback
         shell: bash
         run: |
           python3 - <<'PY'
-          import requests,json,time
-          urls=['https://payanagent.com/api/v1/requests?status=open&limit=100','https://payanagent.com/api/v1/receipts?limit=100']
+          import requests,time,json
+          rid='ks76vc9pzpz3qfgf8aawjckn5n8bezhf'
+          urls=[
+            f'https://payanagent.com/api/v1/requests/{rid}',
+            f'https://payanagent.com/api/v1/requests?id={rid}',
+            f'https://payanagent.com/api/v1/requests?requestId={rid}',
+            'https://payanagent.com/api/v1/requests?status=open&limit=200',
+          ]
           for u in urls:
             for attempt in range(3):
               try:
                 r=requests.get(u,timeout=25)
-                print('PAYAN_URL='+u+' HTTP='+str(r.status_code)+' BODY='+r.text[:20000])
+                body=r.text
+                print('PAYAN_FOCUSED_URL='+u+' HTTP='+str(r.status_code)+' HAS_TARGET='+str(rid in body)+' BODY='+body[:5000])
+                if rid in body:
+                  try:
+                    data=r.json()
+                    def find(x):
+                      if isinstance(x,dict):
+                        if x.get('_id')==rid or x.get('id')==rid: return x
+                        for v in x.values():
+                          z=find(v)
+                          if z is not None:return z
+                      elif isinstance(x,list):
+                        for v in x:
+                          z=find(v)
+                          if z is not None:return z
+                    target=find(data)
+                    print('PAYAN_TARGET='+json.dumps(target,separators=(',',':')) if target else 'PAYAN_TARGET_PRESENT_UNPARSED=1')
+                  except Exception as e: print('PAYAN_TARGET_PARSE_ERROR='+repr(e))
+                  raise SystemExit(0)
                 if r.status_code<500 and r.status_code!=429: break
-              except Exception as e: print('PAYAN_ERROR='+u+' attempt='+str(attempt+1)+' '+repr(e))
-              time.sleep(2**attempt)
+              except SystemExit: raise
+              except Exception as e:
+                print('PAYAN_FOCUSED_ERROR='+u+' attempt='+str(attempt+1)+' '+repr(e)); time.sleep(2**attempt)
+          print('PAYAN_TARGET_NOT_FOUND_IN_FALLBACKS=1')
           PY
-      - name: Submit DELTA to BotMarket free directory
+      - name: Retry BotMarket free x402 submission with strict confirmation
         shell: bash
         run: |
           set +e
-          python3 - <<'PY'
-          import requests
-          for u in ['https://botmarket.bot/agents','https://botmarket.bot/mcps']:
-            try:
-              r=requests.get(u,timeout=25)
-              t=r.text.lower(); found=('delta-witness' in t or 'delta witness' in t or '15998194110' in t)
-              print('BOTMARKET_PRECHECK='+u+' HTTP='+str(r.status_code)+' FOUND='+str(found))
-            except Exception as e: print('BOTMARKET_PRECHECK_ERROR='+u+' '+repr(e))
-          PY
           npm --silent install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium >/dev/null
-          cat > submit-botmarket.mjs <<'JS'
+          cat > botmarket-retry.mjs <<'JS'
           import { chromium } from 'playwright';
           const browser=await chromium.launch({headless:true});
           const page=await browser.newPage();
+          const mutations=[];
+          page.on('response', async r=>{
+            const req=r.request();
+            if(req.method()!=='GET') mutations.push({method:req.method(),url:r.url(),status:r.status()});
+          });
+          const compact = async()=> (await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,12000);
+          const fieldSummary = async()=>page.locator('input:visible,textarea:visible,select:visible').evaluateAll(els=>els.map((e,i)=>({i,tag:e.tagName,name:e.getAttribute('name'),type:e.getAttribute('type'),placeholder:e.getAttribute('placeholder'),value:e.value,required:e.required,label:e.labels?.[0]?.innerText||'',ctx:(e.parentElement?.parentElement?.innerText||e.parentElement?.innerText||'').slice(0,400)})));
           try {
             await page.goto('https://botmarket.bot/submit',{waitUntil:'networkidle',timeout:60000});
-            const body0=(await page.locator('body').innerText()).replace(/\s+/g,' ');
-            console.log('BOTMARKET_INITIAL='+body0.slice(0,6000));
-            const tab=page.getByText(/x402 service/i,{exact:true});
-            if(await tab.count()) await tab.first().click();
-            await page.waitForTimeout(500);
-            const fields=await page.locator('input:visible,textarea:visible,select:visible').evaluateAll(els=>els.map((e,i)=>({i,tag:e.tagName,name:e.getAttribute('name'),type:e.getAttribute('type'),placeholder:e.getAttribute('placeholder'),required:e.required,label:e.labels?.[0]?.innerText||'',context:(e.parentElement?.parentElement?.innerText||e.parentElement?.innerText||'').slice(0,500)})));
-            console.log('BOTMARKET_FIELDS='+JSON.stringify(fields));
-            const vis=page.locator('input:visible,textarea:visible');
-            for(let i=0;i<await vis.count();i++){
-              const el=vis.nth(i); const nm=(await el.getAttribute('name')||'').toLowerCase(); const ph=(await el.getAttribute('placeholder')||'').toLowerCase(); const tp=(await el.getAttribute('type')||'').toLowerCase(); const label=((await el.evaluate(e=>e.labels?.[0]?.innerText||''))||'').toLowerCase(); const ctx=((await el.evaluate(e=>(e.parentElement?.parentElement?.innerText||e.parentElement?.innerText||'')))||'').toLowerCase();
-              if(tp==='email'||nm.includes('contact')||label.includes('contact')||ctx.includes('contact (optional)')) continue;
-              if(nm.includes('url')||nm.includes('endpoint')||label.includes('url')||label.includes('endpoint')||ph.includes('https://')) {await el.fill('https://delta-witness-api.ruphussten.workers.dev'); continue;}
-              if(nm.includes('name')||label.includes('name')) {await el.fill('DELTA Witness'); continue;}
-              if(nm.includes('description')||label.includes('description')) {await el.fill('Autonomous x402 evidence service on Base: $0.03 capture and preflight checks plus a $10 guarded-action pilot.'); continue;}
+            console.log('BM_CONTROLS='+JSON.stringify(await page.locator('button,[role=button],label,a').evaluateAll(els=>els.map((e,i)=>({i,tag:e.tagName,role:e.getAttribute('role'),text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,180),href:e.getAttribute('href'),for:e.getAttribute('for'),cls:e.className})).filter(x=>/agent|mcp|x402|submit|preview|fetch/i.test(x.text)))));
+            const xText=page.getByText(/x402 service/i,{exact:true}).first();
+            if(await xText.count()) console.log('BM_X402_HTML='+(await xText.evaluate(e=>e.outerHTML+'\nPARENT='+e.parentElement?.outerHTML+'\nGRAND='+e.parentElement?.parentElement?.outerHTML)).slice(0,10000));
+            let switched=false;
+            const attempts=[
+              async()=>{const x=page.getByRole('button',{name:/x402 service/i}); if(await x.count()) await x.first().click();},
+              async()=>{const x=page.getByRole('radio',{name:/x402 service/i}); if(await x.count()) await x.first().check({force:true});},
+              async()=>{if(await xText.count()) await xText.click({force:true});},
+              async()=>{if(await xText.count()) await xText.locator('..').click({force:true});},
+              async()=>{if(await xText.count()) await xText.evaluate(e=>{const p=e.closest('button,[role="button"],label')||e.parentElement; p?.click();});},
+            ];
+            for(let i=0;i<attempts.length;i++){
+              try{await attempts[i](); await page.waitForTimeout(400);}catch(e){console.log('BM_SWITCH_ATTEMPT_'+i+'_ERR='+String(e));}
+              const f=await fieldSummary(); console.log('BM_FIELDS_AFTER_SWITCH_'+i+'='+JSON.stringify(f));
+              if(f.some(x=>/x402|service url|endpoint/i.test((x.label||'')+' '+(x.placeholder||'')+' '+(x.ctx||'')))){switched=true; break;}
             }
-            let preview=page.getByRole('button',{name:/fetch.*preview|preview|validate/i});
-            if(await preview.count()) { await preview.first().click(); await page.waitForTimeout(4000); }
-            const afterPreview=(await page.locator('body').innerText()).replace(/\s+/g,' ');
-            console.log('BOTMARKET_AFTER_PREVIEW='+afterPreview.slice(0,10000));
-            let submit=page.getByRole('button',{name:/submit|add to directory|list/i});
-            const n=await submit.count();
-            if(n){
-              for(let i=n-1;i>=0;i--){ if(await submit.nth(i).isVisible()){ await submit.nth(i).click(); break; } }
-              await page.waitForTimeout(4000);
+            console.log('BM_SWITCHED='+String(switched));
+            const fields=page.locator('input:visible,textarea:visible');
+            for(let i=0;i<await fields.count();i++){
+              const el=fields.nth(i); const type=(await el.getAttribute('type')||'').toLowerCase(); const label=((await el.evaluate(e=>e.labels?.[0]?.innerText||''))||'').toLowerCase(); const ph=(await el.getAttribute('placeholder')||'').toLowerCase(); const ctx=((await el.evaluate(e=>(e.parentElement?.parentElement?.innerText||e.parentElement?.innerText||'')))||'').toLowerCase();
+              if(type==='search'||type==='email'||/contact/.test(label+' '+ctx)) continue;
+              if(type==='url'||/url|endpoint/.test(label+' '+ph+' '+ctx)){
+                const url=/base url/.test(label+' '+ctx)?'https://delta-witness-api.ruphussten.workers.dev':'https://delta-witness-api.ruphussten.workers.dev/v1/preflight';
+                await el.fill(url);
+              }
             }
-            const after=(await page.locator('body').innerText()).replace(/\s+/g,' ');
-            console.log('BOTMARKET_AFTER_SUBMIT='+after.slice(0,12000));
-            console.log('BOTMARKET_URL='+page.url());
-            console.log('BOTMARKET_SUBMISSION_CONFIRMED='+( /submitted|received|review|thank|queued|success/i.test(after) ? '1':'0'));
-          } catch(e){ console.log('BOTMARKET_ERROR='+String(e)); }
+            console.log('BM_FIELDS_FILLED='+JSON.stringify(await fieldSummary()));
+            const beforeMut=mutations.length;
+            const preview=page.getByRole('button',{name:/fetch.*preview|preview|validate/i});
+            if(await preview.count()) {await preview.first().click(); await page.waitForTimeout(5000);} else console.log('BM_NO_PREVIEW_BUTTON=1');
+            console.log('BM_AFTER_PREVIEW='+await compact());
+            console.log('BM_MUTATIONS_AFTER_PREVIEW='+JSON.stringify(mutations.slice(beforeMut)));
+            console.log('BM_CONTROLS_AFTER_PREVIEW='+JSON.stringify(await page.locator('button,[role=button]').evaluateAll(els=>els.map((e,i)=>({i,text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,200),disabled:e.disabled})).filter(x=>x.text))));
+            const possible=page.getByRole('button',{name:/submit|add to directory|send for review|list service|publish/i});
+            let clicked=false;
+            for(let i=(await possible.count())-1;i>=0;i--){const b=possible.nth(i); if(await b.isVisible() && !(await b.isDisabled())){const txt=(await b.innerText()).trim(); if(!/^submit$/i.test(txt) || i>0){console.log('BM_CLICK_FINAL='+txt); await b.click(); clicked=true; break;}}
+            if(clicked) await page.waitForTimeout(5000);
+            const finalBody=await compact();
+            console.log('BM_FINAL_BODY='+finalBody);
+            console.log('BM_FINAL_MUTATIONS='+JSON.stringify(mutations));
+            const successfulMutation=mutations.some(m=>m.status>=200&&m.status<300&&/submit|agent|service|listing|directory|x402|api/i.test(m.url));
+            const explicit=/thank you|submission received|submitted successfully|queued for review|sent for review|we.?ll review|successfully submitted/i.test(finalBody);
+            console.log('BM_STRICT_CONFIRMED='+(successfulMutation&&explicit?'1':'0'));
+          } catch(e){console.log('BM_FATAL='+String(e));}
           await browser.close();
           JS
-          node submit-botmarket.mjs
+          node botmarket-retry.mjs
