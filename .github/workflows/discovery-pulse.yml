@@ -27,6 +27,9 @@ jobs:
       - name: Reconcile existing PayanAgent relay listings without duplication
         continue-on-error: true
         run: node scripts/reconcile-payan-listings.mjs
+      - name: Reconcile AllMCPs listing without duplication
+        continue-on-error: true
+        run: node scripts/reconcile-allmcps-listing.mjs
       - name: Verify machine discovery surfaces
         run: |
           set -e
