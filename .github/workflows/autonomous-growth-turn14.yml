@@ -9,23 +9,21 @@ jobs:
   growth:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      PAYANAGENT_API_KEY: ${{ secrets.PAYANAGENT_API_KEY }}
     steps:
       - uses: actions/checkout@v6
-      - name: Inspect funded request and bids
+      - name: Retry funded request detail with seller auth
         shell: bash
         run: |
           set +e
           RID=ks76vc9pzpz3qfgf8aawjckn5n8bezhf
+          echo "KEY_PRESENT=$([ -n \"$PAYANAGENT_API_KEY\" ] && echo 1 || echo 0)"
           for i in 1 2 3; do
-            code=$(curl --retry 2 --retry-all-errors --retry-delay 1 -sS -o /tmp/request.json -w '%{http_code}' "https://payanagent.com/api/v1/requests/$RID")
-            echo "REQUEST_HTTP=$code"
+            code=$(curl --retry 2 --retry-all-errors --retry-delay 1 -sS -o /tmp/request.json -w '%{http_code}' "https://payanagent.com/api/v1/requests/$RID" -H "Authorization: Bearer $PAYANAGENT_API_KEY")
+            echo "AUTH_REQUEST_HTTP=$code"
+            cat /tmp/request.json | head -c 12000; echo
             [ "$code" = "200" ] && break
             sleep $((i*2))
           done
-          python3 - <<'PY'
-          import json
-          d=json.load(open('/tmp/request.json'))
-          print('REQUEST='+json.dumps(d.get('request',{}),separators=(',',':')))
-          print('BIDS='+json.dumps(d.get('bids',[]),separators=(',',':')))
-          PY
           exit 0
