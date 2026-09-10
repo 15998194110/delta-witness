@@ -1,0 +1,148 @@
+name: Autonomous Growth Turn 11
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/autonomous-growth-turn11.yml']
+permissions:
+  contents: read
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Reconcile DELTA core, Treasury and funded demand
+        shell: bash
+        run: |
+          set +e
+          echo '=== CORE ==='
+          python3 - <<'PY'
+          import requests,json,time,urllib.parse
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          USDC='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+          BASELINE=51104692
+          REQID='ks76vc9pzpz3qfgf8aawjckn5n8bezhf'
+          BID='jd79ndx8s7y59tkcvjbars0vf18e33z9'
+          s=requests.Session(); s.headers['User-Agent']='DELTA-Witness-Autonomous-Growth/turn11'
+          def req(method,url,**kw):
+            last=None
+            for i in range(4):
+              try:
+                r=s.request(method,url,timeout=25,allow_redirects=True,**kw)
+                if r.status_code not in (429,500,502,503,504): return r
+                last=r
+              except Exception as e: last=e
+              time.sleep(min(1.5*(2**i),6))
+            if isinstance(last,Exception): raise last
+            return last
+          out={'production':{},'treasury':{},'payan':{},'payapi':{},'agentndx':{},'tollbooth':{}}
+          for n,p,b in [('capture','/v1/capture',{'url':'https://example.com'}),('preflight','/v1/preflight',{'url':'https://example.com'}),('pilot','/v1/guarded-action-pilot',{'urls':['https://example.com']})]:
+            try:
+              r=req('POST',BASE+p,json=b)
+              out['production'][n]={'http':r.status_code,'body':r.text[:2400],'headers':{k:v for k,v in r.headers.items() if 'payment' in k.lower() or 'x402' in k.lower()}}
+            except Exception as e: out['production'][n]={'error':repr(e)}
+          try:
+            url=f'https://base.blockscout.com/api/v2/addresses/{TREASURY}/token-transfers?type=ERC-20'
+            incoming=[]; pages=0; crossed=False; max_seen=0
+            while url and pages<25:
+              r=req('GET',url); pages+=1
+              if not r.ok: raise RuntimeError(f'blockscout {r.status_code} {r.text[:300]}')
+              j=r.json()
+              for x in j.get('items',[]):
+                bn=int(x.get('block_number') or 0); max_seen=max(max_seen,bn)
+                if bn<=BASELINE: crossed=True
+                token=x.get('token') or {}; to=x.get('to') or {}; frm=x.get('from') or {}
+                ta=str(token.get('address_hash') or token.get('address') or '').lower(); toa=str(to.get('hash') or to.get('address_hash') or '').lower()
+                if bn>BASELINE and ta==USDC.lower() and toa==TREASURY.lower():
+                  total=x.get('total'); raw=(total or {}).get('value') if isinstance(total,dict) else x.get('value'); dec=int(token.get('decimals') or 6)
+                  payer=str(frm.get('hash') or frm.get('address_hash') or '').lower()
+                  cls='payapi_platform_verification' if payer=='0x7e6b6556322c4e26c567a867964ac793f5ee2b1c' else ('nohumans_platform_verification' if payer.startswith('0x54e163') else 'unclassified')
+                  incoming.append({'block':bn,'timestamp':x.get('timestamp'),'tx':x.get('transaction_hash'),'from':payer,'amount':int(raw)/(10**dec),'class':cls})
+              if crossed: break
+              nxt=j.get('next_page_params')
+              if not nxt: break
+              url=f'https://base.blockscout.com/api/v2/addresses/{TREASURY}/token-transfers?type=ERC-20&'+urllib.parse.urlencode(nxt)
+            out['treasury']={'baseline':BASELINE,'pages':pages,'crossed':crossed,'max_seen':max_seen,'new_canonical_usdc':incoming}
+          except Exception as e: out['treasury']={'baseline':BASELINE,'error':repr(e)}
+          for key,url in [('open','https://payanagent.com/api/v1/requests?status=open&limit=100'),('receipts','https://payanagent.com/api/v1/receipts?limit=100')]:
+            try:
+              r=req('GET',url); t=r.text
+              out['payan'][key]={'http':r.status_code,'request_present':REQID in t,'bid_present':BID in t,'body':t[:24000]}
+            except Exception as e: out['payan'][key]={'error':repr(e)}
+          try:
+            r=req('GET','https://payapi.market/api/search?q=DELTA%20Witness'); out['payapi']={'http':r.status_code,'body':r.text[:12000]}
+          except Exception as e: out['payapi']={'error':repr(e)}
+          try:
+            r=req('GET','https://agentndx.ai/api/servers.json'); t=r.text
+            out['agentndx']={'http':r.status_code,'delta_present':'delta-witness' in t.lower() or 'ruphussten' in t.lower()}
+          except Exception as e: out['agentndx']={'error':repr(e)}
+          try:
+            r=req('GET','https://www.trytollbooth.com/api/services?q=DELTA')
+            out['tollbooth']={'http':r.status_code,'delta_present':'delta witness' in r.text.lower(),'body':r.text[:4000]}
+          except Exception as e: out['tollbooth']={'error':repr(e)}
+          print('DELTA_TURN11_CORE='+json.dumps(out,separators=(',',':'),sort_keys=True))
+          PY
+          echo '=== RECONCILER ==='
+          node scripts/reconcile-treasury.mjs || true
+      - name: Attempt free 402.ad website submission if not already indexed
+        shell: bash
+        run: |
+          set -e
+          python3 - <<'PY'
+          import requests,json
+          try:
+            r=requests.post('https://402.ad/v1/search',json={'query':'DELTA Witness autonomous action evidence preflight x402'},timeout=25)
+            text=r.text.lower()
+            print('402AD_PRECHECK_HTTP='+str(r.status_code))
+            print('402AD_PRECHECK_DELTA='+str(('delta witness' in text) or ('delta-witness' in text) or ('ruphussten' in text)))
+            open('/tmp/402ad-indexed','w').write('1' if (('delta witness' in text) or ('delta-witness' in text) or ('ruphussten' in text)) else '0')
+            print('402AD_PRECHECK_BODY='+r.text[:6000])
+          except Exception as e:
+            print('402AD_PRECHECK_ERROR='+repr(e)); open('/tmp/402ad-indexed','w').write('0')
+          PY
+          if [ "$(cat /tmp/402ad-indexed)" = "1" ]; then
+            echo '402AD_ALREADY_INDEXED=1'
+            exit 0
+          fi
+          npm --silent install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium >/dev/null
+          cat > /tmp/submit402.mjs <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage();
+          try {
+            await page.goto('https://402.ad/submit',{waitUntil:'networkidle',timeout:60000});
+            const x402=page.getByRole('button',{name:/x402 api/i});
+            if(await x402.count()) await x402.first().click();
+            await page.waitForTimeout(500);
+            const fields=await page.locator('input,textarea').evaluateAll(els=>els.map((e,i)=>({i,name:e.getAttribute('name'),type:e.getAttribute('type'),placeholder:e.getAttribute('placeholder'),required:e.required,outer:e.outerHTML.slice(0,350),parent:(e.parentElement?.parentElement?.innerText||e.parentElement?.innerText||'').slice(0,500)})));
+            console.log('402AD_FIELDS='+JSON.stringify(fields));
+            const visible=page.locator('input:visible,textarea:visible');
+            const n=await visible.count();
+            for(let i=0;i<n;i++){
+              const el=visible.nth(i); const ph=(await el.getAttribute('placeholder')||'').toLowerCase(); const nm=(await el.getAttribute('name')||'').toLowerCase(); const tp=(await el.getAttribute('type')||'').toLowerCase();
+              const ctx=((await el.evaluate(e=>(e.parentElement?.parentElement?.innerText||e.parentElement?.innerText||'')))||'').toLowerCase();
+              if(tp==='email'||nm.includes('email')||ctx.includes('email')) continue;
+              if(ph.includes('https://')||nm.includes('url')||nm.includes('endpoint')||ctx.includes('endpoint url')||ctx.includes('api url')) { await el.fill('https://delta-witness-api.ruphussten.workers.dev'); continue; }
+              if(nm.includes('name')||ctx.includes('service name')||ctx.includes('api name')) { await el.fill('DELTA Witness'); continue; }
+              if(nm.includes('goal')||nm.includes('accomplish')||ctx.includes('trying to accomplish')) { await el.fill('List DELTA Witness so autonomous agents can discover its Base x402 capture, preflight, and guarded-action evidence services.'); continue; }
+              if(nm.includes('search')||ctx.includes('what did you search')) { await el.fill('autonomous action evidence preflight x402'); continue; }
+              if((await el.getAttribute('required'))!==null && (await el.inputValue())==='') { await el.fill('DELTA Witness autonomous x402 evidence service'); }
+            }
+            for(const label of ['Custom Agent','Other']) { const b=page.getByRole('button',{name:new RegExp('^'+label+'$','i')}); if(await b.count()){await b.first().click(); break;} }
+            const yes=page.getByRole('button',{name:/yes,? i searched/i}); if(await yes.count()) await yes.first().click();
+            const submit=page.getByRole('button',{name:/submit for review/i});
+            if(!await submit.count()) throw new Error('submit button not found');
+            await submit.first().click();
+            await page.waitForTimeout(2500);
+            const body=(await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,9000);
+            console.log('402AD_AFTER_URL='+page.url());
+            console.log('402AD_AFTER_BODY='+body);
+            const ok=/thank|submitted|received|review queue|submission/i.test(body);
+            console.log('402AD_SUBMISSION_CONFIRMED='+(ok?'1':'0'));
+            if(!ok) process.exitCode=2;
+          } catch(e) { console.log('402AD_SUBMIT_ERROR='+String(e)); process.exitCode=3; }
+          await browser.close();
+          JS
+          node /tmp/submit402.mjs
