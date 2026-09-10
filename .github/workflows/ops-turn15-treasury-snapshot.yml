@@ -1,0 +1,45 @@
+name: DELTA Turn15 Treasury Snapshot
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/ops-turn15-treasury-snapshot.yml']
+permissions:
+  contents: write
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Reconcile recent Base Treasury with overlap
+        env:
+          DELTA_TREASURY_LOOKBACK_BLOCKS: '6000'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docs/runtime
+          ok=0
+          for attempt in 1 2 3; do
+            if node scripts/reconcile-treasury.mjs > /tmp/treasury.json; then ok=1; break; fi
+            sleep $((attempt*3))
+          done
+          test "$ok" = 1
+          jq '{checked_at,network,asset,treasury,start_block,latest_block,lookback_blocks,treasury_received_candidates,total_usdc,known_non_customer_usdc,unclassified_usdc,revenue_classification,evidence_quality,transfers}' /tmp/treasury.json > docs/runtime/treasury-turn15-2026-09-10.json
+      - name: Persist snapshot without touching production code
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'DELTA automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/runtime/treasury-turn15-2026-09-10.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'docs: persist turn-15 Treasury reconciliation'
+          for attempt in 1 2 3; do
+            if git push origin HEAD:master; then exit 0; fi
+            git pull --rebase origin master
+            sleep $((attempt*2))
+          done
+          exit 1
