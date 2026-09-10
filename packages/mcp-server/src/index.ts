@@ -91,7 +91,7 @@ function result(body: Json) {
 }
 
 export function createServer(): McpServer {
-  const server = new McpServer({ name: "DELTA Witness", version: "0.6.1" });
+  const server = new McpServer({ name: "DELTA Witness", version: "0.7.0" });
 
   server.registerTool("delta_quote", {
     title: "Quote DELTA observation",
