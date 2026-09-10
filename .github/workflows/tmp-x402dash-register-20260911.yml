@@ -1,66 +1,18 @@
-name: TMP x402dash DELTA registration 20260911
+name: RETIRED - TMP x402dash DELTA registration 20260911
 
+# One-shot evidence run confirmed all three canonical DELTA endpoints already exist
+# in x402dash. No duplicate registration write was performed. Original run evidence
+# remains in GitHub Actions history.
+# Current owner prices: Capture=1, Public Preflight=5, Pilot=10 USDC.
 on:
-  push:
-    branches: ["master"]
-    paths:
-      - '.github/workflows/tmp-x402dash-register-20260911.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  register:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with: { node-version: '22' }
-      - name: Enforce current owner pricing before listing write
-        run: |
-          node scripts/check-owner-pricing.mjs
-          node scripts/verify-owner-pricing-live.mjs
-      - name: Register only absent canonical endpoints through current free no-auth API
-        shell: bash
-        run: |
-          set -u
-          API='https://api.x402dash.com'
-          BASE='https://delta-witness-api.ruphussten.workers.dev'
-          register_one() {
-            local path="$1" name="$2" desc="$3" category="$4"
-            local url="$BASE$path"
-            local q
-            q=$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$url")
-            code=$(curl --connect-timeout 10 --max-time 25 -sS -o /tmp/dash-list.json -w '%{http_code}' "$API/v1/endpoints?limit=50&q=$q") || code=000
-            if [[ "$code" == 200 ]] && grep -Fq "$url" /tmp/dash-list.json; then
-              echo "X402DASH_CURRENT url=$url"
-              return 0
-            fi
-            payload=$(jq -nc --arg url "$url" --arg name "$name" --arg description "$desc" --arg category "$category" '{url:$url,name:$name,description:$description,category:$category,tags:["DELTA Witness","Base","USDC","verification","agent-safety"]}')
-            code=000
-            : >/tmp/dash-submit.json
-            for i in 1 2 3 4; do
-              code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/dash-submit.json -w '%{http_code}' -X POST "$API/v1/register" -H 'content-type: application/json' --data "$payload") || code=000
-              echo "X402DASH_REGISTER attempt=$i url=$url http=$code body=$(cat /tmp/dash-submit.json 2>/dev/null || true)"
-              case "$code" in
-                200|201|202|204|409|422) break;;
-                429|500|502|503|504|000) sleep $((i*3));;
-                *) break;;
-              esac
-            done
-            case "$code" in
-              200|201|202|204|409) ;;
-              422) echo "X402DASH_INCOMPATIBLE url=$url recoverable=true"; return 0;;
-              *) echo "X402DASH_DEGRADED url=$url http=$code recoverable=true"; return 0;;
-            esac
-            sleep 2
-            code=$(curl --connect-timeout 10 --max-time 25 -sS -o /tmp/dash-readback.json -w '%{http_code}' "$API/v1/endpoints?limit=50&q=$q") || code=000
-            if [[ "$code" == 200 ]] && grep -Fq "$url" /tmp/dash-readback.json; then
-              echo "X402DASH_LIVE url=$url"
-            else
-              echo "X402DASH_ACCEPTED visibility=pending url=$url readback_http=$code"
-            fi
-          }
-          register_one '/v1/capture' 'DELTA Witness Capture' 'Timestamped public-web page-state evidence for autonomous agents.' 'Verification'
-          register_one '/v1/preflight' 'DELTA Witness Preflight' 'Fresh-source verification before consequential autonomous actions.' 'Verification'
-          register_one '/v1/guarded-action-pilot' 'DELTA Witness Guarded Action Pilot' 'Guarded-action evidence pilot for consequential autonomous workflows.' 'Verification'
+      - run: echo 'Canonical x402dash listings confirmed; one-shot probe retired.'
