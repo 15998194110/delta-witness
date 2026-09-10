@@ -1,0 +1,43 @@
+name: 402 Index DELTA submission 2026-09-10 20:32
+
+on:
+  push:
+    paths:
+      - '.github/workflows/402index-submit-20260910-2032.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Register POST x402 endpoints
+        shell: bash
+        run: |
+          set -u
+          API='https://402index.io/api/v1/register'
+          submit() {
+            local name="$1" url="$2" price="$3" category="$4" description="$5"
+            payload=$(jq -nc \
+              --arg url "$url" \
+              --arg name "$name" \
+              --arg description "$description" \
+              --arg category "$category" \
+              --argjson price "$price" \
+              '{url:$url,name:$name,protocol:"x402",http_method:"POST",probe_body:"{}",description:$description,price_usd:$price,payment_asset:"USDC",payment_network:"Base",category:$category,provider:"DELTA Witness",contact_email:"ruphussten85@gmail.com"}')
+            code=000
+            : >/tmp/idx.json
+            for i in 1 2 3; do
+              code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/idx.json -w '%{http_code}' -X POST "$API" -H 'content-type: application/json' --data "$payload") || code=000
+              echo "INDEX402 attempt=$i endpoint=$url http=$code body=$(cat /tmp/idx.json 2>/dev/null || true)"
+              case "$code" in 200|201|202|204|409) break;; 429|500|502|503|504|000) sleep $((i*3));; *) break;; esac
+            done
+            case "$code" in
+              200|201|202|204|409) echo "INDEX402 listing_status=accepted endpoint=$url";;
+              *) echo "INDEX402 submission_status=degraded endpoint=$url http=$code";;
+            esac
+          }
+          submit 'DELTA Witness Capture' 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 0.03 'developer-tools' 'Timestamped public-web page-state evidence for autonomous agents.'
+          submit 'DELTA Witness Preflight' 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 0.03 'agent-safety' 'Deterministic fresh-source preflight verification before consequential autonomous actions.'
+          submit 'DELTA Witness Guarded Action Pilot' 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot' 10 'agent-safety' 'Production-verified guarded-action evidence pilot for consequential agent workflows.'
