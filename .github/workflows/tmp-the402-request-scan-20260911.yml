@@ -1,0 +1,56 @@
+name: TMP DELTA the402 request scan 20260911
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-the402-request-scan-20260911.yml"
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Read current authority and keep scan read-only
+        run: |
+          test -s AGENTS.md
+          test -s docs/pricing-policy-2026-09-10.md
+          grep -q 'Public Capture.*1.00 USDC' docs/pricing-policy-2026-09-10.md
+          grep -q 'Public Preflight.*5.00 USDC' docs/pricing-policy-2026-09-10.md
+          grep -q 'Guarded-Action Pilot.*10.00 USDC' docs/pricing-policy-2026-09-10.md
+      - name: Scan public request floor with bounded recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint='https://api.the402.ai/v1/postings'
+          ok=0
+          for attempt in 1 2 3 4; do
+            code=$(curl -L --connect-timeout 10 --max-time 30 -sS -o /tmp/postings.json -w '%{http_code}' "$endpoint" || printf '000')
+            echo "THE402_POSTINGS attempt=$attempt http=$code"
+            if [[ "$code" =~ ^2 ]]; then ok=1; break; fi
+            if [[ "$code" == 429 || "$code" =~ ^5 || "$code" == 000 ]]; then sleep $((attempt*attempt)); continue; fi
+            cat /tmp/postings.json || true
+            exit 1
+          done
+          if [[ "$ok" != 1 ]]; then
+            echo 'THE402_POSTINGS recoverable_degradation=true'
+            exit 0
+          fi
+          echo 'THE402_SHAPE:'
+          jq -c 'if type=="object" then keys else [type] end' /tmp/postings.json
+          echo 'THE402_ALL_COUNT:'
+          jq '[(.postings // .requests // .items // .data // [])[]] | length' /tmp/postings.json
+          echo 'THE402_DELTA_MATCHES:'
+          jq -c '[
+            (.postings // .requests // .items // .data // [])[]
+            | . as $p
+            | (([$p.title,$p.description,$p.brief,$p.category,($p.tags//[]|join(" "))] | map(select(type=="string")) | join(" ")) // "") as $text
+            | select($text | test("verify|verification|evidence|proof|audit|preflight|browser|web page|webpage|x402|trust|receipt|timestamp|attest|compliance";"i"))
+            | {
+                posting_id:(.posting_id//.id), title, category, status,
+                budget_min_usd, budget_max_usd, required_tier,
+                created_at, expires_at,
+                brief:(if (.brief|type)=="string" then .brief else .brief end)
+              }
+          ]' /tmp/postings.json
+          echo 'THE402_RAW_PREFIX:'
+          head -c 12000 /tmp/postings.json; echo
