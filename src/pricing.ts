@@ -51,7 +51,8 @@ function configuredProductPrice(env: RuntimeEnv, product: Product): number {
     : product === "watch_check"
       ? env.WATCH_BASE_PRICE_USD
       : env.PREFLIGHT_BASE_PRICE_USD;
-  return numberSetting(value, 0.01, 0.001, 10_000);
+  const fallback = product === "preflight" ? 5 : 1;
+  return numberSetting(value, fallback, 0.001, 10_000);
 }
 
 export function quoteProduct(env: RuntimeEnv, product: Product): PricingQuote {
@@ -61,7 +62,10 @@ export function quoteProduct(env: RuntimeEnv, product: Product): PricingQuote {
   const expectedVariableCostUsd = estimateVariableCost(env, expectedBrowserMs, expectedStorageBytes);
   const minimumPriceUsd = expectedVariableCostUsd / (1 - targetMarginBps / 10_000);
   const configuredPriceUsd = configuredProductPrice(env, product);
-  const grossPriceUsd = Math.ceil(Math.max(configuredPriceUsd, minimumPriceUsd) * 1_000_000) / 1_000_000;
+  // Owner pricing is a fixed commercial ladder, not an autonomous repricing target.
+  // Cost-floor telemetry remains visible in minimumPriceUsd; it must not silently
+  // invent a fourth customer-facing price without a newer explicit owner decision.
+  const grossPriceUsd = Math.ceil(configuredPriceUsd * 1_000_000) / 1_000_000;
   return {
     product,
     grossPriceUsd,
@@ -79,39 +83,10 @@ export function quoteProduct(env: RuntimeEnv, product: Product): PricingQuote {
   };
 }
 
-type PriceOverride = {
-  schema: "delta-price-override/v1";
-  product: Product;
-  minimum_price_usd: number;
-  reason: string;
-  updated_at: string;
-};
-
 export async function quoteProductWithOverride(env: RuntimeEnv, product: Product): Promise<PricingQuote> {
-  const quote = quoteProduct(env, product);
-  try {
-    const object = await env.PROOFS.get(`pricing-overrides/${product}.json`);
-    if (!object) return quote;
-    const override = await object.json<PriceOverride>();
-    if (
-      override.schema !== "delta-price-override/v1" ||
-      override.product !== product ||
-      !Number.isFinite(override.minimum_price_usd) ||
-      override.minimum_price_usd <= quote.grossPriceUsd
-    ) {
-      return quote;
-    }
-    const grossPriceUsd = Math.ceil(override.minimum_price_usd * 1_000_000) / 1_000_000;
-    return {
-      ...quote,
-      grossPriceUsd,
-      minimumPriceUsd: Math.max(quote.minimumPriceUsd, grossPriceUsd),
-      estimatedContributionMarginUsd: grossPriceUsd - quote.expectedVariableCostUsd,
-    };
-  } catch (error) {
-    console.error(JSON.stringify({ event: "price_override_read_failed", product, message: error instanceof Error ? error.message : String(error) }));
-    return quote;
-  }
+  // Historical R2 price overrides are intentionally ignored. The owner-authorized
+  // fixed ladder is authoritative until a newer explicit owner pricing decision.
+  return quoteProduct(env, product);
 }
 
 export async function raisePriceAfterNegativeMargin(
@@ -119,24 +94,25 @@ export async function raisePriceAfterNegativeMargin(
   product: Product,
   actualVariableCostUsd: number,
 ): Promise<void> {
-  const marginBps = numberSetting(env.TARGET_MARGIN_BPS, 6_500, 0, 9_500);
-  const required = Math.ceil((actualVariableCostUsd / (1 - marginBps / 10_000)) * 1_000_000) / 1_000_000;
-  const key = `pricing-overrides/${product}.json`;
-  const current = await env.PROOFS.get(key);
-  if (current) {
-    const value = await current.json<Partial<PriceOverride>>();
-    if (typeof value.minimum_price_usd === "number" && value.minimum_price_usd >= required) return;
-  }
-  const override: PriceOverride = {
-    schema: "delta-price-override/v1",
+  // Never autonomously change a customer-facing price. Preserve the signal for
+  // operator review instead; a newer owner decision is required to reprice.
+  const quote = quoteProduct(env, product);
+  if (!Number.isFinite(actualVariableCostUsd) || actualVariableCostUsd <= quote.grossPriceUsd) return;
+  const alert = {
+    schema: "delta-pricing-margin-alert/v1",
     product,
-    minimum_price_usd: required,
-    reason: "actual_fulfillment_margin_negative",
+    configured_price_usd: quote.grossPriceUsd,
+    actual_variable_cost_usd: actualVariableCostUsd,
+    reason: "actual_fulfillment_margin_negative_owner_price_locked",
     updated_at: new Date().toISOString(),
   };
-  await env.PROOFS.put(key, JSON.stringify(override), {
-    httpMetadata: { contentType: "application/json; charset=utf-8" },
-  });
+  try {
+    await env.PROOFS.put(`pricing-alerts/${product}.json`, JSON.stringify(alert), {
+      httpMetadata: { contentType: "application/json; charset=utf-8" },
+    });
+  } catch (error) {
+    console.error(JSON.stringify({ event: "pricing_margin_alert_write_failed", product, message: error instanceof Error ? error.message : String(error) }));
+  }
 }
 
 export function x402Price(quote: PricingQuote): `$${string}` {
