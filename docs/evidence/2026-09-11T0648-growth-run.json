@@ -1,0 +1,129 @@
+{
+  "checked_at": "2026-09-10T22:48:40Z",
+  "pricing_policy": "owner-2026-09-10-1-5-10",
+  "production": {
+    "capture_raw_usdc": "1000000",
+    "preflight_raw_usdc": "5000000",
+    "guarded_action_pilot_raw_usdc": "10000000",
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "status": "verified_live_402",
+    "paid_transactions_generated_by_checks": 0
+  },
+  "channels": [
+    {
+      "channel": "MCP.Directory",
+      "source": "https://mcp.directory/api/submit-server",
+      "listing_status": "review_pending",
+      "discovery_status": "canonical_repository_already_submitted_public_readback_not_yet_visible",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": false,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_direct_submission_api_readback",
+      "official_readback": {
+        "http_status": 409,
+        "message": "This repository has already been submitted. We'll review it soon!",
+        "public_visibility_after_bounded_readback": false,
+        "duplicate_write_avoided": true
+      },
+      "notes": "No new seller identity or duplicate submission was created. Treat as review_pending until public directory readback succeeds."
+    },
+    {
+      "channel": "the402",
+      "source": "https://api.the402.ai/v1/postings",
+      "listing_status": "not_registered_due_fee_and_terms_boundary",
+      "discovery_status": "public_buyer_request_floor_scanned_read_only",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": false,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_direct_public_api_readback",
+      "official_readback": {
+        "http_status": 200,
+        "open_postings": 0,
+        "delta_compatible_matches": 0,
+        "bid_url_template": "/v1/postings/{posting_id}/bids"
+      },
+      "notes": "No funded compatible buyer request exists in the public posting floor. Provider registration/bidding remains outside autonomous boundary because it requires payment and agreement to platform terms."
+    },
+    {
+      "channel": "PayanAgent",
+      "source": "canonical existing relay seller",
+      "listing_status": "partially_current",
+      "discovery_status": "existing_seller_authenticated_no_duplicate_created",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_authenticated_listing_reconciliation",
+      "notes": "Pilot offer remains current at raw 10000000. Two existing legacy offer refreshes returned provider HTTP 400 Server Error and remain recoverable channel degradation; no duplicate seller identity was created."
+    },
+    {
+      "channel": "IndexNow",
+      "source": "core and Base app pulses",
+      "listing_status": "not_applicable",
+      "discovery_status": "core_degraded_base_app_success",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": false,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_direct_channel_response",
+      "notes": "Core pulse exhausted four bounded retries on upstream 429; Base app pulse succeeded HTTP 200. External degradation was isolated and did not block Treasury or other checks."
+    }
+  ],
+  "treasury_reconciliation": {
+    "start_block": 51095363,
+    "latest_block": 51145362,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "total_usdc": 0,
+    "known_non_customer_usdc": 0,
+    "unclassified_usdc": 0,
+    "customer_revenue": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "telemetry_reconciliation": {
+    "candidate_rows": 0,
+    "paid_settlements": 0,
+    "status": "no_paid_funnel_candidates"
+  },
+  "outreach": {
+    "new_first_contacts_sent": 0,
+    "new_explicit_interest_threads": 0,
+    "pulsefeed_thread_status": "latest_inbound_already_answered_no_chase",
+    "bounced_or_invalid_targets_reused": 0
+  },
+  "risk_boundary": {
+    "listing_fees_paid": 0,
+    "assets_moved": false,
+    "wallet_authorized": false,
+    "legal_commitments_accepted": false,
+    "private_keys_exposed": false
+  }
+}
