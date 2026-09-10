@@ -19,7 +19,7 @@ jobs:
           set +e
           npm --silent install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium >/dev/null
-          cat > /tmp/submit.mjs <<'JS'
+          cat > submit-mcp-directory.mjs <<'JS'
           import { chromium } from 'playwright';
           const browser=await chromium.launch({headless:true});
           const page=await browser.newPage();
@@ -31,13 +31,13 @@ jobs:
             if(!loaded) throw new Error('mcp.directory unavailable after retries');
             const gh=page.getByPlaceholder('https://github.com/org/mcp-server').first();
             console.log('GH_FIELD='+await gh.count());
+            if(!(await gh.count())) throw new Error('GitHub field not found');
             await gh.fill('https://github.com/15998194110/delta-witness');
             const npm=page.getByPlaceholder('@org/mcp-server').first(); if(await npm.count()) await npm.fill('delta-witness-mcp');
-            const desc=page.locator('input').filter({has:page.locator('')});
             const short=page.getByPlaceholder(/one sentence/i).first(); if(await short.count()) await short.fill('Paid evidence capture and preflight for autonomous agents via MCP and Base x402.');
             const button=page.getByRole('button',{name:/submit for review/i}).first();
             console.log('SUBMIT_COUNT='+await button.count());
-            if(await button.count() && !(await button.isDisabled())) {await button.click(); await page.waitForTimeout(6000)}
+            if(await button.count() && !(await button.isDisabled())) {await button.click(); await page.waitForTimeout(7000)}
             const body=(await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,16000);
             console.log('FINAL_URL='+page.url());
             console.log('BODY='+body);
@@ -45,5 +45,6 @@ jobs:
             console.log('ACCEPTED='+( /thank|submitted|received|review|success/i.test(body) && !/submit your mcp server.*submission form/i.test(body.slice(0,500)) ? '1':'0'));
           }catch(e){console.log('ERROR='+String(e))}finally{await browser.close()}
           JS
-          node --check /tmp/submit.mjs && node /tmp/submit.mjs
+          node --check submit-mcp-directory.mjs && node submit-mcp-directory.mjs
+          rm -f submit-mcp-directory.mjs
           exit 0
