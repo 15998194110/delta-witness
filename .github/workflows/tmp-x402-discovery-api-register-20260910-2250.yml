@@ -1,0 +1,107 @@
+name: TMP official x402 discovery API DELTA registration 20260910 2250
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-x402-discovery-api-register-20260910-2250.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Enforce current owner pricing before external write
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Register missing canonical endpoints through official discovery API
+        shell: bash
+        run: |
+          set -euo pipefail
+          API='https://x402-discovery-api.onrender.com'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+
+          request_retry() {
+            local out="$1"; shift
+            local code=000
+            for i in 1 2 3 4; do
+              code=$(curl --connect-timeout 10 --max-time 45 -sS -o "$out" -w '%{http_code}' "$@") || code=000
+              echo "attempt=$i http=$code"
+              case "$code" in
+                200|201|202|204) printf '%s' "$code"; return 0 ;;
+                409|422) printf '%s' "$code"; return 0 ;;
+                429|500|502|503|504|000) sleep $((i*3)) ;;
+                *) printf '%s' "$code"; return 1 ;;
+              esac
+            done
+            printf '%s' "$code"
+            return 1
+          }
+
+          : >/tmp/catalog.json
+          if ! catalog_code=$(request_retry /tmp/catalog.json "$API/catalog"); then
+            echo "X402_DISCOVERY catalog_status=degraded recoverable=true body=$(cat /tmp/catalog.json 2>/dev/null || true)"
+            exit 0
+          fi
+          echo "X402_DISCOVERY catalog_http=$catalog_code"
+          jq -e '.services | type == "array"' /tmp/catalog.json >/dev/null
+
+          submit() {
+            local name="$1" url="$2" price="$3" tags_json="$4" description="$5"
+            if jq -e --arg url "$url" '.services[]? | select((.endpoint_url // .url // "") == $url)' /tmp/catalog.json >/dev/null; then
+              echo "X402_DISCOVERY endpoint=$url existing=true action=skip_duplicate"
+              return 0
+            fi
+
+            payload=$(jq -nc \
+              --arg name "$name" \
+              --arg endpoint_url "$url" \
+              --arg description "$description" \
+              --argjson price_per_call "$price" \
+              --argjson capability_tags "$tags_json" \
+              --arg provider_wallet "$TREASURY" \
+              '{name:$name,endpoint_url:$endpoint_url,description:$description,price_per_call:$price_per_call,capability_tags:$capability_tags,provider_wallet:$provider_wallet,network:"base",payment_token:"USDC",pricing_model:"flat",agent_callable:true,auth_required:false}')
+            : >/tmp/register.json
+            if ! register_code=$(request_retry /tmp/register.json -X POST "$API/register" -H 'content-type: application/json' --data "$payload"); then
+              echo "X402_DISCOVERY endpoint=$url status=degraded recoverable=true body=$(cat /tmp/register.json 2>/dev/null || true)"
+              return 0
+            fi
+            echo "X402_DISCOVERY endpoint=$url register_http=$register_code response=$(cat /tmp/register.json)"
+            if [[ "$register_code" =~ ^20 ]]; then
+              service_id=$(jq -r '.service_id // empty' /tmp/register.json)
+              if [ -n "$service_id" ]; then
+                : >/tmp/health.json
+                health_code=$(request_retry /tmp/health.json "$API/health/$service_id" || true)
+                echo "X402_DISCOVERY endpoint=$url service_id=$service_id health_http=$health_code health=$(cat /tmp/health.json 2>/dev/null || true)"
+              fi
+            fi
+          }
+
+          submit 'DELTA Witness Capture' 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 1 '["verification","data"]' 'Timestamped public-web evidence capture for autonomous agents, paid with x402 USDC on Base.'
+          submit 'DELTA Witness Preflight' 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 5 '["verification","validation"]' 'Fresh-source deterministic preflight verification before consequential autonomous agent actions.'
+          submit 'DELTA Witness Guarded Action Pilot' 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot' 10 '["verification","validation"]' 'Production-verified guarded-action evidence pilot for consequential autonomous workflows.'
+
+          : >/tmp/catalog-after.json
+          if final_code=$(request_retry /tmp/catalog-after.json "$API/catalog"); then
+            echo "X402_DISCOVERY final_catalog_http=$final_code"
+            for url in \
+              'https://delta-witness-api.ruphussten.workers.dev/v1/capture' \
+              'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' \
+              'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot'; do
+              match=$(jq -c --arg url "$url" '.services[]? | select((.endpoint_url // .url // "") == $url)' /tmp/catalog-after.json | head -n1)
+              if [ -n "$match" ]; then
+                echo "X402_DISCOVERY readback=present endpoint=$url record=$match"
+              else
+                echo "X402_DISCOVERY readback=absent endpoint=$url"
+              fi
+            done
+          else
+            echo 'X402_DISCOVERY final_catalog_status=degraded recoverable=true'
+          fi
