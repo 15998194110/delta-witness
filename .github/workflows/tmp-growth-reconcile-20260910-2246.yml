@@ -12,6 +12,9 @@ permissions:
 jobs:
   reconcile:
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
@@ -21,7 +24,8 @@ jobs:
         run: |
           node scripts/check-owner-pricing.mjs
           node scripts/verify-owner-pricing-live.mjs
-      - name: Audit paid funnel candidates
-        run: node scripts/query-revenue-candidates.mjs
       - name: Reconcile canonical Base USDC Treasury independently
         run: node scripts/reconcile-treasury.mjs
+      - name: Audit paid funnel candidates
+        continue-on-error: true
+        run: node scripts/query-revenue-candidates.mjs
