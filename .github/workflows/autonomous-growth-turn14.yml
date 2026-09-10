@@ -8,100 +8,35 @@ permissions:
 jobs:
   growth:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 8
+    env:
+      PAYANAGENT_API_KEY: ${{ secrets.PAYANAGENT_API_KEY }}
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with: { node-version: '22' }
-      - name: Reconcile Treasury independently
+      - name: Inspect exact PayanAgent demand and DELTA supply
         shell: bash
         run: |
           set +e
-          echo '=== TREASURY ==='
-          for i in 1 2 3; do node scripts/reconcile-treasury.mjs && break || sleep $((i*2)); done
-          echo '=== REVENUE CANDIDATES ==='
-          node scripts/query-revenue-candidates.mjs || true
-          exit 0
-      - name: Verify production x402 quotes
-        shell: bash
-        run: |
-          set +e
-          BASE=https://delta-witness-api.ruphussten.workers.dev
-          for route in capture preflight guarded-action-pilot; do
-            echo "=== QUOTE $route ==="
-            curl --retry 3 --retry-all-errors --retry-delay 1 -sS -o /tmp/$route.body -D /tmp/$route.headers -w 'HTTP=%{http_code}\n' -X POST "$BASE/v1/$route" -H 'content-type: application/json' -d '{}'
-            grep -iE '^(payment-required|content-type):' /tmp/$route.headers || true
-            head -c 5000 /tmp/$route.body; echo
+          echo "PAYANAGENT_KEY_PRESENT=$([ -n \"$PAYANAGENT_API_KEY\" ] && echo 1 || echo 0)"
+          for q in evidence verification endpoint-health preflight browser; do
+            echo "=== QUERY $q ==="
+            code=$(curl --retry 3 --retry-all-errors --retry-delay 1 -sS -G -o /tmp/pa.json -w '%{http_code}' 'https://payanagent.com/api/v1/discover' --data-urlencode "q=$q" --data-urlencode 'limit=50')
+            echo "HTTP=$code"
+            python3 - <<'PY'
+          import json
+          try:
+              d=json.load(open('/tmp/pa.json'))
+              print('OPEN_REQUESTS='+json.dumps(d.get('openRequests',[]),separators=(',',':')))
+          except Exception as e: print('PARSE_ERROR='+repr(e))
+          PY
           done
-          exit 0
-      - name: Inspect PayanAgent public buyer and settlement feeds
-        shell: bash
-        run: |
-          set +e
-          for u in \
-            'https://payanagent.com/api/v1/discover?q=evidence&limit=20' \
-            'https://payanagent.com/api/v1/discover?q=verification&limit=20' \
-            'https://payanagent.com/api/v1/receipts?limit=30'; do
-            echo "=== GET $u ==="
-            for i in 1 2 3; do
-              code=$(curl --retry 2 --retry-all-errors --retry-delay 1 -sS -o /tmp/pa.json -w '%{http_code}' "$u")
-              echo "HTTP=$code"
-              cat /tmp/pa.json | head -c 12000; echo
-              [ "$code" = "200" ] && break
-              sleep $((i*2))
-            done
-          done
-          exit 0
-      - name: Submit free no-login directory listings
-        shell: bash
-        run: |
-          set +e
-          npm --silent install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium >/dev/null
-          cat > submit-directories.mjs <<'JS'
-          import { chromium } from 'playwright';
-          const browser=await chromium.launch({headless:true});
-          async function runAgentNDX(){
-            const page=await browser.newPage();
-            const mutations=[];
-            page.on('response',async r=>{if(r.request().method()!=='GET'){let body='';try{body=(await r.text()).slice(0,6000)}catch{};mutations.push({method:r.request().method(),url:r.url(),status:r.status(),body})}});
-            try{
-              let ok=false; for(let i=1;i<=3&&!ok;i++){try{await page.goto('https://agentndx.ai/submit/',{waitUntil:'domcontentloaded',timeout:60000});ok=true}catch(e){console.log('AGENTNDX_NAV_RETRY_'+i+'='+String(e));await page.waitForTimeout(i*1500)}}
-              if(!ok) throw new Error('AgentNDX unavailable');
-              await page.waitForTimeout(1200);
-              const fields=page.locator('input:visible');
-              for(let i=0;i<await fields.count();i++){
-                const el=fields.nth(i); const key=((await el.getAttribute('name'))||'')+' '+((await el.getAttribute('placeholder'))||'')+' '+((await el.getAttribute('type'))||'');
-                if(/server.*name|name/i.test(key)&&!/email|url/i.test(key)) await el.fill('DELTA Witness').catch(()=>{});
-                else if(/github/i.test(key)) await el.fill('https://github.com/15998194110/delta-witness').catch(()=>{});
-                else if(/homepage|website/i.test(key)) await el.fill('https://delta-witness-api.ruphussten.workers.dev').catch(()=>{});
-              }
-              const text=page.locator('textarea:visible').first(); if(await text.count()) await text.fill('Paid evidence capture and preflight tools for autonomous agents, with Base USDC x402 settlement and MCP discovery.');
-              for(const label of ['MCP','x402']){const cb=page.getByLabel(new RegExp('^'+label+'$','i')).first(); if(await cb.count()&&!(await cb.isChecked().catch(()=>false))) await cb.check().catch(()=>{});}
-              const submit=page.getByRole('button',{name:/submit for review/i}).first();
-              console.log('AGENTNDX_SUBMIT_COUNT='+await submit.count());
-              if(await submit.count()&&!(await submit.isDisabled())){await submit.click();await page.waitForTimeout(5000)}
-              const body=(await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,14000);
-              console.log('AGENTNDX_FINAL_URL='+page.url()); console.log('AGENTNDX_BODY='+body); console.log('AGENTNDX_MUTATIONS='+JSON.stringify(mutations));
-              console.log('AGENTNDX_ACCEPTED='+( /submission received|review within 48 hours|received/i.test(body)||mutations.some(m=>m.status>=200&&m.status<300&&/submit/i.test(m.url)) ? '1':'0'));
-            }catch(e){console.log('AGENTNDX_ERROR='+String(e))} finally {await page.close()}
-          }
-          async function runKiprio(){
-            const page=await browser.newPage(); const mutations=[];
-            page.on('response',async r=>{if(r.request().method()!=='GET'){let body='';try{body=(await r.text()).slice(0,6000)}catch{};mutations.push({method:r.request().method(),url:r.url(),status:r.status(),body})}});
-            try{
-              let ok=false;for(let i=1;i<=3&&!ok;i++){try{await page.goto('https://kiprio.com/mcp-registry/',{waitUntil:'domcontentloaded',timeout:60000});ok=true}catch(e){console.log('KIPRIO_NAV_RETRY_'+i+'='+String(e));await page.waitForTimeout(i*1500)}}
-              if(!ok) throw new Error('Kiprio unavailable'); await page.waitForTimeout(1000);
-              const inputs=page.locator('input:visible');
-              for(let i=0;i<await inputs.count();i++){const el=inputs.nth(i);const ph=(await el.getAttribute('placeholder'))||''; if(/github\.com\/owner\/repo/i.test(ph)) await el.fill('https://github.com/15998194110/delta-witness'); else if(/name|contact/i.test(ph)) await el.fill('DELTA Witness').catch(()=>{});}
-              const buttons=page.getByRole('button',{name:/submit/i}); console.log('KIPRIO_SUBMIT_COUNT='+await buttons.count());
-              if(await buttons.count()){const b=buttons.last(); if(!(await b.isDisabled())){await b.click();await page.waitForTimeout(5000)}}
-              const body=(await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,14000);
-              console.log('KIPRIO_FINAL_URL='+page.url());console.log('KIPRIO_BODY='+body);console.log('KIPRIO_MUTATIONS='+JSON.stringify(mutations));
-              console.log('KIPRIO_ACCEPTED='+( /submitted|thank|received|next weekly refresh|success/i.test(body)||mutations.some(m=>m.status>=200&&m.status<300&&/submit|registry/i.test(m.url)&&!/analytics/i.test(m.url)) ? '1':'0'));
-            }catch(e){console.log('KIPRIO_ERROR='+String(e))} finally {await page.close()}
-          }
-          await runAgentNDX(); await runKiprio(); await browser.close();
-          JS
-          node --check submit-directories.mjs && node submit-directories.mjs
+          echo '=== DELTA DISCOVERY ==='
+          curl --retry 3 --retry-all-errors --retry-delay 1 -sS -G 'https://payanagent.com/api/v1/discover' --data-urlencode 'q=DELTA Witness' --data-urlencode 'limit=50' -o /tmp/delta.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/delta.json'))
+          print('DELTA_AGENTS='+json.dumps([x for x in d.get('agents',[]) if x.get('name')=='DELTA Witness'],separators=(',',':')))
+          print('DELTA_OFFERS='+json.dumps(d.get('offers',[]),separators=(',',':')))
+          print('DELTA_OPEN_REQUESTS='+json.dumps(d.get('openRequests',[]),separators=(',',':')))
+          PY
           exit 0
