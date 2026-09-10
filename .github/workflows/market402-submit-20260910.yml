@@ -1,0 +1,36 @@
+name: Market402 DELTA submission 2026-09-10
+
+on:
+  push:
+    paths:
+      - '.github/workflows/market402-submit-20260910.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Submit DELTA resources with POST probe metadata
+        shell: bash
+        run: |
+          set -u
+          submit() {
+            local endpoint="$1" price="$2"
+            payload=$(jq -nc --arg resource "$endpoint" --argjson price "$price" '{resource:$resource,declared_price_usd:$price,paid_probe_optin:false,sample_input:{method:"POST",body:{}}}')
+            code=000
+            : >/tmp/market402.json
+            for i in 1 2 3; do
+              code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/market402.json -w '%{http_code}' -X POST 'https://market402.com/submit' -H 'content-type: application/json' --data "$payload") || code=000
+              echo "MARKET402 attempt=$i endpoint=$endpoint http=$code body=$(cat /tmp/market402.json 2>/dev/null || true)"
+              case "$code" in 200|201|202|204|409|422) break;; 429|500|502|503|504|000) sleep $((i*3));; *) break;; esac
+            done
+            case "$code" in
+              200|201|202|204|409) echo "MARKET402 listing_status=accepted endpoint=$endpoint";;
+              *) echo "MARKET402 channel=degraded recoverable=true endpoint=$endpoint http=$code";;
+            esac
+          }
+          submit 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 1
+          submit 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 5
+          submit 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot' 10
