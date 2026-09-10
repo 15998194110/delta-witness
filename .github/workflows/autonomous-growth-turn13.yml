@@ -1,4 +1,4 @@
-name: Autonomous Growth Turn 13
+name: Autonomous Growth Turn 13 Walnut
 on:
   push:
     branches: [master]
@@ -6,105 +6,60 @@ on:
 permissions:
   contents: read
 jobs:
-  growth:
+  walnut:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with: { node-version: '22' }
-      - name: Reconcile Treasury independently
-        shell: bash
-        run: |
-          echo '=== TREASURY ==='
-          node scripts/reconcile-treasury.mjs || true
-          echo '=== REVENUE CANDIDATES ==='
-          node scripts/query-revenue-candidates.mjs || true
-      - name: Verify three production x402 quotes
+      - name: Validate official Registry source and index on Walnut World
         shell: bash
         run: |
           set +e
-          BASE=https://delta-witness-api.ruphussten.workers.dev
-          for route in capture preflight guarded-action-pilot; do
-            echo "=== QUOTE $route ==="
-            curl --retry 3 --retry-all-errors --retry-delay 1 -sS -o /tmp/$route.body -D /tmp/$route.headers -w 'HTTP=%{http_code}\n' -X POST "$BASE/v1/$route" -H 'content-type: application/json' -d '{}'
-            grep -iE '^(payment-required|content-type):' /tmp/$route.headers || true
-            head -c 4000 /tmp/$route.body; echo
-          done
-          exit 0
-      - name: Submit DELTA to MCP Find
-        shell: bash
-        run: |
-          set +e
+          REG='https://registry.modelcontextprotocol.io/v0.1/servers/io.github.15998194110%2Fdelta-witness/versions/latest'
+          echo '=== REGISTRY SOURCE ==='
+          curl --retry 3 --retry-all-errors --retry-delay 1 -sS -D /tmp/reg.headers -o /tmp/reg.json -w 'HTTP=%{http_code}\n' "$REG"
+          cat /tmp/reg.json | head -c 5000; echo
           npm --silent install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium >/dev/null
-          cat > mcpfind-run.mjs <<'JS'
+          cat > walnut-run.mjs <<'JS'
           import { chromium } from 'playwright';
-          const PKG='delta-witness-mcp';
-          const REPO='https://github.com/15998194110/delta-witness';
+          const REG='https://registry.modelcontextprotocol.io/v0.1/servers/io.github.15998194110%2Fdelta-witness/versions/latest';
           const browser=await chromium.launch({headless:true});
           const page=await browser.newPage();
           const mutations=[];
           page.on('response', async r=>{
             if(r.request().method()!=='GET'){
-              let body=''; try{body=(await r.text()).slice(0,5000)}catch{}
+              let body=''; try{body=(await r.text()).slice(0,6000)}catch{}
               mutations.push({method:r.request().method(),url:r.url(),status:r.status(),body});
             }
           });
           try{
             let loaded=false;
-            for(let attempt=1;attempt<=3&&!loaded;attempt++){
-              try{await page.goto('https://www.mcpfind.org/submit',{waitUntil:'domcontentloaded',timeout:60000}); loaded=true;}catch(e){console.log('NAV_RETRY_'+attempt+'='+String(e)); await page.waitForTimeout(attempt*1500);}
+            for(let a=1;a<=3&&!loaded;a++){
+              try{await page.goto('https://walnut.world/',{waitUntil:'domcontentloaded',timeout:60000});loaded=true}catch(e){console.log('NAV_RETRY_'+a+'='+String(e));await page.waitForTimeout(1200*a)}
             }
-            if(!loaded) throw new Error('submit page unavailable after bounded retries');
-            await page.waitForTimeout(1800);
-            console.log('START_URL='+page.url());
-            const inputs=page.locator('input:visible');
-            const info=[];
-            for(let i=0;i<await inputs.count();i++){
-              const el=inputs.nth(i);
-              info.push({i,type:await el.getAttribute('type'),name:await el.getAttribute('name'),placeholder:await el.getAttribute('placeholder'),value:await el.inputValue().catch(()=>''),required:await el.getAttribute('required')});
+            if(!loaded) throw new Error('Walnut unavailable after bounded retries');
+            await page.waitForTimeout(1200);
+            const source=page.getByPlaceholder('https://github.com/owner/repo').first();
+            console.log('SOURCE_INPUT_COUNT='+await source.count());
+            if(await source.count()) await source.fill(REG);
+            const index=page.getByRole('button',{name:/index it/i}).first();
+            console.log('INDEX_BUTTON_COUNT='+await index.count());
+            if(await source.count()&&await index.count()&&!(await index.isDisabled())){
+              console.log('CLICK_INDEX=1');
+              await index.click();
+              await page.waitForTimeout(7000);
             }
-            console.log('INPUTS='+JSON.stringify(info));
-            const textareas=page.locator('textarea:visible');
-            console.log('TEXTAREA_COUNT='+await textareas.count());
-            const selects=page.locator('select:visible');
-            const selectInfo=[];
-            for(let i=0;i<await selects.count();i++){
-              const el=selects.nth(i);
-              selectInfo.push({i,name:await el.getAttribute('name'),options:await el.locator('option').allTextContents()});
-            }
-            console.log('SELECTS='+JSON.stringify(selectInfo));
-            let pkgFilled=false, repoFilled=false;
-            for(let i=0;i<await inputs.count();i++){
-              const el=inputs.nth(i);
-              const key=((await el.getAttribute('name'))||'')+' '+((await el.getAttribute('placeholder'))||'')+' '+((await el.getAttribute('aria-label'))||'');
-              if(!pkgFilled && /package|npm/i.test(key)){ await el.fill(PKG); pkgFilled=true; continue; }
-              if(!repoFilled && /github|repo|repository/i.test(key)){ await el.fill(REPO); repoFilled=true; continue; }
-            }
-            if(!pkgFilled){const lab=page.getByLabel(/package|npm/i).first(); if(await lab.count()){await lab.fill(PKG);pkgFilled=true;}}
-            if(!repoFilled){const lab=page.getByLabel(/github|repo|repository/i).first(); if(await lab.count()){await lab.fill(REPO);repoFilled=true;}}
-            console.log(`FILLED package=${pkgFilled} repo=${repoFilled}`);
-            const buttons=page.locator('button:visible');
-            console.log('BUTTONS='+JSON.stringify(await buttons.allTextContents()));
-            const submit=page.getByRole('button',{name:/submit( server)?|send|add server/i}).first();
-            console.log('SUBMIT_COUNT='+await submit.count());
-            if(pkgFilled&&repoFilled&&await submit.count()&&!(await submit.isDisabled())){
-              console.log('CLICK_SUBMIT=1');
-              await submit.click();
-              await page.waitForTimeout(5000);
-            }
-            const body=(await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,16000);
+            const body=(await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,18000);
+            console.log('FINAL_URL='+page.url());
             console.log('FINAL_BODY='+body);
             console.log('MUTATIONS='+JSON.stringify(mutations));
-            console.log('FINAL_URL='+page.url());
-            const accepted=/thank you|submitted|submission received|under review|reviewed|success|we.?ll review|appear.*few days/i.test(body)||mutations.some(m=>m.status>=200&&m.status<300&&/submit|server/i.test(m.url)&&/success|submitted|review|created|pending/i.test(m.body));
-            console.log('MCPFIND_ACCEPTED='+(accepted?'1':'0'));
-          }catch(e){console.log('MCPFIND_ERROR='+String(e))}
+            const success=/indexed|added|submitted|queued|checking|already.*index|source.*accepted/i.test(body)||mutations.some(m=>m.status>=200&&m.status<300&&/index|submit|source/i.test(m.url)&&!/google|clarity|analytics/i.test(m.url));
+            console.log('WALNUT_INDEX_ACCEPTED='+(success?'1':'0'));
+          }catch(e){console.log('WALNUT_ERROR='+String(e))}
           await browser.close();
           JS
-          node --check mcpfind-run.mjs && node mcpfind-run.mjs
+          node --check walnut-run.mjs && node walnut-run.mjs
           exit 0
