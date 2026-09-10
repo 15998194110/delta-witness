@@ -1,0 +1,191 @@
+{
+  "checked_at": "2026-09-10T13:36:32.926Z",
+  "source_sha": "c54f0bf92afeb90a6256d80c2dcf0c2436749225",
+  "pricing": {
+    "capture": 1,
+    "partner_capture": 1,
+    "partner_preflight": 1,
+    "watch_check": 1,
+    "public_preflight": 5,
+    "guarded_action_pilot": 10
+  },
+  "source_files_changed": [],
+  "before": {
+    "checked_at": "2026-09-10T13:36:05.960Z",
+    "policy": "owner-2026-09-10-1-5-10",
+    "ok": true,
+    "products": [
+      {
+        "product": "capture",
+        "attempt": 1,
+        "http": 402,
+        "quote_usdc": 1,
+        "challenge_usdc": 1,
+        "raw_usdc": "1000000",
+        "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "expected_usdc": 1,
+        "header_body_match": true,
+        "status": "verified"
+      },
+      {
+        "product": "preflight",
+        "attempt": 2,
+        "http": 402,
+        "quote_usdc": 5,
+        "challenge_usdc": 5,
+        "raw_usdc": "5000000",
+        "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "expected_usdc": 5,
+        "header_body_match": true,
+        "status": "verified"
+      },
+      {
+        "product": "guarded-action-pilot",
+        "attempt": 1,
+        "http": 402,
+        "quote_usdc": 10,
+        "challenge_usdc": 10,
+        "raw_usdc": "10000000",
+        "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "expected_usdc": 10,
+        "header_body_match": true,
+        "status": "verified"
+      }
+    ],
+    "partners": [
+      {
+        "product": "partner_capture",
+        "http": 402,
+        "minimum_usdc": 1,
+        "attempt": 1,
+        "status": "verified"
+      },
+      {
+        "product": "partner_preflight",
+        "http": 402,
+        "minimum_usdc": 1,
+        "attempt": 1,
+        "status": "verified"
+      },
+      {
+        "product": "partner_watch",
+        "http": 402,
+        "minimum_usdc": 1,
+        "attempt": 1,
+        "status": "verified"
+      }
+    ],
+    "paid_transactions_generated": 0,
+    "customer_revenue_generated": 0,
+    "diagnostic_only": true,
+    "unverified_scope": [
+      "ChatGPT scheduled-task prompts",
+      "global saved memory",
+      "local Codex automation files"
+    ]
+  },
+  "after": {
+    "checked_at": "2026-09-10T13:36:32.926Z",
+    "policy": "owner-2026-09-10-1-5-10",
+    "ok": true,
+    "products": [
+      {
+        "product": "capture",
+        "attempt": 1,
+        "http": 402,
+        "quote_usdc": 1,
+        "challenge_usdc": 1,
+        "raw_usdc": "1000000",
+        "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "expected_usdc": 1,
+        "header_body_match": true,
+        "status": "verified"
+      },
+      {
+        "product": "preflight",
+        "attempt": 1,
+        "http": 402,
+        "quote_usdc": 5,
+        "challenge_usdc": 5,
+        "raw_usdc": "5000000",
+        "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "expected_usdc": 5,
+        "header_body_match": true,
+        "status": "verified"
+      },
+      {
+        "product": "guarded-action-pilot",
+        "attempt": 1,
+        "http": 402,
+        "quote_usdc": 10,
+        "challenge_usdc": 10,
+        "raw_usdc": "10000000",
+        "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "expected_usdc": 10,
+        "header_body_match": true,
+        "status": "verified"
+      }
+    ],
+    "partners": [
+      {
+        "product": "partner_capture",
+        "http": 402,
+        "minimum_usdc": 1,
+        "attempt": 1,
+        "status": "verified"
+      },
+      {
+        "product": "partner_preflight",
+        "http": 402,
+        "minimum_usdc": 1,
+        "attempt": 1,
+        "status": "verified"
+      },
+      {
+        "product": "partner_watch",
+        "http": 402,
+        "minimum_usdc": 1,
+        "attempt": 1,
+        "status": "verified"
+      }
+    ],
+    "paid_transactions_generated": 0,
+    "customer_revenue_generated": 0,
+    "diagnostic_only": true,
+    "unverified_scope": [
+      "ChatGPT scheduled-task prompts",
+      "global saved memory",
+      "local Codex automation files"
+    ]
+  },
+  "chatgpt_task_prompts": {
+    "status": "not_verified",
+    "updated": false,
+    "reason": "No native scheduled-task read/write tool in originating chat; browser connector was disconnected."
+  },
+  "global_saved_memory": {
+    "status": "not_verified",
+    "updated": false,
+    "reason": "Saved-memory write tool is disabled in originating chat."
+  },
+  "local_codex_automations": {
+    "status": "not_verified",
+    "updated": false,
+    "reason": "Local Operator/Codex workspace not mounted in originating chat."
+  },
+  "new_growth_batches": 0,
+  "outreach_sent": 0,
+  "paid_tests": 0
+}
