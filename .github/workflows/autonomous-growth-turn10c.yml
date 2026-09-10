@@ -1,0 +1,116 @@
+name: Autonomous Growth Turn 10C
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/autonomous-growth-turn10c.yml']
+permissions:
+  contents: read
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+      - name: Reconcile production, treasury, funded demand, and free listing surfaces
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import requests,json,time,re,urllib.parse,html
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          USDC='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+          BASELINE=51104692
+          REQID='ks76vc9pzpz3qfgf8aawjckn5n8bezhf'
+          BID='jd79ndx8s7y59tkcvjbars0vf18e33z9'
+          s=requests.Session(); s.headers['User-Agent']='DELTA-Witness-Autonomous-Growth/turn10c'
+          def req(method,url,**kw):
+            last=None
+            for i in range(4):
+              try:
+                r=s.request(method,url,timeout=25,allow_redirects=True,**kw)
+                if r.status_code not in (429,500,502,503,504): return r
+                last=r
+              except Exception as e: last=e
+              time.sleep(min(1.5*(2**i),6))
+            if isinstance(last,Exception): raise last
+            return last
+          out={'production':{},'treasury':{},'payan':{},'agentndx':{},'402ad':{},'mcpi':{},'tollbooth':{}}
+          # DELTA core integrity: no payment headers, no wallet actions.
+          for n,p,b in [('capture','/v1/capture',{'url':'https://example.com'}),('preflight','/v1/preflight',{'url':'https://example.com'}),('pilot','/v1/guarded-action-pilot',{'urls':['https://example.com']})]:
+            try:
+              r=req('POST',BASE+p,json=b)
+              out['production'][n]={'http':r.status_code,'body':r.text[:3000],'headers':{k:v for k,v in r.headers.items() if 'payment' in k.lower() or 'x402' in k.lower()}}
+            except Exception as e: out['production'][n]={'error':repr(e)}
+          # Treasury independently via Blockscout pagination.
+          try:
+            url=f'https://base.blockscout.com/api/v2/addresses/{TREASURY}/token-transfers?type=ERC-20'
+            incoming=[]; pages=0; crossed=False; max_seen=0
+            while url and pages<20:
+              r=req('GET',url); pages+=1
+              if not r.ok: raise RuntimeError(f'blockscout {r.status_code} {r.text[:300]}')
+              j=r.json()
+              for x in j.get('items',[]):
+                bn=int(x.get('block_number') or 0); max_seen=max(max_seen,bn)
+                if bn<=BASELINE: crossed=True
+                token=x.get('token') or {}; to=x.get('to') or {}; frm=x.get('from') or {}
+                ta=str(token.get('address_hash') or token.get('address') or '').lower(); toa=str(to.get('hash') or to.get('address_hash') or '').lower()
+                if bn>BASELINE and ta==USDC.lower() and toa==TREASURY.lower():
+                  total=x.get('total'); raw=(total or {}).get('value') if isinstance(total,dict) else x.get('value'); dec=int(token.get('decimals') or 6)
+                  incoming.append({'block':bn,'timestamp':x.get('timestamp'),'tx':x.get('transaction_hash'),'from':str(frm.get('hash') or frm.get('address_hash') or ''),'amount':int(raw)/(10**dec)})
+              if crossed: break
+              nxt=j.get('next_page_params')
+              if not nxt: break
+              url=f'https://base.blockscout.com/api/v2/addresses/{TREASURY}/token-transfers?type=ERC-20&'+urllib.parse.urlencode(nxt)
+            out['treasury']={'baseline':BASELINE,'pages':pages,'crossed':crossed,'max_seen':max_seen,'new_canonical_usdc':incoming}
+          except Exception as e: out['treasury']={'baseline':BASELINE,'error':repr(e)}
+          # Payan request: detail + open feed + receipts; external failures isolated.
+          for key,url in [('detail',f'https://payanagent.com/api/v1/requests/{REQID}'),('open',f'https://payanagent.com/api/v1/requests?status=open&q={urllib.parse.quote("catalog endpoint-health checker")}&limit=50'),('receipts','https://payanagent.com/api/v1/receipts?limit=100')]:
+            try:
+              r=req('GET',url); t=r.text
+              out['payan'][key]={'http':r.status_code,'request_present':REQID in t,'bid_present':BID in t,'body':t[:10000]}
+            except Exception as e: out['payan'][key]={'error':repr(e)}
+          # AgentNDX review completion gate.
+          try:
+            r=req('GET','https://agentndx.ai/api/servers.json'); t=r.text
+            out['agentndx']={'http':r.status_code,'delta_present':'delta-witness' in t.lower() or 'ruphussten' in t.lower()}
+          except Exception as e: out['agentndx']={'error':repr(e)}
+          # 402.ad free search + inspect the zero-fee WEBSITE submission implementation.
+          try:
+            r=req('POST','https://402.ad/v1/search',json={'query':'DELTA Witness preflight autonomous action evidence x402'})
+            out['402ad']['search']={'http':r.status_code,'delta_present':'delta-witness' in r.text.lower() or 'ruphussten' in r.text.lower(),'body':r.text[:8000]}
+            page=req('GET','https://402.ad/submit'); txt=page.text
+            heads=re.findall(r'<form([^>]*)>',txt,re.I|re.S); forms=re.findall(r'<form[^>]*>(.*?)</form>',txt,re.I|re.S)
+            out['402ad']['submit_page']={'http':page.status_code,'form_heads':heads[:8],'forms_excerpt':[re.sub(r'\s+',' ',x)[:5000] for x in forms[:4]]}
+            scripts=re.findall(r'<script[^>]+src=["\']([^"\']+)',txt,re.I); hits=[]
+            for src in scripts[:50]:
+              try:
+                js=req('GET',urllib.parse.urljoin(page.url,src)).text
+                for m in re.finditer(r'[^\n]{0,240}(?:submit|submission|/api/)[^\n]{0,320}',js,re.I):
+                  frag=m.group(0)
+                  if 'submit' in frag.lower() or '/api/' in frag.lower(): hits.append(frag[:900])
+              except Exception: pass
+            out['402ad']['js_hits']=hits[:50]
+          except Exception as e: out['402ad']['error']=repr(e)
+          # mcpi: check existing discovery and inspect the public self-serve lookup form/API without claiming ownership yet.
+          try:
+            page=req('GET','https://mcpi.app/'); txt=page.text
+            out['mcpi']['home']={'http':page.status_code,'delta_present':'delta-witness' in txt.lower() or 'ruphussten' in txt.lower()}
+            heads=re.findall(r'<form([^>]*)>',txt,re.I|re.S); forms=re.findall(r'<form[^>]*>(.*?)</form>',txt,re.I|re.S)
+            out['mcpi']['forms']={'heads':heads[:12],'excerpt':[re.sub(r'\s+',' ',x)[:5000] for x in forms[:6]]}
+            scripts=re.findall(r'<script[^>]+src=["\']([^"\']+)',txt,re.I); hits=[]
+            for src in scripts[:50]:
+              try:
+                js=req('GET',urllib.parse.urljoin(page.url,src)).text
+                for m in re.finditer(r'[^\n]{0,240}(?:claim|verify|lookup|publish|/api/)[^\n]{0,360}',js,re.I):
+                  frag=m.group(0)
+                  if any(k in frag.lower() for k in ('claim','verify','lookup','publish','/api/')): hits.append(frag[:1000])
+              except Exception: pass
+            out['mcpi']['js_hits']=hits[:60]
+          except Exception as e: out['mcpi']['error']=repr(e)
+          # Tollbooth bounded retry only; never block independent checks.
+          try:
+            r=req('GET','https://www.trytollbooth.com/api/services?q=DELTA')
+            out['tollbooth']={'http':r.status_code,'delta_present':'DELTA Witness' in r.text,'body':r.text[:5000]}
+          except Exception as e: out['tollbooth']={'error':repr(e)}
+          print('DELTA_TURN10C='+json.dumps(out,separators=(',',':'),sort_keys=True))
+          PY
