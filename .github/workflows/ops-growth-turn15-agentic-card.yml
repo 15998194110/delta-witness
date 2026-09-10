@@ -1,0 +1,81 @@
+name: DELTA Agentic Card Submission
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/ops-growth-turn15-agentic-card.yml']
+permissions:
+  contents: read
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Verify production authority before distribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          code=$(curl --retry 4 --retry-all-errors --retry-delay 1 -sS -o /tmp/body -D /tmp/headers -w '%{http_code}' -X POST "$BASE/v1/preflight" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
+          hdr=$(awk 'BEGIN{IGNORECASE=1} /^payment-required:/{sub(/^[^:]+:[[:space:]]*/,""); gsub(/\r/,""); print; exit}' /tmp/headers)
+          decoded=$(printf '%s' "$hdr" | base64 -d 2>/dev/null || true)
+          amount=$(printf '%s' "$decoded" | jq -r '.. | .amount? // empty' 2>/dev/null | head -1)
+          echo "preflight_status=$code amount=$amount"
+          test "$code" = 402
+          test "$amount" = 1000000
+      - name: Reconcile Base Treasury independently
+        continue-on-error: true
+        run: node scripts/reconcile-treasury.mjs
+      - name: Check Agentic Card for existing DELTA record
+        id: existing
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST='delta-witness-api.ruphussten.workers.dev'
+          curl --retry 4 --retry-all-errors --retry-delay 1 -fsS -G 'https://agentic-card.com/api/search' --data-urlencode 'q=DELTA Witness' -o /tmp/search-before.json
+          if jq -e --arg h "$HOST" '.. | strings | select(contains($h))' /tmp/search-before.json >/dev/null 2>&1; then
+            echo 'already_live=1' >> "$GITHUB_OUTPUT"
+            echo 'AGENTIC_CARD_ALREADY_LIVE=1'
+          else
+            echo 'already_live=0' >> "$GITHUB_OUTPUT"
+            echo 'AGENTIC_CARD_ALREADY_LIVE=0'
+          fi
+      - name: Submit manifest through official agentx CLI
+        if: steps.existing.outputs.already_live != '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL='https://delta-witness-api.ruphussten.workers.dev/.well-known/agent.json'
+          rm -rf /tmp/agentic-registry
+          git clone --depth 1 https://github.com/kippersj/agentic-registry.git /tmp/agentic-registry
+          cd /tmp/agentic-registry
+          if [ -f package-lock.json ]; then npm ci --ignore-scripts; else npm install --ignore-scripts; fi
+          ok=0
+          for attempt in 1 2 3; do
+            if npx agentx submit --url "$URL" 2>&1 | tee /tmp/agentx-submit.log; then ok=1; break; fi
+            sleep $((attempt*3))
+          done
+          test "$ok" = 1
+      - name: Verify Agentic Card public readback
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST='delta-witness-api.ruphussten.workers.dev'
+          live=0
+          for attempt in 1 2 3 4 5; do
+            code=$(curl --retry 3 --retry-all-errors --retry-delay 1 -sS -G -o /tmp/search-after.json -w '%{http_code}' 'https://agentic-card.com/api/search' --data-urlencode 'q=DELTA Witness')
+            echo "agentic_card_readback_http=$code attempt=$attempt"
+            if [ "$code" = 200 ] && jq -e --arg h "$HOST" '.. | strings | select(contains($h))' /tmp/search-after.json >/dev/null 2>&1; then
+              live=1
+              jq -c '.' /tmp/search-after.json
+              break
+            fi
+            sleep $((attempt*3))
+          done
+          if [ "$live" = 1 ]; then
+            echo 'AGENTIC_CARD_LIVE=1'
+          else
+            echo 'AGENTIC_CARD_LIVE=0'
+          fi
