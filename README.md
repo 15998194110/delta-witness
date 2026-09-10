@@ -8,19 +8,19 @@ DELTA Witness is a Trust Layer for Autonomous Actions. It observes public source
 
 ## Production products and current pricing
 
-- Capture: `POST /v1/capture` preserves what a public page says now — **$0.03 USDC**.
-- Guard: `POST /v1/preflight` compares a fresh observation with prior proof hashes or explicit text rules — **$0.03 USDC**.
+- Capture: `POST /v1/capture` preserves what a public page says now — **$1.00 USDC**.
+- Public Preflight: `POST /v1/preflight` compares a fresh observation with prior proof hashes or explicit text rules — **$5.00 USDC**.
 - Guarded-Action Pilot: `POST /v1/guarded-action-pilot` provides the higher-value evidence pilot — **$10.00 USDC**, only promoted for paid use after production verification on Base with the Treasury below.
 - Watch: authenticated resellers can prepay a finite number of checks and receive HMAC-signed webhooks — **$1.00 USDC per new check**.
-- Partner gateway: authenticated marketplace integrations use their separately configured commercial terms; public Capture and Guard remain at the prices above.
+- Partner gateway: authenticated Partner Capture and Partner Preflight are **$1.00 USDC per new billable request** under the current owner pricing authority.
 
-Direct Capture, Guard, and Guarded-Action Pilot use x402 v2 with Base mainnet USDC. Settlement completes before Browser Run begins. The treasury is receive-only from the application:
+Direct Capture, Public Preflight, and Guarded-Action Pilot use x402 v2 with Base mainnet USDC. Settlement completes before Browser Run begins. The treasury is receive-only from the application:
 
 `0x1990e21bc219696ff7fbc26527dbaed335ac6367`
 
 Never place the treasury private key in Worker, CI, source, or chat.
 
-The `$0.03 / $0.03` public Capture/Guard infrastructure is the current owner-authorized commercial policy. The Guarded-Action Pilot remains `$10.00` when production-verified. Historical settled/idempotent deliveries and already-prepaid obligations retain their original paid identity; they are not double-charged or retroactively repriced.
+The current owner-authorized public pricing is **$1 Capture / $5 Public Preflight / $10 Guarded-Action Pilot**; authenticated Partner Capture, Partner Preflight, and each new Watch check are **$1**. Historical settled/idempotent deliveries and already-prepaid obligations retain their original paid identity; they are not double-charged or retroactively repriced.
 
 ## Safety and economics
 
