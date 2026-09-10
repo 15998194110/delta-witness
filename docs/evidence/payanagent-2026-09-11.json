@@ -1,0 +1,126 @@
+{
+  "checked_at": "2026-09-10T17:51:35Z",
+  "channel_source": "PayanAgent",
+  "listing_status": "existing",
+  "discovery_status": "canonical_or_named_DELTA_detected",
+  "buyer_count": null,
+  "settlement_count": null,
+  "verified_neighbor_demand": "see independent marketplace evidence",
+  "external_requests": 0,
+  "402_intents": 0,
+  "paid_settlements": 0,
+  "treasury_received": 0,
+  "revenue": 0,
+  "variable_cost": 0,
+  "contribution_margin": 0,
+  "evidence_quality": "A_public_discovery_readback_plus_A_direct_canonical_USDC_log",
+  "duplicate_write_suppressed": true,
+  "current_owner_pricing": {
+    "checked_at": "2026-09-10T17:51:27.221Z",
+    "policy": "owner-2026-09-10-1-5-10",
+    "ok": true,
+    "products": [
+      {
+        "product": "capture",
+        "attempt": 1,
+        "http": 402,
+        "quote_usdc": 1,
+        "challenge_usdc": 1,
+        "raw_usdc": "1000000",
+        "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "expected_usdc": 1,
+        "header_body_match": true,
+        "status": "verified"
+      },
+      {
+        "product": "preflight",
+        "attempt": 1,
+        "http": 402,
+        "quote_usdc": 5,
+        "challenge_usdc": 5,
+        "raw_usdc": "5000000",
+        "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "expected_usdc": 5,
+        "header_body_match": true,
+        "status": "verified"
+      },
+      {
+        "product": "guarded-action-pilot",
+        "attempt": 1,
+        "http": 402,
+        "quote_usdc": 10,
+        "challenge_usdc": 10,
+        "raw_usdc": "10000000",
+        "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "expected_usdc": 10,
+        "header_body_match": true,
+        "status": "verified"
+      }
+    ],
+    "partners": [
+      {
+        "product": "partner_capture",
+        "status": "not_checked",
+        "reason": "scoped_secret_not_provided"
+      },
+      {
+        "product": "partner_preflight",
+        "status": "not_checked",
+        "reason": "scoped_secret_not_provided"
+      },
+      {
+        "product": "partner_watch",
+        "status": "not_checked",
+        "reason": "scoped_secret_not_provided"
+      }
+    ],
+    "paid_transactions_generated": 0,
+    "customer_revenue_generated": 0,
+    "diagnostic_only": true,
+    "unverified_scope": [
+      "ChatGPT scheduled-task prompts",
+      "global saved memory",
+      "local Codex automation files"
+    ]
+  },
+  "treasury_reconciliation": {
+    "ok": true,
+    "checked_at": "2026-09-10T17:51:32.533Z",
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "start_block": 51086671,
+    "latest_block": 51136670,
+    "lookback_blocks": 50000,
+    "latest_rpc": "https://mainnet.base.org",
+    "treasury_received_candidates": 1,
+    "total_raw": "30000",
+    "total_usdc": 0.03,
+    "known_non_customer_raw": "30000",
+    "known_non_customer_usdc": 0.03,
+    "unclassified_raw": "0",
+    "unclassified_usdc": 0,
+    "revenue_classification": "known platform/test payers are explicitly excluded; remaining receipts stay unclassified until non-project payer and DELTA proof/telemetry are reconciled",
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "transfers": [
+      {
+        "tx_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+        "block_number": 51091432,
+        "log_index": 86,
+        "from": "0x7e6b6556322c4e26c567a867964ac793f5ee2b1c",
+        "to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "raw_amount": "30000",
+        "usdc": 0.03,
+        "treasury_received": true,
+        "payer_classification": "payapi_platform_verification",
+        "customer_revenue": false
+      }
+    ]
+  }
+}
