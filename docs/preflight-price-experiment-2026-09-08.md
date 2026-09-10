@@ -1,3 +1,5 @@
+> **SUPERSEDED FOR CURRENT BILLING — 2026-09-10.** Current owner-authorized pricing is **$1 Capture / authenticated Partner Capture / authenticated Partner Preflight / each new Watch check, $5 Public Preflight, and $10 Guarded-Action Pilot**. See `docs/pricing-policy-2026-09-10.md`. Everything below is historical experiment evidence and must not be used as current pricing authority.
+
 # Public Preflight price experiment — 2026-09-08
 
 ## September8 scheduled reconciliation: obsolete-mandate rollback
