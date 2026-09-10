@@ -1,0 +1,41 @@
+name: TMP Agentic Card DELTA submission 20260911
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-agentic-card-submit-20260911.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect free no-account submit contract and dedupe
+        run: |
+          set -euo pipefail
+          python -m pip -q install curl_cffi
+          python - <<'PY'
+          import json
+          from html.parser import HTMLParser
+          from curl_cffi import requests
+          O='https://agentic-card.com'
+          s=requests.Session(impersonate='chrome')
+          q=s.get(O+'/api/search',params={'q':'DELTA Witness','per_page':100},timeout=20)
+          print('SEARCH_HTTP',q.status_code)
+          print('SEARCH_HAS_DELTA',('delta-witness' in q.text.lower() or 'delta witness' in q.text.lower()))
+          p=s.get(O+'/submit',timeout=20)
+          print('SUBMIT_HTTP',p.status_code,'FINAL',p.url)
+          p.raise_for_status()
+          class F(HTMLParser):
+              def __init__(self): super().__init__(); self.forms=[]; self.cur=None
+              def handle_starttag(self,tag,attrs):
+                  a=dict(attrs)
+                  if tag=='form': self.cur={'action':a.get('action'),'method':a.get('method','get'),'inputs':[]}; self.forms.append(self.cur)
+                  elif self.cur is not None and tag in ('input','textarea','button'):
+                      self.cur['inputs'].append({'tag':tag,'name':a.get('name'),'type':a.get('type'),'value':a.get('value')})
+              def handle_endtag(self,tag):
+                  if tag=='form': self.cur=None
+          f=F(); f.feed(p.text)
+          print('FORMS='+json.dumps(f.forms,ensure_ascii=False))
+          PY
