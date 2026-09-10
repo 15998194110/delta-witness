@@ -13,6 +13,10 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v6
+      - name: Check current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify current owner live prices without payment
+        run: node scripts/verify-owner-pricing-live.mjs
       - name: Verify machine discovery surfaces
         run: |
           set -e
@@ -34,6 +38,7 @@ jobs:
       - name: Audit paid funnel candidates
         run: node scripts/query-revenue-candidates.mjs
       - name: Reconcile Base Treasury
+        if: always()
         id: treasury
         continue-on-error: true
         run: node scripts/reconcile-treasury.mjs
