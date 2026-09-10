@@ -1,0 +1,88 @@
+name: TMP DELTA MCP.Directory submit 20260911
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-mcp-directory-submit-20260911.yml"
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Read current owner authority
+        run: |
+          test -s AGENTS.md
+          test -s docs/pricing-policy-2026-09-10.md
+          grep -q 'Public Capture.*1.00 USDC' docs/pricing-policy-2026-09-10.md
+          grep -q 'Public Preflight.*5.00 USDC' docs/pricing-policy-2026-09-10.md
+          grep -q 'Guarded-Action Pilot.*10.00 USDC' docs/pricing-policy-2026-09-10.md
+      - name: Verify current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live public 402 amounts before listing write
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Check public directory for an existing canonical listing
+        id: dedupe
+        shell: bash
+        run: |
+          set -u
+          repo='https://github.com/15998194110/delta-witness'
+          found=0
+          for url in \
+            'https://mcp.directory/servers?search=delta-witness' \
+            'https://mcp.directory/servers?q=delta-witness' \
+            'https://mcp.directory/servers'; do
+            body=$(curl -L --connect-timeout 10 --max-time 25 -sS "$url" || true)
+            if printf '%s' "$body" | grep -Fqi "$repo"; then
+              found=1
+              break
+            fi
+          done
+          echo "found=$found" >> "$GITHUB_OUTPUT"
+          echo "MCP_DIRECTORY_DEDUPE found=$found"
+      - name: Submit canonical DELTA repository
+        if: steps.dedupe.outputs.found != '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload=$(jq -cn '{githubUrl:"https://github.com/15998194110/delta-witness",description:"Evidence and preflight trust layer for autonomous web actions via MCP and x402."}')
+          endpoint='https://mcp.directory/api/submit-server'
+          max=4
+          for attempt in $(seq 1 "$max"); do
+            code=$(curl -L --connect-timeout 10 --max-time 30 -sS -o /tmp/mcp-directory-body.txt -w '%{http_code}' \
+              -X POST "$endpoint" -H 'content-type: application/json' --data "$payload" || printf '000')
+            body=$(cat /tmp/mcp-directory-body.txt 2>/dev/null || true)
+            printf 'MCP_DIRECTORY_SUBMIT attempt=%s http=%s body=%q\n' "$attempt" "$code" "$body"
+            if [[ "$code" =~ ^2 ]]; then
+              exit 0
+            fi
+            if [[ "$code" == '409' ]] || printf '%s' "$body" | grep -Eqi 'already|duplicate|exists'; then
+              echo 'MCP_DIRECTORY_ALREADY_PRESENT duplicate_write_avoided=true'
+              exit 0
+            fi
+            if [[ "$code" == '429' || "$code" =~ ^5 || "$code" == '000' ]]; then
+              sleep $((attempt * attempt))
+              continue
+            fi
+            echo "non-retryable submission response: HTTP $code" >&2
+            exit 1
+          done
+          echo 'recoverable channel degradation exhausted for this run' >&2
+          exit 1
+      - name: Read back public visibility without resubmitting
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          repo='https://github.com/15998194110/delta-witness'
+          visible=0
+          for delay in 0 5 15; do
+            sleep "$delay"
+            for url in 'https://mcp.directory/servers?search=delta-witness' 'https://mcp.directory/servers?q=delta-witness'; do
+              body=$(curl -L --connect-timeout 10 --max-time 25 -sS "$url" || true)
+              if printf '%s' "$body" | grep -Fqi "$repo"; then visible=1; break 2; fi
+            done
+          done
+          echo "MCP_DIRECTORY_READBACK visible=$visible"
