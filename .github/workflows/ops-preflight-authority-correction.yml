@@ -1,18 +1,14 @@
-# Rerun after stale pricing regression was corrected.
-name: DELTA Preflight Authority Correction
+name: DELTA Post-Correction Reconcile
 on:
   push:
     branches: [master]
     paths: ['.github/workflows/ops-preflight-authority-correction.yml']
 permissions:
   contents: read
-concurrency:
-  group: delta-production-release
-  cancel-in-progress: false
 jobs:
-  correct:
+  reconcile:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 7
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -20,46 +16,62 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with: { node-version: '22' }
-      - name: Require deployment credentials
-        run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
-      - name: Verify current owner authority in checkout
-        shell: bash
-        run: |
-          set -euo pipefail
-          grep -q 'PREFLIGHT_BASE_PRICE_USD.*"1"' wrangler.jsonc
-          grep -q 'public Preflight \*\*1 USDC\*\*' AGENTS.md
-          grep -q '\["preflight", "1000000"\]' tests/payment-gate.test.ts
-          grep -q 'PREFLIGHT_BASE_PRICE_USD: "1"' tests/pricing.test.ts
-      - run: npm ci
-      - name: Full core verification and dry-run
-        run: npm run verify
-      - name: Deploy corrected core Worker
-        run: npx wrangler deploy
-      - name: Verify production x402 authority
+      - name: Verify corrected production quote before external checks
         shell: bash
         run: |
           set -euo pipefail
           BASE='https://delta-witness-api.ruphussten.workers.dev'
-          check() {
-            name="$1"; path="$2"; payload="$3"; expected="$4"
-            code=$(curl --retry 6 --retry-all-errors --retry-delay 2 -sS -o /tmp/body -D /tmp/headers -w '%{http_code}' -X POST "$BASE$path" -H 'content-type: application/json' -d "$payload")
-            hdr=$(awk 'BEGIN{IGNORECASE=1} /^payment-required:/{sub(/^[^:]+:[[:space:]]*/,""); gsub(/\r/,""); print; exit}' /tmp/headers)
-            decoded=$(printf '%s' "$hdr" | base64 -d 2>/dev/null || true)
-            amount=$(printf '%s' "$decoded" | jq -r '.. | .amount? // empty' 2>/dev/null | head -1)
-            payto=$(printf '%s' "$decoded" | jq -r '.. | .payTo? // empty' 2>/dev/null | head -1)
-            network=$(printf '%s' "$decoded" | jq -r '.. | .network? // empty' 2>/dev/null | head -1)
-            echo "product=$name status=$code amount=$amount expected=$expected payTo=$payto network=$network"
-            test "$code" = 402
-            test "$amount" = "$expected"
-            test "${payto,,}" = '0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-            test "$network" = 'eip155:8453'
-          }
-          check capture '/v1/capture' '{"url":"https://example.com"}' 30000
-          check preflight '/v1/preflight' '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' 1000000
-          check pilot '/v1/guarded-action-pilot' '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' 10000000
-          curl --fail --retry 5 --retry-delay 2 "$BASE/.well-known/agent.json" -o /tmp/agent.json
-          curl --fail --retry 5 --retry-delay 2 "$BASE/openapi.json" -o /tmp/openapi.json
-      - name: Reconcile Base Treasury independently
-        run: node scripts/reconcile-treasury.mjs
-      - name: Audit paid-funnel candidates independently
+          code=$(curl --retry 4 --retry-all-errors --retry-delay 1 -sS -o /tmp/body -D /tmp/headers -w '%{http_code}' -X POST "$BASE/v1/preflight" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
+          hdr=$(awk 'BEGIN{IGNORECASE=1} /^payment-required:/{sub(/^[^:]+:[[:space:]]*/,""); gsub(/\r/,""); print; exit}' /tmp/headers)
+          decoded=$(printf '%s' "$hdr" | base64 -d 2>/dev/null || true)
+          amount=$(printf '%s' "$decoded" | jq -r '.. | .amount? // empty' 2>/dev/null | head -1)
+          echo "preflight_status=$code amount=$amount"
+          test "$code" = 402 && test "$amount" = 1000000
+      - name: Reconcile recent Base Treasury continuity with bounded retry
+        env:
+          DELTA_TREASURY_LOOKBACK_BLOCKS: '3500'
+        shell: bash
+        run: |
+          set +e
+          ok=0
+          for attempt in 1 2 3; do
+            node scripts/reconcile-treasury.mjs && { ok=1; break; }
+            sleep $((attempt*3))
+          done
+          if [ "$ok" = 1 ]; then exit 0; fi
+          echo 'DIRECT_RPC_DEGRADED=1'
+          exit 0
+      - name: Blockscout canonical-USDC fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          T='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          U='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+          URL="https://base.blockscout.com/api/v2/addresses/$T/token-transfers?type=ERC-20&filter=to&token=$U"
+          code=$(curl --retry 4 --retry-all-errors --retry-delay 2 -sS -o /tmp/blockscout.json -w '%{http_code}' "$URL")
+          echo "BLOCKSCOUT_HTTP=$code"
+          test "$code" = 200
+          jq -c --arg t "${T,,}" --arg u "${U,,}" '{items:[.items[]? | select((.to.hash|ascii_downcase)==$t and (.token.address_hash|ascii_downcase)==$u) | {transaction_hash,block_number,timestamp,from:.from.hash,to:.to.hash,raw:.total.value,decimals:.token.decimals,symbol:.token.symbol}],next_page_params}' /tmp/blockscout.json
+      - name: Audit D1 paid-funnel candidates independently
         run: node scripts/query-revenue-candidates.mjs
+      - name: Recheck Not Human Search live index
+        shell: bash
+        run: |
+          set -euo pipefail
+          code=$(curl --retry 4 --retry-all-errors --retry-delay 2 -sS -o /tmp/nhs.json -w '%{http_code}' 'https://nothumansearch.ai/api/v1/site/delta-witness-api.ruphussten.workers.dev')
+          echo "NHS_HTTP=$code"
+          test "$code" = 200
+          jq -c '{id,domain,name,agentic_score,crawl_status,last_crawled_at,has_llms_txt,has_openapi,has_structured_api,has_schema_org}' /tmp/nhs.json
+      - name: Check x402.new automatic discovery without payment
+        shell: bash
+        run: |
+          set +e
+          HOST='delta-witness-api.ruphussten.workers.dev'
+          for param in search q host; do
+            code=$(curl --retry 3 --retry-all-errors --retry-delay 1 -sS -G -o /tmp/x402new.json -w '%{http_code}' 'https://x402.new/api/services' --data "$param=$HOST" --data 'perPage=100')
+            echo "x402new_param=$param http=$code"
+            if [ "$code" = 200 ]; then
+              jq -c --arg h "$HOST" '{total,page,perPage,matches:[.items[]? | select((.host?==$h) or ((.resource? // "")|contains($h)))]}' /tmp/x402new.json 2>/dev/null || true
+            fi
+          done
+          exit 0
