@@ -1,0 +1,15 @@
+import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+
+const config = JSON.parse(readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8"));
+
+describe("current owner pricing policy", () => {
+  it("locks the core runtime to the $1 -> $5 -> $10 ladder", () => {
+    expect(config.vars.CAPTURE_BASE_PRICE_USD).toBe("1");
+    expect(config.vars.PREFLIGHT_BASE_PRICE_USD).toBe("5");
+    expect(config.vars.WATCH_BASE_PRICE_USD).toBe("1");
+    expect(config.vars.PARTNER_PREFLIGHT_BASE_PRICE_USD).toBe("1");
+    expect(config.vars.NETWORK).toBe("eip155:8453");
+    expect(config.vars.PAY_TO.toLowerCase()).toBe("0x1990e21bc219696ff7fbc26527dbaed335ac6367");
+  });
+});
