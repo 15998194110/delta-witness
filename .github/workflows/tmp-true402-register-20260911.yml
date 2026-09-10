@@ -1,4 +1,4 @@
-name: TMP true402 canonical registration 20260911
+name: TMP true402 verification 20260911
 
 on:
   push:
@@ -10,95 +10,49 @@ permissions:
   contents: read
 
 jobs:
-  register:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with: { node-version: "22" }
-      - name: Enforce latest owner pricing authority
+      - name: Verify owner prices before catalog readback
         run: |
           node scripts/check-owner-pricing.mjs
           node scripts/verify-owner-pricing-live.mjs
-      - name: Reconcile and register true402 without duplication
+      - name: Read back true402 catalog only
         shell: bash
         run: |
           set -euo pipefail
           API='https://true402.dev/api/v1/services'
-          ROOT='https://delta-witness-api.ruphussten.workers.dev'
-          ENDPOINT="$ROOT/v1/capture"
-          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-
-          request() {
-            local method="$1" url="$2" body="${3:-}"
-            local code=000
-            : >/tmp/true402.json
-            for i in 1 2 3 4; do
-              if [ -n "$body" ]; then
-                code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/true402.json -w '%{http_code}' -X "$method" "$url" -H 'accept: application/json' -H 'content-type: application/json' --data "$body") || code=000
-              else
-                code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/true402.json -w '%{http_code}' -X "$method" "$url" -H 'accept: application/json') || code=000
-              fi
-              echo "TRUE402 attempt=$i method=$method http=$code body=$(head -c 1500 /tmp/true402.json 2>/dev/null || true)"
-              case "$code" in 200|201|202|204|400|401|403|404|409|422) break;; 429|500|502|503|504|000) sleep $((i*3));; *) break;; esac
-            done
-            printf '%s' "$code"
+          code=000
+          : >/tmp/true402-catalog.json
+          for i in 1 2 3 4; do
+            code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/true402-catalog.json -w '%{http_code}' "$API") || code=000
+            echo "TRUE402_VERIFY attempt=$i http=$code"
+            case "$code" in 200) break;; 429|500|502|503|504|000) sleep $((i*3));; *) break;; esac
+          done
+          test "$code" = "200"
+          if grep -Eqi 'delta[- ]witness|delta-witness-api\.ruphussten\.workers\.dev' /tmp/true402-catalog.json; then
+            echo 'TRUE402_VERIFIED live_catalog_match=true duplicate_created=false'
+            node - <<'NODE'
+          const fs = require('node:fs');
+          const body = JSON.parse(fs.readFileSync('/tmp/true402-catalog.json','utf8'));
+          const text = JSON.stringify(body);
+          const needle = 'delta-witness';
+          function walk(v, out=[]) {
+            if (Array.isArray(v)) for (const x of v) walk(x,out);
+            else if (v && typeof v === 'object') {
+              const s = JSON.stringify(v).toLowerCase();
+              if (s.includes(needle) || s.includes('delta-witness-api.ruphussten.workers.dev')) out.push(v);
+              else for (const x of Object.values(v)) walk(x,out);
+            }
+            return out;
           }
-
-          code=$(request GET "$API")
-          code=$(printf '%s' "$code" | tail -n1)
-          if [ "$code" = "200" ]; then
-            found=$(jq -r --arg endpoint "$ENDPOINT" --arg root "$ROOT" '
-              [.. | objects | select(
-                ((.endpoint? // "") == $endpoint) or
-                ((.url? // "") == $root) or
-                ((.name? // "" | ascii_downcase) == "delta-witness") or
-                ((.name? // "" | ascii_downcase) == "delta witness")
-              )] | length' /tmp/true402.json 2>/dev/null || echo 0)
-            if [ "${found:-0}" -gt 0 ]; then
-              echo "TRUE402_CURRENT found=$found duplicate_created=false"
-              exit 0
-            fi
-          fi
-
-          manifest=$(jq -nc --arg endpoint "$ENDPOINT" --arg treasury "$TREASURY" '{
-            x402:"1.0",
-            name:"delta-witness",
-            description:"DELTA Witness provides deterministic public-page state evidence and fresh preflight verification for autonomous agents; the canonical entry service is Capture on Base.",
-            capabilities:["web-page-state-evidence","autonomous-action-preflight","guarded-action-pilot"],
-            pricing:{currency:"USDC",base:"1.00",unit:"request"},
-            payment:{address:$treasury,chain:"base",facilitator:"https://facilitator.payai.network"},
-            endpoint:$endpoint
-          }')
-          payload=$(jq -nc --arg url "$ROOT" --argjson manifest "$manifest" '{url:$url,manifest:$manifest}')
-          post_code=$(request POST "$API/register" "$payload")
-          post_code=$(printf '%s' "$post_code" | tail -n1)
-          case "$post_code" in
-            200|201|202|204|409)
-              echo "TRUE402_REGISTER accepted=true http=$post_code duplicate_created=false"
-              ;;
-            400|401|403|422)
-              echo "TRUE402_REGISTER accepted=false recoverable=true http=$post_code body=$(cat /tmp/true402.json)"
-              exit 1
-              ;;
-            *)
-              echo "TRUE402_DEGRADED recoverable=true http=$post_code body=$(cat /tmp/true402.json 2>/dev/null || true)"
-              exit 1
-              ;;
-          esac
-
-          sleep 2
-          verify_code=$(request GET "$API")
-          verify_code=$(printf '%s' "$verify_code" | tail -n1)
-          if [ "$verify_code" = "200" ]; then
-            jq -e --arg endpoint "$ENDPOINT" --arg root "$ROOT" '
-              [.. | objects | select(
-                ((.endpoint? // "") == $endpoint) or
-                ((.url? // "") == $root) or
-                ((.name? // "" | ascii_downcase) == "delta-witness") or
-                ((.name? // "" | ascii_downcase) == "delta witness")
-              )] | length > 0' /tmp/true402.json >/dev/null
-            echo "TRUE402_VERIFIED live_catalog_match=true"
+          const matches = walk(body).slice(0,5);
+          console.log('TRUE402_MATCHES ' + JSON.stringify(matches).slice(0,6000));
+          NODE
           else
-            echo "TRUE402_VERIFY_DEGRADED recoverable=true http=$verify_code"
+            echo 'TRUE402_VERIFY_DEGRADED recoverable=true reason=accepted_201_but_catalog_not_visible_yet'
+            exit 1
           fi
