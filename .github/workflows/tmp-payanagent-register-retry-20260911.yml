@@ -1,146 +1,19 @@
-name: TMP PayanAgent DELTA bounded retry 20260911
+name: RETIRED - TMP PayanAgent DELTA bounded retry 20260911
 
+# Completed successfully on 2026-09-11 after policy/live-price verification and
+# independent Base Treasury reconciliation. PayanAgent public discovery already
+# contained canonical or named DELTA, so duplicate seller/listing creation was
+# suppressed. Sanitized evidence is in docs/evidence/payanagent-2026-09-11.json.
+# Current owner pricing: Capture=1, Public Preflight=5, Pilot=10 USDC.
 on:
-  push:
-    branches: ["master"]
-    paths:
-      - ".github/workflows/tmp-payanagent-register-retry-20260911.yml"
+  workflow_dispatch:
 
 permissions:
-  contents: write
-
-concurrency:
-  group: delta-payanagent-bounded-retry-20260911
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  register:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-        with: { fetch-depth: 0 }
-      - uses: actions/setup-node@v5
-        with: { node-version: "22" }
-
-      - name: Verify current owner pricing before external write
-        env:
-          PRICING_AUDIT_OUTPUT: /tmp/pricing.json
-        run: |
-          set -euo pipefail
-          node scripts/check-owner-pricing.mjs
-          node scripts/verify-owner-pricing-live.mjs
-
-      - name: Reconcile Base Treasury independently
-        run: |
-          set -euo pipefail
-          node scripts/reconcile-treasury.mjs > /tmp/treasury.json
-
-      - name: Discover first, suppress duplicates, otherwise register canonical relay offers
-        shell: bash
-        run: |
-          set -euo pipefail
-          BASE='https://payanagent.com'
-          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-          mkdir -p /tmp/payan
-
-          request() {
-            local method="$1" url="$2" body="${3:-}" auth="${4:-}" out="$5"
-            local code=000
-            : > "$out"
-            for attempt in 1 2 3 4; do
-              args=(--silent --show-error --connect-timeout 10 --max-time 30 -o "$out" -w '%{http_code}' -X "$method" "$url" -H 'content-type: application/json')
-              if [ -n "$auth" ]; then args+=(-H "authorization: Bearer $auth"); fi
-              if [ -n "$body" ]; then args+=(--data "$body"); fi
-              code=$(curl "${args[@]}") || code=000
-              case "$code" in
-                200|201|202|204|400|401|402|403|404|409|422) break ;;
-                429|500|502|503|504|000) sleep $((attempt*2)) ;;
-                *) break ;;
-              esac
-            done
-            printf '%s' "$code"
-          }
-
-          combined=''
-          i=0
-          for q in \
-            'DELTA Witness' \
-            'https://delta-witness-api.ruphussten.workers.dev/v1/capture' \
-            'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' \
-            'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot'; do
-            i=$((i+1))
-            enc=$(node -p "encodeURIComponent(process.argv[1])" "$q")
-            code=$(request GET "$BASE/api/v1/discover?q=$enc&limit=50" '' '' "/tmp/payan/discover-$i.json")
-            test "$code" = 200
-            combined="$combined$(cat "/tmp/payan/discover-$i.json")"
-          done
-
-          if printf '%s' "$combined" | grep -Eqi 'DELTA Witness|delta-witness-api\.ruphussten\.workers\.dev/v1/(capture|preflight|guarded-action-pilot)'; then
-            jq -n \
-              --arg checked_at "$(date -u +%FT%TZ)" \
-              --slurpfile pricing /tmp/pricing.json \
-              --slurpfile treasury /tmp/treasury.json \
-              '{checked_at:$checked_at,channel_source:"PayanAgent",listing_status:"existing",discovery_status:"canonical_or_named_DELTA_detected",buyer_count:null,settlement_count:null,verified_neighbor_demand:"see independent marketplace evidence",external_requests:0,"402_intents":0,paid_settlements:0,treasury_received:$treasury[0].unclassified_usdc,revenue:0,variable_cost:0,contribution_margin:0,evidence_quality:"A_public_discovery_readback_plus_A_direct_canonical_USDC_log",duplicate_write_suppressed:true,current_owner_pricing:$pricing[0],treasury_reconciliation:$treasury[0]}' > /tmp/payan-evidence.json
-            echo 'PAYANAGENT canonical DELTA already discoverable; duplicate write suppressed.'
-          else
-            reg_body=$(jq -nc --arg wallet "$TREASURY" '{name:"DELTA Witness",description:"x402-native verification and evidence service for autonomous agents on Base.",walletAddress:$wallet,chain:"base",tags:["x402","verification","evidence","agent-safety"],providerType:"api",agentUrl:"https://delta-witness-api.ruphussten.workers.dev"}')
-            code=$(request POST "$BASE/api/v1/agents" "$reg_body" '' /tmp/payan/register.json)
-            test "$code" = 200 -o "$code" = 201
-            API_KEY=$(jq -r '.apiKey // empty' /tmp/payan/register.json)
-            AGENT_ID=$(jq -r '.agentId // empty' /tmp/payan/register.json)
-            test -n "$API_KEY" && test -n "$AGENT_ID"
-            echo "::add-mask::$API_KEY"
-
-            : > /tmp/payan/offers.ndjson
-            create_offer() {
-              local key="$1" title="$2" description="$3" category="$4" url="$5" expected="$6"
-              body=$(jq -nc --arg title "$title" --arg description "$description" --arg category "$category" --arg url "$url" '{title:$title,description:$description,category:$category,tags:["x402","verification","evidence","agent-safety"],offerType:"api",externalUrl:$url,httpMethod:"POST",verificationBody:{}}')
-              code=$(request POST "$BASE/api/v1/offers" "$body" "$API_KEY" "/tmp/payan/create-$key.json")
-              test "$code" = 200 -o "$code" = 201
-              offer_id=$(jq -r '.offerId // empty' "/tmp/payan/create-$key.json")
-              test -n "$offer_id"
-              code=$(request GET "$BASE/api/v1/offers/$offer_id" '' '' "/tmp/payan/detail-$key.json")
-              test "$code" = 200
-              price=$(jq -r '.priceUsd // .offer.priceUsd // empty' "/tmp/payan/detail-$key.json")
-              test "$price" = "$expected" -o "$price" = "$expected.00"
-              buy_url=$(jq -r '.buyUrl // .offer.buyUrl // empty' "/tmp/payan/detail-$key.json")
-              if [ -z "$buy_url" ]; then buy_url="/x402/$offer_id"; fi
-              case "$buy_url" in http*) full="$buy_url" ;; *) full="$BASE$buy_url" ;; esac
-              : > "/tmp/payan/probe-$key.headers"
-              status=$(curl --silent --show-error --connect-timeout 10 --max-time 30 -D "/tmp/payan/probe-$key.headers" -o "/tmp/payan/probe-$key.json" -w '%{http_code}' -X POST "$full" -H 'content-type: application/json' --data '{}')
-              test "$status" = 402
-              raw=$(awk 'BEGIN{IGNORECASE=1} /^payment-required:/ {sub(/^[^:]+:[[:space:]]*/,""); gsub(/\r/,""); print; exit}' "/tmp/payan/probe-$key.headers")
-              test -n "$raw"
-              decoded=$(node -e 'const x=process.argv[1]; const j=JSON.parse(Buffer.from(x,"base64").toString("utf8")); const a=(j.accepts||[]).find(v=>v.network==="eip155:8453"); if(!a)process.exit(2); console.log(JSON.stringify({amount:String(a.amount),payTo:String(a.payTo),network:a.network}))' "$raw")
-              amount=$(printf '%s' "$decoded" | jq -r .amount)
-              payto=$(printf '%s' "$decoded" | jq -r '.payTo|ascii_downcase')
-              expected_raw=$(node -p "Math.round(Number(process.argv[1])*1e6).toString()" "$expected")
-              test "$amount" = "$expected_raw"
-              test "$payto" = "$TREASURY"
-              jq -nc --arg key "$key" --arg offer_id "$offer_id" --arg buy_url "$full" --argjson price "$expected" --arg raw "$amount" '{key:$key,offer_id:$offer_id,buy_url:$buy_url,status:"live_402_verified",price_usdc:$price,raw_usdc:$raw,network:"eip155:8453"}' >> /tmp/payan/offers.ndjson
-            }
-
-            create_offer capture 'DELTA Witness Capture' 'Timestamped public-web page-state evidence for autonomous agents.' Verification 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 1
-            create_offer preflight 'DELTA Witness Preflight' 'Fresh-source preflight verification before consequential autonomous actions.' Verification 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 5
-            create_offer guarded-action-pilot 'DELTA Witness Guarded-Action Pilot' 'Production-verified guarded-action evidence pilot for consequential agent workflows.' 'Agent Safety' 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot' 10
-
-            jq -s . /tmp/payan/offers.ndjson > /tmp/payan/offers.json
-            jq -n \
-              --arg checked_at "$(date -u +%FT%TZ)" --arg agent_id "$AGENT_ID" \
-              --slurpfile offers /tmp/payan/offers.json --slurpfile pricing /tmp/pricing.json --slurpfile treasury /tmp/treasury.json \
-              '{checked_at:$checked_at,channel_source:"PayanAgent",listing_status:"live",discovery_status:"three_canonical_relay_offers_live_402_verified",buyer_count:0,settlement_count:0,verified_neighbor_demand:"see independent marketplace evidence",external_requests:0,"402_intents":0,paid_settlements:0,treasury_received:$treasury[0].unclassified_usdc,revenue:0,variable_cost:0,contribution_margin:0,evidence_quality:"A_live_marketplace_402_readback_plus_A_direct_canonical_USDC_log",duplicate_write_suppressed:false,agent_id:$agent_id,offers:$offers[0],current_owner_pricing:$pricing[0],treasury_reconciliation:$treasury[0]}' > /tmp/payan-evidence.json
-            echo "PAYANAGENT registered agent_id=$AGENT_ID"
-            jq '{listing_status,discovery_status,agent_id,offers:[.offers[]|{key,offer_id,price_usdc,raw_usdc}],treasury_latest_block:.treasury_reconciliation.latest_block,treasury_unclassified_usdc:.treasury_reconciliation.unclassified_usdc}' /tmp/payan-evidence.json
-          fi
-
-          mkdir -p docs/evidence
-          cp /tmp/payan-evidence.json docs/evidence/payanagent-2026-09-11.json
-
-      - name: Persist sanitized evidence
-        run: |
-          set -euo pipefail
-          git config user.name 'DELTA Distribution Bot'
-          git config user.email 'actions@users.noreply.github.com'
-          git add docs/evidence/payanagent-2026-09-11.json
-          git commit -m 'evidence: record PayanAgent distribution result'
-          git push origin HEAD:master
+      - run: echo 'PayanAgent distribution check complete; duplicate write suppressed; one-shot retired.'
