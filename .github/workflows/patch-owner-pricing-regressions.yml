@@ -1,0 +1,83 @@
+name: Patch Owner Pricing Regressions
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/patch-owner-pricing-regressions.yml']
+permissions:
+  contents: write
+concurrency:
+  group: delta-production-release
+  cancel-in-progress: false
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Patch freshest master exactly
+        run: |
+          set -euo pipefail
+          git fetch origin master
+          git checkout master
+          git reset --hard origin/master
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('src/watch.ts')
+          s=p.read_text()
+          old='''  const quote = await quoteProductWithOverride(env, "watch_check");\n  if (record.prepaid_check_price_usd < quote.grossPriceUsd) {\n    record.state = "paused_margin";\n    record.updated_at = new Date().toISOString();\n    record.last_result = { ok: false, reason: "current_price_floor_exceeds_prepaid_check_price", required_price_usd: quote.grossPriceUsd };\n    await env.PROOFS.put(key, JSON.stringify(record), {\n      onlyIf: { etagMatches: object.etag },\n      httpMetadata: { contentType: "application/json; charset=utf-8" },\n    });\n    return;\n  }\n'''
+          new='''  // The current list price applies to new Watch purchases only. Existing prepaid\n  // checks are grandfathered at their recorded unit price and are not\n  // retroactively repriced merely because the owner changes today's ladder.\n'''
+          if old not in s: raise SystemExit('watch price-floor block not found')
+          p.write_text(s.replace(old,new,1))
+
+          p=Path('tests/watch.test.ts')
+          s=p.read_text()
+          s=s.replace('    PREFLIGHT_BASE_PRICE_USD: "0.01",\n', '    PREFLIGHT_BASE_PRICE_USD: "5",\n    WATCH_BASE_PRICE_USD: "1",\n',1)
+          s=s.replace('grossPaidUsd: 0.001 });\n    expect(underfunded.status)', 'grossPaidUsd: 2.99 });\n    expect(underfunded.status)',1)
+          s=s.replace('grossPaidUsd: 0.09 });\n    expect(created.status)', 'grossPaidUsd: 3 });\n    expect(created.status)',1)
+          s=s.replace('grossPaidUsd: 0.09 });\n    expect(replay.status)', 'grossPaidUsd: 3 });\n    expect(replay.status)',1)
+          old_test='''  it("pauses a due watch before capture when its prepaid unit price falls below the current floor", async () => {\n'''
+          new_test='''  it("grandfathers an already prepaid watch instead of repricing it to the current list price", async () => {\n'''
+          if old_test not in s: raise SystemExit('old watch test name not found')
+          s=s.replace(old_test,new_test,1)
+          old_assert='''    const paused = await bucket.get(`watches/${record.watch_id}.json`);\n    const value = await paused!.json<WatchRecord>();\n    expect(value.state).toBe("paused_margin");\n    expect(value.checks_remaining).toBe(2);\n    expect(env.BROWSER.quickAction).not.toHaveBeenCalled();\n'''
+          new_assert='''    const stored = await bucket.get(`watches/${record.watch_id}.json`);\n    const value = await stored!.json<WatchRecord>();\n    expect(value.state).toBe("active");\n    expect(value.checks_attempted).toBe(1);\n    expect(value.checks_remaining).toBe(1);\n    expect(value.last_result?.reason).not.toBe("current_price_floor_exceeds_prepaid_check_price");\n'''
+          if old_assert not in s: raise SystemExit('old watch assertions not found')
+          p.write_text(s.replace(old_assert,new_assert,1))
+
+          p=Path('tests/payment-gate.test.ts')
+          s=p.read_text()
+          old='''  it.each([["capture", "30000"], ["preflight", "1000000"], ["guarded-action-pilot", "10000000"]])(\n'''
+          new='''  it.each([["capture", "1000000"], ["preflight", "5000000"], ["guarded-action-pilot", "10000000"]])(\n'''
+          if old not in s: raise SystemExit('old payment price matrix not found')
+          s=s.replace(old,new,1)
+          old='''      Object.assign(env, { CAPTURE_BASE_PRICE_USD: "0.03", PREFLIGHT_BASE_PRICE_USD: "1", WATCH_BASE_PRICE_USD: "0.03" });\n'''
+          new='''      Object.assign(env, { CAPTURE_BASE_PRICE_USD: "1", PREFLIGHT_BASE_PRICE_USD: "5", WATCH_BASE_PRICE_USD: "1" });\n'''
+          if old not in s: raise SystemExit('old payment env matrix not found')
+          s=s.replace(old,new,1)
+          # Preserve the explicit old-price replay tests but make the current public
+          # Preflight side of the replay scenario $5.
+          s=s.replace('''    Object.assign(env, { PREFLIGHT_BASE_PRICE_USD: "1" });\n    const oldPayment = Buffer.from''','''    Object.assign(env, { PREFLIGHT_BASE_PRICE_USD: "5" });\n    const oldPayment = Buffer.from''',1)
+          p.write_text(s)
+
+          p=Path('src/index.ts')
+          s=p.read_text()
+          s=s.replace('Number(c.env.PARTNER_PREFLIGHT_BASE_PRICE_USD || "0.03")','Number(c.env.PARTNER_PREFLIGHT_BASE_PRICE_USD || "1")',1)
+          p.write_text(s)
+          PY
+          npm ci
+          npm run verify
+          cd channels/partner-gateway
+          npm ci
+          npm run verify
+          cd ../..
+          git diff --check
+          git status --short
+          git config user.name 'DELTA Operator'
+          git config user.email 'actions@users.noreply.github.com'
+          git add src/watch.ts src/index.ts tests/watch.test.ts tests/payment-gate.test.ts
+          git commit -m 'fix: enforce owner 1-5-10 pricing and grandfather prepaid watch'
+          git push origin HEAD:master
