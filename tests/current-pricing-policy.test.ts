@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { URL as NodeURL } from "node:url";
 
-const config = JSON.parse(readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8"));
+const config = JSON.parse(readFileSync(new NodeURL("../wrangler.jsonc", import.meta.url), "utf8"));
 
 describe("current owner pricing policy", () => {
   it("locks the core runtime to the $1 -> $5 -> $10 ladder", () => {
