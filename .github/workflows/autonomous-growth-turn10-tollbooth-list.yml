@@ -9,20 +9,44 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Discover valid Tollbooth categories
+      - name: Recover category validation and register DELTA services
         shell: bash
         run: |
           set -u
           BASE='https://www.trytollbooth.com'
-          code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 30 -o /tmp/services.json -w '%{http_code}' "$BASE/api/services" || true)
-          echo "SERVICES_HTTP=$code"
-          if [ "$code" = 200 ]; then
-            echo 'CATEGORIES='
-            jq -c '[.. | objects | .category? // empty | select(type=="string")] | unique' /tmp/services.json
-            echo 'SAMPLE='
-            jq -c '[.. | objects | select(has("category") and has("name")) | {name,category}] | unique_by(.name) | .[:40]' /tmp/services.json
-          else
-            cat /tmp/services.json || true
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          capture='https://delta-witness-api.ruphussten.workers.dev/v1/capture'
+          preflight='https://delta-witness-api.ruphussten.workers.dev/v1/preflight'
+          pilot='https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action'
+          cats=(data data-api web-data verification tooling developer utility other research web api tools)
+          chosen=''
+          for category in "${cats[@]}"; do
+            echo "=== CATEGORY_PROBE $category ==="
+            body=$(jq -nc --arg name 'DELTA Witness Capture' --arg endpoint "$capture" --arg category "$category" --argjson price 0.03 --arg wallet "$TREASURY" --arg description 'Timestamped public-web capture with deterministic artifact hashes and verifiable proof URLs.' '{name:$name,endpoint:$endpoint,category:$category,priceUsdc:$price,wallet:$wallet,chain:"base",description:$description}')
+            code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 60 -o /tmp/probe.json -w '%{http_code}' -X POST "$BASE/api/services" -H 'content-type: application/json' -d "$body" || true)
+            echo "HTTP=$code"
+            cat /tmp/probe.json || true; echo
+            if [ "$code" = 200 ] || [ "$code" = 201 ]; then chosen="$category"; break; fi
+            if [ "$code" = 409 ] && grep -Eqi 'exist|duplicate|already' /tmp/probe.json; then chosen="$category"; break; fi
+          done
+          echo "CHOSEN_CATEGORY=$chosen"
+          if [ -n "$chosen" ]; then
+            register() {
+              local name="$1" endpoint="$2" price="$3" description="$4"
+              body=$(jq -nc --arg name "$name" --arg endpoint "$endpoint" --arg category "$chosen" --argjson price "$price" --arg wallet "$TREASURY" --arg description "$description" '{name:$name,endpoint:$endpoint,category:$category,priceUsdc:$price,wallet:$wallet,chain:"base",description:$description}')
+              code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 60 -o /tmp/out.json -w '%{http_code}' -X POST "$BASE/api/services" -H 'content-type: application/json' -d "$body" || true)
+              echo "REGISTER name=$name HTTP=$code"
+              cat /tmp/out.json || true; echo
+            }
+            register 'DELTA Witness Preflight' "$preflight" 0.03 'Preflight autonomous actions against fresh public evidence and deterministic expectations before committing.'
+            register 'DELTA Witness Guarded Action Pilot' "$pilot" 10 'Higher-value guarded-action pilot that verifies public evidence before executing a constrained autonomous action.'
+            echo '=== READBACK ==='
+            for attempt in 1 2 3 4; do
+              code=$(curl -sS --max-time 30 -o /tmp/readback.json -w '%{http_code}' "$BASE/api/services?q=DELTA" || true)
+              echo "READBACK_ATTEMPT=$attempt HTTP=$code"
+              if [ "$code" = 200 ]; then cat /tmp/readback.json; echo; break; fi
+              sleep $((attempt*2))
+            done
           fi
       - name: Reconcile Base Treasury independently
         shell: bash
