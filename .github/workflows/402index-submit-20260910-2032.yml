@@ -1,9 +1,7 @@
 name: 402 Index DELTA submission 2026-09-10 20:32
 
 on:
-  push:
-    paths:
-      - '.github/workflows/402index-submit-20260910-2032.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,6 +10,13 @@ jobs:
   submit:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Check current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live prices before submission
+        run: node scripts/verify-owner-pricing-live.mjs
       - name: Register POST x402 endpoints
         shell: bash
         run: |
@@ -38,6 +43,6 @@ jobs:
               *) echo "INDEX402 submission_status=degraded endpoint=$url http=$code";;
             esac
           }
-          submit 'DELTA Witness Capture' 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 0.03 'developer-tools' 'Timestamped public-web page-state evidence for autonomous agents.'
-          submit 'DELTA Witness Preflight' 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 0.03 'agent-safety' 'Deterministic fresh-source preflight verification before consequential autonomous actions.'
+          submit 'DELTA Witness Capture' 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 1 'developer-tools' 'Timestamped public-web page-state evidence for autonomous agents.'
+          submit 'DELTA Witness Preflight' 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 5 'agent-safety' 'Deterministic fresh-source preflight verification before consequential autonomous actions.'
           submit 'DELTA Witness Guarded Action Pilot' 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot' 10 'agent-safety' 'Production-verified guarded-action evidence pilot for consequential agent workflows.'
