@@ -1,0 +1,110 @@
+{
+  "run_at": "2026-09-11T01:23:00+08:00",
+  "pricing_policy": "owner-2026-09-10-1-5-10",
+  "production": {
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "capture_usdc": 1,
+    "capture_raw": "1000000",
+    "preflight_usdc": 5,
+    "preflight_raw": "5000000",
+    "guarded_action_pilot_usdc": 10,
+    "guarded_action_pilot_raw": "10000000",
+    "live_402_verified": true,
+    "header_body_match": true,
+    "paid_transactions_generated_by_checks": 0
+  },
+  "treasury_reconciliation": {
+    "latest_block": 51135722,
+    "lookback_blocks": 50000,
+    "canonical_usdc_receipts": 1,
+    "total_usdc": 0.03,
+    "known_non_customer_usdc": 0.03,
+    "unclassified_usdc": 0,
+    "customer_treasury_received_usdc": 0,
+    "customer_revenue_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "known_receipt": {
+      "tx_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+      "payer_classification": "payapi_platform_verification",
+      "customer_revenue": false
+    }
+  },
+  "channels": [
+    {
+      "channel": "x402dash",
+      "listing_status": "listed_existing",
+      "discovery_status": "all_three_canonical_urls_returned_by_free_catalog_query",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_direct_registry_readback",
+      "note": "No duplicate registration write was performed after exact canonical URL readback succeeded."
+    },
+    {
+      "channel": "Aegis",
+      "listing_status": "not_submitted_paid_boundary",
+      "discovery_status": "submit_endpoint_live_but_requires_0.05_USDC_per_listing",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_live_402_response",
+      "note": "No payment authorized or sent. Channel deferred under owner no-listing-fee boundary."
+    },
+    {
+      "channel": "Circle x402 discovery",
+      "listing_status": "not_applicable_read_only",
+      "discovery_status": "canonical_DELTA_domain_not_found_in_keyless_discovery_response",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_direct_public_discovery_read",
+      "note": "No seller-side free submission route identified; no fabricated registration attempt."
+    },
+    {
+      "channel": "Proxagora",
+      "listing_status": "provider_compatibility_outreach_sent",
+      "discovery_status": "provider_beta_key_required_for_publish",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_official_docs_plus_sent_message",
+      "note": "Asked official providers@proxagora.com whether native x402 upstream routes can be listed without creating a parallel un-gated backend or duplicate seller identity. No commitment made."
+    }
+  ],
+  "aggregate": {
+    "verified_neighbor_demand": "not_reclassified_this_run",
+    "external_requests": 0,
+    "402_intents": 0,
+    "paid_settlements": 0,
+    "treasury_received_customer_usdc": 0,
+    "revenue_usdc": 0,
+    "variable_cost_usdc": 0,
+    "contribution_margin_usdc": 0
+  }
+}
