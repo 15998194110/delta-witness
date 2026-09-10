@@ -20,34 +20,24 @@ jobs:
         run: |
           node scripts/check-owner-pricing.mjs
           node scripts/verify-owner-pricing-live.mjs
-      - name: Check existing public registry and inspect submit implementation
+      - name: Inspect public submit contract without writing registry state
         shell: bash
         run: |
           set -euo pipefail
-          API='https://api.a2a-registry.org'
           SITE='https://www.a2a-registry.org'
-          echo '=== existing delta search ==='
-          for q in delta-witness 'DELTA Witness' ruphussten; do
-            echo "--- q=$q"
-            curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --get "$API/public/agents" --data-urlencode "q=$q" | head -c 20000 || true
-            echo
-          done
-          echo '=== submit page assets ==='
-          curl --retry 3 --retry-delay 2 --retry-all-errors -fsSL "$SITE/submit" -o /tmp/a2a-submit.html
-          grep -oE 'src="[^"]+\.js[^"]*"' /tmp/a2a-submit.html | sed -E 's/^src="|"$//g' | sort -u > /tmp/a2a-assets.txt || true
-          cat /tmp/a2a-assets.txt
-          : > /tmp/a2a-js.txt
-          while IFS= read -r asset; do
-            [ -z "$asset" ] && continue
-            case "$asset" in
-              http*) url="$asset" ;;
-              *) url="$SITE$asset" ;;
-            esac
-            curl --retry 2 --retry-delay 1 --retry-all-errors -fsSL "$url" >> /tmp/a2a-js.txt || true
-            printf '\n' >> /tmp/a2a-js.txt
-          done < /tmp/a2a-assets.txt
-          echo '=== candidate endpoint strings ==='
-          grep -oE 'https://api\.a2a-registry\.org[^"[:space:]\\]+' /tmp/a2a-js.txt | sort -u | head -100 || true
-          grep -oE '/[A-Za-z0-9_.:@?=&/-]*(scan|submit|register|import|agent)[A-Za-z0-9_.:@?=&/-]*' /tmp/a2a-js.txt | sort -u | head -200 || true
-          echo '=== contexts around scan/import/register ==='
-          grep -oE '.{0,180}(scan|Scan Agent|import|register).{0,260}' /tmp/a2a-js.txt | head -80 || true
+          curl --retry 3 --retry-delay 2 --retry-all-errors -fsSL "$SITE/submit" -o /tmp/submit.html
+          ASSET=$(grep -oE 'src="[^"]+/app/submit/page-[^"]+\.js"' /tmp/submit.html | head -1 | sed -E 's/^src="|"$//g')
+          test -n "$ASSET"
+          curl --retry 3 --retry-delay 2 --retry-all-errors -fsSL "$SITE$ASSET" -o /tmp/submit.js
+          node - <<'NODE'
+          const fs = require('fs');
+          const s = fs.readFileSync('/tmp/submit.js','utf8');
+          for (const needle of ['/public/ingest/scan','/public/ingest/submit-and-claim','submit-and-claim']) {
+            let pos = 0, n = 0;
+            while ((pos = s.indexOf(needle,pos)) >= 0 && n < 6) {
+              console.log(`=== ${needle} hit ${++n} ===`);
+              console.log(s.slice(Math.max(0,pos-1200), Math.min(s.length,pos+2200)));
+              pos += needle.length;
+            }
+          }
+          NODE
