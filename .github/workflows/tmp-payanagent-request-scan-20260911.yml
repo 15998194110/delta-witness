@@ -1,0 +1,57 @@
+name: TMP PayanAgent open request scan 20260911
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-payanagent-request-scan-20260911.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }
+      - name: Fetch open requests with bounded retry
+        run: |
+          set -euo pipefail
+          out=/tmp/requests.json
+          code=000
+          for attempt in 1 2 3 4; do
+            code=$(curl --silent --show-error --connect-timeout 10 --max-time 30 -o "$out" -w '%{http_code}' 'https://payanagent.com/api/v1/requests?status=open&limit=100') || code=000
+            case "$code" in
+              200) break ;;
+              429|500|502|503|504|000) sleep $((attempt*2)) ;;
+              *) break ;;
+            esac
+          done
+          test "$code" = 200
+          mkdir -p docs/evidence
+          node <<'NODE'
+          const fs = require('node:fs');
+          const raw = JSON.parse(fs.readFileSync('/tmp/requests.json','utf8'));
+          const arr = Array.isArray(raw) ? raw : (raw.requests || raw.data || raw.items || []);
+          const rows = Array.isArray(arr) ? arr : [];
+          const keyrx = /(evidence|verify|verification|preflight|audit|proof|snapshot|public url|website|web page|x402|agent safety|guarded action|api integration)/i;
+          const candidates = rows.filter(r => keyrx.test(`${r.title||''} ${r.description||''}`)).map(r => ({
+            id:r.id||r.requestId||null,title:r.title||null,description:r.description||null,
+            budgetMaxCents:r.budgetMaxCents??r.budget_max_cents??null,escrow:r.escrow??null,
+            escrowStatus:r.escrowStatus??r.escrow_status??r.escrow?.status??null,
+            escrowTxHash:r.escrowTxHash??r.escrow_tx_hash??r.escrow?.txHash??null,
+            status:r.status||null,bidCount:r.bidCount??r.bid_count??null,createdAt:r.createdAt??r.created_at??null
+          }));
+          const evidence={checked_at:new Date().toISOString(),channel_source:'PayanAgent requests',open_request_count:rows.length,candidates,evidence_quality:'B_public_marketplace_request_API; funded only if escrow/tx evidence is explicit'};
+          fs.writeFileSync('docs/evidence/payanagent-open-requests-2026-09-11.json',JSON.stringify(evidence,null,2)+'\n');
+          console.log(JSON.stringify(evidence,null,2));
+          NODE
+      - name: Persist request evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'DELTA Distribution Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/evidence/payanagent-open-requests-2026-09-11.json
+          git commit -m 'evidence: snapshot PayanAgent open buyer requests'
+          git push origin HEAD:master
