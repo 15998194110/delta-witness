@@ -1,0 +1,43 @@
+name: TMP AgentNDX DELTA submission 20260911
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-agentndx-submit-20260911.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect AgentNDX current index and free submit contract
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, re, urllib.request
+          from html.parser import HTMLParser
+          REPO='https://github.com/15998194110/delta-witness'
+          with urllib.request.urlopen('https://agentndx.ai/api/servers.json', timeout=20) as r:
+              raw=r.read().decode('utf-8','replace')
+          low=raw.lower()
+          print('INDEX_HAS_DELTA=', ('delta-witness' in low or REPO.lower() in low))
+          class P(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.forms=[]; self.cur=None
+              def handle_starttag(self, tag, attrs):
+                  a=dict(attrs)
+                  if tag=='form':
+                      self.cur={'action':a.get('action'),'method':a.get('method','get'),'inputs':[]}; self.forms.append(self.cur)
+                  elif self.cur is not None and tag in ('input','textarea','select','button'):
+                      self.cur['inputs'].append({'tag':tag,'name':a.get('name'),'type':a.get('type'),'value':a.get('value')})
+              def handle_endtag(self, tag):
+                  if tag=='form': self.cur=None
+          req=urllib.request.Request('https://agentndx.ai/submit/', headers={'User-Agent':'DELTA-Witness/0.7 (+https://github.com/15998194110/delta-witness)'})
+          with urllib.request.urlopen(req, timeout=20) as r:
+              html=r.read().decode('utf-8','replace')
+              print('SUBMIT_HTTP=', r.status)
+              print('FINAL_URL=', r.geturl())
+          p=P(); p.feed(html)
+          print('FORMS=', json.dumps(p.forms, ensure_ascii=False))
+          PY
