@@ -1,0 +1,107 @@
+{
+  "checked_at": "2026-09-10T08:52:50.287176+00:00",
+  "owner_pricing": {
+    "capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "partner_watch_entry_usdc": 1
+  },
+  "core_integrity": {
+    "ok": true,
+    "rows": [
+      {
+        "product": "capture",
+        "http": "402",
+        "raw_amount": "1000000",
+        "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "network": "eip155:8453",
+        "matched": true
+      },
+      {
+        "product": "preflight",
+        "http": "402",
+        "raw_amount": "5000000",
+        "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "network": "eip155:8453",
+        "matched": true
+      },
+      {
+        "product": "guarded-action-pilot",
+        "http": "402",
+        "raw_amount": "10000000",
+        "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "network": "eip155:8453",
+        "matched": true
+      }
+    ]
+  },
+  "agentstamp": {
+    "search_before_http": "200",
+    "action": "registration_attempted",
+    "register_http": "401",
+    "register_response": {
+      "success": false,
+      "error": "Wallet signature required. Send x-wallet-signature and x-wallet-timestamp headers."
+    },
+    "search_after_http": "200",
+    "confirmed_count": 0,
+    "confirmed": []
+  },
+  "agent402": {
+    "http": "200",
+    "status": "submitted_or_refreshed",
+    "response": {
+      "listed": true,
+      "origin": "https://delta-witness-api.ruphussten.workers.dev",
+      "seller": {
+        "displayName": "delta-witness-api.ruphussten.workers.dev",
+        "toolCount": 6,
+        "networks": [
+          "eip155:8453"
+        ],
+        "routable": true,
+        "health": 1
+      }
+    }
+  },
+  "treasury": {
+    "ok": true,
+    "checked_at": "2026-09-10T08:52:46.542Z",
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "start_block": 51070507,
+    "latest_block": 51120506,
+    "lookback_blocks": 50000,
+    "latest_rpc": "https://mainnet.base.org",
+    "treasury_received_candidates": 1,
+    "total_raw": "30000",
+    "total_usdc": 0.03,
+    "known_non_customer_raw": "30000",
+    "known_non_customer_usdc": 0.03,
+    "unclassified_raw": "0",
+    "unclassified_usdc": 0,
+    "revenue_classification": "known platform/test payers are explicitly excluded; remaining receipts stay unclassified until non-project payer and DELTA proof/telemetry are reconciled",
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "transfers": [
+      {
+        "tx_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+        "block_number": 51091432,
+        "log_index": 86,
+        "from": "0x7e6b6556322c4e26c567a867964ac793f5ee2b1c",
+        "to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "raw_amount": "30000",
+        "usdc": 0.03,
+        "treasury_received": true,
+        "payer_classification": "payapi_platform_verification",
+        "customer_revenue": false
+      }
+    ]
+  },
+  "evidence_quality": {
+    "core": "A_live_402_if_matched",
+    "treasury": "A_direct_canonical_USDC_log_if_ok",
+    "agentstamp": "A_if_registry_readback_confirmed_else_C",
+    "agent402": "A_direct_official_registration_response_if_2xx"
+  }
+}
