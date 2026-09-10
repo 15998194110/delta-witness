@@ -1,0 +1,187 @@
+name: DELTA Autonomous Growth Turn2
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/autonomous-growth-turn2-2026-09-10.yml']
+permissions:
+  contents: write
+concurrency:
+  group: delta-autonomous-growth
+  cancel-in-progress: false
+jobs:
+  growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Move to freshest master and verify owner pricing + live core
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin master
+          git checkout master
+          git reset --hard origin/master
+          node - <<'NODE'
+          const fs=require('fs');
+          const c=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));
+          if(c.vars.CAPTURE_BASE_PRICE_USD!=='1'||c.vars.PREFLIGHT_BASE_PRICE_USD!=='5'||c.vars.WATCH_BASE_PRICE_USD!=='1'||c.vars.PARTNER_PREFLIGHT_BASE_PRICE_USD!=='1') throw new Error('owner pricing drift');
+          if(c.vars.PAY_TO.toLowerCase()!=='0x1990e21bc219696ff7fbc26527dbaed335ac6367'||c.vars.NETWORK!=='eip155:8453') throw new Error('treasury/network drift');
+          NODE
+          probe() {
+            path="$1" expected="$2"
+            for i in 1 2 3 4; do
+              code=$(curl --connect-timeout 8 --max-time 25 --retry 2 --retry-all-errors --retry-delay 1 -sS -o /tmp/body -D /tmp/headers -w '%{http_code}' -X POST "https://delta-witness-api.ruphussten.workers.dev$path" -H 'content-type: application/json' -d '{}') || code=000
+              hdr=$(awk 'BEGIN{IGNORECASE=1} /^payment-required:/{sub(/^[^:]+:[[:space:]]*/,"");gsub(/\r/,"");print;exit}' /tmp/headers)
+              decoded=$(printf '%s' "$hdr"|base64 -d 2>/dev/null||true)
+              amount=$(printf '%s' "$decoded"|jq -r '..|.amount?//empty' 2>/dev/null|head -1)
+              payto=$(printf '%s' "$decoded"|jq -r '..|.payTo?//empty' 2>/dev/null|head -1)
+              network=$(printf '%s' "$decoded"|jq -r '..|.network?//empty' 2>/dev/null|head -1)
+              if [ "$code" = 402 ] && [ "$amount" = "$expected" ] && [ "${payto,,}" = '0x1990e21bc219696ff7fbc26527dbaed335ac6367' ] && [ "$network" = 'eip155:8453' ]; then return 0; fi
+              sleep $((i*2))
+            done
+            echo "core integrity failed path=$path status=$code amount=$amount" >&2
+            return 1
+          }
+          probe /v1/capture 1000000
+          probe /v1/preflight 5000000
+          probe /v1/guarded-action-pilot 10000000
+      - name: Register or verify AgentStamp free registry
+        shell: bash
+        run: |
+          set -u
+          retry_curl(){ for i in 1 2 3 4; do "$@" && return 0; sleep $((i*2)); done; return 1; }
+          STAMP_STATUS=degraded
+          STAMP_AGENT_ID=''
+          retry_curl curl -fsS --connect-timeout 8 --max-time 25 'https://agentstamp.org/api/v1/registry/search?search=DELTA%20Witness&limit=20' -o /tmp/stamp-search.json || true
+          if [ -s /tmp/stamp-search.json ] && grep -qi 'DELTA Witness' /tmp/stamp-search.json; then
+            STAMP_STATUS=existing_live
+            STAMP_AGENT_ID=$(jq -r '..|objects|select((.name?//"")|ascii_downcase|contains("delta witness"))|.id?//.agent_id?//empty' /tmp/stamp-search.json 2>/dev/null|head -1)
+          else
+            cat >/tmp/stamp-register-body.json <<'JSON'
+          {"wallet_address":"0x1990e21bc219696ff7fbc26527dbaed335ac6367","name":"DELTA Witness","description":"Production x402 trust layer for autonomous actions. Public web Capture $1, Preflight verification $5, and Guarded-Action Pilot $10 on Base. https://delta-witness-api.ruphussten.workers.dev","category":"security","capabilities":["web verification","autonomous-action preflight","x402 proof"]}
+          JSON
+            code=$(retry_curl curl -sS --connect-timeout 8 --max-time 25 -o /tmp/stamp-register.json -w '%{http_code}' -X POST 'https://agentstamp.org/api/v1/registry/register/free' -H 'content-type: application/json' --data-binary @/tmp/stamp-register-body.json || echo 000)
+            if [ "$code" = 200 ] || [ "$code" = 201 ]; then
+              STAMP_STATUS=created_live
+              STAMP_AGENT_ID=$(jq -r '.agent.id?//.agent_id?//.id?//empty' /tmp/stamp-register.json 2>/dev/null|head -1)
+            elif [ "$code" = 409 ] || [ "$code" = 429 ]; then
+              retry_curl curl -fsS --connect-timeout 8 --max-time 25 'https://agentstamp.org/api/v1/registry/search?search=DELTA%20Witness&limit=20' -o /tmp/stamp-search2.json || true
+              if grep -qi 'DELTA Witness' /tmp/stamp-search2.json 2>/dev/null; then STAMP_STATUS=existing_live; fi
+            else
+              STAMP_STATUS="degraded_http_${code}"
+            fi
+          fi
+          # Free stamp/heartbeat are best-effort trust signals; no payment or wallet signature.
+          curl -sS --connect-timeout 8 --max-time 20 -o /tmp/stamp-mint.json -X POST 'https://agentstamp.org/api/v1/stamp/mint/free' -H 'content-type: application/json' -d '{"wallet_address":"0x1990e21bc219696ff7fbc26527dbaed335ac6367"}' || true
+          if [ -n "$STAMP_AGENT_ID" ]; then curl -sS --connect-timeout 8 --max-time 20 -o /tmp/stamp-heartbeat.json -X POST "https://agentstamp.org/api/v1/registry/agent/$STAMP_AGENT_ID/heartbeat" -H 'X-Wallet-Address: 0x1990e21bc219696ff7fbc26527dbaed335ac6367' || true; fi
+          printf '%s\n' "$STAMP_STATUS" >/tmp/stamp-status.txt
+          printf '%s\n' "$STAMP_AGENT_ID" >/tmp/stamp-agent-id.txt
+      - name: Register or verify AgentWorld external registry
+        shell: bash
+        run: |
+          set -u
+          retry_curl(){ for i in 1 2 3 4; do "$@" && return 0; sleep $((i*2)); done; return 1; }
+          WORLD_STATUS=degraded
+          WORLD_AGENT_ID=''
+          retry_curl curl -fsS --connect-timeout 8 --max-time 25 'https://agentworld.me/api/agentworld/registry' -o /tmp/world-registry.json || true
+          if [ -s /tmp/world-registry.json ] && grep -qi 'DELTA Witness' /tmp/world-registry.json; then
+            WORLD_STATUS=existing_live
+            WORLD_AGENT_ID=$(jq -r '..|objects|select((.name?//"")|ascii_downcase|contains("delta witness"))|.id?//.agent_id?//empty' /tmp/world-registry.json 2>/dev/null|head -1)
+          else
+            cat >/tmp/world-register-body.json <<'JSON'
+          {"name":"DELTA Witness","role":"Autonomous Action Verification","description":"x402-native web evidence and preflight verification for autonomous agents; production Base endpoints at delta-witness-api.ruphussten.workers.dev","owner_wallet":"0x1990e21bc219696ff7fbc26527dbaed335ac6367","endpoint_url":"https://delta-witness-api.ruphussten.workers.dev","capabilities":"web verification, preflight verification, guarded actions, x402, Base USDC"}
+          JSON
+            code=$(retry_curl curl -sS --connect-timeout 8 --max-time 25 -o /tmp/world-register.json -w '%{http_code}' -X POST 'https://agentworld.me/api/agentworld/registry/register' -H 'content-type: application/json' --data-binary @/tmp/world-register-body.json || echo 000)
+            if [ "$code" = 200 ] || [ "$code" = 201 ]; then
+              WORLD_STATUS=created_live
+              WORLD_AGENT_ID=$(jq -r '.agent_id?//.id?//empty' /tmp/world-register.json 2>/dev/null|head -1)
+            elif [ "$code" = 409 ] || [ "$code" = 429 ]; then
+              retry_curl curl -fsS --connect-timeout 8 --max-time 25 'https://agentworld.me/api/agentworld/registry' -o /tmp/world-registry2.json || true
+              if grep -qi 'DELTA Witness' /tmp/world-registry2.json 2>/dev/null; then WORLD_STATUS=existing_live; fi
+            else
+              WORLD_STATUS="degraded_http_${code}"
+            fi
+          fi
+          # Never print or persist the one-time AgentWorld API key.
+          rm -f /tmp/world-register.json /tmp/world-register-body.json
+          printf '%s\n' "$WORLD_STATUS" >/tmp/world-status.txt
+          printf '%s\n' "$WORLD_AGENT_ID" >/tmp/world-agent-id.txt
+      - name: Check public buyer/discovery channels without accepting terms or spending
+        shell: bash
+        run: |
+          set -u
+          retry_get(){ url="$1" out="$2"; for i in 1 2 3 4; do curl -fsS --connect-timeout 8 --max-time 30 "$url" -o "$out" && return 0; sleep $((i*2)); done; return 1; }
+          PAYAN_STATUS=degraded
+          retry_get 'https://payanagent.com/api/v1/discover?q=delta%20witness&limit=50' /tmp/payan-discover.json && PAYAN_STATUS=ok || true
+          retry_get 'https://payanagent.com/api/v1/requests?status=open&limit=100' /tmp/payan-requests.json || true
+          if [ -s /tmp/payan-requests.json ]; then
+            jq '[..|objects|select((.status?//"")=="open")|select(((.title?//"")+" "+(.description?//""))|ascii_downcase|test("verif|audit|browser|web evidence|preflight|security|proof"))|{id,title,budgetMaxCents,escrow,status}]' /tmp/payan-requests.json >/tmp/payan-compatible.json 2>/dev/null || echo '[]' >/tmp/payan-compatible.json
+          else echo '[]' >/tmp/payan-compatible.json; fi
+          # Agent402 is read-only here because its published terms say programmatic use constitutes acceptance; no registration call is made autonomously.
+          retry_get 'https://agent402.tools/api/index' /tmp/agent402-index.json || true
+          if grep -qi 'delta-witness-api.ruphussten.workers.dev' /tmp/agent402-index.json 2>/dev/null; then AGENT402_STATUS=indexed; else AGENT402_STATUS=not_observed; fi
+          # x402 Arena is public read-only; DELTA has existing entries and must not be duplicated.
+          retry_get 'https://x402arena.gg/' /tmp/arena.html || true
+          if grep -qi 'delta-witness' /tmp/arena.html 2>/dev/null; then ARENA_STATUS=indexed; else ARENA_STATUS=not_observed; fi
+          printf '%s\n' "$PAYAN_STATUS" >/tmp/payan-status.txt
+          printf '%s\n' "$AGENT402_STATUS" >/tmp/agent402-status.txt
+          printf '%s\n' "$ARENA_STATUS" >/tmp/arena-status.txt
+      - name: Reconcile canonical Base Treasury independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/reconcile-treasury.mjs | tee /tmp/treasury.log
+          python3 - <<'PY'
+          import json,re,pathlib
+          s=pathlib.Path('/tmp/treasury.log').read_text()
+          starts=[m.start() for m in re.finditer(r'(?m)^\{\n\s+"ok"',s)]
+          if not starts: raise SystemExit('final treasury json not found')
+          obj=json.loads(s[starts[-1]:])
+          pathlib.Path('/tmp/treasury-final.json').write_text(json.dumps(obj,indent=2))
+          PY
+      - name: Commit sanitized evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          STAMP_STATUS=$(cat /tmp/stamp-status.txt); STAMP_ID=$(cat /tmp/stamp-agent-id.txt)
+          WORLD_STATUS=$(cat /tmp/world-status.txt); WORLD_ID=$(cat /tmp/world-agent-id.txt)
+          PAYAN_STATUS=$(cat /tmp/payan-status.txt); AGENT402_STATUS=$(cat /tmp/agent402-status.txt); ARENA_STATUS=$(cat /tmp/arena-status.txt)
+          COMPAT_COUNT=$(jq 'length' /tmp/payan-compatible.json 2>/dev/null || echo 0)
+          TREASURY_UNCLASS=$(jq -r '.unclassified_usdc // 0' /tmp/treasury-final.json)
+          TREASURY_CUST=$(jq -r '[.transfers[]? | select(.customer_revenue==true) | .usdc] | add // 0' /tmp/treasury-final.json)
+          LATEST_BLOCK=$(jq -r '.latest_block // "unknown"' /tmp/treasury-final.json)
+          cat > docs/channel-status/autonomous-growth-2026-09-10-1524-turn2.md <<EOF
+          # DELTA autonomous growth evidence — 2026-09-10 15:24 Asia/Shanghai
+
+          ## Core integrity
+          Production x402 integrity was fail-fast verified before any growth action: Capture **\$1**, Public Preflight **\$5**, Guarded-Action Pilot **\$10**, Base \\`eip155:8453\\`, canonical Treasury unchanged.
+
+          ## Distribution actions
+          - AgentStamp free registry: **${STAMP_STATUS}**${STAMP_ID:+; agent id \\`${STAMP_ID}\\`}. Free registry registration is 30-day and no payment/account/API key was used. A free stamp/heartbeat was attempted as a best-effort trust signal without payment.
+          - AgentWorld external registry: **${WORLD_STATUS}**${WORLD_ID:+; agent id \\`${WORLD_ID}\\`}. Registration is free and programmatic. Any one-time API key returned by the service was deliberately neither logged nor persisted.
+          - x402 Arena: **${ARENA_STATUS}**. Existing DELTA entries were checked read-only; no duplicate registration was created.
+          - Agent402 public index: **${AGENT402_STATUS}**. No seller registration was attempted because Agent402 explicitly states programmatic use constitutes acceptance of its terms, which exceeds the autonomous legal-commitment boundary.
+          - PayanAgent public discovery/request surfaces: **${PAYAN_STATUS}**. Public read-only inspection was performed without creating a duplicate seller identity or spending.
+
+          ## Buyer demand screen
+          PayanAgent open requests matching verification/audit/browser/web-evidence/preflight/security/proof keywords: **${COMPAT_COUNT}**. No bid was submitted without a recoverable existing seller credential and verified escrow-compatible request fit.
+
+          ## Treasury / revenue evidence
+          Canonical Base USDC reconciliation completed independently through block **${LATEST_BLOCK}**.
+          - unclassified Treasury receipts: **\$${TREASURY_UNCLASS} USDC**
+          - customer-revenue-classified Treasury receipts in the scanned window: **\$${TREASURY_CUST} USDC**
+          - only non-project \\`treasury_received\\` is revenue; platform/test/self-pay remains excluded.
+
+          ## Evidence grading
+          - Production 402 + Treasury reconciliation: **A** (direct live endpoint / canonical Base USDC evidence)
+          - AgentStamp / AgentWorld listing state: **A** if created/read back by their public APIs; otherwise channel degradation is isolated and retryable.
+          - Public marketplace demand discovery: **B** until a funded request, bid acceptance, signed receipt or canonical settlement appears.
+          EOF
+          git config user.name 'DELTA Operator'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/channel-status/autonomous-growth-2026-09-10-1524-turn2.md
+          git commit -m 'growth: record turn2 registry distribution and treasury evidence'
+          git push origin HEAD:master
