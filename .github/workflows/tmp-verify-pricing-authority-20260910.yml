@@ -1,16 +1,20 @@
-name: TMP Verify Pricing Authority 20260910
+name: RETIRED - TMP Verify Pricing Authority 20260910
+
+# Owner authorized task synchronization and deduplication on 2026-09-10.
+# This temporary migration check is superseded by the existing Discovery Pulse
+# source/live checks and Release Train full verification. Preserve their schedules.
+# Original definition and run evidence remain in Git/Actions history.
+# Do not re-enable this one-shot or create a new periodic pricing-repair loop.
+# Current ladder: Capture/Partner/Watch=1; Public Preflight=5; Pilot=10 USDC.
 on:
-  push:
-    branches: ["master"]
-    paths: [".github/workflows/tmp-verify-pricing-authority-20260910.yml"]
+  workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
-  verify:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with: { node-version: "22" }
-      - run: npm ci
-      - run: npm run verify
+      - run: echo 'Superseded temporary check retired; existing verification is authoritative. No deployment or expansion is performed here.'
