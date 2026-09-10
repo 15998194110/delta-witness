@@ -25,39 +25,31 @@ jobs:
           page.on('response',r=>{if(r.request().method()!=='GET')muts.push([r.request().method(),r.url(),r.status()]);});
           try{
             await page.goto('https://botmarket.bot/submit',{waitUntil:'networkidle',timeout:60000});
-            console.log('INITIAL='+((await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,8000)));
-            const x=page.getByText('x402 Service',{exact:true}).first();
-            if(await x.count()) await x.click({force:true});
-            await page.waitForTimeout(500);
-            const fields=await page.locator('input:visible,textarea:visible').count();
-            for(let i=0;i<fields;i++){
-              const el=page.locator('input:visible,textarea:visible').nth(i);
-              const type=(await el.getAttribute('type')||'').toLowerCase();
-              const ph=(await el.getAttribute('placeholder')||'').toLowerCase();
-              const name=(await el.getAttribute('name')||'').toLowerCase();
-              const label=((await el.evaluate(e=>e.labels?.[0]?.innerText||''))||'').toLowerCase();
-              const ctx=((await el.evaluate(e=>e.parentElement?.parentElement?.innerText||''))||'').toLowerCase();
-              const d=[type,ph,name,label,ctx].join(' ');
+            const tab=page.getByRole('button',{name:/x402 service/i}).first();
+            console.log('X402_TAB_COUNT='+(await tab.count()));
+            if(await tab.count()) await tab.click({force:true});
+            await page.waitForTimeout(700);
+            const form=page.locator('input:visible,textarea:visible');
+            console.log('FIELDS='+JSON.stringify(await form.evaluateAll(es=>es.map(e=>({type:e.type,name:e.name,placeholder:e.placeholder,label:e.labels?.[0]?.innerText||'',ctx:e.parentElement?.parentElement?.innerText||''})))));
+            for(let i=0;i<await form.count();i++){
+              const el=form.nth(i); const type=(await el.getAttribute('type')||'').toLowerCase();
+              const d=((await el.getAttribute('placeholder')||'')+' '+(await el.getAttribute('name')||'')+' '+((await el.evaluate(e=>e.labels?.[0]?.innerText||''))||'')+' '+((await el.evaluate(e=>e.parentElement?.parentElement?.innerText||''))||'')).toLowerCase();
               if(type==='email'||d.includes('contact')) continue;
               if(type==='url'||d.includes('url')||d.includes('endpoint')) await el.fill('https://delta-witness-api.ruphussten.workers.dev/v1/preflight');
             }
-            console.log('FORM='+JSON.stringify(await page.locator('input:visible,textarea:visible').evaluateAll(es=>es.map(e=>({type:e.type,name:e.name,placeholder:e.placeholder,value:e.value,label:e.labels?.[0]?.innerText||'',ctx:e.parentElement?.parentElement?.innerText||''})))));
+            console.log('FILLED='+JSON.stringify(await form.evaluateAll(es=>es.map(e=>({type:e.type,value:e.value,label:e.labels?.[0]?.innerText||'',placeholder:e.placeholder})))));
             const preview=page.getByRole('button',{name:/fetch.*preview|preview|validate/i}).first();
             if(await preview.count()&&await preview.isVisible()&&!(await preview.isDisabled())){console.log('CLICK_PREVIEW='+(await preview.innerText()));await preview.click();await page.waitForTimeout(5000);}
-            console.log('AFTER_PREVIEW='+((await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,10000)));
+            const previewBody=(await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,12000);
+            console.log('AFTER_PREVIEW='+previewBody);
             const buttons=page.locator('button:visible');
-            console.log('BUTTONS='+JSON.stringify(await buttons.evaluateAll(es=>es.map((e,i)=>({i,text:(e.innerText||'').trim(),disabled:e.disabled})))));
-            let clicked=false;
-            for(let i=(await buttons.count())-1;i>=0;i--){
-              const b=buttons.nth(i);const t=(await b.innerText()).trim();
-              if(/submit|add to directory|send for review|publish|list service/i.test(t)&&!(await b.isDisabled())){console.log('CLICK_FINAL='+t);await b.click();clicked=true;break;}
-            }
-            if(clicked)await page.waitForTimeout(5000);
+            console.log('BUTTONS='+JSON.stringify(await buttons.evaluateAll(es=>es.map((e,i)=>({i,text:(e.innerText||'').trim(),disabled:e.disabled}))));
+            for(let i=(await buttons.count())-1;i>=0;i--){const b=buttons.nth(i);const t=(await b.innerText()).trim();if(/submit|add to directory|send for review|publish|list service/i.test(t)&&!(await b.isDisabled())){console.log('CLICK_FINAL='+t);await b.click();await page.waitForTimeout(5000);break;}}
             const body=(await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,12000);
             console.log('FINAL='+body);console.log('MUTS='+JSON.stringify(muts));console.log('URL='+page.url());
-            const explicit=/submission received|submitted successfully|queued for review|sent for review|pending review|thank you|we.?ll review/i.test(body);
-            const mutation=muts.some(x=>x[2]>=200&&x[2]<300);
-            console.log('STRICT_CONFIRMED='+(explicit&&mutation?'1':'0'));
+            const explicit=/submission received|submitted successfully|queued for review|sent for review|pending review|thank you|we.?ll review|listed after review/i.test(body);
+            const relevant=muts.some(x=>x[2]>=200&&x[2]<300&&!x[1].includes('/cdn-cgi/rum'));
+            console.log('STRICT_CONFIRMED='+(explicit&&relevant?'1':'0'));
           }catch(e){console.log('FATAL='+String(e));}
           await browser.close();
           JS
