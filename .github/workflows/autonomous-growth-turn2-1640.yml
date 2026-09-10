@@ -1,163 +1,47 @@
-name: DELTA Autonomous Growth Turn2 1640
+name: DELTA MCP Metadata Repair Turn2
 on:
   push:
     branches: [master]
     paths: ['.github/workflows/autonomous-growth-turn2-1640.yml']
 permissions:
   contents: write
-concurrency:
-  group: delta-autonomous-growth-turn2-1640
-  cancel-in-progress: false
 jobs:
-  execute:
+  repair:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v6
         with: { fetch-depth: 0 }
       - uses: actions/setup-node@v5
         with: { node-version: '22' }
-      - name: Execute isolated channel checks and Treasury reconciliation
+      - name: Repair and verify MCP metadata
         shell: bash
         run: |
-          set -uo pipefail
+          set -euo pipefail
           git fetch origin master
           git checkout master
           git reset --hard origin/master
-          mkdir -p docs/channel-status
-          BASE='https://delta-witness-api.ruphussten.workers.dev'
-          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-
-          # Treasury is mandatory and independent of channel/core health.
-          treasury_ok=true
-          if ! node scripts/reconcile-treasury.mjs > /tmp/treasury.json; then
-            treasury_ok=false
-            printf '%s\n' '{"ok":false,"error":"treasury_reconciliation_failed_after_rpc_fallbacks"}' >/tmp/treasury.json
-          fi
-
-          # Core integrity: bounded retries, no payment. Record rather than abort so Treasury/external channels finish.
-          : >/tmp/core.tsv
-          core_ok=true
-          probe_core(){
-            product="$1" expected="$2"; matched=false; code=000; amount=''; payto=''; network=''
-            for i in 1 2 3 4; do
-              rm -f /tmp/h /tmp/b
-              code=$(curl -sS --connect-timeout 8 --max-time 25 -D /tmp/h -o /tmp/b -w '%{http_code}' -X POST "$BASE/v1/$product" -H 'content-type: application/json' -H 'user-agent: DELTA-Witness/0.7' -d '{}' || printf '000')
-              hdr=$(awk 'BEGIN{IGNORECASE=1} /^payment-required:/{sub(/^[^:]+:[[:space:]]*/,""); gsub(/\r/,""); print; exit}' /tmp/h 2>/dev/null || true)
-              if [ -n "$hdr" ]; then
-                decoded=$(printf '%s' "$hdr" | base64 -d 2>/dev/null || true)
-                amount=$(printf '%s' "$decoded" | jq -r '.. | .amount? // empty' 2>/dev/null | head -1)
-                payto=$(printf '%s' "$decoded" | jq -r '.. | .payTo? // empty' 2>/dev/null | head -1)
-                network=$(printf '%s' "$decoded" | jq -r '.. | .network? // empty' 2>/dev/null | head -1)
-              fi
-              if [ "$code" = 402 ] && [ "$amount" = "$expected" ] && [ "${payto,,}" = "$TREASURY" ] && [ "$network" = 'eip155:8453' ]; then matched=true; break; fi
-              sleep $((i*2))
-            done
-            printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$product" "$code" "$amount" "$payto" "$network" "$matched" >>/tmp/core.tsv
-            [ "$matched" = true ] || core_ok=false
-          }
-          probe_core capture 1000000
-          probe_core preflight 5000000
-          probe_core guarded-action-pilot 10000000
-
-          # AgentStamp: recover prior 429. Search first; free-register only when exact DELTA name/wallet absent.
-          AGENTSTAMP='https://agentstamp.org'
-          search_stamp(){
-            curl -sS --connect-timeout 8 --max-time 25 --retry 3 --retry-delay 2 --retry-all-errors \
-              -H 'accept: application/json' -H 'user-agent: DELTA-Witness/0.7' \
-              "$AGENTSTAMP/api/v1/registry/search?search=DELTA%20Witness&limit=25"
-          }
-          stamp_before_http=$(curl -sS --connect-timeout 8 --max-time 25 --retry 2 --retry-delay 2 --retry-all-errors -o /tmp/stamp-before.json -w '%{http_code}' -H 'accept: application/json' -H 'user-agent: DELTA-Witness/0.7' "$AGENTSTAMP/api/v1/registry/search?search=DELTA%20Witness&limit=25" || printf '000')
-          python3 - <<'PY' >/tmp/stamp-found-before
-          import json
-          wallet='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-          try: obj=json.load(open('/tmp/stamp-before.json'))
-          except: obj={}
-          def rows(x):
-              if isinstance(x,list): return x
-              if isinstance(x,dict):
-                  for k in ('agents','results','data','items'):
-                      if isinstance(x.get(k),list): return x[k]
-              return []
-          found=[]
-          for r in rows(obj):
-              if not isinstance(r,dict): continue
-              n=str(r.get('name','')).strip().lower()
-              w=str(r.get('wallet_address') or r.get('walletAddress') or r.get('wallet') or '').lower()
-              if n=='delta witness' or w==wallet: found.append(r)
-          print('1' if found else '0')
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('packages/mcp-server/src/index.ts')
+          s=p.read_text()
+          old='const server = new McpServer({ name: "DELTA Witness", version: "0.6.1" });'
+          new='const server = new McpServer({ name: "DELTA Witness", version: "0.7.0" });'
+          if old not in s:
+              if new in s: raise SystemExit(0)
+              raise SystemExit('expected MCP version marker not found')
+          p.write_text(s.replace(old,new,1))
           PY
-          found_before=$(cat /tmp/stamp-found-before)
-          stamp_action='existing_confirmed'
-          stamp_register_http='not_attempted'
-          if [ "$found_before" != 1 ]; then
-            stamp_action='registration_attempted'
-            cat >/tmp/stamp-payload.json <<'JSON'
-          {"wallet_address":"0x1990e21bc219696ff7fbc26527dbaed335ac6367","name":"DELTA Witness","description":"Trust layer for autonomous actions: paid public-page capture, deterministic preflight verification, and guarded-action evidence over x402 on Base.","category":"security","capabilities":["web verification","preflight verification","x402 Base payments"]}
-          JSON
-            stamp_register_http=$(curl -sS --connect-timeout 8 --max-time 25 --retry 3 --retry-delay 2 --retry-all-errors -o /tmp/stamp-register.json -w '%{http_code}' -X POST "$AGENTSTAMP/api/v1/registry/register/free" -H 'content-type: application/json' -H 'accept: application/json' -H 'user-agent: DELTA-Witness/0.7' --data-binary @/tmp/stamp-payload.json || printf '000')
-          else
-            printf '%s\n' '{}' >/tmp/stamp-register.json
-          fi
-          stamp_after_http=$(curl -sS --connect-timeout 8 --max-time 25 --retry 3 --retry-delay 2 --retry-all-errors -o /tmp/stamp-after.json -w '%{http_code}' -H 'accept: application/json' -H 'user-agent: DELTA-Witness/0.7' "$AGENTSTAMP/api/v1/registry/search?search=DELTA%20Witness&limit=25" || printf '000')
-          python3 - "$stamp_before_http" "$stamp_register_http" "$stamp_after_http" "$stamp_action" <<'PY' >/tmp/agentstamp.json
-          import json,sys
-          before_http,reg_http,after_http,action=sys.argv[1:]
-          wallet='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-          def load(p):
-              try:return json.load(open(p))
-              except:return {}
-          def rows(x):
-              if isinstance(x,list): return x
-              if isinstance(x,dict):
-                  for k in ('agents','results','data','items'):
-                      if isinstance(x.get(k),list): return x[k]
-              return []
-          confirmed=[]
-          for r in rows(load('/tmp/stamp-after.json')):
-              if not isinstance(r,dict):continue
-              n=str(r.get('name','')).strip().lower(); w=str(r.get('wallet_address') or r.get('walletAddress') or r.get('wallet') or '').lower()
-              if n=='delta witness' or w==wallet: confirmed.append(r)
-          print(json.dumps({'search_before_http':before_http,'action':action,'register_http':reg_http,'register_response':load('/tmp/stamp-register.json'),'search_after_http':after_http,'confirmed_count':len(confirmed),'confirmed':confirmed[:3]},indent=2))
-          PY
-
-          # Agent402: direct official free self-serve re-registration/quote refresh; isolate failures.
-          agent402_http=$(curl -sS --connect-timeout 8 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors -o /tmp/agent402-body.json -w '%{http_code}' -X POST 'https://agent402.tools/api/index/register' -H 'content-type: application/json' -H 'accept: application/json' -H 'user-agent: DELTA-Witness/0.7' --data '{"origin":"https://delta-witness-api.ruphussten.workers.dev"}' || printf '000')
-          python3 - "$agent402_http" <<'PY' >/tmp/agent402.json
-          import json,sys
-          try: body=json.load(open('/tmp/agent402-body.json'))
-          except:
-              try: body={'raw':open('/tmp/agent402-body.json',errors='ignore').read()[:4000]}
-              except: body={}
-          h=sys.argv[1]
-          print(json.dumps({'http':h,'status':'submitted_or_refreshed' if h in ('200','201') else 'degraded','response':body},indent=2))
-          PY
-
-          # Durable evidence regardless of external channel degradation.
-          python3 - "$core_ok" "$treasury_ok" <<'PY'
-          import json,datetime,pathlib,sys
-          core_rows=[]
-          for line in open('/tmp/core.tsv'):
-              p=line.rstrip('\n').split('\t')
-              core_rows.append({'product':p[0],'http':p[1],'raw_amount':p[2],'pay_to':p[3],'network':p[4],'matched':p[5]=='true'})
-          out={
-            'checked_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            'owner_pricing':{'capture_usdc':1,'public_preflight_usdc':5,'guarded_action_pilot_usdc':10,'partner_watch_entry_usdc':1},
-            'core_integrity':{'ok':sys.argv[1]=='true','rows':core_rows},
-            'agentstamp':json.load(open('/tmp/agentstamp.json')),
-            'agent402':json.load(open('/tmp/agent402.json')),
-            'treasury':json.load(open('/tmp/treasury.json')),
-            'evidence_quality':{'core':'A_live_402_if_matched','treasury':'A_direct_canonical_USDC_log_if_ok','agentstamp':'A_if_registry_readback_confirmed_else_C','agent402':'A_direct_official_registration_response_if_2xx'}
-          }
-          pathlib.Path('docs/channel-status/autonomous-growth-2026-09-10-1640-turn2.json').write_text(json.dumps(out,indent=2)+'\n')
-          PY
+          cd packages/mcp-server
+          npm ci
+          npm run check
+          npm test
+          cd ../..
+          git diff --check
           git config user.name 'DELTA Operator'
           git config user.email 'actions@users.noreply.github.com'
-          git add docs/channel-status/autonomous-growth-2026-09-10-1640-turn2.json
+          git add packages/mcp-server/src/index.ts
           if ! git diff --cached --quiet; then
-            git commit -m 'growth: record isolated registry and Treasury evidence'
+            git commit -m 'fix: advertise DELTA MCP v0.7.0'
             git push origin HEAD:master
           fi
-
-          # Only DELTA core integrity or exhaustive Treasury failure fails the run.
-          [ "$core_ok" = true ] && [ "$treasury_ok" = true ]
