@@ -1,0 +1,115 @@
+name: DELTA Owner Pricing Consistency Repair
+
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/owner-pricing-consistency-repair.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: delta-production-release
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Pin freshest source and validate synchronization scripts
+        run: |
+          set -euo pipefail
+          git fetch origin master
+          git checkout -B owner-pricing-repair origin/master
+          node --check scripts/check-owner-pricing.mjs
+          node --check scripts/verify-owner-pricing-live.mjs
+          python3 -m py_compile scripts/sync-owner-pricing-20260910.py
+      - name: Independently observe current public prices without payment
+        id: before
+        env:
+          PRICING_AUDIT_OUTPUT: /tmp/delta-pricing-before.json
+          DELTA_PARTNER_GATEWAY_SECRET: ${{ secrets.DELTA_PARTNER_GATEWAY_SECRET }}
+        run: node scripts/verify-owner-pricing-live.mjs --diagnostic
+      - name: Synchronize source, handoff memory and stale workflow clauses
+        run: |
+          set -euo pipefail
+          python3 scripts/sync-owner-pricing-20260910.py
+          node scripts/check-owner-pricing.mjs
+          git diff --check
+      - name: Verify core and partner without paid tests
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run verify
+          cd channels/partner-gateway
+          npm ci
+          npm run verify
+      - name: Publish tested corrections without forcing history
+        id: source
+        run: |
+          set -euo pipefail
+          git config user.name 'DELTA Owner Policy Reconciler'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -u
+          git add docs/automation-pricing-override-2026-09-10.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix: restore owner 1-5-10 pricing and synchronize existing automation guardrails'
+            git push origin HEAD:master
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Repair verified live pricing drift only
+        if: steps.before.outputs.public_price_mismatch == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          git fetch origin master
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/master)"
+          node scripts/check-owner-pricing.mjs
+          npx wrangler deploy
+      - name: Verify every public amount and partner floor after reconciliation
+        env:
+          PRICING_AUDIT_OUTPUT: /tmp/delta-pricing-after.json
+          DELTA_PARTNER_GATEWAY_SECRET: ${{ secrets.DELTA_PARTNER_GATEWAY_SECRET }}
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Persist accurate audit scope and readback evidence
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          before=json.loads(Path('/tmp/delta-pricing-before.json').read_text())
+          after=json.loads(Path('/tmp/delta-pricing-after.json').read_text())
+          changed=json.loads(Path('/tmp/delta-pricing-changed.json').read_text())
+          report={'checked_at':after['checked_at'],'source_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'pricing':{'capture':1,'partner_capture':1,'partner_preflight':1,'watch_check':1,'public_preflight':5,'guarded_action_pilot':10},'source_files_changed':changed,'before':before,'after':after,'chatgpt_task_prompts':{'status':'not_verified','updated':False,'reason':'No native scheduled-task read/write tool in originating chat; browser connector was disconnected.'},'global_saved_memory':{'status':'not_verified','updated':False,'reason':'Saved-memory write tool is disabled in originating chat.'},'local_codex_automations':{'status':'not_verified','updated':False,'reason':'Local Operator/Codex workspace not mounted in originating chat.'},'new_growth_batches':0,'outreach_sent':0,'paid_tests':0}
+          Path('docs/pricing-consistency-audit-2026-09-10.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps({'live_verified':after['ok'],'changed_file_count':len(changed),'native_task_prompts_updated':False,'saved_memory_updated':False},indent=2))
+          PY
+          git add docs/pricing-consistency-audit-2026-09-10.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'docs: record pricing readback and explicit task-memory access limits'
+            git push origin HEAD:master
+          fi
+      - name: Reconcile Treasury independently of audit or channel failures
+        if: always()
+        continue-on-error: true
+        run: node scripts/reconcile-treasury.mjs
+      - name: Preserve readback evidence for inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-pricing-consistency-evidence
+          path: |
+            /tmp/delta-pricing-before.json
+            /tmp/delta-pricing-after.json
+            /tmp/delta-pricing-changed.json
+          if-no-files-found: warn
