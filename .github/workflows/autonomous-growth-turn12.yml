@@ -19,6 +19,66 @@ jobs:
           npx playwright install --with-deps chromium >/dev/null
           cat > botmarket-run.mjs <<'JS'
           import { chromium } from 'playwright';
+          const SERVICE_URL = 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight';
+
+          function walk(value, out = []) {
+            if (value && typeof value === 'object') {
+              if (Array.isArray(value)) for (const v of value) walk(v, out);
+              else {
+                out.push(value);
+                for (const v of Object.values(value)) walk(v, out);
+              }
+            }
+            return out;
+          }
+
+          function amountToUsd(raw) {
+            if (raw == null) return null;
+            if (typeof raw === 'number') return raw > 1000 ? raw / 1e6 : raw;
+            const s = String(raw).trim();
+            if (!/^\d+(?:\.\d+)?$/.test(s)) return null;
+            const n = Number(s);
+            if (!Number.isFinite(n)) return null;
+            return n > 1000 && !s.includes('.') ? n / 1e6 : n;
+          }
+
+          async function livePriceUsd() {
+            const attempts = [
+              { url: SERVICE_URL, init: { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify({url:'https://example.com', expected:{contains:['Example Domain']}}) } },
+              { url: 'https://delta-witness-api.ruphussten.workers.dev/.well-known/x402', init: { method: 'GET' } },
+            ];
+            for (const a of attempts) {
+              try {
+                const r = await fetch(a.url, a.init);
+                const header = r.headers.get('payment-required') || r.headers.get('x-payment-required');
+                const text = await r.text();
+                console.log('QUOTE_ATTEMPT=' + JSON.stringify({url:a.url,status:r.status,header:header?.slice(0,240),body:text.slice(0,1200)}));
+                let objs = [];
+                try { objs = walk(JSON.parse(text)); } catch {}
+                if (header) {
+                  try {
+                    const decoded = Buffer.from(header, 'base64').toString('utf8');
+                    objs.push(...walk(JSON.parse(decoded)));
+                  } catch {}
+                }
+                const preferred = objs.filter(o => JSON.stringify(o).includes('/v1/preflight'));
+                for (const o of [...preferred, ...objs]) {
+                  for (const k of ['price_usdc','priceUsd','priceUSD','amount_usdc','amount','maxAmountRequired','maxAmount']) {
+                    if (o[k] != null) {
+                      const n = amountToUsd(o[k]);
+                      if (n && n > 0 && n < 1000) return n;
+                    }
+                  }
+                }
+              } catch (e) {
+                console.log('QUOTE_ERROR=' + String(e));
+              }
+            }
+            return null;
+          }
+
+          const livePrice = await livePriceUsd();
+          console.log('LIVE_PRICE_USD=' + (livePrice ?? 'unknown'));
           const browser = await chromium.launch({headless:true});
           const page = await browser.newPage();
           const mutations = [];
@@ -33,10 +93,36 @@ jobs:
             console.log('X402_TAB_COUNT=' + await tab.count());
             if (await tab.count()) await tab.click({force:true});
             await page.waitForTimeout(700);
-            console.log('AFTER_TAB=' + (await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,5000));
-            const urlInput = page.locator('input[type=url]:visible').first();
-            console.log('URL_INPUT_COUNT=' + await urlInput.count());
-            if (await urlInput.count()) await urlInput.fill('https://delta-witness-api.ruphussten.workers.dev/v1/preflight');
+
+            const inputs = page.locator('input:visible');
+            const selects = page.locator('select:visible');
+            console.log('INPUTS=' + JSON.stringify(await inputs.evaluateAll(ns => ns.map(n => ({type:n.type,name:n.name,placeholder:n.placeholder,aria:n.getAttribute('aria-label')})))));
+            console.log('SELECTS=' + JSON.stringify(await selects.evaluateAll(ns => ns.map(n => ({name:n.name,aria:n.getAttribute('aria-label'),options:[...n.options].map(o=>({text:o.text,value:o.value}))})))));
+
+            let urlInput = page.getByLabel(/service url|url/i).first();
+            if (!(await urlInput.count())) urlInput = page.locator('input[type=url]:visible').first();
+            if (!(await urlInput.count())) urlInput = inputs.nth(0);
+            await urlInput.fill(SERVICE_URL);
+
+            let priceInput = page.getByLabel(/price/i).first();
+            if (!(await priceInput.count())) priceInput = page.locator('input[type=number]:visible').first();
+            if (!(await priceInput.count()) && await inputs.count() > 1) priceInput = inputs.nth(1);
+            if (await priceInput.count()) await priceInput.fill(String(livePrice ?? 1));
+
+            const currencySelect = page.getByLabel(/currency/i).first();
+            if (await currencySelect.count()) {
+              await currencySelect.selectOption({label:/USDC/i}).catch(async()=>currencySelect.selectOption('USDC').catch(()=>{}));
+            } else if (await selects.count() > 0) {
+              await selects.nth(0).selectOption({label:/USDC/i}).catch(()=>{});
+            }
+            const networkSelect = page.getByLabel(/network/i).first();
+            if (await networkSelect.count()) {
+              await networkSelect.selectOption({label:/base/i}).catch(async()=>networkSelect.selectOption('base').catch(()=>{}));
+            } else if (await selects.count() > 1) {
+              await selects.nth(1).selectOption({label:/base/i}).catch(()=>{});
+            }
+
+            console.log('FILLED=' + (await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,7000));
             const preview = page.getByRole('button', {name:/fetch.*preview|preview|validate/i}).first();
             console.log('PREVIEW_COUNT=' + await preview.count());
             if (await preview.count() && await preview.isVisible() && !(await preview.isDisabled())) {
@@ -47,9 +133,9 @@ jobs:
             const body1 = (await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,12000);
             console.log('AFTER_PREVIEW=' + body1);
             console.log('BUTTON_TEXTS=' + JSON.stringify(await page.locator('button:visible').allInnerTexts()));
-            const finalButton = page.getByRole('button', {name:/submit.*review|submit service|add to directory|publish|list service/i}).first();
+            const finalButton = page.getByRole('button', {name:/submit.*review|submit service|add to directory|publish|list service|submit/i}).last();
             console.log('FINAL_BUTTON_COUNT=' + await finalButton.count());
-            if (await finalButton.count() && await finalButton.isVisible() && !(await finalButton.isDisabled())) {
+            if (await finalButton.count() && await finalButton.isVisible() && !(await finalButton.isDisabled()) && !/fetch.*preview/i.test(await finalButton.innerText())) {
               console.log('CLICK_FINAL=' + await finalButton.innerText());
               await finalButton.click();
               await page.waitForTimeout(5000);
@@ -58,7 +144,7 @@ jobs:
             console.log('FINAL_BODY=' + body2);
             console.log('MUTATIONS=' + JSON.stringify(mutations));
             console.log('FINAL_URL=' + page.url());
-            const confirmed = /submission received|submitted successfully|queued for review|sent for review|pending review|thank you|we.?ll review/i.test(body2) && mutations.some(m => m.status >= 200 && m.status < 300);
+            const confirmed = /submission received|submitted successfully|queued for review|sent for review|pending review|thank you|we.?ll review|listed after review/i.test(body2) && mutations.some(m => m.status >= 200 && m.status < 300);
             console.log('BOTMARKET_CONFIRMED=' + (confirmed ? '1' : '0'));
           } catch (e) {
             console.log('BOTMARKET_ERROR=' + String(e));
