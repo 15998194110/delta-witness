@@ -17,143 +17,60 @@ jobs:
           set +e
           npm --silent install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium >/dev/null
-          cat > /tmp/bm.mjs <<'JS'
+          cat > botmarket-run.mjs <<'JS'
           import { chromium } from 'playwright';
-          
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage();
           const mutations = [];
           page.on('response', (r) => {
             const req = r.request();
-            if (req.method() !== 'GET') {
-              mutations.push({ method: req.method(), url: r.url(), status: r.status() });
-            }
+            if (req.method() !== 'GET') mutations.push({ method: req.method(), url: r.url(), status: r.status() });
           });
-          
-          async function bodyText() {
-            return (await page.locator('body').innerText()).replace(/\s+/g, ' ').slice(0, 12000);
-          }
-          
-          async function fieldSummary() {
+          async function bodyText() { return (await page.locator('body').innerText()).replace(/\s+/g, ' ').slice(0, 12000); }
+          async function fields() {
             return await page.locator('input:visible, textarea:visible, select:visible').evaluateAll((els) => els.map((e, i) => ({
-              i,
-              tag: e.tagName,
-              type: e.getAttribute('type'),
-              name: e.getAttribute('name'),
-              placeholder: e.getAttribute('placeholder'),
-              label: e.labels?.[0]?.innerText || '',
-              value: e.value,
-              required: !!e.required,
-              context: (e.parentElement?.parentElement?.innerText || e.parentElement?.innerText || '').replace(/\s+/g, ' ').slice(0, 400),
+              i, tag:e.tagName, type:e.getAttribute('type'), name:e.getAttribute('name'), placeholder:e.getAttribute('placeholder'),
+              label:e.labels?.[0]?.innerText||'', value:e.value, required:!!e.required,
+              context:(e.parentElement?.parentElement?.innerText||e.parentElement?.innerText||'').replace(/\s+/g,' ').slice(0,400)
             })));
           }
-          
           try {
-            await page.goto('https://botmarket.bot/submit', { waitUntil: 'networkidle', timeout: 60000 });
-            console.log('BM_INITIAL=' + await bodyText());
-            console.log('BM_CONTROLS=' + JSON.stringify(await page.locator('button, [role=button], label, a').evaluateAll((els) => els.map((e, i) => ({
-              i,
-              tag: e.tagName,
-              text: (e.innerText || e.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 220),
-              role: e.getAttribute('role'),
-              href: e.getAttribute('href'),
-              html: e.outerHTML.slice(0, 800),
-            })).filter((x) => /agent|mcp|x402|submit|preview|fetch|service/i.test(x.text)))));
-          
-            const xText = page.getByText(/x402 service/i, { exact: true }).first();
-            if (await xText.count()) {
-              console.log('BM_X402_NODE=' + (await xText.evaluate((e) => e.parentElement?.parentElement?.outerHTML || e.parentElement?.outerHTML || e.outerHTML)).slice(0, 8000));
+            await page.goto('https://botmarket.bot/submit', { waitUntil:'networkidle', timeout:60000 });
+            console.log('BM_INITIAL='+await bodyText());
+            console.log('BM_CONTROLS='+JSON.stringify(await page.locator('button,[role=button],label,a').evaluateAll((els)=>els.map((e,i)=>({i,tag:e.tagName,text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,220),role:e.getAttribute('role'),href:e.getAttribute('href'),html:e.outerHTML.slice(0,800)})).filter((x)=>/agent|mcp|x402|submit|preview|fetch|service/i.test(x.text)))));
+            const xText=page.getByText(/x402 service/i,{exact:true}).first();
+            if(await xText.count()) console.log('BM_X402_NODE='+(await xText.evaluate((e)=>e.parentElement?.parentElement?.outerHTML||e.parentElement?.outerHTML||e.outerHTML)).slice(0,8000));
+            const switchers=[page.getByRole('button',{name:/x402/i}).first(),page.getByRole('radio',{name:/x402/i}).first(),xText,xText.locator('..'),xText.locator('../..')];
+            let switched=false;
+            for(let i=0;i<switchers.length;i++){
+              try{const s=switchers[i]; if(await s.count()){await s.click({force:true}); await page.waitForTimeout(400);}}catch(e){console.log('BM_SWITCH_ERR_'+i+'='+String(e));}
+              const f=await fields(); console.log('BM_FIELDS_'+i+'='+JSON.stringify(f));
+              if(f.some((z)=>/x402|service url|endpoint/i.test((z.label||'')+' '+(z.placeholder||'')+' '+(z.context||'')))){switched=true;break;}
             }
-          
-            const switchers = [
-              page.getByRole('button', { name: /x402/i }).first(),
-              page.getByRole('radio', { name: /x402/i }).first(),
-              xText,
-              xText.locator('..'),
-              xText.locator('../..'),
-            ];
-            let switched = false;
-            for (let i = 0; i < switchers.length; i++) {
-              try {
-                const s = switchers[i];
-                if (await s.count()) {
-                  await s.click({ force: true });
-                  await page.waitForTimeout(400);
-                }
-              } catch (e) {
-                console.log('BM_SWITCH_ERR_' + i + '=' + String(e));
-              }
-              const f = await fieldSummary();
-              console.log('BM_FIELDS_' + i + '=' + JSON.stringify(f));
-              if (f.some((z) => /x402|service url|endpoint/i.test((z.label || '') + ' ' + (z.placeholder || '') + ' ' + (z.context || '')))) {
-                switched = true;
-                break;
-              }
+            console.log('BM_SWITCHED='+(switched?'1':'0'));
+            const inputs=page.locator('input:visible, textarea:visible');
+            for(let i=0;i<await inputs.count();i++){
+              const el=inputs.nth(i);
+              const type=(await el.getAttribute('type')||'').toLowerCase(); const name=(await el.getAttribute('name')||'').toLowerCase(); const ph=(await el.getAttribute('placeholder')||'').toLowerCase();
+              const label=((await el.evaluate((e)=>e.labels?.[0]?.innerText||''))||'').toLowerCase(); const ctx=((await el.evaluate((e)=>e.parentElement?.parentElement?.innerText||e.parentElement?.innerText||''))||'').toLowerCase();
+              const d=`${type} ${name} ${ph} ${label} ${ctx}`;
+              if(type==='search'||type==='email'||d.includes('contact')) continue;
+              if(type==='url'||/url|endpoint/.test(d)) await el.fill(/base url/.test(d)?'https://delta-witness-api.ruphussten.workers.dev':'https://delta-witness-api.ruphussten.workers.dev/v1/preflight');
             }
-            console.log('BM_SWITCHED=' + (switched ? '1' : '0'));
-          
-            const inputs = page.locator('input:visible, textarea:visible');
-            for (let i = 0; i < await inputs.count(); i++) {
-              const el = inputs.nth(i);
-              const type = (await el.getAttribute('type') || '').toLowerCase();
-              const name = (await el.getAttribute('name') || '').toLowerCase();
-              const ph = (await el.getAttribute('placeholder') || '').toLowerCase();
-              const label = ((await el.evaluate((e) => e.labels?.[0]?.innerText || '')) || '').toLowerCase();
-              const ctx = ((await el.evaluate((e) => e.parentElement?.parentElement?.innerText || e.parentElement?.innerText || '')) || '').toLowerCase();
-              const descriptor = `${type} ${name} ${ph} ${label} ${ctx}`;
-              if (type === 'search' || type === 'email' || descriptor.includes('contact')) continue;
-              if (type === 'url' || /url|endpoint/.test(descriptor)) {
-                const value = /base url/.test(descriptor)
-                  ? 'https://delta-witness-api.ruphussten.workers.dev'
-                  : 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight';
-                await el.fill(value);
-              }
-            }
-            console.log('BM_FILLED=' + JSON.stringify(await fieldSummary()));
-          
-            const preview = page.getByRole('button', { name: /fetch.*preview|preview|validate/i });
-            if (await preview.count()) {
-              const p = preview.first();
-              console.log('BM_PREVIEW_TEXT=' + (await p.innerText()));
-              if (await p.isVisible() && !(await p.isDisabled())) {
-                await p.click();
-                await page.waitForTimeout(5000);
-              }
-            }
-            console.log('BM_AFTER_PREVIEW=' + await bodyText());
-            console.log('BM_MUTATIONS_AFTER_PREVIEW=' + JSON.stringify(mutations));
-            const buttonSummary = await page.locator('button:visible').evaluateAll((els) => els.map((e, i) => ({
-              i,
-              text: (e.innerText || e.textContent || '').trim().replace(/\s+/g, ' '),
-              disabled: !!e.disabled,
-            })));
-            console.log('BM_BUTTONS_AFTER_PREVIEW=' + JSON.stringify(buttonSummary));
-          
-            const finals = page.getByRole('button', { name: /submit|add to directory|send for review|publish|list service/i });
-            let clickedFinal = false;
-            for (let i = (await finals.count()) - 1; i >= 0; i--) {
-              const b = finals.nth(i);
-              if (await b.isVisible() && !(await b.isDisabled())) {
-                const txt = (await b.innerText()).trim();
-                console.log('BM_CLICK_FINAL=' + txt);
-                await b.click();
-                clickedFinal = true;
-                await page.waitForTimeout(5000);
-                break;
-              }
-            }
-            console.log('BM_CLICKED_FINAL=' + (clickedFinal ? '1' : '0'));
-            const finalBody = await bodyText();
-            console.log('BM_FINAL_BODY=' + finalBody);
-            console.log('BM_FINAL_MUTATIONS=' + JSON.stringify(mutations));
-            console.log('BM_FINAL_URL=' + page.url());
-            const explicit = /thank you|submission received|submitted successfully|queued for review|sent for review|we.?ll review|successfully submitted|pending review/i.test(finalBody);
-            const mutation = mutations.some((m) => m.status >= 200 && m.status < 300 && /submit|api|service|agent|listing|directory|x402/i.test(m.url));
-            console.log('BM_STRICT_CONFIRMED=' + (explicit && mutation ? '1' : '0'));
-          } catch (e) {
-            console.log('BM_FATAL=' + String(e));
-          }
-          
+            console.log('BM_FILLED='+JSON.stringify(await fields()));
+            const preview=page.getByRole('button',{name:/fetch.*preview|preview|validate/i});
+            if(await preview.count()){const p=preview.first(); console.log('BM_PREVIEW_TEXT='+(await p.innerText())); if(await p.isVisible()&&!(await p.isDisabled())){await p.click(); await page.waitForTimeout(5000);}}
+            console.log('BM_AFTER_PREVIEW='+await bodyText()); console.log('BM_MUTATIONS_AFTER_PREVIEW='+JSON.stringify(mutations));
+            console.log('BM_BUTTONS_AFTER_PREVIEW='+JSON.stringify(await page.locator('button:visible').evaluateAll((els)=>els.map((e,i)=>({i,text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' '),disabled:!!e.disabled}))));
+            const finals=page.getByRole('button',{name:/submit|add to directory|send for review|publish|list service/i});
+            let clickedFinal=false;
+            for(let i=(await finals.count())-1;i>=0;i--){const b=finals.nth(i); if(await b.isVisible()&&!(await b.isDisabled())){const txt=(await b.innerText()).trim(); console.log('BM_CLICK_FINAL='+txt); await b.click(); clickedFinal=true; await page.waitForTimeout(5000); break;}}
+            console.log('BM_CLICKED_FINAL='+(clickedFinal?'1':'0'));
+            const finalBody=await bodyText(); console.log('BM_FINAL_BODY='+finalBody); console.log('BM_FINAL_MUTATIONS='+JSON.stringify(mutations)); console.log('BM_FINAL_URL='+page.url());
+            const explicit=/thank you|submission received|submitted successfully|queued for review|sent for review|we.?ll review|successfully submitted|pending review/i.test(finalBody);
+            const mutation=mutations.some((m)=>m.status>=200&&m.status<300&&/submit|api|service|agent|listing|directory|x402/i.test(m.url));
+            console.log('BM_STRICT_CONFIRMED='+(explicit&&mutation?'1':'0'));
+          } catch(e){console.log('BM_FATAL='+String(e));}
           await browser.close();
           JS
-          node --check /tmp/bm.mjs && node /tmp/bm.mjs
+          node --check botmarket-run.mjs && node botmarket-run.mjs
