@@ -11,8 +11,9 @@ Customer-revenue status did not change. Base Treasury reconciliation remained in
 - Treasury: `0x1990e21bc219696ff7fbc26527dbaed335ac6367`
 - Network: Base (`eip155:8453`)
 - Canonical USDC: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
-- Reconciled through Base block: `51,114,300`
-- Window start: `51,064,301`
+- Final reconciliation checkpoint: `2026-09-10T05:43:02.277Z`
+- Reconciled through Base block: `51,114,815`
+- Window start: `51,064,816`
 - Canonical USDC receipts in the window: one `$0.03` transfer, tx `0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9`, from `0x7e6b6556322c4e26c567a867964ac793f5ee2b1c`
 - Classification: `payapi_platform_verification`
 - `customer_revenue=false`
@@ -33,6 +34,8 @@ Direct production checks remained healthy and preserved the standing mandate:
 | Capture | 402 | `$0.03` / `30000` raw USDC | Base | canonical USDC | existing Treasury | A |
 | Preflight | 402 | `$0.03` / `30000` raw USDC | Base | canonical USDC | existing Treasury | A |
 | Guarded-Action Pilot | 402 | `$10.00` / `10000000` raw USDC | Base | canonical USDC | existing Treasury | A |
+
+A later final-check harness accidentally asserted a stale `$1.00` Preflight expectation and therefore failed its own assertion; its live response itself again showed `30000` raw USDC, confirming production Preflight remained correctly at `$0.03`. This was a test-expectation error, not a DELTA production integrity failure.
 
 The Guarded-Action Pilot also continued to expose positive modeled economics for its normal example (`$10` gross, about `$0.004` expected variable cost, about `$9.996` modeled contribution margin). This is production verification, not a customer sale.
 
