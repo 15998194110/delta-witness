@@ -61,7 +61,7 @@ describe("payment hard gate", () => {
     stubTimingSafeEqual();
     const browser = { quickAction: vi.fn() };
     const env = runtime(browser);
-    Object.assign(env, { PREFLIGHT_BASE_PRICE_USD: "1", PARTNER_PREFLIGHT_BASE_PRICE_USD: "0.03", PARTNER_GATEWAY_SECRET: "partner-secret" });
+    Object.assign(env, { PREFLIGHT_BASE_PRICE_USD: "5", PARTNER_PREFLIGHT_BASE_PRICE_USD: "0.03", PARTNER_GATEWAY_SECRET: "partner-secret" });
     const body = { url: "https://example.com/" };
     const fingerprint = await sha256("partner\nexisting\noriginal-order");
     const record = initialFulfillment({ route: "/partner/preflight", requestHash: await paidRequestHash("/partner/preflight", body), requestedUrl: body.url, fulfillmentFingerprint: fingerprint });
@@ -104,7 +104,7 @@ describe("payment hard gate", () => {
   it("replays an already delivered old-price Preflight after repricing without another payment", async () => {
     const browser = { quickAction: vi.fn() };
     const env = runtime(browser);
-    Object.assign(env, { PREFLIGHT_BASE_PRICE_USD: "0.03" });
+    Object.assign(env, { PREFLIGHT_BASE_PRICE_USD: "5" });
     const oldPayment = Buffer.from(JSON.stringify({ accepted: { amount: "30000" } })).toString("base64");
     const fingerprint = await sha256(oldPayment);
     const body = { url: "https://example.com/" };

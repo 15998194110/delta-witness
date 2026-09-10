@@ -1,5 +1,7 @@
 # CODEX MASTER HANDOFF — DELTA Witness
 
+> CURRENT OWNER PRICING (2026-09-10): Capture / authenticated Partner Capture / authenticated Partner Preflight / each NEW Watch check = **1 USDC**; Public Preflight = **5 USDC**; Guarded-Action Pilot = **10 USDC**. Read `AGENTS.md` and `docs/pricing-policy-2026-09-10.md` before every run. Conflicting old prices, automatic repricing and paid-canary instructions below are superseded. Historical receipts and prepaid obligations are not rewritten.
+
 ## Mandate
 Take end-to-end engineering and distribution ownership of DELTA Witness. Do not stop at “deployment succeeded.” The business objective is autonomous profitable acquisition: a stranger or autonomous agent discovers DELTA without manual outreach, pays, receives a proof automatically, and the transaction is contribution-margin positive.
 
@@ -48,7 +50,7 @@ Hard gates:
 - If an attester wallet is introduced, make it a separate low-value hot wallet stored only in provider secret management.
 - Record actual Browser Run milliseconds and estimate variable cost per fulfilled order.
 
-Do ONE explicitly labeled canary mainnet purchase only if required to activate Bazaar/indexing. Never classify owner/canary transactions as organic revenue.
+Do not fund a canary, test purchase or self-settlement for indexing. A separate exact owner authorization is required; any such receipt remains non-customer activity.
 
 ## P2 — Add acquisition/attribution telemetry before scaling
 We cannot optimize profit without funnel data. Add privacy-conscious server-side events, preferably Cloudflare-native (Analytics Engine/D1/Queues as appropriate), for:
@@ -91,7 +93,7 @@ Use ONE core service and thin adapters. Do not fork business logic per marketpla
 1. **x402 / Bazaar / Agentic Market / x402 aggregators**
    - Correct x402 v2 metadata and input/output schema.
    - Verify automatic discovery.
-   - If first settle is needed, use the labeled canary.
+   - If a first settlement is required, record the blocker; do not self-pay or manufacture demand.
    - Check secondary indexing/aggregation.
 
 2. **MCP ecosystem**
@@ -154,14 +156,7 @@ If a platform requires one-time human bootstrap:
 3. Resume immediately after authorization.
 
 ## P7 — Pricing / profitability
-Do not hard-code $0.01 forever. Create an evidence-based pricing system.
-- Floor price > expected settlement fee + browser cost + storage/compute + failure allowance + target margin.
-- Cached/cheap verification may be lower priced than fresh browser capture.
-- Guard price can scale with freshness/depth, not with the customer's value-at-risk unless transparently justified.
-- Platform channels must account for platform revenue share and payout fees.
-- Automatically disable/raise price on routes or target classes that become contribution-margin negative.
-
-Use experiments where possible, but never deceptive pricing.
+The owner alone controls prices. New Capture, authenticated Partner Capture/Preflight and each new Watch check cost 1 USDC; Public Preflight costs 5 USDC; Guarded-Action Pilot costs 10 USDC. This supersedes all earlier experiments and copied automation prompts. Do not automatically raise/lower prices. Record cost/margin risk separately and pause unsafe new fulfillment when required; seek a new explicit owner decision before repricing. Preserve already-paid delivery identities and prepaid obligations without a second charge. Never rewrite old receipts as current-price sales.
 
 ## Success metrics / acceptance criteria
 ### Engineering acceptance

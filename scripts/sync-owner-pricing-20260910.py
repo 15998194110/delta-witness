@@ -11,7 +11,7 @@ def write(path, content):
     p = root / path
     if not p.exists() or p.read_text() != content:
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content)
+        p.write_text(content.rstrip()+chr(10))
         changed.append(path)
 
 authority = read('AGENTS.md')

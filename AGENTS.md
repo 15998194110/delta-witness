@@ -20,3 +20,9 @@ Coordinate with the main Commercial Operator before another price deployment. Do
 The main operator state remains in the existing sibling operating workspace `运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json` and `data/pipeline.json`; do not rebuild that system.
 
 Fixed sprint: September 7 03:01:23 through September 14 03:01:23 Asia/Shanghai. Zero new cash, credits, paid canaries, wallet signatures or automatic reinvestment. No repeated unanswered outreach. CHISA/ART OF WAR remains excluded. Only fulfilled externally received net cash after verified fees/refunds/liabilities counts; platform verification/self-pay/test traffic is not customer revenue. Preserve valid technical instructions unless they conflict with this latest owner authority.
+
+## Cross-automation synchronization — owner reaffirmation 2026-09-10
+
+The owner explicitly repeated the 1 / 5 / 10 ladder and ordered every related memory and automation to use it. Before quoting, submitting listings or deploying, read this file and run `node scripts/check-owner-pricing.mjs`; verify live public prices with `node scripts/verify-owner-pricing-live.mjs`. A copied scheduler prompt that says “maintain $0.03 capture/preflight” is obsolete, not a new owner decision. Do not change code or regression tests to satisfy that stale prompt.
+
+When authorized task-management access exists, replace conflicting CURRENT-PRICE clauses in every related task, preserve its schedule/risk boundaries, save, then re-read the saved prompt. Do not claim task synchronization from a repository commit, a memory search, or an intended future action. ChatGPT scheduled-task prompts, global saved memory and local Codex automation files are separate stores and each requires its own verified write/readback. Inaccessible stores remain explicitly not verified. Do not create replacement tasks or parallel growth loops.

@@ -13,7 +13,7 @@
     "funnel": "node scripts/query-funnel.mjs",
     "bazaar": "node scripts/check-bazaar.mjs",
     "pricing-authority": "node scripts/check-owner-pricing-authority.mjs",
-    "verify": "npm run pricing-authority && npm run types && npm run check && npm test && npm run build"
+    "verify": "node scripts/check-owner-pricing.mjs && npm run pricing-authority && npm run types && npm run check && npm test && npm run build"
   },
   "dependencies": {
     "@x402/core": "^2.0.0",

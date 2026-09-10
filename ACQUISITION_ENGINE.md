@@ -1,5 +1,7 @@
 # DELTA Acquisition Engine v0.6
 
+> CURRENT OWNER PRICING (2026-09-10): Capture / authenticated Partner Capture / authenticated Partner Preflight / each NEW Watch check = **1 USDC**; Public Preflight = **5 USDC**; Guarded-Action Pilot = **10 USDC**. Read `AGENTS.md` and `docs/pricing-policy-2026-09-10.md` before every run. Conflicting old prices, automatic repricing and paid-canary instructions below are superseded. Historical receipts and prepaid obligations are not rewritten.
+
 North star: first **independent customer** payment, then repeatable CAC ≈ 0 channels.
 
 Formula:

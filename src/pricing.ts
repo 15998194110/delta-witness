@@ -51,7 +51,7 @@ function configuredProductPrice(env: RuntimeEnv, product: Product): number {
     : product === "watch_check"
       ? env.WATCH_BASE_PRICE_USD
       : env.PREFLIGHT_BASE_PRICE_USD;
-  const fallback = product === "capture" ? 1 : product === "preflight" ? 5 : 1;
+  const fallback = product === "preflight" ? 5 : 1;
   return numberSetting(value, fallback, 0.001, 10_000);
 }
 

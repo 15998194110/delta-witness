@@ -853,7 +853,7 @@ const MESHKORE_DEFAULT_AGENT_ID = "delta-witness-ruphussten";
 
 function meshKoreDiscoveryCard(env: RuntimeEnv): Record<string, unknown> {
   const base = origin(env);
-  const amount = Math.round(Number(env.CAPTURE_BASE_PRICE_USD || "0.03") * 1_000_000);
+  const amount = Math.round(Number(env.CAPTURE_BASE_PRICE_USD || "1") * 1_000_000);
   return {
     name: "DELTA Witness",
     endpoint: base,

@@ -10,7 +10,7 @@
     "check": "tsc --noEmit",
     "test": "vitest run",
     "build": "wrangler deploy --dry-run --outdir dist",
-    "verify": "npm run types && npm run check && npm test && npm run build"
+    "verify": "node ../../scripts/check-owner-pricing.mjs && npm run types && npm run check && npm test && npm run build"
   },
   "dependencies": {
     "hono": "^4.0.0"
