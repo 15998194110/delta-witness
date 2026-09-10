@@ -10,34 +10,39 @@ permissions:
   contents: read
 
 jobs:
-  inspect:
+  submit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with: { node-version: '22' }
-      - name: Verify current owner pricing before any possible listing work
+      - name: Verify current owner pricing before listing write
         run: |
           node scripts/check-owner-pricing.mjs
           node scripts/verify-owner-pricing-live.mjs
-      - name: Inspect public submit contract without writing registry state
+      - name: Submit canonical DELTA URL only if absent
         shell: bash
         run: |
           set -euo pipefail
-          SITE='https://www.a2a-registry.org'
-          curl --retry 3 --retry-delay 2 --retry-all-errors -fsSL "$SITE/submit" -o /tmp/submit.html
-          ASSET=$(grep -oE 'src="[^"]+/app/submit/page-[^"]+\.js"' /tmp/submit.html | head -1 | sed -E 's/^src="|"$//g')
-          test -n "$ASSET"
-          curl --retry 3 --retry-delay 2 --retry-all-errors -fsSL "$SITE$ASSET" -o /tmp/submit.js
-          node - <<'NODE'
-          const fs = require('fs');
-          const s = fs.readFileSync('/tmp/submit.js','utf8');
-          for (const needle of ['/public/ingest/scan','/public/ingest/submit-and-claim','submit-and-claim']) {
-            let pos = 0, n = 0;
-            while ((pos = s.indexOf(needle,pos)) >= 0 && n < 6) {
-              console.log(`=== ${needle} hit ${++n} ===`);
-              console.log(s.slice(Math.max(0,pos-1200), Math.min(s.length,pos+2200)));
-              pos += needle.length;
-            }
-          }
-          NODE
+          API='https://api.a2a-registry.org'
+          URL='https://delta-witness-api.ruphussten.workers.dev'
+          EXISTING=$(curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --get "$API/public/agents" --data-urlencode 'q=ruphussten')
+          echo "A2A_EXISTING_SEARCH=$EXISTING"
+          if printf '%s' "$EXISTING" | grep -qiE 'delta[- ]witness|ruphussten'; then
+            echo 'A2A_DUPLICATE_SUPPRESSED=true'
+            exit 0
+          fi
+
+          SCAN=$(curl --retry 3 --retry-delay 2 --retry-all-errors -fsS -X POST "$API/public/ingest/scan" -H 'content-type: application/json' --data "{\"url\":\"$URL\"}")
+          echo "A2A_SCAN=$SCAN"
+          node -e 'const x=JSON.parse(process.argv[1]); if(!x.success || !x.data?.found) process.exit(1)' "$SCAN"
+
+          SUBMIT=$(curl --retry 3 --retry-delay 2 --retry-all-errors -fsS -X POST "$API/public/ingest/submit-and-claim" -H 'content-type: application/json' --data "{\"url\":\"$URL\"}")
+          echo "A2A_SUBMIT=$SUBMIT"
+          node -e 'const x=JSON.parse(process.argv[1]); if(!x.success) process.exit(1)' "$SUBMIT"
+
+          sleep 2
+          for q in ruphussten delta-witness 'DELTA Witness'; do
+            READBACK=$(curl --retry 3 --retry-delay 2 --retry-all-errors -fsS --get "$API/public/agents" --data-urlencode "q=$q")
+            echo "A2A_READBACK q=$q $READBACK"
+          done
