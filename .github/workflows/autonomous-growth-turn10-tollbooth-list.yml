@@ -9,45 +9,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Recover category validation and register DELTA services
+      - name: Fallback through official manifest ingestion
         shell: bash
         run: |
           set -u
           BASE='https://www.trytollbooth.com'
           TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-          capture='https://delta-witness-api.ruphussten.workers.dev/v1/capture'
-          preflight='https://delta-witness-api.ruphussten.workers.dev/v1/preflight'
-          pilot='https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action'
-          cats=(data data-api web-data verification tooling developer utility other research web api tools)
-          chosen=''
-          for category in "${cats[@]}"; do
-            echo "=== CATEGORY_PROBE $category ==="
-            body=$(jq -nc --arg name 'DELTA Witness Capture' --arg endpoint "$capture" --arg category "$category" --argjson price 0.03 --arg wallet "$TREASURY" --arg description 'Timestamped public-web capture with deterministic artifact hashes and verifiable proof URLs.' '{name:$name,endpoint:$endpoint,category:$category,priceUsdc:$price,wallet:$wallet,chain:"base",description:$description}')
-            code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 60 -o /tmp/probe.json -w '%{http_code}' -X POST "$BASE/api/services" -H 'content-type: application/json' -d "$body" || true)
-            echo "HTTP=$code"
-            cat /tmp/probe.json || true; echo
-            if [ "$code" = 200 ] || [ "$code" = 201 ]; then chosen="$category"; break; fi
-            if [ "$code" = 409 ] && grep -Eqi 'exist|duplicate|already' /tmp/probe.json; then chosen="$category"; break; fi
-          done
-          echo "CHOSEN_CATEGORY=$chosen"
-          if [ -n "$chosen" ]; then
-            register() {
-              local name="$1" endpoint="$2" price="$3" description="$4"
-              body=$(jq -nc --arg name "$name" --arg endpoint "$endpoint" --arg category "$chosen" --argjson price "$price" --arg wallet "$TREASURY" --arg description "$description" '{name:$name,endpoint:$endpoint,category:$category,priceUsdc:$price,wallet:$wallet,chain:"base",description:$description}')
-              code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 60 -o /tmp/out.json -w '%{http_code}' -X POST "$BASE/api/services" -H 'content-type: application/json' -d "$body" || true)
-              echo "REGISTER name=$name HTTP=$code"
-              cat /tmp/out.json || true; echo
-            }
-            register 'DELTA Witness Preflight' "$preflight" 0.03 'Preflight autonomous actions against fresh public evidence and deterministic expectations before committing.'
-            register 'DELTA Witness Guarded Action Pilot' "$pilot" 10 'Higher-value guarded-action pilot that verifies public evidence before executing a constrained autonomous action.'
-            echo '=== READBACK ==='
-            for attempt in 1 2 3 4; do
-              code=$(curl -sS --max-time 30 -o /tmp/readback.json -w '%{http_code}' "$BASE/api/services?q=DELTA" || true)
-              echo "READBACK_ATTEMPT=$attempt HTTP=$code"
-              if [ "$code" = 200 ]; then cat /tmp/readback.json; echo; break; fi
-              sleep $((attempt*2))
-            done
+          ASSET='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+          manifests=$(jq -nc --arg wallet "$TREASURY" --arg asset "$ASSET" '[
+            {schema:"agent402/manifest@1",name:"DELTA Witness Capture",description:"Timestamped public-web capture with deterministic artifact hashes and verifiable proof URLs.",category:"data",endpoint:"https://delta-witness-api.ruphussten.workers.dev/v1/capture",x402:{network:"base",scheme:"exact",asset:$asset,payTo:$wallet,maxAmountRequired:"30000"},input:{type:"object"},output:{type:"object"}},
+            {schema:"agent402/manifest@1",name:"DELTA Witness Preflight",description:"Preflight autonomous actions against fresh public evidence and deterministic expectations before committing.",category:"data",endpoint:"https://delta-witness-api.ruphussten.workers.dev/v1/preflight",x402:{network:"base",scheme:"exact",asset:$asset,payTo:$wallet,maxAmountRequired:"30000"},input:{type:"object"},output:{type:"object"}},
+            {schema:"agent402/manifest@1",name:"DELTA Witness Guarded Action Pilot",description:"Higher-value guarded-action pilot that verifies public evidence before executing a constrained autonomous action.",category:"data",endpoint:"https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action",x402:{network:"base",scheme:"exact",asset:$asset,payTo:$wallet,maxAmountRequired:"10000000"},input:{type:"object"},output:{type:"object"}}
+          ]')
+          try_post() {
+            local label="$1" payload="$2"
+            code=$(curl --retry 4 --retry-delay 2 --retry-all-errors -sS --max-time 75 -o /tmp/manifest-out.json -w '%{http_code}' -X POST "$BASE/api/manifests" -H 'content-type: application/json' -d "$payload" || true)
+            echo "$label HTTP=$code"
+            cat /tmp/manifest-out.json || true; echo
+            case "$code" in 200|201) return 0;; *) return 1;; esac
+          }
+          success=0
+          wrapped=$(jq -nc --argjson manifests "$manifests" '{manifests:$manifests}')
+          if try_post WRAPPED "$wrapped"; then success=1; fi
+          if [ "$success" = 0 ] && try_post RAW_ARRAY "$manifests"; then success=1; fi
+          if [ "$success" = 0 ]; then
+            first=$(echo "$manifests" | jq -c '.[0]')
+            if try_post SINGLE "$first"; then success=1; fi
           fi
+          echo "MANIFEST_INGEST_SUCCESS=$success"
+          echo '=== READBACK ==='
+          for attempt in 1 2 3 4; do
+            code=$(curl -sS --max-time 30 -o /tmp/readback.json -w '%{http_code}' "$BASE/api/services?q=DELTA" || true)
+            echo "READBACK_ATTEMPT=$attempt HTTP=$code"
+            if [ "$code" = 200 ]; then cat /tmp/readback.json; echo; break; fi
+            sleep $((attempt*2))
+          done
       - name: Reconcile Base Treasury independently
         shell: bash
         run: |
