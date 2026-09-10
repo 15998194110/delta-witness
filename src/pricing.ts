@@ -51,7 +51,7 @@ function configuredProductPrice(env: RuntimeEnv, product: Product): number {
     : product === "watch_check"
       ? env.WATCH_BASE_PRICE_USD
       : env.PREFLIGHT_BASE_PRICE_USD;
-  const fallback = product === "preflight" ? 5 : 1;
+  const fallback = product === "watch_check" ? 1 : 0.03;
   return numberSetting(value, fallback, 0.001, 10_000);
 }
 
@@ -62,9 +62,9 @@ export function quoteProduct(env: RuntimeEnv, product: Product): PricingQuote {
   const expectedVariableCostUsd = estimateVariableCost(env, expectedBrowserMs, expectedStorageBytes);
   const minimumPriceUsd = expectedVariableCostUsd / (1 - targetMarginBps / 10_000);
   const configuredPriceUsd = configuredProductPrice(env, product);
-  // Owner pricing is a fixed commercial ladder, not an autonomous repricing target.
+  // Owner pricing is fixed by explicit commercial policy, not autonomous repricing.
   // Cost-floor telemetry remains visible in minimumPriceUsd; it must not silently
-  // invent a fourth customer-facing price without a newer explicit owner decision.
+  // invent a new customer-facing price without a newer explicit owner decision.
   const grossPriceUsd = Math.ceil(configuredPriceUsd * 1_000_000) / 1_000_000;
   return {
     product,
