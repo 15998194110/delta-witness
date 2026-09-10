@@ -610,7 +610,7 @@ app.post("/internal/partner/:product", async (c) => {
     const gross = Number(c.req.header("x-delta-gross-usd"));
     // Public Preflight repricing does not renegotiate existing prepaid channels.
     const partnerFloor = product === "preflight"
-      ? Math.max(Number(c.env.PARTNER_PREFLIGHT_BASE_PRICE_USD || "0.03"), quote.minimumPriceUsd)
+      ? Math.max(Number(c.env.PARTNER_PREFLIGHT_BASE_PRICE_USD || "1"), quote.minimumPriceUsd)
       : quote.grossPriceUsd;
     if (!Number.isFinite(gross) || gross < partnerFloor) {
       return c.json({ error: "partner_price_below_floor", minimum_price_usd: partnerFloor }, 402);

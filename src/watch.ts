@@ -241,17 +241,9 @@ async function processWatch(env: RuntimeEnv, key: string): Promise<void> {
   const nowMs = Date.now();
   if (record.schema !== "delta-watch/v1" || record.state !== "active" || record.checks_remaining <= 0) return;
   if (Date.parse(record.next_check_at) > nowMs || (record.lease_until && Date.parse(record.lease_until) > nowMs)) return;
-  const quote = await quoteProductWithOverride(env, "watch_check");
-  if (record.prepaid_check_price_usd < quote.grossPriceUsd) {
-    record.state = "paused_margin";
-    record.updated_at = new Date().toISOString();
-    record.last_result = { ok: false, reason: "current_price_floor_exceeds_prepaid_check_price", required_price_usd: quote.grossPriceUsd };
-    await env.PROOFS.put(key, JSON.stringify(record), {
-      onlyIf: { etagMatches: object.etag },
-      httpMetadata: { contentType: "application/json; charset=utf-8" },
-    });
-    return;
-  }
+  // The current list price applies to new Watch purchases only. Existing prepaid
+  // checks are grandfathered at their recorded unit price and are not
+  // retroactively repriced merely because the owner changes today's ladder.
   const leased: WatchRecord = {
     ...record,
     lease_until: new Date(nowMs + WATCH_LEASE_MS).toISOString(),

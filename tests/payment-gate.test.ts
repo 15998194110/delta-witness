@@ -78,12 +78,12 @@ describe("payment hard gate", () => {
     expect(await response.json()).toEqual({ ...delivery, idempotent_replay: true });
     expect(browser.quickAction).not.toHaveBeenCalled();
   });
-  it.each([["capture", "30000"], ["preflight", "1000000"], ["guarded-action-pilot", "10000000"]])(
+  it.each([["capture", "1000000"], ["preflight", "5000000"], ["guarded-action-pilot", "10000000"]])(
     "publishes the approved %s price consistently without executing or settling",
     async (product, amount) => {
       const browser = { quickAction: vi.fn() };
       const env = runtime(browser);
-      Object.assign(env, { CAPTURE_BASE_PRICE_USD: "0.03", PREFLIGHT_BASE_PRICE_USD: "1", WATCH_BASE_PRICE_USD: "0.03" });
+      Object.assign(env, { CAPTURE_BASE_PRICE_USD: "1", PREFLIGHT_BASE_PRICE_USD: "5", WATCH_BASE_PRICE_USD: "1" });
       const fetchMock = vi.fn(async (input: string | URL | Request) => {
         if (String(input) === "https://facilitator.test/supported") return Response.json(supported);
         throw new Error(`Unexpected external call: ${String(input)}`);
@@ -104,7 +104,7 @@ describe("payment hard gate", () => {
   it("replays an already delivered old-price Preflight after repricing without another payment", async () => {
     const browser = { quickAction: vi.fn() };
     const env = runtime(browser);
-    Object.assign(env, { PREFLIGHT_BASE_PRICE_USD: "1" });
+    Object.assign(env, { PREFLIGHT_BASE_PRICE_USD: "5" });
     const oldPayment = Buffer.from(JSON.stringify({ accepted: { amount: "30000" } })).toString("base64");
     const fingerprint = await sha256(oldPayment);
     const body = { url: "https://example.com/" };

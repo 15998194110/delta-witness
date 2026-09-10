@@ -37,7 +37,8 @@ function runtime(bucket: MemoryBucket): RuntimeEnv {
     PAY_TO: "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
     NETWORK: "eip155:8453",
     CAPTURE_BASE_PRICE_USD: "0.01",
-    PREFLIGHT_BASE_PRICE_USD: "0.01",
+    PREFLIGHT_BASE_PRICE_USD: "5",
+    WATCH_BASE_PRICE_USD: "1",
     BROWSER_COST_PER_HOUR_USD: "0.09",
     FACILITATOR_FEE_USD: "0.001",
     FAILURE_ALLOWANCE_USD: "0.001",
@@ -63,20 +64,20 @@ describe("prepaid Watch", () => {
     const bucket = new MemoryBucket();
     const env = runtime(bucket);
     const request = await parseWatchRegistration({ url: "https://example.com", checks: 3, interval_seconds: 900 });
-    const underfunded = await registerWatch({ env, request, requestHash: "sha256:req", fingerprint: "sha256:key", partner: "rapidapi", channel: "rapidapi", grossPaidUsd: 0.001 });
+    const underfunded = await registerWatch({ env, request, requestHash: "sha256:req", fingerprint: "sha256:key", partner: "rapidapi", channel: "rapidapi", grossPaidUsd: 2.99 });
     expect(underfunded.status).toBe(402);
     expect(bucket.values.size).toBe(0);
 
-    const created = await registerWatch({ env, request, requestHash: "sha256:req", fingerprint: "sha256:key", partner: "rapidapi", channel: "rapidapi", grossPaidUsd: 0.09 });
+    const created = await registerWatch({ env, request, requestHash: "sha256:req", fingerprint: "sha256:key", partner: "rapidapi", channel: "rapidapi", grossPaidUsd: 3 });
     expect(created.status).toBe(201);
     expect(created.body.checks_remaining).toBe(3);
-    const replay = await registerWatch({ env, request, requestHash: "sha256:req", fingerprint: "sha256:key", partner: "rapidapi", channel: "rapidapi", grossPaidUsd: 0.09 });
+    const replay = await registerWatch({ env, request, requestHash: "sha256:req", fingerprint: "sha256:key", partner: "rapidapi", channel: "rapidapi", grossPaidUsd: 3 });
     expect(replay.status).toBe(200);
     expect(replay.body.idempotent_replay).toBe(true);
     expect(replay.body.webhook_secret).toBeUndefined();
   });
 
-  it("pauses a due watch before capture when its prepaid unit price falls below the current floor", async () => {
+  it("grandfathers an already prepaid watch instead of repricing it to the current list price", async () => {
     const bucket = new MemoryBucket();
     const env = runtime(bucket);
     const record: WatchRecord = {
@@ -98,10 +99,11 @@ describe("prepaid Watch", () => {
     };
     await bucket.put(`watches/${record.watch_id}.json`, JSON.stringify(record));
     await runDueWatches(env);
-    const paused = await bucket.get(`watches/${record.watch_id}.json`);
-    const value = await paused!.json<WatchRecord>();
-    expect(value.state).toBe("paused_margin");
-    expect(value.checks_remaining).toBe(2);
-    expect(env.BROWSER.quickAction).not.toHaveBeenCalled();
+    const stored = await bucket.get(`watches/${record.watch_id}.json`);
+    const value = await stored!.json<WatchRecord>();
+    expect(value.state).toBe("active");
+    expect(value.checks_attempted).toBe(1);
+    expect(value.checks_remaining).toBe(1);
+    expect(value.last_result?.reason).not.toBe("current_price_floor_exceeds_prepaid_check_price");
   });
 });
