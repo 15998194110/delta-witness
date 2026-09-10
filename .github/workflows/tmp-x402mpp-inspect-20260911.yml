@@ -1,0 +1,55 @@
+name: TMP DELTA x402mpp inspect
+
+on:
+  push:
+    paths:
+      - .github/workflows/tmp-x402mpp-inspect-20260911.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Check current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live prices before any possible listing write
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Inspect x402mpp public submission implementation without writing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import re, urllib.request, urllib.parse
+          base='https://x402mpp.sh/'
+          req=urllib.request.Request(base, headers={'User-Agent':'DELTA-Witness-discovery-audit/1.0'})
+          html=urllib.request.urlopen(req, timeout=20).read().decode('utf-8','replace')
+          print('homepage_bytes', len(html))
+          scripts=re.findall(r'<script[^>]+src=["\']([^"\']+)', html, flags=re.I)
+          print('scripts', scripts)
+          blobs=[('homepage',html)]
+          for src in scripts:
+              u=urllib.parse.urljoin(base,src)
+              try:
+                  r=urllib.request.Request(u, headers={'User-Agent':'DELTA-Witness-discovery-audit/1.0'})
+                  txt=urllib.request.urlopen(r, timeout=20).read().decode('utf-8','replace')
+                  blobs.append((u,txt))
+              except Exception as e:
+                  print('script_fetch_error',u,repr(e))
+          pats=[r'fetch\s*\((.{0,400})',r'/api/[A-Za-z0-9_./?-]+',r'submit.{0,350}',r'queue.{0,350}']
+          for name,txt in blobs:
+              hits=[]
+              for pat in pats:
+                  hits.extend(re.findall(pat,txt,flags=re.I|re.S))
+              if hits:
+                  print('\nSOURCE',name)
+                  for h in hits[:80]:
+                      if isinstance(h,tuple): h=' '.join(h)
+                      print(re.sub(r'\s+',' ',str(h))[:700])
+          PY
