@@ -1,0 +1,85 @@
+name: A2A Integration Turn 12
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/a2a-integration-turn12.yml']
+permissions:
+  contents: write
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Add standard A2A Agent Card alias and discovery pointer
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/index.ts')
+          s=p.read_text()
+          old='''app.get("/.well-known/agent.json", async (c) => c.json(agentJsonManifest(\n  origin(c.env),\n  c.env.PAY_TO,\n  c.env.FACILITATOR_URL,\n  await quoteProductWithOverride(c.env, "capture"),\n  await quoteProductWithOverride(c.env, "preflight"),\n)));'''
+          new=old+'''\napp.get("/.well-known/agent-card.json", (c) => app.fetch(\n  new Request(`${origin(c.env)}/.well-known/agent.json`, c.req.raw),\n  c.env,\n  c.executionCtx,\n));'''
+          if '/.well-known/agent-card.json' not in s:
+            if old not in s: raise SystemExit('agent route anchor not found')
+            s=s.replace(old,new,1)
+          old2='''    agent_json: `${origin(c.env)}/.well-known/agent.json`,\n    skill: `${origin(c.env)}/SKILL.md`,'''
+          new2='''    agent_json: `${origin(c.env)}/.well-known/agent.json`,\n    agent_card: `${origin(c.env)}/.well-known/agent-card.json`,\n    skill: `${origin(c.env)}/SKILL.md`,'''
+          if 'agent_card:' not in s:
+            if old2 not in s: raise SystemExit('distribution discovery anchor not found')
+            s=s.replace(old2,new2,1)
+          p.write_text(s)
+          PY
+      - name: Verify core before deployment
+        run: |
+          npm ci
+          npm run verify
+      - name: Commit integration source
+        run: |
+          git config user.name 'delta-growth-operator'
+          git config user.email 'actions@users.noreply.github.com'
+          git add src/index.ts
+          if git diff --cached --quiet; then
+            echo A2A_SOURCE_ALREADY_PRESENT=1
+          else
+            git commit -m 'feat: expose standard A2A agent-card discovery'
+            git push origin HEAD:master
+          fi
+      - name: Deploy core
+        run: npx wrangler deploy
+      - name: Verify A2A card and x402 production invariants
+        run: |
+          python3 - <<'PY'
+          import requests, json, base64
+          base='https://delta-witness-api.ruphussten.workers.dev'
+          c=requests.get(base+'/.well-known/agent-card.json',timeout=30)
+          print('A2A_HTTP='+str(c.status_code))
+          print('A2A_BODY='+c.text[:12000])
+          c.raise_for_status()
+          d=c.json()
+          assert d.get('name')=='DELTA Witness'
+          assert isinstance(d.get('capabilities'),dict)
+          assert len(d.get('skills') or [])>=3
+          assert all(x.get('tags') for x in d['skills'])
+          assert d.get('contact',{}).get('a2a','').endswith('/.well-known/agent-card.json')
+          expected={'/v1/capture':30000,'/v1/preflight':30000,'/v1/guarded-action-pilot':10000000}
+          treasury='0x1990e21bc219696ff7fbc26527dbaed335ac6367'.lower()
+          for path,amount in expected.items():
+            payload={'url':'https://example.com'} if path!='/v1/guarded-action-pilot' else {'urls':['https://example.com']}
+            r=requests.post(base+path,json=payload,timeout=30)
+            pr=r.headers.get('payment-required','')
+            assert r.status_code==402, (path,r.status_code,r.text)
+            decoded=json.loads(base64.b64decode(pr+'===').decode())
+            a=decoded['accepts'][0]
+            assert int(a['amount'])==amount,(path,a)
+            assert a['network']=='eip155:8453',(path,a)
+            assert a['payTo'].lower()==treasury,(path,a)
+            print('A2A_POSTDEPLOY_ROUTE='+path+' AMOUNT='+str(a['amount'])+' NETWORK='+a['network']+' PAYTO='+a['payTo'])
+          print('A2A_PRODUCTION_VERIFIED=1')
+          PY
+      - name: Reconcile Treasury independently
+        run: node scripts/reconcile-treasury.mjs
