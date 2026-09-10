@@ -1,0 +1,111 @@
+name: Autonomous Growth Turn 13
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/autonomous-growth-turn13.yml']
+permissions:
+  contents: read
+jobs:
+  growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Reconcile Treasury independently
+        shell: bash
+        run: |
+          set +e
+          echo '=== TREASURY ==='
+          node scripts/reconcile-treasury.mjs
+          echo '=== REVENUE CANDIDATES ==='
+          node scripts/query-revenue-candidates.mjs
+      - name: Verify three production x402 quotes
+        shell: bash
+        run: |
+          set -e
+          BASE=https://delta-witness-api.ruphussten.workers.dev
+          for route in capture preflight guarded-action-pilot; do
+            echo "=== QUOTE $route ==="
+            curl -sS -o /tmp/$route.body -D /tmp/$route.headers -w 'HTTP=%{http_code}\n' -X POST "$BASE/v1/$route" -H 'content-type: application/json' -d '{}'
+            grep -iE '^(payment-required|content-type):' /tmp/$route.headers || true
+            head -c 4000 /tmp/$route.body; echo
+          done
+      - name: Submit DELTA to MCP Find
+        shell: bash
+        run: |
+          set +e
+          npm --silent install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium >/dev/null
+          cat > mcpfind-run.mjs <<'JS'
+          import { chromium } from 'playwright';
+          const PKG='delta-witness-mcp';
+          const REPO='https://github.com/15998194110/delta-witness';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage();
+          const mutations=[];
+          page.on('response', async r=>{
+            if(r.request().method()!=='GET'){
+              let body=''; try{body=(await r.text()).slice(0,5000)}catch{}
+              mutations.push({method:r.request().method(),url:r.url(),status:r.status(),body});
+            }
+          });
+          try{
+            await page.goto('https://www.mcpfind.org/submit',{waitUntil:'domcontentloaded',timeout:60000});
+            await page.waitForTimeout(1800);
+            console.log('START_URL='+page.url());
+            const inputs=page.locator('input:visible');
+            const info=[];
+            for(let i=0;i<await inputs.count();i++){
+              const el=inputs.nth(i);
+              info.push({i,type:await el.getAttribute('type'),name:await el.getAttribute('name'),placeholder:await el.getAttribute('placeholder'),value:await el.inputValue().catch(()=>''),required:await el.getAttribute('required')});
+            }
+            console.log('INPUTS='+JSON.stringify(info));
+            const textareas=page.locator('textarea:visible');
+            console.log('TEXTAREA_COUNT='+await textareas.count());
+            const selects=page.locator('select:visible');
+            const selectInfo=[];
+            for(let i=0;i<await selects.count();i++){
+              const el=selects.nth(i);
+              selectInfo.push({i,name:await el.getAttribute('name'),options:await el.locator('option').allTextContents()});
+            }
+            console.log('SELECTS='+JSON.stringify(selectInfo));
+
+            let pkgFilled=false, repoFilled=false;
+            for(let i=0;i<await inputs.count();i++){
+              const el=inputs.nth(i);
+              const key=((await el.getAttribute('name'))||'')+' '+((await el.getAttribute('placeholder'))||'')+' '+((await el.getAttribute('aria-label'))||'');
+              if(!pkgFilled && /package|npm/i.test(key)){ await el.fill(PKG); pkgFilled=true; continue; }
+              if(!repoFilled && /github|repo|repository/i.test(key)){ await el.fill(REPO); repoFilled=true; continue; }
+            }
+            if(!pkgFilled){
+              const lab=page.getByLabel(/package|npm/i).first();
+              if(await lab.count()){await lab.fill(PKG);pkgFilled=true;}
+            }
+            if(!repoFilled){
+              const lab=page.getByLabel(/github|repo|repository/i).first();
+              if(await lab.count()){await lab.fill(REPO);repoFilled=true;}
+            }
+            console.log(`FILLED package=${pkgFilled} repo=${repoFilled}`);
+
+            const buttons=page.locator('button:visible');
+            const buttonTexts=await buttons.allTextContents();
+            console.log('BUTTONS='+JSON.stringify(buttonTexts));
+            const submit=page.getByRole('button',{name:/submit( server)?|send|add server/i}).first();
+            console.log('SUBMIT_COUNT='+await submit.count());
+            if(pkgFilled&&repoFilled&&await submit.count()&&!(await submit.isDisabled())){
+              console.log('CLICK_SUBMIT=1');
+              await submit.click();
+              await page.waitForTimeout(5000);
+            }
+            const body=(await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,16000);
+            console.log('FINAL_BODY='+body);
+            console.log('MUTATIONS='+JSON.stringify(mutations));
+            console.log('FINAL_URL='+page.url());
+            const accepted=/thank you|submitted|submission received|under review|reviewed|success|we.?ll review|appears in.*few days/i.test(body)||mutations.some(m=>m.status>=200&&m.status<300&&/submit|server/i.test(m.url)&&/success|submitted|review|created|pending/i.test(m.body));
+            console.log('MCPFIND_ACCEPTED='+(accepted?'1':'0'));
+          }catch(e){console.log('MCPFIND_ERROR='+String(e))}
+          await browser.close();
+          JS
+          node --check mcpfind-run.mjs && node mcpfind-run.mjs
