@@ -1,4 +1,4 @@
-name: TMP DELTA growth run 20260911 0728
+name: TMP DELTA growth telemetry recheck 20260911 0728
 on:
   push:
     branches: ["master"]
@@ -9,8 +9,12 @@ permissions:
   contents: write
 
 jobs:
-  advance:
+  recheck:
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DELTA_D1_DATABASE_ID: ${{ secrets.DELTA_D1_DATABASE_ID }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -19,7 +23,9 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Read current owner authority
+      - name: Re-read owner authority and verify live prices
+        id: pricing
+        shell: bash
         run: |
           set -euo pipefail
           test -s AGENTS.md
@@ -28,159 +34,105 @@ jobs:
           grep -q 'Public Preflight.*5.00 USDC' docs/pricing-policy-2026-09-10.md
           grep -q 'Guarded-Action Pilot.*10.00 USDC' docs/pricing-policy-2026-09-10.md
           node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs | tee /tmp/pricing.txt
+          echo 'status=verified' >> "$GITHUB_OUTPUT"
 
-      - name: Verify live pricing and reconcile Treasury independently
-        id: core
+      - name: Reconcile Base Treasury independently
+        id: treasury
         shell: bash
         run: |
-          set +e
-          node scripts/verify-owner-pricing-live.mjs > /tmp/pricing.txt 2>&1
-          pricing_rc=$?
-          cat /tmp/pricing.txt
+          set -euo pipefail
+          node scripts/reconcile-treasury.mjs | tee /tmp/treasury.json
+          jq -e '.evidence_quality == "A_direct_canonical_USDC_log"' /tmp/treasury.json >/dev/null
+          echo 'status=ok' >> "$GITHUB_OUTPUT"
 
-          node scripts/reconcile-treasury.mjs > /tmp/treasury.json 2> /tmp/treasury.err
-          treasury_rc=$?
-          cat /tmp/treasury.err >&2
-          cat /tmp/treasury.json
+      - name: Query fresh paid-funnel telemetry with canonical secrets
+        id: telemetry
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/query-revenue-candidates.mjs | tee /tmp/revenue-candidates.json
+          jq -e '.ok == true' /tmp/revenue-candidates.json >/dev/null
+          echo "candidate_rows=$(jq -r '.candidate_rows' /tmp/revenue-candidates.json)" >> "$GITHUB_OUTPUT"
+          echo 'status=ok' >> "$GITHUB_OUTPUT"
 
-          node scripts/query-revenue-candidates.mjs > /tmp/revenue-candidates.json 2> /tmp/revenue-candidates.err
-          telemetry_rc=$?
-          cat /tmp/revenue-candidates.err >&2
-          cat /tmp/revenue-candidates.json || true
-
-          echo "pricing_rc=$pricing_rc" >> "$GITHUB_OUTPUT"
-          echo "treasury_rc=$treasury_rc" >> "$GITHUB_OUTPUT"
-          echo "telemetry_rc=$telemetry_rc" >> "$GITHUB_OUTPUT"
-          if [ "$treasury_rc" -ne 0 ]; then
-            echo 'Treasury reconciliation failed after built-in RPC fallbacks.' >&2
-            exit 2
-          fi
-          if [ "$pricing_rc" -ne 0 ]; then
-            echo 'CORE_PRICING_VERIFY_FAILED: fail closed before listing writes.' >&2
-            exit 3
-          fi
-          exit 0
-
-      - name: Submit to AI Security Directory if absent
+      - name: Read-only recheck AI Security Directory approval
         id: aisd
         shell: bash
         run: |
           set -u
-          base='https://aisecuritydirectory.com'
-          origin='https://delta-witness-api.ruphussten.workers.dev/'
-          dump=''
-          get_ok=0
+          status='review_pending'
           for attempt in 1 2 3 4; do
-            code=$(curl -L --connect-timeout 10 --max-time 30 -sS -o /tmp/aisd-vendors.json -w '%{http_code}' "$base/api/vendors.json" || printf '000')
-            echo "AISD_DEDUPE attempt=$attempt http=$code"
-            if [[ "$code" =~ ^2 ]]; then get_ok=1; break; fi
+            code=$(curl -L --connect-timeout 10 --max-time 30 -sS -o /tmp/aisd-vendors.json -w '%{http_code}' 'https://aisecuritydirectory.com/api/vendors.json' || printf '000')
+            echo "AISD_READ attempt=$attempt http=$code"
+            if [[ "$code" =~ ^2 ]]; then
+              if grep -Eqi 'delta-witness-api\.ruphussten\.workers\.dev|DELTA Witness' /tmp/aisd-vendors.json; then status='live_public'; fi
+              break
+            fi
             if [[ "$code" == 429 || "$code" =~ ^5 || "$code" == 000 ]]; then sleep $((attempt * attempt)); continue; fi
-            break
+            status="nonretryable_http_$code"; break
           done
-          if [ "$get_ok" -ne 1 ]; then
-            echo 'AISD_STATUS=degraded_dedupe_unavailable' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if jq -e --arg o 'delta-witness-api.ruphussten.workers.dev' '[.vendors[]? | ((.name // "") + " " + (.url // .website // "")) | ascii_downcase | contains($o)] | any' /tmp/aisd-vendors.json >/dev/null 2>&1; then
-            echo 'AISD_STATUS=already_listed' >> "$GITHUB_OUTPUT"
-            echo 'AISD already contains canonical DELTA origin; duplicate write avoided.'
-            exit 0
-          fi
-          payload=$(jq -cn --arg url "$origin" '{name:"DELTA Witness",url:$url,brief_summary:"Evidence and deterministic preflight trust layer for autonomous agents, with MCP/x402 discovery and guarded-action verification.",email:"ruphussten85@gmail.com",category:"agent-security-governance"}')
-          for attempt in 1 2 3 4; do
-            code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/aisd-submit.json -w '%{http_code}' -X POST "$base/api/submit" -H 'content-type: application/json' --data "$payload" || printf '000')
-            body=$(cat /tmp/aisd-submit.json 2>/dev/null || true)
-            printf 'AISD_SUBMIT attempt=%s http=%s body=%q\n' "$attempt" "$code" "$body"
-            if [[ "$code" =~ ^2 ]]; then echo 'AISD_STATUS=accepted_review_pending' >> "$GITHUB_OUTPUT"; exit 0; fi
-            if [[ "$code" == 409 ]] || printf '%s' "$body" | grep -Eqi 'already|duplicate|exists'; then echo 'AISD_STATUS=already_submitted' >> "$GITHUB_OUTPUT"; exit 0; fi
-            if [[ "$code" == 429 || "$code" =~ ^5 || "$code" == 000 ]]; then sleep $((attempt * attempt)); continue; fi
-            echo "AISD_STATUS=nonretryable_http_$code" >> "$GITHUB_OUTPUT"
-            exit 0
-          done
-          echo 'AISD_STATUS=degraded_retries_exhausted' >> "$GITHUB_OUTPUT"
+          if [[ "$code" == 429 || "$code" =~ ^5 || "$code" == 000 ]]; then status='degraded_retries_exhausted'; fi
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "AISD_STATUS=$status"
         continue-on-error: true
 
-      - name: Submit to MadeWithStack if absent and truthful tool slugs exist
+      - name: Read-only recheck MadeWithStack approval
         id: mws
         shell: bash
         run: |
           set -u
-          base='https://www.madewithstack.com'
-          origin='https://delta-witness-api.ruphussten.workers.dev/'
-          # Public approved-catalog dedupe first.
-          code=$(curl -L --connect-timeout 10 --max-time 30 -sS -o /tmp/mws-search.json -w '%{http_code}' "$base/api/v1/search?q=DELTA%20Witness" || printf '000')
-          if [[ "$code" =~ ^2 ]] && grep -Fqi 'delta-witness-api.ruphussten.workers.dev' /tmp/mws-search.json; then
-            echo 'MWS_STATUS=already_listed' >> "$GITHUB_OUTPUT"
-            echo 'MadeWithStack approved search already contains canonical DELTA origin; duplicate write avoided.'
-            exit 0
-          fi
-          # Tool slugs must come from the live API; never guess unsupported slugs.
-          tools_ok=0
+          status='review_pending'
+          encoded='DELTA%20Witness'
           for attempt in 1 2 3 4; do
-            tcode=$(curl -L --connect-timeout 10 --max-time 30 -sS -o /tmp/mws-tools.json -w '%{http_code}' "$base/api/v1/tools" || printf '000')
-            echo "MWS_TOOLS attempt=$attempt http=$tcode"
-            if [[ "$tcode" =~ ^2 ]]; then tools_ok=1; break; fi
-            if [[ "$tcode" == 429 || "$tcode" =~ ^5 || "$tcode" == 000 ]]; then sleep $((attempt * attempt)); continue; fi
-            break
-          done
-          if [ "$tools_ok" -ne 1 ]; then echo 'MWS_STATUS=degraded_tools_unavailable' >> "$GITHUB_OUTPUT"; exit 0; fi
-          slugs=$(jq -c '[.tools[]? | select(((.slug // "")|ascii_downcase) as $s | ($s=="cloudflare" or $s=="cloudflare-workers" or $s=="nodejs" or $s=="node-js" or $s=="typescript" or $s=="github" or $s=="mcp" or $s=="x402")) | .slug] | unique' /tmp/mws-tools.json)
-          count=$(printf '%s' "$slugs" | jq 'length')
-          echo "MWS truthful tool slugs=$slugs"
-          if [ "$count" -lt 1 ]; then echo 'MWS_STATUS=skipped_no_verified_tool_slugs' >> "$GITHUB_OUTPUT"; exit 0; fi
-          payload=$(jq -cn --arg url "$origin" --argjson tools "$slugs" '{name:"DELTA Witness",url:$url,description:"Trust layer for autonomous actions: timestamped public-source evidence, deterministic preflight checks, MCP discovery, and Base x402 paid verification.",email:"ruphussten85@gmail.com",tool_slugs:$tools,supporting_links:["https://delta-witness-api.ruphussten.workers.dev/docs","https://github.com/15998194110/delta-witness"],audience_tags:["b2b","for-developers"]}')
-          for attempt in 1 2 3 4; do
-            code=$(curl --connect-timeout 10 --max-time 30 -sS -D /tmp/mws-headers.txt -o /tmp/mws-submit.json -w '%{http_code}' -X POST "$base/api/v1/submit" -H 'content-type: application/json' --data "$payload" || printf '000')
-            body=$(cat /tmp/mws-submit.json 2>/dev/null || true)
-            printf 'MWS_SUBMIT attempt=%s http=%s body=%q\n' "$attempt" "$code" "$body"
-            if [[ "$code" =~ ^2 ]]; then echo 'MWS_STATUS=accepted_review_pending' >> "$GITHUB_OUTPUT"; exit 0; fi
-            if [[ "$code" == 409 ]] || printf '%s' "$body" | grep -Eqi 'DUPLICATE_DOMAIN|already|duplicate|exists'; then echo 'MWS_STATUS=already_submitted_or_listed' >> "$GITHUB_OUTPUT"; exit 0; fi
-            if [[ "$code" == 429 ]]; then
-              ra=$(awk 'BEGIN{IGNORECASE=1} /^retry-after:/{gsub("\r",""); print $2}' /tmp/mws-headers.txt | tail -1)
-              if [[ "$ra" =~ ^[0-9]+$ ]] && [ "$ra" -le 20 ]; then sleep "$ra"; else sleep $((attempt * attempt)); fi
-              continue
+            code=$(curl -L --connect-timeout 10 --max-time 30 -sS -o /tmp/mws-search.json -w '%{http_code}' "https://www.madewithstack.com/api/v1/search?q=$encoded" || printf '000')
+            echo "MWS_READ attempt=$attempt http=$code"
+            if [[ "$code" =~ ^2 ]]; then
+              if grep -Eqi 'delta-witness-api\.ruphussten\.workers\.dev|DELTA Witness' /tmp/mws-search.json; then status='live_public'; fi
+              break
             fi
-            if [[ "$code" =~ ^5 || "$code" == 000 ]]; then sleep $((attempt * attempt)); continue; fi
-            echo "MWS_STATUS=nonretryable_http_$code" >> "$GITHUB_OUTPUT"
-            exit 0
+            if [[ "$code" == 429 || "$code" =~ ^5 || "$code" == 000 ]]; then sleep $((attempt * attempt)); continue; fi
+            status="nonretryable_http_$code"; break
           done
-          echo 'MWS_STATUS=degraded_retries_exhausted' >> "$GITHUB_OUTPUT"
+          if [[ "$code" == 429 || "$code" =~ ^5 || "$code" == 000 ]]; then status='degraded_retries_exhausted'; fi
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "MWS_STATUS=$status"
         continue-on-error: true
 
-      - name: Durable evidence record
+      - name: Persist telemetry/listing recheck evidence
         if: always()
         shell: bash
         env:
-          AISD_STATUS: ${{ steps.aisd.outputs.AISD_STATUS }}
-          MWS_STATUS: ${{ steps.mws.outputs.MWS_STATUS }}
-          PRICING_RC: ${{ steps.core.outputs.pricing_rc }}
-          TREASURY_RC: ${{ steps.core.outputs.treasury_rc }}
-          TELEMETRY_RC: ${{ steps.core.outputs.telemetry_rc }}
+          PRICING_STATUS: ${{ steps.pricing.outputs.status }}
+          TREASURY_STATUS: ${{ steps.treasury.outputs.status }}
+          TELEMETRY_STATUS: ${{ steps.telemetry.outputs.status }}
+          CANDIDATE_ROWS: ${{ steps.telemetry.outputs.candidate_rows }}
+          AISD_STATUS: ${{ steps.aisd.outputs.status }}
+          MWS_STATUS: ${{ steps.mws.outputs.status }}
         run: |
           set -euo pipefail
           mkdir -p distribution/evidence
-          treasury='{}'
+          treasury='{}'; candidates='{}'
           if [ -s /tmp/treasury.json ] && jq -e . /tmp/treasury.json >/dev/null 2>&1; then treasury=$(cat /tmp/treasury.json); fi
-          candidates='null'
           if [ -s /tmp/revenue-candidates.json ] && jq -e . /tmp/revenue-candidates.json >/dev/null 2>&1; then candidates=$(cat /tmp/revenue-candidates.json); fi
           jq -n \
             --arg checked_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --arg pricing_rc "${PRICING_RC:-unknown}" \
-            --arg treasury_rc "${TREASURY_RC:-unknown}" \
-            --arg telemetry_rc "${TELEMETRY_RC:-unknown}" \
-            --arg aisd "${AISD_STATUS:-not_run}" \
-            --arg mws "${MWS_STATUS:-not_run}" \
+            --arg pricing "${PRICING_STATUS:-failed}" \
+            --arg treasury_status "${TREASURY_STATUS:-failed}" \
+            --arg telemetry "${TELEMETRY_STATUS:-failed}" \
+            --arg candidate_rows "${CANDIDATE_ROWS:-unknown}" \
+            --arg aisd "${AISD_STATUS:-unknown}" \
+            --arg mws "${MWS_STATUS:-unknown}" \
             --argjson treasury "$treasury" \
             --argjson candidates "$candidates" \
-            '{checked_at:$checked_at,owner_pricing:{capture_raw:1000000,public_preflight_raw:5000000,guarded_action_pilot_raw:10000000,pricing_verify_rc:$pricing_rc},treasury_reconcile_rc:$treasury_rc,telemetry_query_rc:$telemetry_rc,channels:{ai_security_directory:{listing_status:$aisd,evidence_quality:"A_direct_official_API"},made_with_stack:{listing_status:$mws,evidence_quality:"A_direct_official_API"}},treasury:$treasury,revenue_candidates:$candidates,policy:{fees_paid:0,wallet_signatures:0,duplicate_identities_created:0}}' > distribution/evidence/growth-run-20260911-0728.json
-          cat distribution/evidence/growth-run-20260911-0728.json
+            '{checked_at:$checked_at,owner_pricing:{capture_raw:1000000,public_preflight_raw:5000000,guarded_action_pilot_raw:10000000,status:$pricing},treasury:{status:$treasury_status,result:$treasury},telemetry:{status:$telemetry,candidate_rows:$candidate_rows,result:$candidates},pending_listing_recheck:{ai_security_directory:$aisd,made_with_stack:$mws},policy:{submission_writes_this_recheck:0,fees_paid:0,wallet_signatures:0,duplicate_identities_created:0}}' > distribution/evidence/growth-run-20260911-0728-telemetry-recheck.json
+          cat distribution/evidence/growth-run-20260911-0728-telemetry-recheck.json
           git config user.name 'DELTA Growth Operator'
           git config user.email 'actions@users.noreply.github.com'
-          git add distribution/evidence/growth-run-20260911-0728.json
-          git commit -m 'evidence: record gated growth run 2026-09-11 0728' || exit 0
+          git add distribution/evidence/growth-run-20260911-0728-telemetry-recheck.json
+          git commit -m 'evidence: close DELTA telemetry gap 2026-09-11' || exit 0
           for attempt in 1 2 3; do
             git pull --rebase origin master && git push origin HEAD:master && exit 0
             sleep $((attempt * 2))
           done
-          echo 'Evidence commit push degraded after retries' >&2
           exit 1
