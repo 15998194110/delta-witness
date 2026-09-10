@@ -37,8 +37,12 @@ jobs:
             echo "CINDERWRIGHT discover attempt=$i http=$code body=$(head -c 1200 /tmp/cw-discover.json 2>/dev/null || true)"
             case "$code" in 200) break;; 429|500|502|503|504|000) sleep $((i*3));; *) break;; esac
           done
-          if [ "$code" = 200 ] && grep -qi 'delta-witness-api.ruphussten.workers.dev\|DELTA Witness' /tmp/cw-discover.json; then
-            echo 'CINDERWRIGHT listing_status=already_present duplicate_created=false'
+          found=0
+          if [ "$code" = 200 ]; then
+            found=$(jq -r --arg root "$ROOT" '[.results[]? | select(((.url? // .endpoint? // .service_url? // "") | tostring | startswith($root)))] | length' /tmp/cw-discover.json 2>/dev/null || echo 0)
+          fi
+          if [ "${found:-0}" -gt 0 ]; then
+            echo "CINDERWRIGHT listing_status=already_present matches=$found duplicate_created=false"
             exit 0
           fi
           payload=$(jq -nc --arg url "$ROOT" --arg name 'DELTA Witness' --arg description 'Deterministic public-page state evidence, preflight verification, and guarded-action evidence for autonomous agents. Canonical Base USDC x402 prices: Capture $1, Public Preflight $5, Guarded-Action Pilot $10.' '{url:$url,name:$name,description:$description}')
@@ -52,8 +56,12 @@ jobs:
           sleep 4
           vcode=$(curl --connect-timeout 10 --max-time 45 -sS -o /tmp/cw-verify.json -w '%{http_code}' "$DISCOVER") || vcode=000
           echo "CINDERWRIGHT verify http=$vcode body=$(head -c 2500 /tmp/cw-verify.json 2>/dev/null || true)"
-          if [ "$vcode" = 200 ] && grep -qi 'delta-witness-api.ruphussten.workers.dev\|DELTA Witness' /tmp/cw-verify.json; then
-            echo 'CINDERWRIGHT discovery_status=live_match'
+          visible=0
+          if [ "$vcode" = 200 ]; then
+            visible=$(jq -r --arg root "$ROOT" '[.results[]? | select(((.url? // .endpoint? // .service_url? // "") | tostring | startswith($root)))] | length' /tmp/cw-verify.json 2>/dev/null || echo 0)
+          fi
+          if [ "${visible:-0}" -gt 0 ]; then
+            echo "CINDERWRIGHT discovery_status=live_match matches=$visible"
           else
             echo 'CINDERWRIGHT discovery_status=pending recoverable=true'
           fi
