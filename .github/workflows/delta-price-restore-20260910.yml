@@ -1,0 +1,87 @@
+name: DELTA Price Restore 2026-09-10
+
+on:
+  push:
+    paths:
+      - '.github/workflows/delta-price-restore-20260910.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: delta-production-price-restore
+  cancel-in-progress: false
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Pin latest master
+        run: |
+          set -euo pipefail
+          git fetch origin master
+          git checkout --detach origin/master
+
+      - name: Verify source before deploy
+        run: |
+          set -euo pipefail
+          test "$(node -e "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8')); process.stdout.write(c.vars.CAPTURE_BASE_PRICE_USD)")" = '0.03'
+          test "$(node -e "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8')); process.stdout.write(c.vars.PREFLIGHT_BASE_PRICE_USD)")" = '0.03'
+          npm ci
+          npm run verify
+
+      - name: Require existing Cloudflare deployment credentials
+        run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Deploy core only
+        run: npx wrangler deploy
+
+      - name: Verify production price, Treasury, network and pilot
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          probe() {
+            local name="$1" path="$2" expected="$3"
+            local code hdr decoded amount payto network
+            code=000
+            for i in 1 2 3 4; do
+              : >/tmp/body
+              : >/tmp/headers
+              code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/body -D /tmp/headers -w '%{http_code}' -X POST "$BASE$path" -H 'content-type: application/json' -d '{}') || code=000
+              if [ "$code" = 402 ]; then break; fi
+              echo "CORE_RECHECK product=$name attempt=$i http=$code recoverable=true"
+              sleep $((i*2))
+            done
+            hdr=$(awk 'BEGIN{IGNORECASE=1} /^payment-required:/{sub(/^[^:]+:[[:space:]]*/,""); gsub(/\r/,""); print; exit}' /tmp/headers)
+            test -n "$hdr"
+            decoded=$(printf '%s' "$hdr" | base64 -d)
+            amount=$(printf '%s' "$decoded" | jq -r '.. | .amount? // empty' | head -1)
+            payto=$(printf '%s' "$decoded" | jq -r '.. | .payTo? // empty' | head -1)
+            network=$(printf '%s' "$decoded" | jq -r '.. | .network? // empty' | head -1)
+            echo "CORE_VERIFIED product=$name status=$code amount=$amount expected=$expected payTo=$payto network=$network"
+            test "$code" = 402
+            test "$amount" = "$expected"
+            test "${payto,,}" = "$TREASURY"
+            test "$network" = 'eip155:8453'
+          }
+          probe capture '/v1/capture' 30000
+          probe preflight '/v1/preflight' 30000
+          probe pilot '/v1/guarded-action-pilot' 10000000
+          curl --fail --connect-timeout 10 --max-time 30 --retry 3 --retry-all-errors --retry-delay 2 "$BASE/health"
+
+      - name: Reconcile Base Treasury independently
+        if: always()
+        run: node scripts/reconcile-treasury.mjs
