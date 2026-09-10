@@ -8,35 +8,24 @@ permissions:
 jobs:
   growth:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
-    env:
-      PAYANAGENT_API_KEY: ${{ secrets.PAYANAGENT_API_KEY }}
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
-      - name: Inspect exact PayanAgent demand and DELTA supply
+      - name: Inspect funded request and bids
         shell: bash
         run: |
           set +e
-          echo "PAYANAGENT_KEY_PRESENT=$([ -n \"$PAYANAGENT_API_KEY\" ] && echo 1 || echo 0)"
-          for q in evidence verification endpoint-health preflight browser; do
-            echo "=== QUERY $q ==="
-            code=$(curl --retry 3 --retry-all-errors --retry-delay 1 -sS -G -o /tmp/pa.json -w '%{http_code}' 'https://payanagent.com/api/v1/discover' --data-urlencode "q=$q" --data-urlencode 'limit=50')
-            echo "HTTP=$code"
-            python3 - <<'PY'
-          import json
-          try:
-              d=json.load(open('/tmp/pa.json'))
-              print('OPEN_REQUESTS='+json.dumps(d.get('openRequests',[]),separators=(',',':')))
-          except Exception as e: print('PARSE_ERROR='+repr(e))
-          PY
+          RID=ks76vc9pzpz3qfgf8aawjckn5n8bezhf
+          for i in 1 2 3; do
+            code=$(curl --retry 2 --retry-all-errors --retry-delay 1 -sS -o /tmp/request.json -w '%{http_code}' "https://payanagent.com/api/v1/requests/$RID")
+            echo "REQUEST_HTTP=$code"
+            [ "$code" = "200" ] && break
+            sleep $((i*2))
           done
-          echo '=== DELTA DISCOVERY ==='
-          curl --retry 3 --retry-all-errors --retry-delay 1 -sS -G 'https://payanagent.com/api/v1/discover' --data-urlencode 'q=DELTA Witness' --data-urlencode 'limit=50' -o /tmp/delta.json
           python3 - <<'PY'
           import json
-          d=json.load(open('/tmp/delta.json'))
-          print('DELTA_AGENTS='+json.dumps([x for x in d.get('agents',[]) if x.get('name')=='DELTA Witness'],separators=(',',':')))
-          print('DELTA_OFFERS='+json.dumps(d.get('offers',[]),separators=(',',':')))
-          print('DELTA_OPEN_REQUESTS='+json.dumps(d.get('openRequests',[]),separators=(',',':')))
+          d=json.load(open('/tmp/request.json'))
+          print('REQUEST='+json.dumps(d.get('request',{}),separators=(',',':')))
+          print('BIDS='+json.dumps(d.get('bids',[]),separators=(',',':')))
           PY
           exit 0
