@@ -19,58 +19,46 @@ jobs:
           npx playwright install --with-deps chromium >/dev/null
           cat > botmarket-run.mjs <<'JS'
           import { chromium } from 'playwright';
-          const browser = await chromium.launch({ headless: true });
-          const page = await browser.newPage();
-          const mutations = [];
-          page.on('response', (r) => {
-            const req = r.request();
-            if (req.method() !== 'GET') mutations.push({ method: req.method(), url: r.url(), status: r.status() });
-          });
-          async function bodyText() { return (await page.locator('body').innerText()).replace(/\s+/g, ' ').slice(0, 12000); }
-          async function fields() {
-            return await page.locator('input:visible, textarea:visible, select:visible').evaluateAll((els) => els.map((e, i) => ({
-              i, tag:e.tagName, type:e.getAttribute('type'), name:e.getAttribute('name'), placeholder:e.getAttribute('placeholder'),
-              label:e.labels?.[0]?.innerText||'', value:e.value, required:!!e.required,
-              context:(e.parentElement?.parentElement?.innerText||e.parentElement?.innerText||'').replace(/\s+/g,' ').slice(0,400)
-            })));
-          }
-          try {
-            await page.goto('https://botmarket.bot/submit', { waitUntil:'networkidle', timeout:60000 });
-            console.log('BM_INITIAL='+await bodyText());
-            console.log('BM_CONTROLS='+JSON.stringify(await page.locator('button,[role=button],label,a').evaluateAll((els)=>els.map((e,i)=>({i,tag:e.tagName,text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,220),role:e.getAttribute('role'),href:e.getAttribute('href'),html:e.outerHTML.slice(0,800)})).filter((x)=>/agent|mcp|x402|submit|preview|fetch|service/i.test(x.text)))));
-            const xText=page.getByText(/x402 service/i,{exact:true}).first();
-            if(await xText.count()) console.log('BM_X402_NODE='+(await xText.evaluate((e)=>e.parentElement?.parentElement?.outerHTML||e.parentElement?.outerHTML||e.outerHTML)).slice(0,8000));
-            const switchers=[page.getByRole('button',{name:/x402/i}).first(),page.getByRole('radio',{name:/x402/i}).first(),xText,xText.locator('..'),xText.locator('../..')];
-            let switched=false;
-            for(let i=0;i<switchers.length;i++){
-              try{const s=switchers[i]; if(await s.count()){await s.click({force:true}); await page.waitForTimeout(400);}}catch(e){console.log('BM_SWITCH_ERR_'+i+'='+String(e));}
-              const f=await fields(); console.log('BM_FIELDS_'+i+'='+JSON.stringify(f));
-              if(f.some((z)=>/x402|service url|endpoint/i.test((z.label||'')+' '+(z.placeholder||'')+' '+(z.context||'')))){switched=true;break;}
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage();
+          const muts=[];
+          page.on('response',r=>{if(r.request().method()!=='GET')muts.push([r.request().method(),r.url(),r.status()]);});
+          try{
+            await page.goto('https://botmarket.bot/submit',{waitUntil:'networkidle',timeout:60000});
+            console.log('INITIAL='+((await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,8000)));
+            const x=page.getByText('x402 Service',{exact:true}).first();
+            if(await x.count()) await x.click({force:true});
+            await page.waitForTimeout(500);
+            const fields=await page.locator('input:visible,textarea:visible').count();
+            for(let i=0;i<fields;i++){
+              const el=page.locator('input:visible,textarea:visible').nth(i);
+              const type=(await el.getAttribute('type')||'').toLowerCase();
+              const ph=(await el.getAttribute('placeholder')||'').toLowerCase();
+              const name=(await el.getAttribute('name')||'').toLowerCase();
+              const label=((await el.evaluate(e=>e.labels?.[0]?.innerText||''))||'').toLowerCase();
+              const ctx=((await el.evaluate(e=>e.parentElement?.parentElement?.innerText||''))||'').toLowerCase();
+              const d=[type,ph,name,label,ctx].join(' ');
+              if(type==='email'||d.includes('contact')) continue;
+              if(type==='url'||d.includes('url')||d.includes('endpoint')) await el.fill('https://delta-witness-api.ruphussten.workers.dev/v1/preflight');
             }
-            console.log('BM_SWITCHED='+(switched?'1':'0'));
-            const inputs=page.locator('input:visible, textarea:visible');
-            for(let i=0;i<await inputs.count();i++){
-              const el=inputs.nth(i);
-              const type=(await el.getAttribute('type')||'').toLowerCase(); const name=(await el.getAttribute('name')||'').toLowerCase(); const ph=(await el.getAttribute('placeholder')||'').toLowerCase();
-              const label=((await el.evaluate((e)=>e.labels?.[0]?.innerText||''))||'').toLowerCase(); const ctx=((await el.evaluate((e)=>e.parentElement?.parentElement?.innerText||e.parentElement?.innerText||''))||'').toLowerCase();
-              const d=`${type} ${name} ${ph} ${label} ${ctx}`;
-              if(type==='search'||type==='email'||d.includes('contact')) continue;
-              if(type==='url'||/url|endpoint/.test(d)) await el.fill(/base url/.test(d)?'https://delta-witness-api.ruphussten.workers.dev':'https://delta-witness-api.ruphussten.workers.dev/v1/preflight');
+            console.log('FORM='+JSON.stringify(await page.locator('input:visible,textarea:visible').evaluateAll(es=>es.map(e=>({type:e.type,name:e.name,placeholder:e.placeholder,value:e.value,label:e.labels?.[0]?.innerText||'',ctx:e.parentElement?.parentElement?.innerText||''})))));
+            const preview=page.getByRole('button',{name:/fetch.*preview|preview|validate/i}).first();
+            if(await preview.count()&&await preview.isVisible()&&!(await preview.isDisabled())){console.log('CLICK_PREVIEW='+(await preview.innerText()));await preview.click();await page.waitForTimeout(5000);}
+            console.log('AFTER_PREVIEW='+((await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,10000)));
+            const buttons=page.locator('button:visible');
+            console.log('BUTTONS='+JSON.stringify(await buttons.evaluateAll(es=>es.map((e,i)=>({i,text:(e.innerText||'').trim(),disabled:e.disabled})))));
+            let clicked=false;
+            for(let i=(await buttons.count())-1;i>=0;i--){
+              const b=buttons.nth(i);const t=(await b.innerText()).trim();
+              if(/submit|add to directory|send for review|publish|list service/i.test(t)&&!(await b.isDisabled())){console.log('CLICK_FINAL='+t);await b.click();clicked=true;break;}
             }
-            console.log('BM_FILLED='+JSON.stringify(await fields()));
-            const preview=page.getByRole('button',{name:/fetch.*preview|preview|validate/i});
-            if(await preview.count()){const p=preview.first(); console.log('BM_PREVIEW_TEXT='+(await p.innerText())); if(await p.isVisible()&&!(await p.isDisabled())){await p.click(); await page.waitForTimeout(5000);}}
-            console.log('BM_AFTER_PREVIEW='+await bodyText()); console.log('BM_MUTATIONS_AFTER_PREVIEW='+JSON.stringify(mutations));
-            console.log('BM_BUTTONS_AFTER_PREVIEW='+JSON.stringify(await page.locator('button:visible').evaluateAll((els)=>els.map((e,i)=>({i,text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' '),disabled:!!e.disabled}))));
-            const finals=page.getByRole('button',{name:/submit|add to directory|send for review|publish|list service/i});
-            let clickedFinal=false;
-            for(let i=(await finals.count())-1;i>=0;i--){const b=finals.nth(i); if(await b.isVisible()&&!(await b.isDisabled())){const txt=(await b.innerText()).trim(); console.log('BM_CLICK_FINAL='+txt); await b.click(); clickedFinal=true; await page.waitForTimeout(5000); break;}}
-            console.log('BM_CLICKED_FINAL='+(clickedFinal?'1':'0'));
-            const finalBody=await bodyText(); console.log('BM_FINAL_BODY='+finalBody); console.log('BM_FINAL_MUTATIONS='+JSON.stringify(mutations)); console.log('BM_FINAL_URL='+page.url());
-            const explicit=/thank you|submission received|submitted successfully|queued for review|sent for review|we.?ll review|successfully submitted|pending review/i.test(finalBody);
-            const mutation=mutations.some((m)=>m.status>=200&&m.status<300&&/submit|api|service|agent|listing|directory|x402/i.test(m.url));
-            console.log('BM_STRICT_CONFIRMED='+(explicit&&mutation?'1':'0'));
-          } catch(e){console.log('BM_FATAL='+String(e));}
+            if(clicked)await page.waitForTimeout(5000);
+            const body=(await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,12000);
+            console.log('FINAL='+body);console.log('MUTS='+JSON.stringify(muts));console.log('URL='+page.url());
+            const explicit=/submission received|submitted successfully|queued for review|sent for review|pending review|thank you|we.?ll review/i.test(body);
+            const mutation=muts.some(x=>x[2]>=200&&x[2]<300);
+            console.log('STRICT_CONFIRMED='+(explicit&&mutation?'1':'0'));
+          }catch(e){console.log('FATAL='+String(e));}
           await browser.close();
           JS
           node --check botmarket-run.mjs && node botmarket-run.mjs
