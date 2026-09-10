@@ -21,35 +21,18 @@ jobs:
         run: node scripts/check-owner-pricing.mjs
       - name: Verify live prices before any possible listing write
         run: node scripts/verify-owner-pricing-live.mjs
-      - name: Inspect x402mpp public submission implementation without writing
+      - name: Inspect exact x402mpp public submission transport without writing
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
-          import re, urllib.request, urllib.parse
-          base='https://x402mpp.sh/'
-          req=urllib.request.Request(base, headers={'User-Agent':'DELTA-Witness-discovery-audit/1.0'})
-          html=urllib.request.urlopen(req, timeout=20).read().decode('utf-8','replace')
-          print('homepage_bytes', len(html))
-          scripts=re.findall(r'<script[^>]+src=["\']([^"\']+)', html, flags=re.I)
-          print('scripts', scripts)
-          blobs=[('homepage',html)]
-          for src in scripts:
-              u=urllib.parse.urljoin(base,src)
-              try:
-                  r=urllib.request.Request(u, headers={'User-Agent':'DELTA-Witness-discovery-audit/1.0'})
-                  txt=urllib.request.urlopen(r, timeout=20).read().decode('utf-8','replace')
-                  blobs.append((u,txt))
-              except Exception as e:
-                  print('script_fetch_error',u,repr(e))
-          pats=[r'fetch\s*\((.{0,400})',r'/api/[A-Za-z0-9_./?-]+',r'submit.{0,350}',r'queue.{0,350}']
-          for name,txt in blobs:
-              hits=[]
-              for pat in pats:
-                  hits.extend(re.findall(pat,txt,flags=re.I|re.S))
-              if hits:
-                  print('\nSOURCE',name)
-                  for h in hits[:80]:
-                      if isinstance(h,tuple): h=' '.join(h)
-                      print(re.sub(r'\s+',' ',str(h))[:700])
+          import re, urllib.request
+          u='https://x402mpp.sh/assets/app.js'
+          req=urllib.request.Request(u,headers={'User-Agent':'DELTA-Witness-discovery-audit/1.0'})
+          txt=urllib.request.urlopen(req,timeout=20).read().decode('utf-8','replace')
+          for needle in ['apiSubmissionUrl','Submission failed','JSON.stringify({url, company})']:
+              print('\nNEEDLE',needle)
+              pos=txt.find(needle)
+              print('pos',pos)
+              if pos>=0: print(re.sub(r'\s+',' ',txt[max(0,pos-900):pos+1600]))
           PY
