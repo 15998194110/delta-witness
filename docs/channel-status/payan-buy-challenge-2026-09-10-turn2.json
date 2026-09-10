@@ -1,0 +1,32 @@
+{
+  "checked_at": "2026-09-10T07:44:37.660596+00:00",
+  "rows": [
+    {
+      "offer_id": "kh79t54410qb82yjcqsjmgv0d58dn7p3",
+      "title": "DELTA Witness Capture",
+      "status": "live_matches_owner_price",
+      "http": "402",
+      "raw_amount": "1000000",
+      "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+      "network": "eip155:8453"
+    },
+    {
+      "offer_id": "kh72vd1kdv37109xxzzgmn2xfn8dnc6z",
+      "title": "DELTA Witness Guard Preflight",
+      "status": "live_matches_owner_price",
+      "http": "402",
+      "raw_amount": "5000000",
+      "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+      "network": "eip155:8453"
+    },
+    {
+      "offer_id": "kh7dskbdz0mj2ctc0dvm6q1yb98dz8dm",
+      "title": "DELTA Witness Guarded Action Pilot",
+      "status": "live_matches_owner_price",
+      "http": "402",
+      "raw_amount": "10000000",
+      "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+      "network": "eip155:8453"
+    }
+  ]
+}
