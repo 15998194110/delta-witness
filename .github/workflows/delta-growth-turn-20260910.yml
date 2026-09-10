@@ -92,14 +92,16 @@ jobs:
           const pkg = require('./package.json');
           const p = JSON.parse(fs.readFileSync('server.json','utf8'));
           p.name = pkg.mcpName;
-          p.description = 'DELTA Witness MCP tools for paid browser evidence capture, deterministic public-source preflight verification, and proof retrieval over Base x402.';
+          p.description = 'Paid browser evidence capture and public-source preflight verification over Base x402.';
           p.version = pkg.version;
           if (!Array.isArray(p.packages) || !p.packages.length) {
-            p.packages = [{ registryType: 'npm', identifier: pkg.name, version: pkg.version }];
+            p.packages = [{ registryType: 'npm', identifier: pkg.name, version: pkg.version, transport: { type: 'stdio' } }];
           } else {
             p.packages[0].registryType = 'npm';
             p.packages[0].identifier = pkg.name;
             p.packages[0].version = pkg.version;
+            p.packages[0].transport = { type: 'stdio' };
+            delete p.packages[0].environmentVariables;
           }
           fs.writeFileSync('server.json', JSON.stringify(p, null, 2) + '\n');
           console.log(JSON.stringify(p));
