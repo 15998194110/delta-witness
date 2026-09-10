@@ -1,5 +1,5 @@
 name: DELTA Owner Pricing Consistency Repair
-# Re-run after stale listing/release/discovery workflow guardrails were synchronized.
+# Final bounded retry after source and workflow guardrails were synchronized; avoid concurrent master writes during this run.
 
 on:
   push:
