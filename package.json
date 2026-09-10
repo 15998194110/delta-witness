@@ -12,7 +12,8 @@
     "test": "vitest run",
     "funnel": "node scripts/query-funnel.mjs",
     "bazaar": "node scripts/check-bazaar.mjs",
-    "verify": "npm run types && npm run check && npm test && npm run build"
+    "pricing-authority": "node scripts/check-owner-pricing-authority.mjs",
+    "verify": "npm run pricing-authority && npm run types && npm run check && npm test && npm run build"
   },
   "dependencies": {
     "@x402/core": "^2.0.0",
