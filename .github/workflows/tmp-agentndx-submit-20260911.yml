@@ -1,57 +1,20 @@
-name: TMP AgentNDX DELTA submission 20260911
+name: RETIRED - TMP AgentNDX DELTA submission 20260911
+
+# One-shot free submission completed on 2026-09-11 through AgentNDX's official
+# /api/submit form endpoint. The server returned HTTP 302 Location:
+# /submit?success=1 after a dedupe readback showed no existing DELTA entry.
+# Listing state remains review_pending until AgentNDX publishes it.
+# Do not resubmit or create a duplicate listing.
+# Current owner pricing remains Capture=1, Public Preflight=5, Pilot=10 USDC.
 on:
-  push:
-    branches: ["master"]
-    paths:
-      - ".github/workflows/tmp-agentndx-submit-20260911.yml"
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
-  submit:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - name: Submit DELTA once to AgentNDX free review path
-        run: |
-          set -euo pipefail
-          python -m pip -q install curl_cffi
-          python - <<'PY'
-          import json, sys
-          from curl_cffi import requests
-          ORIGIN='https://agentndx.ai'
-          REPO='https://github.com/15998194110/delta-witness'
-          s=requests.Session(impersonate='chrome')
-          headers={'Accept-Language':'en-US,en;q=0.9'}
-          # Deduplication readback through the same browser-TLS session. If the public JSON
-          # is unavailable, proceed only because an independent current web search already
-          # found no canonical DELTA listing before this one-shot submission.
-          try:
-              idx=s.get(ORIGIN+'/api/servers.json',timeout=20,headers=headers)
-              print('INDEX_HTTP',idx.status_code)
-              if idx.status_code==200 and ('delta-witness' in idx.text.lower() or REPO.lower() in idx.text.lower()):
-                  print('AGENTNDX_ALREADY_LISTED=true duplicate_write=false')
-                  raise SystemExit(0)
-          except Exception as e:
-              print('INDEX_DEGRADED recoverable=true',type(e).__name__,str(e)[:160])
-          page=s.get(ORIGIN+'/submit/',timeout=20,headers=headers)
-          print('SUBMIT_PAGE_HTTP',page.status_code)
-          page.raise_for_status()
-          data=[
-              ('report_id',''),
-              ('name','DELTA Witness'),
-              ('github_url',REPO),
-              ('homepage_url','https://delta-witness-api.ruphussten.workers.dev/docs'),
-              ('protocols','MCP'),
-              ('protocols','x402'),
-              ('description','Evidence and deterministic preflight for autonomous actions, with x402-paid Capture, Preflight and Guarded-Action Pilot on Base.'),
-              ('contact','ruphussten85@gmail.com'),
-          ]
-          r=s.post(ORIGIN+'/api/submit',data=data,timeout=25,allow_redirects=False,headers={**headers,'Referer':ORIGIN+'/submit/','Origin':ORIGIN})
-          print('POST_HTTP',r.status_code)
-          print('POST_LOCATION',r.headers.get('location'))
-          print('POST_BODY',r.text[:2000].replace('\n',' '))
-          if r.status_code not in (200,201,202,303):
-              raise SystemExit(1)
-          # Treat only explicit acknowledgement/redirect as accepted; listing remains review-pending.
-          print('AGENTNDX_SUBMISSION_ACCEPTED=true listing_status=review_pending duplicate_write=false')
-          PY
+      - run: echo 'AgentNDX submission accepted; one-shot workflow retired.'
