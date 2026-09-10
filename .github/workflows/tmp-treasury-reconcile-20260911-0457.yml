@@ -18,4 +18,4 @@ jobs:
         with:
           node-version: '22'
       - name: Reconcile Base Treasury against known DELTA classifications
-        run: node scripts/reconcile-treasury-revenue.mjs
+        run: node scripts/reconcile-treasury.mjs
