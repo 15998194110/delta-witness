@@ -1,0 +1,134 @@
+name: DELTA Autonomous Growth Turn2 Evidence Repair
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/autonomous-growth-turn2-evidence-repair-2026-09-10.yml']
+permissions:
+  contents: write
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }
+      - name: Fetch external public state with isolated retries
+        shell: bash
+        run: |
+          set -u
+          git fetch origin master && git checkout master && git reset --hard origin/master
+          get(){ u="$1" o="$2"; for i in 1 2 3 4; do code=$(curl -sS --connect-timeout 8 --max-time 25 -o "$o" -w '%{http_code}' "$u") || code=000; if [ "$code" = 200 ]; then return 0; fi; echo "$code" > "${o}.status"; sleep $((i*2)); done; return 1; }
+          get 'https://agentstamp.org/api/v1/registry/browse?sort=newest&limit=100' /tmp/stamp-browse.json || true
+          get 'https://agentstamp.org/api/v1/trust/check/0x1990e21bc219696ff7fbc26527dbaed335ac6367' /tmp/stamp-trust.json || true
+          get 'https://agentstamp.org/api/v1/passport/0x1990e21bc219696ff7fbc26527dbaed335ac6367' /tmp/stamp-passport.json || true
+          get 'https://payanagent.com/api/v1/requests?status=open&limit=100' /tmp/payan-requests.json || true
+          get 'https://payanagent.com/api/v1/discover?q=delta%20witness&limit=50' /tmp/payan-discover.json || true
+          get 'https://payanagent.com/api/v1/receipts?limit=100' /tmp/payan-receipts.json || true
+      - name: Build strict sanitized external evidence
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,re,pathlib,datetime
+          def load(p):
+            try: return json.load(open(p))
+            except: return None
+          wallet='0x1990e21bc219696ff7fbc26527dbaed335ac6367'.lower()
+          stamp_sources={k:load('/tmp/stamp-'+k+'.json') for k in ['browse','trust','passport']}
+          def walk(v):
+            if isinstance(v,dict):
+              yield v
+              for z in v.values(): yield from walk(z)
+            elif isinstance(v,list):
+              for z in v: yield from walk(z)
+          stamp_matches=[]
+          for source,x in stamp_sources.items():
+            if x is None: continue
+            for o in walk(x):
+              text=json.dumps(o,ensure_ascii=False).lower()
+              if 'delta witness' in text or wallet in text:
+                # whitelist public identity fields only
+                stamp_matches.append({'source':source, **{k:o.get(k) for k in ['id','agent_id','name','wallet_address','wallet','category','status','valid','tier','score','expires_at'] if k in o}})
+          # de-dup public matches
+          uniq=[]; seen=set()
+          for m in stamp_matches:
+            k=json.dumps(m,sort_keys=True)
+            if k not in seen: seen.add(k); uniq.append(m)
+          req=load('/tmp/payan-requests.json') or {}
+          # Prefer documented top-level requests array; fall back to only dicts that look like request records.
+          arr=req.get('requests') if isinstance(req,dict) and isinstance(req.get('requests'),list) else None
+          if arr is None:
+            arr=[o for o in walk(req) if isinstance(o,dict) and 'status' in o and ('budgetMaxCents' in o or 'budget_max_cents' in o) and ('title' in o or 'description' in o)]
+          keywords=re.compile(r'\b(verif(?:y|ication)?|audit|browser|web(?:site)? evidence|preflight|security|proof|attest|compliance|monitor(?:ing)?)\b',re.I)
+          candidates=[]
+          for o in arr:
+            if str(o.get('status','')).lower()!='open': continue
+            text=f"{o.get('title','')} {o.get('description','')}"
+            if not keywords.search(text): continue
+            budget=o.get('budgetMaxCents',o.get('budget_max_cents'))
+            try: budget=int(budget)
+            except: budget=0
+            esc=o.get('escrow',False)
+            candidates.append({
+              'id':o.get('id') or o.get('_id'),
+              'title':o.get('title'),
+              'description':str(o.get('description',''))[:600],
+              'budgetMaxCents':budget,
+              'budgetUsd':round(budget/100,2),
+              'escrow':bool(esc),
+              'status':o.get('status'),
+              'createdAt':o.get('createdAt') or o.get('created_at'),
+              'providerId':o.get('providerId'),
+              'agreedPriceCents':o.get('agreedPriceCents')
+            })
+          # A funded compatible request requires escrow=true + positive budget + task that DELTA can plausibly fulfill from public URL evidence.
+          strong=[]
+          fit=re.compile(r'(web|website|url|page|terms|policy|content|change|monitor|proof|preflight|verify|verification|audit)',re.I)
+          for c in candidates:
+            if c['escrow'] and c['budgetMaxCents']>0 and fit.search((c.get('title') or '')+' '+c.get('description','')):
+              strong.append(c)
+          disc=load('/tmp/payan-discover.json') or {}
+          discover_summary={}
+          if isinstance(disc,dict):
+            for k in ['agents','offers','openRequests']:
+              v=disc.get(k)
+              discover_summary[k+'_count']=len(v) if isinstance(v,list) else 0
+              if isinstance(v,list):
+                discover_summary[k+'_delta_matches']=[{kk:o.get(kk) for kk in ['_id','id','name','title','priceUsd','buyUrl','agentUrl','walletAddress'] if kk in o} for o in v if 'delta' in json.dumps(o).lower()][:10]
+          receipts=load('/tmp/payan-receipts.json') or {}
+          recs=receipts.get('receipts') if isinstance(receipts,dict) and isinstance(receipts.get('receipts'),list) else (receipts if isinstance(receipts,list) else [])
+          neighbor_receipts=[]
+          for r in recs[:100]:
+            if isinstance(r,dict):
+              neighbor_receipts.append({k:r.get(k) for k in ['id','amountUsd','amountCents','txHash','status','type','createdAt','buyerId','sellerId'] if k in r})
+          out={
+            'checked_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'agentstamp':{'matches':uniq[:20], 'browse_http':pathlib.Path('/tmp/stamp-browse.json.status').read_text().strip() if pathlib.Path('/tmp/stamp-browse.json.status').exists() else 200, 'trust_http':pathlib.Path('/tmp/stamp-trust.json.status').read_text().strip() if pathlib.Path('/tmp/stamp-trust.json.status').exists() else 200, 'passport_http':pathlib.Path('/tmp/stamp-passport.json.status').read_text().strip() if pathlib.Path('/tmp/stamp-passport.json.status').exists() else 200},
+            'payan':{'candidate_count':len(candidates),'candidates':candidates[:30],'funded_compatible_count':len(strong),'funded_compatible':strong[:20],'discover':discover_summary,'recent_receipts_sample':neighbor_receipts[:20]}
+          }
+          pathlib.Path('docs/channel-status/autonomous-growth-2026-09-10-1524-turn2-data.json').write_text(json.dumps(out,indent=2,ensure_ascii=False)+'\n')
+          PY
+      - name: Query D1 funnel as JSON
+        shell: bash
+        continue-on-error: true
+        run: |
+          node - <<'NODE'
+          import fs from 'node:fs';
+          const account=process.env.CLOUDFLARE_ACCOUNT_ID, token=process.env.CLOUDFLARE_API_TOKEN, db='c9431b00-27c5-4609-9f3d-6af20cb162df';
+          if(!account||!token) process.exit(0);
+          const sql=`SELECT channel,event,success,sum(event_count) event_count,round(sum(gross_usd),6) gross_usd,round(sum(variable_cost_usd),6) variable_cost_usd,round(sum(contribution_margin_usd),6) contribution_margin_usd FROM telemetry_events WHERE created_at >= datetime('now','-1 day') GROUP BY channel,event,success ORDER BY event_count DESC`;
+          const r=await fetch(`https://api.cloudflare.com/client/v4/accounts/${account}/d1/database/${db}/query`,{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify({sql})});
+          if(!r.ok) process.exit(0); const p=await r.json(); if(!p.success) process.exit(0); fs.writeFileSync('docs/channel-status/autonomous-growth-2026-09-10-1524-turn2-d1.json',JSON.stringify({checked_at:new Date().toISOString(),rows:p.result?.[0]?.results||[]},null,2)+'\n');
+          NODE
+      - name: Commit evidence data
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'DELTA Operator'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/channel-status/autonomous-growth-2026-09-10-1524-turn2-data.json
+          [ ! -f docs/channel-status/autonomous-growth-2026-09-10-1524-turn2-d1.json ] || git add docs/channel-status/autonomous-growth-2026-09-10-1524-turn2-d1.json
+          git commit -m 'growth: add strict turn2 buyer and registry evidence'
+          git push origin HEAD:master
