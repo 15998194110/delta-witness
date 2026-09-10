@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-10T13:55:24.946Z",
+  "checked_at": "2026-09-10T14:51:02.000Z",
   "owner_pricing": {
     "public_capture_usdc": 1,
     "partner_capture_usdc": 1,
@@ -14,13 +14,15 @@
     },
     "network": "eip155:8453",
     "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "live_readback_checked_at": "2026-09-10T14:50:31.272Z",
     "evidence_quality": "A_direct_source_and_live_402_readback"
   },
   "automation_deduplication": {
     "canonical_growth_task": "synchronized_to_owner_1_5_10_policy",
     "overlapping_six_hour_growth_task": "disabled",
     "new_parallel_growth_tasks_created": 0,
-    "evidence_quality": "A_native_task_write_readback"
+    "temporary_execution_workflows_retired_after_use": true,
+    "evidence_quality": "A_native_task_and_repository_write_readback"
   },
   "distribution": {
     "market402": {
@@ -63,6 +65,29 @@
       "next_action": "deferred_recheck_and_free_reindex_path_only",
       "evidence_quality": "A_direct_official_catalog_scan"
     },
+    "x402scout": {
+      "listing_status": "not_registered",
+      "discovery_status": "channel_suspended_by_owner",
+      "primary_public_host": "https://x402scout.com",
+      "primary_attempts": 4,
+      "primary_http": 503,
+      "primary_body_signal": "Service Suspended; This service has been suspended by its owner.",
+      "official_source_alternate": "https://x402-discovery-api.onrender.com",
+      "alternate_attempts": 4,
+      "alternate_http": 503,
+      "alternate_body_signal": "Service Suspended; This service has been suspended by its owner.",
+      "duplicate_listing_created": false,
+      "paid_action_taken": false,
+      "classification": "isolated_external_channel_suspension_deferred_no_core_impact",
+      "next_action": "low_frequency_recheck_if_service_returns_or_maintainer_publishes_new_official_endpoint",
+      "evidence_quality": "A_official_source_endpoint_plus_direct_http_response"
+    },
+    "current_opportunity_scan": {
+      "gold402_24klabs": "free_but_pull_request_submission; no autonomous PR because contribution path can entail repository contribution terms/legal commitment",
+      "402_ad": "free_human_submission_available; programmatic path costs_0_10_usdc_and_is_prohibited_by_no_spend_boundary",
+      "agenthire": "seller_surface_detected_but Solana/account-oriented; no Base-native direct no-account seller registration evidence",
+      "evidence_quality": "B_public_current_docs"
+    },
     "indexnow": {
       "core": "upstream_429_after_4_bounded_retries_recoverable",
       "base_app": "http_200_success",
@@ -77,10 +102,12 @@
     "customer_treasury_received_usdc": 0,
     "customer_revenue_usdc": 0,
     "customer_variable_cost_usd": 0,
-    "customer_contribution_margin_usd": 0
+    "customer_contribution_margin_usd": 0,
+    "paid_funnel_candidate_rows": 0
   },
   "treasury_reconciliation": {
-    "latest_base_block": 51129577,
+    "checked_at": "2026-09-10T14:50:08.122Z",
+    "latest_base_block": 51131227,
     "lookback_blocks": 50000,
     "canonical_usdc_receipt_candidates": 1,
     "total_usdc": 0.03,
@@ -91,9 +118,14 @@
     "customer_revenue_usdc": 0,
     "evidence_quality": "A_direct_canonical_USDC_log"
   },
+  "operational_corrections": {
+    "treasury_independence": "first one-shot omitted Cloudflare audit credentials and stopped before treasury; corrected immediately so canonical treasury reconciliation ran before the optional paid-funnel audit and both then completed",
+    "core_production_failure": false
+  },
   "outreach": {
     "sent_this_run": 0,
     "reason": "daily outreach ceiling already reached by prior same-day DELTA communications; no chase sent",
+    "new_unanswered_explicit_integration_intent": false,
     "latest_material_thread": "PulseFeed technical exchange already has a later outbound reply"
   }
 }
