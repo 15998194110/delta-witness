@@ -1,0 +1,61 @@
+{
+  "checked_at": "2026-09-10T13:46:23Z",
+  "owner_policy": "owner-2026-09-10-1-5-10",
+  "public_prices_usdc": {
+    "capture": 1,
+    "preflight": 5,
+    "guarded_action_pilot": 10
+  },
+  "production_readback": {
+    "status": "verified",
+    "capture_raw_usdc": "1000000",
+    "preflight_raw_usdc": "5000000",
+    "guarded_action_pilot_raw_usdc": "10000000",
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+  },
+  "market402": {
+    "action": "refreshed_existing_resources",
+    "capture": {"http": 200, "already_listed": true, "declared_price_usd": 1, "instant_check": "11/11_spec_compliant"},
+    "preflight": {"http": 200, "already_listed": true, "declared_price_usd": 5, "instant_check": "11/11_spec_compliant"},
+    "guarded_action_pilot": {"http": 200, "already_listed": true, "declared_price_usd": 10, "instant_check": "11/11_spec_compliant"},
+    "duplicate_listing_created": false,
+    "paid_probe_optin": false
+  },
+  "index402": {
+    "action": "updated_existing_service_ids_via_canonical_urls",
+    "capture": {"id": "73b990f5-02f6-4ef4-9892-645349938b63", "http": 201, "price_usd": 1, "status": "active", "health": "healthy", "observed_raw_amount": "1000000"},
+    "preflight": {"id": "8632f21c-6981-488e-bff5-dc0d41055886", "http": 201, "price_usd": 5, "status": "active", "health": "healthy", "observed_raw_amount": "5000000"},
+    "guarded_action_pilot": {"id": "e98fec92-fe53-47bc-b274-fe228479fe49", "http": 201, "price_usd": 10, "status": "active", "health": "healthy", "observed_raw_amount": "10000000"},
+    "new_identity_created": false
+  },
+  "latest_treasury_reconciliation": {
+    "checked_at": "2026-09-10T13:35:46Z",
+    "latest_block": 51128996,
+    "treasury_received_candidates_usdc": 0.03,
+    "known_non_customer_usdc": 0.03,
+    "unclassified_usdc": 0,
+    "new_customer_revenue_usdc": 0,
+    "known_transfer": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+    "payer_classification": "payapi_platform_verification"
+  },
+  "accounting": {
+    "value_authored": "not revenue",
+    "payment_authorized": 0,
+    "settlement_confirmed_customer": 0,
+    "treasury_received_customer_usdc": 0,
+    "revenue_usdc": 0,
+    "recognized_contribution_margin_usdc": 0,
+    "first_stranger_revenue": false
+  },
+  "outreach_sent": 0,
+  "paid_tests": 0,
+  "wallet_signatures": 0,
+  "evidence": {
+    "listing_sync_run": 34484701870,
+    "listing_sync_job": 102895922732,
+    "pricing_repair_run": 34483498843,
+    "pricing_consistency_commit": "d7a83adbae873b3ead91d6f3e79052b7ab1fbb30"
+  }
+}
