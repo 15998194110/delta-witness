@@ -1,0 +1,21 @@
+name: RETIRED - TMP sync current DELTA listing prices 20260910 2136
+
+# Owner authorized synchronization and deduplication on 2026-09-10.
+# This one-shot duplicates both guarded canonical channel workflows:
+# - market402-submit-20260910.yml
+# - 402index-submit-20260910-2032.yml
+# Its original definition and execution evidence remain in Git/Actions history.
+# Do not re-enable this duplicate or replay its historical runs for growth.
+# Current prices: Capture/Partner/Watch=1; Public Preflight=5; Pilot=10 USDC.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  retired:
+    if: ${{ false }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Duplicate one-shot retired; use one existing guarded channel task only after checking AGENTS.md. No submission or deployment is performed here.'
