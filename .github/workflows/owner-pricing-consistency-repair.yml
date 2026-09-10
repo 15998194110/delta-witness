@@ -1,4 +1,5 @@
 name: DELTA Owner Pricing Consistency Repair
+# Re-run after synchronizing the final stale current-price payment-gate assertion.
 
 on:
   push:
