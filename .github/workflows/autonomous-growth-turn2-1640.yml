@@ -1,0 +1,176 @@
+name: DELTA Autonomous Growth Turn2 1640
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/autonomous-growth-turn2-1640.yml']
+permissions:
+  contents: write
+concurrency:
+  group: delta-autonomous-growth-turn2-1640
+  cancel-in-progress: false
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Execute independent growth channels and Treasury reconciliation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin master
+          git checkout master
+          git reset --hard origin/master
+          mkdir -p docs/channel-status
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+
+          # DELTA core integrity is fail-fast. No paid execution is performed.
+          python3 - <<'PY'
+          import base64,json,urllib.request
+          base='https://delta-witness-api.ruphussten.workers.dev'
+          expected={'capture':'1000000','preflight':'5000000','guarded-action-pilot':'10000000'}
+          for product,amount in expected.items():
+              req=urllib.request.Request(f'{base}/v1/{product}',data=b'{}',headers={'content-type':'application/json'},method='POST')
+              try: urllib.request.urlopen(req,timeout=20)
+              except urllib.error.HTTPError as e:
+                  if e.code != 402: raise
+                  h=e.headers.get('payment-required')
+                  if not h: raise RuntimeError(f'{product}: missing payment-required')
+                  obj=json.loads(base64.b64decode(h+'==='))
+                  def walk(x):
+                      if isinstance(x,dict):
+                          yield x
+                          for v in x.values(): yield from walk(v)
+                      elif isinstance(x,list):
+                          for v in x: yield from walk(v)
+                  nodes=list(walk(obj))
+                  got=next((str(n.get('amount')) for n in nodes if n.get('amount') is not None),'')
+                  pay=next((str(n.get('payTo')) for n in nodes if n.get('payTo')),'')
+                  net=next((str(n.get('network')) for n in nodes if n.get('network')),'')
+                  if got != amount or pay.lower() != '0x1990e21bc219696ff7fbc26527dbaed335ac6367' or net != 'eip155:8453':
+                      raise RuntimeError(f'{product}: price/payTo/network mismatch {got} {pay} {net}')
+          PY
+
+          # Treasury reconciliation is independent of all third-party channels.
+          node scripts/reconcile-treasury.mjs > /tmp/treasury.json
+
+          # AgentStamp: recover prior 429 by searching first; register only if no exact DELTA record exists.
+          python3 - <<'PY'
+          import json,time,urllib.parse,urllib.request,urllib.error,pathlib
+          wallet='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          base='https://agentstamp.org'
+          def request(url, method='GET', payload=None, headers=None, attempts=4):
+              last=None
+              for i in range(attempts):
+                  try:
+                      data=None if payload is None else json.dumps(payload).encode()
+                      h={'user-agent':'DELTA-Witness/0.7 autonomous-distribution'}
+                      if payload is not None: h['content-type']='application/json'
+                      if headers: h.update(headers)
+                      r=urllib.request.urlopen(urllib.request.Request(url,data=data,headers=h,method=method),timeout=25)
+                      return r.status, json.loads(r.read() or b'{}')
+                  except urllib.error.HTTPError as e:
+                      body=e.read().decode(errors='replace')[:4000]
+                      try: obj=json.loads(body)
+                      except: obj={'raw':body}
+                      last=(e.code,obj)
+                      if e.code not in (408,425,429,500,502,503,504): return last
+                  except Exception as e:
+                      last=(0,{'error':str(e)})
+                  time.sleep((i+1)*2)
+              return last
+          q=urllib.parse.quote('DELTA Witness')
+          s1,b1=request(f'{base}/api/v1/registry/search?search={q}&limit=25')
+          def rows(obj):
+              if isinstance(obj,list): return obj
+              if isinstance(obj,dict):
+                  for k in ('agents','results','data','items'):
+                      if isinstance(obj.get(k),list): return obj[k]
+              return []
+          found=[]
+          for r in rows(b1):
+              if not isinstance(r,dict): continue
+              name=str(r.get('name','')).lower()
+              w=str(r.get('wallet_address') or r.get('walletAddress') or r.get('wallet') or '').lower()
+              if name=='delta witness' or w==wallet.lower(): found.append(r)
+          action='existing_confirmed' if found else 'not_found'
+          reg_status=None; reg_body=None
+          if not found:
+              payload={
+                'wallet_address':wallet,
+                'name':'DELTA Witness',
+                'description':'Trust layer for autonomous actions: paid public-page capture, deterministic preflight verification, and guarded-action evidence over x402 on Base.',
+                'category':'security',
+                'capabilities':['web verification','preflight verification','x402 Base payments']
+              }
+              reg_status,reg_body=request(f'{base}/api/v1/registry/register/free','POST',payload,attempts=4)
+              action='registered' if reg_status in (200,201) else f'degraded_http_{reg_status}'
+          s2,b2=request(f'{base}/api/v1/registry/search?search={q}&limit=25')
+          confirmed=[]
+          for r in rows(b2):
+              if not isinstance(r,dict): continue
+              name=str(r.get('name','')).lower(); w=str(r.get('wallet_address') or r.get('walletAddress') or r.get('wallet') or '').lower()
+              if name=='delta witness' or w==wallet.lower(): confirmed.append(r)
+          heartbeat=None
+          if confirmed:
+              aid=str(confirmed[0].get('id') or confirmed[0].get('agent_id') or confirmed[0].get('agentId') or '')
+              if aid:
+                  heartbeat=request(f'{base}/api/v1/registry/agent/{urllib.parse.quote(aid)}/heartbeat','POST',None,{'X-Wallet-Address':wallet},attempts=3)
+          out={'search_before_http':s1,'action':action,'register_http':reg_status,'register_response':reg_body,'search_after_http':s2,'confirmed_count':len(confirmed),'confirmed':confirmed[:3],'heartbeat':heartbeat}
+          pathlib.Path('/tmp/agentstamp.json').write_text(json.dumps(out,indent=2,default=str)+'\n')
+          PY
+
+          # Agent402: free self-serve re-registration is intentionally idempotent and refreshes live quote enrichment.
+          python3 - <<'PY'
+          import json,time,urllib.request,urllib.error,pathlib
+          url='https://agent402.tools/api/index/register'
+          payload={'origin':'https://delta-witness-api.ruphussten.workers.dev'}
+          result=None
+          for i in range(4):
+              try:
+                  req=urllib.request.Request(url,data=json.dumps(payload).encode(),headers={'content-type':'application/json','user-agent':'DELTA-Witness/0.7 autonomous-distribution'},method='POST')
+                  r=urllib.request.urlopen(req,timeout=30)
+                  body=r.read().decode(errors='replace')
+                  try: obj=json.loads(body)
+                  except: obj={'raw':body[:4000]}
+                  result={'http':r.status,'response':obj,'status':'submitted_or_refreshed'}
+                  break
+              except urllib.error.HTTPError as e:
+                  body=e.read().decode(errors='replace')
+                  try: obj=json.loads(body)
+                  except: obj={'raw':body[:4000]}
+                  result={'http':e.code,'response':obj,'status':'degraded'}
+                  if e.code not in (408,425,429,500,502,503,504): break
+              except Exception as e:
+                  result={'http':0,'response':{'error':str(e)},'status':'degraded'}
+              time.sleep((i+1)*2)
+          pathlib.Path('/tmp/agent402.json').write_text(json.dumps(result,indent=2)+'\n')
+          PY
+
+          python3 - <<'PY'
+          import json,datetime,pathlib
+          treasury=json.load(open('/tmp/treasury.json'))
+          agentstamp=json.load(open('/tmp/agentstamp.json'))
+          agent402=json.load(open('/tmp/agent402.json'))
+          out={
+            'checked_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'owner_pricing':{'capture_usdc':1,'public_preflight_usdc':5,'guarded_action_pilot_usdc':10,'partner_watch_entry_usdc':1},
+            'core_integrity':'passed_unpaid_402_verification',
+            'agentstamp':agentstamp,
+            'agent402':agent402,
+            'treasury':treasury,
+            'evidence_quality':{'core':'A_live_402','treasury':'A_direct_canonical_USDC_log','agentstamp':'A_if_registry_readback_confirmed_else_C','agent402':'A_direct_official_registration_response'}
+          }
+          pathlib.Path('docs/channel-status/autonomous-growth-2026-09-10-1640-turn2.json').write_text(json.dumps(out,indent=2)+'\n')
+          PY
+          git config user.name 'DELTA Operator'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/channel-status/autonomous-growth-2026-09-10-1640-turn2.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'growth: record AgentStamp recovery, Agent402 refresh and Treasury evidence'
+            git push origin HEAD:master
+          fi
