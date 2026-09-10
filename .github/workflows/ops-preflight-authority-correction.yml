@@ -1,0 +1,63 @@
+name: DELTA Preflight Authority Correction
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/ops-preflight-authority-correction.yml']
+permissions:
+  contents: read
+concurrency:
+  group: delta-production-release
+  cancel-in-progress: false
+jobs:
+  correct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Require deployment credentials
+        run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Verify current owner authority in checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'PREFLIGHT_BASE_PRICE_USD.*"1"' wrangler.jsonc
+          grep -q 'public Preflight \*\*1 USDC\*\*' AGENTS.md
+          grep -q '\["preflight", "1000000"\]' tests/payment-gate.test.ts
+      - run: npm ci
+      - name: Full core verification and dry-run
+        run: npm run verify
+      - name: Deploy corrected core Worker
+        run: npx wrangler deploy
+      - name: Verify production x402 authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          check() {
+            name="$1"; path="$2"; payload="$3"; expected="$4"
+            code=$(curl --retry 6 --retry-all-errors --retry-delay 2 -sS -o /tmp/body -D /tmp/headers -w '%{http_code}' -X POST "$BASE$path" -H 'content-type: application/json' -d "$payload")
+            hdr=$(awk 'BEGIN{IGNORECASE=1} /^payment-required:/{sub(/^[^:]+:[[:space:]]*/,""); gsub(/\r/,""); print; exit}' /tmp/headers)
+            decoded=$(printf '%s' "$hdr" | base64 -d 2>/dev/null || true)
+            amount=$(printf '%s' "$decoded" | jq -r '.. | .amount? // empty' 2>/dev/null | head -1)
+            payto=$(printf '%s' "$decoded" | jq -r '.. | .payTo? // empty' 2>/dev/null | head -1)
+            network=$(printf '%s' "$decoded" | jq -r '.. | .network? // empty' 2>/dev/null | head -1)
+            echo "product=$name status=$code amount=$amount expected=$expected payTo=$payto network=$network"
+            test "$code" = 402
+            test "$amount" = "$expected"
+            test "${payto,,}" = '0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+            test "$network" = 'eip155:8453'
+          }
+          check capture '/v1/capture' '{"url":"https://example.com"}' 30000
+          check preflight '/v1/preflight' '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' 1000000
+          check pilot '/v1/guarded-action-pilot' '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}' 10000000
+          curl --fail --retry 5 --retry-delay 2 "$BASE/.well-known/agent.json" -o /tmp/agent.json
+          curl --fail --retry 5 --retry-delay 2 "$BASE/openapi.json" -o /tmp/openapi.json
+      - name: Reconcile Base Treasury independently
+        run: node scripts/reconcile-treasury.mjs
+      - name: Audit paid-funnel candidates independently
+        run: node scripts/query-revenue-candidates.mjs
