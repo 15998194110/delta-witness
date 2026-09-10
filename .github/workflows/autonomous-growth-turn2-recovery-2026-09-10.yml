@@ -1,0 +1,241 @@
+name: DELTA Autonomous Growth Turn2 Recovery
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/autonomous-growth-turn2-recovery-2026-09-10.yml']
+permissions:
+  contents: write
+concurrency:
+  group: delta-autonomous-growth
+  cancel-in-progress: false
+jobs:
+  growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Fail-fast DELTA core integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin master
+          git checkout master
+          git reset --hard origin/master
+          node - <<'NODE'
+          const fs=require('fs');
+          const c=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));
+          if(c.vars.CAPTURE_BASE_PRICE_USD!=='1'||c.vars.PREFLIGHT_BASE_PRICE_USD!=='5'||c.vars.WATCH_BASE_PRICE_USD!=='1'||c.vars.PARTNER_PREFLIGHT_BASE_PRICE_USD!=='1') throw new Error('owner pricing drift');
+          if(c.vars.PAY_TO.toLowerCase()!=='0x1990e21bc219696ff7fbc26527dbaed335ac6367'||c.vars.NETWORK!=='eip155:8453') throw new Error('treasury/network drift');
+          NODE
+          probe() {
+            path="$1" expected="$2" ok=0
+            for i in 1 2 3 4; do
+              code=$(curl --connect-timeout 8 --max-time 25 --retry 2 --retry-all-errors --retry-delay 1 -sS -o /tmp/core-body -D /tmp/core-headers -w '%{http_code}' -X POST "https://delta-witness-api.ruphussten.workers.dev$path" -H 'content-type: application/json' -d '{}') || code=000
+              python3 - "$expected" "$code" /tmp/core-headers <<'PY' && { ok=1; break; } || true
+          import sys,json,base64
+          expected,code,hpath=sys.argv[1:]
+          if code!='402': raise SystemExit(1)
+          h=''
+          for line in open(hpath,errors='ignore'):
+              if line.lower().startswith('payment-required:'):
+                  h=line.split(':',1)[1].strip(); break
+          if not h: raise SystemExit(1)
+          obj=json.loads(base64.b64decode(h+'==='))
+          def walk(x):
+              if isinstance(x,dict):
+                  yield x
+                  for v in x.values(): yield from walk(v)
+              elif isinstance(x,list):
+                  for v in x: yield from walk(v)
+          nodes=list(walk(obj))
+          amt=next((str(n.get('amount')) for n in nodes if n.get('amount') is not None),'')
+          pay=next((str(n.get('payTo')) for n in nodes if n.get('payTo')),'').lower()
+          net=next((str(n.get('network')) for n in nodes if n.get('network')),'')
+          if amt!=expected or pay!='0x1990e21bc219696ff7fbc26527dbaed335ac6367' or net!='eip155:8453': raise SystemExit(1)
+          PY
+              sleep $((i*2))
+            done
+            test "$ok" = 1
+          }
+          probe /v1/capture 1000000
+          probe /v1/preflight 5000000
+          probe /v1/guarded-action-pilot 10000000
+      - name: AgentStamp direct free listing
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -u
+          WALLET='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          retry(){ for i in 1 2 3 4; do "$@" && return 0; sleep $((i*2)); done; return 1; }
+          status=degraded; id=''; detail=''
+          retry curl -fsS --connect-timeout 8 --max-time 25 'https://agentstamp.org/api/v1/registry/search?search=DELTA%20Witness&limit=20' -o /tmp/stamp-search.json || true
+          python3 - <<'PY' >/tmp/stamp-existing.txt || true
+          import json
+          try: x=json.load(open('/tmp/stamp-search.json'))
+          except: raise SystemExit
+          def walk(v):
+            if isinstance(v,dict):
+              yield v
+              for z in v.values(): yield from walk(z)
+            elif isinstance(v,list):
+              for z in v: yield from walk(z)
+          for o in walk(x):
+            if 'delta witness' in str(o.get('name','')).lower():
+              print(o.get('id') or o.get('agent_id') or 'matched'); break
+          PY
+          if [ -s /tmp/stamp-existing.txt ]; then
+            status=existing_live; id=$(head -1 /tmp/stamp-existing.txt)
+          else
+            cat >/tmp/stamp-body.json <<'JSON'
+          {"wallet_address":"0x1990e21bc219696ff7fbc26527dbaed335ac6367","name":"DELTA Witness","description":"Production x402 trust layer for autonomous actions: public web Capture $1, deterministic Preflight verification $5, and Guarded-Action Pilot $10 on Base.","category":"security","capabilities":["web state proof","autonomous action preflight","x402 verification"]}
+          JSON
+            code='000'
+            for i in 1 2 3 4; do
+              code=$(curl -sS --connect-timeout 8 --max-time 25 -o /tmp/stamp-register.json -w '%{http_code}' -X POST 'https://agentstamp.org/api/v1/registry/register/free' -H 'content-type: application/json' --data-binary @/tmp/stamp-body.json) || code=000
+              case "$code" in 200|201|409|429) break;; esac
+              sleep $((i*2))
+            done
+            if [ "$code" = 200 ] || [ "$code" = 201 ]; then status=created_pending_readback; else status="degraded_http_${code}"; fi
+            retry curl -fsS --connect-timeout 8 --max-time 25 'https://agentstamp.org/api/v1/registry/search?search=DELTA%20Witness&limit=20' -o /tmp/stamp-readback.json || true
+            python3 - <<'PY' >/tmp/stamp-readback-id.txt || true
+          import json
+          try: x=json.load(open('/tmp/stamp-readback.json'))
+          except: raise SystemExit
+          def walk(v):
+            if isinstance(v,dict):
+              yield v
+              for z in v.values(): yield from walk(z)
+            elif isinstance(v,list):
+              for z in v: yield from walk(z)
+          for o in walk(x):
+            if 'delta witness' in str(o.get('name','')).lower():
+              print(o.get('id') or o.get('agent_id') or 'matched'); break
+          PY
+            if [ -s /tmp/stamp-readback-id.txt ]; then status=created_live; id=$(head -1 /tmp/stamp-readback-id.txt); fi
+          fi
+          if [ -n "$id" ] && [ "$id" != matched ]; then
+            curl -sS --connect-timeout 8 --max-time 20 -o /tmp/stamp-heartbeat.json -X POST "https://agentstamp.org/api/v1/registry/agent/$id/heartbeat" -H "X-Wallet-Address: $WALLET" || true
+          fi
+          printf '%s\n' "$status" >/tmp/stamp-status
+          printf '%s\n' "$id" >/tmp/stamp-id
+      - name: Isolated public buyer and registry discovery
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -u
+          retry_get(){ u="$1" o="$2"; for i in 1 2 3 4; do curl -fsS --connect-timeout 8 --max-time 30 "$u" -o "$o" && return 0; sleep $((i*2)); done; return 1; }
+          payan=degraded; agent402=degraded; arena=degraded; world=degraded
+          retry_get 'https://payanagent.com/api/v1/requests?status=open&limit=100' /tmp/payan-requests.json && payan=ok || true
+          retry_get 'https://payanagent.com/api/v1/discover?q=delta%20witness&limit=50' /tmp/payan-discover.json || true
+          python3 - <<'PY' >/tmp/payan-compatible.json
+          import json,re
+          try: x=json.load(open('/tmp/payan-requests.json'))
+          except: print('[]'); raise SystemExit
+          rows=[]
+          def walk(v):
+            if isinstance(v,dict):
+              yield v
+              for z in v.values(): yield from walk(z)
+            elif isinstance(v,list):
+              for z in v: yield from walk(z)
+          for o in walk(x):
+            txt=(str(o.get('title',''))+' '+str(o.get('description',''))).lower()
+            if str(o.get('status','')).lower()=='open' and re.search(r'verif|audit|browser|web evidence|preflight|security|proof',txt):
+              rows.append({k:o.get(k) for k in ['id','title','budgetMaxCents','budget_max_cents','escrow','status']})
+          # de-duplicate ids
+          seen=set(); out=[]
+          for r in rows:
+            key=str(r.get('id') or r.get('title'))
+            if key not in seen: seen.add(key); out.append(r)
+          print(json.dumps(out))
+          PY
+          retry_get 'https://agent402.tools/api/index' /tmp/agent402.json && agent402=ok || true
+          grep -qi 'delta-witness-api.ruphussten.workers.dev' /tmp/agent402.json 2>/dev/null && agent402=indexed || true
+          retry_get 'https://x402arena.gg/' /tmp/arena.html && arena=ok || true
+          grep -qi 'delta-witness' /tmp/arena.html 2>/dev/null && arena=indexed || true
+          retry_get 'https://agentworld.me/api/agentworld/registry' /tmp/world.json && world=ok || true
+          grep -qi 'DELTA Witness' /tmp/world.json 2>/dev/null && world=existing_live || true
+          printf '%s\n' "$payan" >/tmp/payan-status
+          printf '%s\n' "$agent402" >/tmp/agent402-status
+          printf '%s\n' "$arena" >/tmp/arena-status
+          printf '%s\n' "$world" >/tmp/world-status
+      - name: Funnel telemetry snapshot
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -u
+          if [ -n "${CLOUDFLARE_API_TOKEN:-}" ] && [ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            node scripts/query-funnel.mjs 1 > /tmp/funnel.txt 2>&1 || true
+          fi
+          [ -s /tmp/funnel.txt ] || echo 'unavailable' >/tmp/funnel.txt
+      - name: Canonical Base Treasury reconciliation
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/reconcile-treasury.mjs | tee /tmp/treasury.log
+          python3 - <<'PY'
+          import json,re,pathlib
+          s=pathlib.Path('/tmp/treasury.log').read_text()
+          starts=[m.start() for m in re.finditer(r'(?m)^\{\n\s+"ok"',s)]
+          if not starts: raise SystemExit('final treasury json not found')
+          obj=json.loads(s[starts[-1]:])
+          pathlib.Path('/tmp/treasury-final.json').write_text(json.dumps(obj,indent=2))
+          PY
+      - name: Commit sanitized run evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          stamp=$(cat /tmp/stamp-status 2>/dev/null || echo degraded); sid=$(cat /tmp/stamp-id 2>/dev/null || true)
+          payan=$(cat /tmp/payan-status 2>/dev/null || echo degraded); agent402=$(cat /tmp/agent402-status 2>/dev/null || echo degraded); arena=$(cat /tmp/arena-status 2>/dev/null || echo degraded); world=$(cat /tmp/world-status 2>/dev/null || echo degraded)
+          compat=$(python3 -c 'import json;print(len(json.load(open("/tmp/payan-compatible.json"))))' 2>/dev/null || echo 0)
+          latest=$(jq -r '.latest_block // "unknown"' /tmp/treasury-final.json)
+          recv=$(jq -r '[.transfers[]? | select(.customer_revenue==true) | .usdc] | add // 0' /tmp/treasury-final.json)
+          unclass=$(jq -r '.unclassified_usdc // 0' /tmp/treasury-final.json)
+          cust_count=$(jq -r '[.transfers[]? | select(.customer_revenue==true)] | length' /tmp/treasury-final.json)
+          cat > docs/channel-status/autonomous-growth-2026-09-10-1524-turn2.md <<EOF
+          # DELTA autonomous growth evidence — 2026-09-10 15:24 Asia/Shanghai
+
+          ## Material execution
+          Core fail-fast verification passed at the current owner ladder: Capture **\$1**, Public Preflight **\$5**, Guarded-Action Pilot **\$10**, Base \\`eip155:8453\\`, existing Treasury unchanged.
+
+          AgentStamp free registry was executed directly: **${stamp}**${sid:+ (agent id \\`${sid}\\`)}. This channel requires no account, API key, payment or signature; its free registration is 30-day and max three capabilities. A readback was attempted after creation and a wallet-address heartbeat was sent when a concrete id was available.
+
+          ## Channel state
+          | channel/source | listing_status | discovery_status | buyer_count | settlement_count | verified_neighbor_demand | external_requests | verified_independent_402_intents | paid_settlements | treasury_received | revenue | variable_cost | contribution_margin | evidence_quality |
+          |---|---|---|---:|---:|---|---:|---:|---:|---:|---:|---:|---:|---|
+          | DELTA production | live | x402 live | ${cust_count} | ${cust_count} | yes | n/a | 0 | ${cust_count} | \$${recv} | \$${recv} | tracked in D1 | tracked in D1 | A |
+          | AgentStamp | ${stamp} | searchable/readback attempted | 0 | 0 | trust registry itself has active public market surfaces | 0 | 0 | 0 | \$0 | \$0 | \$0 | \$0 | A when readback live; otherwise C degradation |
+          | PayanAgent | existing ecosystem surface | ${payan} | 0 | 0 | open funded/escrow request board exists | ${compat} matched open requests | 0 | 0 | \$0 | \$0 | \$0 | \$0 | B |
+          | Agent402 | existing/no duplicate | ${agent402} | 0 | 0 | marketplace demand public | read-only | 0 | 0 | \$0 | \$0 | \$0 | \$0 | B |
+          | x402 Arena | existing/no duplicate | ${arena} | 0 | 0 | active x402 marketplace | read-only | 0 | 0 | \$0 | \$0 | \$0 | \$0 | B |
+          | AgentWorld | no new orphaned credential created | ${world} | 0 | 0 | real-USDC jobs and external registry exist | read-only | 0 | 0 | \$0 | \$0 | \$0 | \$0 | B |
+
+          \\`verified_independent_402_intents\\` excludes this run's own integrity probes. Telemetry totals are kept distinct from buyer intent unless an external actor can be attributed.
+
+          ## PayanAgent fit screen
+          Matching open request count: **${compat}**. Sanitized matches:
+          \\`$(cat /tmp/payan-compatible.json 2>/dev/null || echo '[]')\\`
+          No bid was placed without the existing seller credential and verified escrow/fit.
+
+          ## Treasury reconciliation
+          Canonical Base USDC reconciliation completed independently through block **${latest}**. Customer-revenue-classified receipts in the scanned window: **\$${recv} USDC**; unclassified: **\$${unclass} USDC**. Test/self/platform transfers remain excluded from revenue.
+
+          ## D1 funnel snapshot (diagnostic, not buyer-proof by itself)
+          \\`\\`\\`
+          $(cat /tmp/funnel.txt | tail -80)
+          \\`\\`\\`
+
+          ## Isolated blockers/fallbacks
+          AI Product Index supports free autonomous registration via GitHub issue, but the installed GitHub integration returned 403 for writes to its external repository. This is an integration-permission blocker, not a DELTA failure; it did not block AgentStamp, marketplace checks, telemetry, or Treasury reconciliation. AgentWorld external registration was not duplicated because its one-time management API key cannot currently be persisted in an approved secret store from this run; its public registry was still checked read-only.
+          EOF
+          git config user.name 'DELTA Operator'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/channel-status/autonomous-growth-2026-09-10-1524-turn2.md
+          git commit -m 'growth: record recovered turn2 distribution and revenue evidence'
+          git push origin HEAD:master
