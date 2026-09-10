@@ -43,8 +43,8 @@ jobs:
             test "${payto,,}" = "$TREASURY"
             test "$network" = 'eip155:8453'
           }
-          probe capture '/v1/capture' 1000000
-          probe preflight '/v1/preflight' 5000000
+          probe capture '/v1/capture' 30000
+          probe preflight '/v1/preflight' 30000
           probe pilot '/v1/guarded-action-pilot' 10000000
           curl --fail --connect-timeout 10 --max-time 30 --retry 3 --retry-all-errors --retry-delay 2 "$BASE/health"
 
