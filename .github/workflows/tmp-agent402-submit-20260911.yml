@@ -1,0 +1,58 @@
+name: TMP Agent402 DELTA listing refresh 20260911
+
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-agent402-submit-20260911.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify current owner pricing policy and live x402
+        run: |
+          set -euo pipefail
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Register or refresh canonical DELTA origin at Agent402
+        shell: bash
+        run: |
+          set -euo pipefail
+          origin='https://delta-witness-api.ruphussten.workers.dev'
+          out=''
+          code=''
+          for attempt in 1 2 3 4; do
+            rm -f /tmp/agent402-body.json
+            code=$(curl --connect-timeout 15 --max-time 45 -sS -o /tmp/agent402-body.json -w '%{http_code}' \
+              -X POST 'https://agent402.tools/api/index/register' \
+              -H 'content-type: application/json' \
+              --data "{\"origin\":\"${origin}\"}") || code='000'
+            out=$(cat /tmp/agent402-body.json 2>/dev/null || true)
+            echo "attempt=${attempt} http=${code} body=${out}"
+            if [[ "$code" =~ ^2 ]] && echo "$out" | grep -q '"listed"[[:space:]]*:[[:space:]]*true'; then
+              break
+            fi
+            if [[ "$code" == '429' || "$code" =~ ^5 || "$code" == '000' ]]; then
+              sleep $((2 ** (attempt-1)))
+              continue
+            fi
+            break
+          done
+          if ! [[ "$code" =~ ^2 ]] || ! echo "$out" | grep -q '"listed"[[:space:]]*:[[:space:]]*true'; then
+            echo 'Agent402 registration/refresh did not reach listed=true after bounded retries.' >&2
+            exit 1
+          fi
+      - name: Free buyer-router discovery readback
+        shell: bash
+        run: |
+          set -euo pipefail
+          for q in 'DELTA Witness' 'guarded action evidence' 'preflight evidence'; do
+            echo "QUERY=$q"
+            curl --connect-timeout 15 --max-time 30 -fsS --get 'https://agent402.tools/api/find' --data-urlencode "q=$q" || true
+            echo
+          done
