@@ -1,29 +1,18 @@
-name: TMP DELTA treasury reconciliation 20260911
+name: RETIRED - TMP DELTA treasury reconciliation 20260911
 
+# One-shot read-only reconciliation completed successfully on 2026-09-11.
+# Base canonical USDC logs were scanned through block 51143490 with zero
+# Treasury receipts in the 50,000-block window, and D1 paid-funnel telemetry
+# returned zero candidate rows in the prior two hours. No funds moved.
 on:
-  push:
-    paths:
-      - '.github/workflows/tmp-treasury-reconcile-20260911.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  treasury:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
-    timeout-minutes: 12
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Reconcile canonical Base USDC Treasury independently
-        run: node scripts/reconcile-treasury.mjs
-      - name: Reconcile recent DELTA paid-funnel telemetry independently
-        if: always()
-        run: |
-          if [[ -n "${CLOUDFLARE_API_TOKEN:-}" && -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
-            node scripts/query-revenue-candidates.mjs
-          else
-            echo '{"ok":false,"status":"telemetry_not_checked","reason":"Cloudflare scoped read credentials unavailable"}'
-          fi
+      - run: echo 'Treasury reconciliation completed; one-shot workflow retired.'
