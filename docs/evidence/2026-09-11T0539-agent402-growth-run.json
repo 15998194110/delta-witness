@@ -1,0 +1,62 @@
+{
+  "checked_at": "2026-09-10T21:38:53Z",
+  "pricing_policy": "owner-2026-09-10-1-5-10",
+  "production": {
+    "capture_raw_usdc": "1000000",
+    "preflight_raw_usdc": "5000000",
+    "guarded_action_pilot_raw_usdc": "10000000",
+    "network": "eip155:8453",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "status": "verified_live_402"
+  },
+  "channels": [
+    {
+      "channel": "Agent402",
+      "source": "https://agent402.tools/api/index/register",
+      "listing_status": "live",
+      "discovery_status": "canonical_origin_registered_and_router_routable",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_direct_official_registration_readback",
+      "official_readback": {
+        "listed": true,
+        "origin": "https://delta-witness-api.ruphussten.workers.dev",
+        "toolCount": 6,
+        "networks": ["eip155:8453"],
+        "routable": true,
+        "health": 1
+      },
+      "notes": "Free, no-account canonical registration/refresh. No duplicate seller identity, fee, custody, wallet signature, or legal commitment. Agent402 search relevance is not counted as buyer activity."
+    }
+  ],
+  "treasury_reconciliation": {
+    "start_block": 51093491,
+    "latest_block": 51143490,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "unclassified_usdc": 0,
+    "customer_revenue": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "telemetry_reconciliation": {
+    "window": "prior_2_hours",
+    "candidate_rows": 0,
+    "paid_settlements": 0,
+    "status": "no_paid_funnel_candidates"
+  },
+  "risk_boundary": {
+    "listing_fees_paid": 0,
+    "assets_moved": false,
+    "wallet_authorized": false,
+    "legal_commitments_accepted": false,
+    "private_keys_exposed": false
+  }
+}
