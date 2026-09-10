@@ -1,0 +1,100 @@
+name: TMP x402Scout canonical registration 20260911
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-x402scout-register-20260911.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm ci
+      - name: Enforce current owner pricing authority
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live canonical Base USDC prices before external write
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Reconcile Base Treasury independently
+        continue-on-error: true
+        run: node scripts/reconcile-treasury.mjs
+      - name: Register canonical DELTA endpoints in x402Scout only if absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          API_PRIMARY='https://x402-discovery-api.onrender.com'
+          CATALOG=/tmp/x402scout-catalog.json
+          code=000
+          for i in 1 2 3 4; do
+            code=$(curl --connect-timeout 10 --max-time 45 -sS -o "$CATALOG" -w '%{http_code}' "$API_PRIMARY/catalog") || code=000
+            echo "X402SCOUT catalog attempt=$i http=$code"
+            case "$code" in 200) break;; 429|500|502|503|504|000) sleep $((i*3));; *) break;; esac
+          done
+          if [ "$code" != 200 ]; then
+            echo "X402SCOUT channel=degraded recoverable=true stage=catalog http=$code"
+            exit 0
+          fi
+
+          register_if_absent() {
+            local id="$1" name="$2" url="$3" price="$4" description="$5" tags="$6"
+            if jq -e --arg url "$url" '.. | objects | select((.url? // .endpoint_url? // .endpoint? // "") == $url)' "$CATALOG" >/dev/null 2>&1; then
+              echo "X402SCOUT listing_status=already_present endpoint=$url"
+              return 0
+            fi
+            payload=$(jq -nc \
+              --arg id "$id" --arg name "$name" --arg url "$url" \
+              --argjson price "$price" --arg description "$description" \
+              --arg wallet '0x1990e21bc219696ff7fbc26527dbaed335ac6367' \
+              --arg tags "$tags" \
+              '{id:$id,name:$name,url:$url,price_usd:$price,description:$description,capability_tags:($tags|split(",")),wallet_address:$wallet,network:"base"}')
+            local rcode=000
+            : >/tmp/x402scout-register.json
+            for i in 1 2 3 4; do
+              rcode=$(curl --connect-timeout 10 --max-time 45 -sS -o /tmp/x402scout-register.json -w '%{http_code}' \
+                -X POST "$API_PRIMARY/register" -H 'content-type: application/json' --data "$payload") || rcode=000
+              echo "X402SCOUT register attempt=$i endpoint=$url http=$rcode body=$(cat /tmp/x402scout-register.json 2>/dev/null || true)"
+              case "$rcode" in 200|201|202|409) break;; 429|500|502|503|504|000) sleep $((i*3));; *) break;; esac
+            done
+            case "$rcode" in
+              200|201|202|409) echo "X402SCOUT listing_status=accepted endpoint=$url";;
+              *) echo "X402SCOUT channel=degraded recoverable=true stage=register endpoint=$url http=$rcode";;
+            esac
+          }
+
+          register_if_absent 'delta-witness-capture' 'DELTA Witness Capture' \
+            'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 1 \
+            'Timestamped public-web page-state evidence for autonomous agents.' \
+            'evidence,web,capture,verification,agents'
+          register_if_absent 'delta-witness-preflight' 'DELTA Witness Preflight' \
+            'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 5 \
+            'Fresh-source deterministic preflight verification before consequential autonomous actions.' \
+            'verification,preflight,safety,evidence,agents'
+          register_if_absent 'delta-witness-guarded-action-pilot' 'DELTA Witness Guarded Action Pilot' \
+            'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot' 10 \
+            'Production-verified guarded-action evidence pilot for consequential agent workflows.' \
+            'guarded-action,verification,safety,evidence,agents'
+
+      - name: Recheck catalog visibility without duplicate writes
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          for i in 1 2 3; do
+            code=$(curl --connect-timeout 10 --max-time 45 -sS -o /tmp/x402scout-recheck.json -w '%{http_code}' 'https://x402-discovery-api.onrender.com/catalog') || code=000
+            echo "X402SCOUT recheck attempt=$i http=$code"
+            if [ "$code" = 200 ]; then
+              hits=$(jq -r '[.. | objects | select(((.url? // .endpoint_url? // .endpoint? // "") | tostring | contains("delta-witness-api.ruphussten.workers.dev")) or ((.name? // "") | tostring | ascii_downcase | contains("delta witness")))] | length' /tmp/x402scout-recheck.json 2>/dev/null || echo 0)
+              echo "X402SCOUT catalog_delta_hits=$hits"
+              [ "$hits" -gt 0 ] && exit 0
+            fi
+            sleep $((i*3))
+          done
+          echo 'X402SCOUT visibility=pending recoverable=true'
