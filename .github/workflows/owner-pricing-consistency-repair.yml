@@ -1,5 +1,5 @@
 name: DELTA Owner Pricing Consistency Repair
-# Re-run after synchronizing the final stale current-price payment-gate assertion.
+# Re-run after stale listing/release/discovery workflow guardrails were synchronized.
 
 on:
   push:
