@@ -1,58 +1,20 @@
-name: TMP true402 verification 20260911
+name: RETIRED - true402 canonical registration 20260911
 
+# One-shot completed its only external write on 2026-09-11 Asia/Shanghai:
+# true402 registration returned HTTP 201 after current owner pricing verification.
+# Immediate catalog readback was not yet visible, so visibility remains a recoverable
+# deferred recheck for the existing discovery loop. Do not replay this registration
+# or create a duplicate seller/service identity. Historical Actions logs are preserved.
+# Current owner ladder: Capture/Partner/Watch=1; Public Preflight=5; Pilot=10 USDC.
 on:
-  push:
-    branches: ["master"]
-    paths:
-      - ".github/workflows/tmp-true402-register-20260911.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  verify:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with: { node-version: "22" }
-      - name: Verify owner prices before catalog readback
-        run: |
-          node scripts/check-owner-pricing.mjs
-          node scripts/verify-owner-pricing-live.mjs
-      - name: Read back true402 catalog only
-        shell: bash
-        run: |
-          set -euo pipefail
-          API='https://true402.dev/api/v1/services'
-          code=000
-          : >/tmp/true402-catalog.json
-          for i in 1 2 3 4; do
-            code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/true402-catalog.json -w '%{http_code}' "$API") || code=000
-            echo "TRUE402_VERIFY attempt=$i http=$code"
-            case "$code" in 200) break;; 429|500|502|503|504|000) sleep $((i*3));; *) break;; esac
-          done
-          test "$code" = "200"
-          if grep -Eqi 'delta[- ]witness|delta-witness-api\.ruphussten\.workers\.dev' /tmp/true402-catalog.json; then
-            echo 'TRUE402_VERIFIED live_catalog_match=true duplicate_created=false'
-            node - <<'NODE'
-          const fs = require('node:fs');
-          const body = JSON.parse(fs.readFileSync('/tmp/true402-catalog.json','utf8'));
-          const text = JSON.stringify(body);
-          const needle = 'delta-witness';
-          function walk(v, out=[]) {
-            if (Array.isArray(v)) for (const x of v) walk(x,out);
-            else if (v && typeof v === 'object') {
-              const s = JSON.stringify(v).toLowerCase();
-              if (s.includes(needle) || s.includes('delta-witness-api.ruphussten.workers.dev')) out.push(v);
-              else for (const x of Object.values(v)) walk(x,out);
-            }
-            return out;
-          }
-          const matches = walk(body).slice(0,5);
-          console.log('TRUE402_MATCHES ' + JSON.stringify(matches).slice(0,6000));
-          NODE
-          else
-            echo 'TRUE402_VERIFY_DEGRADED recoverable=true reason=accepted_201_but_catalog_not_visible_yet'
-            exit 1
-          fi
+      - run: echo 'One-shot retired; no external write is performed.'
