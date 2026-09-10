@@ -15,31 +15,40 @@ function env(overrides: Record<string, unknown> = {}): RuntimeEnv {
     PRICING_BROWSER_MS: "25000",
     PRICING_STORAGE_BYTES: "9000000",
     TARGET_MARGIN_BPS: "6500",
-    CAPTURE_BASE_PRICE_USD: "0.01",
-    PREFLIGHT_BASE_PRICE_USD: "0.01",
+    CAPTURE_BASE_PRICE_USD: "1",
+    PREFLIGHT_BASE_PRICE_USD: "5",
+    WATCH_BASE_PRICE_USD: "1",
     ...overrides,
   } as unknown as RuntimeEnv;
 }
 
-describe("contribution-margin pricing", () => {
-  it("deploys the current owner-approved public prices", () => {
+describe("owner-locked pricing", () => {
+  it("deploys the current owner-authorized prices", () => {
     const config = JSON.parse(readFileSync(new NodeURL("../wrangler.jsonc", import.meta.url), "utf8"));
-    expect(config.vars).toMatchObject({ CAPTURE_BASE_PRICE_USD: "0.03", PREFLIGHT_BASE_PRICE_USD: "1", WATCH_BASE_PRICE_USD: "0.03", PARTNER_PREFLIGHT_BASE_PRICE_USD: "0.03" });
+    expect(config.vars).toMatchObject({ CAPTURE_BASE_PRICE_USD: "1", PREFLIGHT_BASE_PRICE_USD: "5", WATCH_BASE_PRICE_USD: "1", PARTNER_PREFLIGHT_BASE_PRICE_USD: "1" });
   });
-  it("isolates Preflight repricing from Capture and prepaid Watch checks", () => {
-    const config = env({ CAPTURE_BASE_PRICE_USD: "0.03", PREFLIGHT_BASE_PRICE_USD: "1", WATCH_BASE_PRICE_USD: "0.03" });
-    expect(quoteProduct(config, "capture").grossPriceUsd).toBe(0.03);
-    expect(quoteProduct(config, "preflight").grossPriceUsd).toBe(1);
-    expect(quoteProduct(config, "watch_check").grossPriceUsd).toBe(0.03);
+
+  it("enforces the $1 -> $5 entry/verification ladder", () => {
+    const config = env();
+    expect(quoteProduct(config, "capture").grossPriceUsd).toBe(1);
+    expect(quoteProduct(config, "preflight").grossPriceUsd).toBe(5);
+    expect(quoteProduct(config, "watch_check").grossPriceUsd).toBe(1);
   });
-  it("calculates a floor above expected variable cost", () => {
+
+  it("keeps cost-floor telemetry without silently changing the owner price", () => {
     const quote = quoteProduct(env(), "capture");
+    expect(quote.grossPriceUsd).toBe(1);
     expect(quote.grossPriceUsd).toBeGreaterThan(quote.expectedVariableCostUsd);
-    expect(quote.grossPriceUsd).toBeGreaterThanOrEqual(quote.minimumPriceUsd);
     expect(quote.estimatedContributionMarginUsd).toBeGreaterThan(0);
   });
 
-  it("raises the floor as browser time rises", () => {
+  it("does not invent a fourth price when modeled costs exceed the configured ladder", () => {
+    const quote = quoteProduct(env({ BROWSER_COST_PER_HOUR_USD: "100", PRICING_BROWSER_MS: "120000" }), "capture");
+    expect(quote.minimumPriceUsd).toBeGreaterThan(1);
+    expect(quote.grossPriceUsd).toBe(1);
+  });
+
+  it("raises the cost signal as browser time rises", () => {
     const low = estimateVariableCost(env(), 1_000, 1000);
     const high = estimateVariableCost(env(), 30_000, 1000);
     expect(high).toBeGreaterThan(low);
