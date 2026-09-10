@@ -1,0 +1,16 @@
+name: TMP Verify Pricing Authority 20260910
+on:
+  push:
+    branches: ["master"]
+    paths: [".github/workflows/tmp-verify-pricing-authority-20260910.yml"]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: "22" }
+      - run: npm ci
+      - run: npm run verify
