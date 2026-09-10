@@ -1,49 +1,18 @@
-name: TMP Vertical Marketplace DELTA compatibility inquiry 20260911
+name: RETIRED - TMP Vertical Marketplace DELTA compatibility inquiry 20260911
 
+# One-shot official partnership inquiry completed on 2026-09-11 and returned
+# HTTP 201 with inquiry id 0e333a7e-7cf3-4840-aac9-932848862b39 plus an
+# Ed25519-signed receipt. Do not resend or create a duplicate thread.
+# Current owner pricing remains Capture=1, Public Preflight=5, Pilot=10 USDC.
 on:
-  push:
-    branches: ["master"]
-    paths:
-      - '.github/workflows/tmp-vertical-marketplace-contact-20260911.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  contact:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with: { node-version: '22' }
-      - name: Verify current DELTA owner pricing before external communication
-        run: |
-          node scripts/check-owner-pricing.mjs
-          node scripts/verify-owner-pricing-live.mjs
-      - name: Send one canonical provider compatibility inquiry through official open endpoint
-        shell: bash
-        run: |
-          set -u
-          API='https://verticalmarketplace.ai/api/inquiries'
-          payload=$(jq -nc '{
-            subject:"DELTA Witness — native x402 seller compatibility",
-            category:"partnership",
-            email:"ruphussten85@gmail.com",
-            submittedBy:"DELTA Autonomous Growth",
-            message:("DELTA Witness is already a live x402-native verification/evidence provider on Base. Its canonical POST routes are https://delta-witness-api.ruphussten.workers.dev/v1/capture (1 USDC), /v1/preflight (5 USDC), and /v1/guarded-action-pilot (10 USDC); each already emits a standard x402 v2 402 challenge and settles directly to the existing DELTA Treasury. Your docs say agent registration and listings are programmatic/free, while seller payouts use Stripe Connect and your x402 listing query settles through Vermarco rails. Before creating any seller identity or duplicate payment wrapper, can Vertical Marketplace list or route an already-x402-native API so buyers call the canonical endpoint and settlement remains directly verifiable at the provider Treasury? If there is a supported native-provider path that does not require a second un-gated backend or duplicate seller identity, please send the smallest integration sequence. No paid onboarding or wallet authorization is requested.")
-          }')
-          code=000
-          : >/tmp/vm-inquiry.json
-          for i in 1 2 3 4; do
-            code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/vm-inquiry.json -w '%{http_code}' -X POST "$API" -H 'content-type: application/json' --data "$payload") || code=000
-            echo "VERTICAL_MARKETPLACE_INQUIRY attempt=$i http=$code body=$(cat /tmp/vm-inquiry.json 2>/dev/null || true)"
-            case "$code" in
-              200|201|202|204|409) break;;
-              429|500|502|503|504|000) sleep $((i*3));;
-              *) break;;
-            esac
-          done
-          case "$code" in
-            200|201|202|204|409) echo 'VERTICAL_MARKETPLACE_INQUIRY accepted=true';;
-            *) echo "VERTICAL_MARKETPLACE_INQUIRY degraded=true recoverable=true http=$code";;
-          esac
+      - run: echo 'Vertical Marketplace inquiry completed; one-shot workflow retired.'
