@@ -1,177 +1,19 @@
-name: TMP PayanAgent canonical DELTA registration 20260911
+name: RETIRED - TMP PayanAgent canonical DELTA registration 20260911
 
+# First one-shot failed locally before any PayanAgent write because the inline Node
+# program mixed CommonJS require() with top-level await. Pricing verification and
+# independent Treasury reconciliation completed; no PayanAgent registration was
+# attempted. Retired before a corrected bounded retry to avoid duplicate loops.
+# Current owner pricing: Capture=1, Public Preflight=5, Pilot=10 USDC.
 on:
-  push:
-    branches: ["master"]
-    paths:
-      - ".github/workflows/tmp-payanagent-register-20260911.yml"
+  workflow_dispatch:
 
 permissions:
-  contents: write
-
-concurrency:
-  group: delta-payanagent-one-shot-20260911
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  register:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "22"
-
-      - name: Enforce current owner pricing before any external listing write
-        env:
-          PRICING_AUDIT_OUTPUT: /tmp/delta-pricing.json
-        run: |
-          set -euo pipefail
-          node scripts/check-owner-pricing.mjs
-          node scripts/verify-owner-pricing-live.mjs
-
-      - name: Reconcile Base Treasury independently
-        run: |
-          set -euo pipefail
-          node scripts/reconcile-treasury.mjs > /tmp/delta-treasury.json
-
-      - name: Register only if canonical DELTA is absent; create relay offers without repricing
-        env:
-          PAYAN_BASE: https://payanagent.com
-          DELTA_TREASURY: "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const fs = require('node:fs');
-          const BASE = process.env.PAYAN_BASE;
-          const treasury = process.env.DELTA_TREASURY.toLowerCase();
-          const canonical = [
-            { key: 'capture', title: 'DELTA Witness Capture', description: 'Timestamped public-web page-state evidence for autonomous agents.', category: 'Verification', tags: ['x402','evidence','web','agent-safety'], url: 'https://delta-witness-api.ruphussten.workers.dev/v1/capture', expected: 1 },
-            { key: 'preflight', title: 'DELTA Witness Preflight', description: 'Fresh-source preflight verification before consequential autonomous actions.', category: 'Verification', tags: ['x402','preflight','verification','agent-safety'], url: 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight', expected: 5 },
-            { key: 'guarded-action-pilot', title: 'DELTA Witness Guarded-Action Pilot', description: 'Production-verified guarded-action evidence pilot for consequential agent workflows.', category: 'Agent Safety', tags: ['x402','guarded-action','evidence','agent-safety'], url: 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot', expected: 10 },
-          ];
-          const sleep = ms => new Promise(r => setTimeout(r, ms));
-          async function req(url, init = {}, tries = 4) {
-            let last;
-            for (let i = 1; i <= tries; i++) {
-              try {
-                const r = await fetch(url, { ...init, signal: AbortSignal.timeout(15000) });
-                const text = await r.text();
-                if (r.status === 429 || r.status >= 500) throw new Error(`recoverable_http_${r.status}:${text.slice(0,160)}`);
-                return { status: r.status, text, json: (() => { try { return JSON.parse(text); } catch { return null; } })(), headers: Object.fromEntries(r.headers) };
-              } catch (e) {
-                last = e;
-                if (i < tries) await sleep(1000 * 2 ** (i - 1));
-              }
-            }
-            throw last;
-          }
-          function serialized(x) { return JSON.stringify(x || {}).toLowerCase(); }
-          const probes = [];
-          for (const item of canonical) {
-            for (const q of [item.url, item.title]) {
-              const r = await req(`${BASE}/api/v1/discover?q=${encodeURIComponent(q)}&limit=50`);
-              probes.push({ q, status: r.status, body: r.json });
-            }
-          }
-          const combined = serialized(probes);
-          const existingUrls = canonical.filter(x => combined.includes(x.url.toLowerCase())).map(x => x.url);
-          const existingName = combined.includes('delta witness');
-          let registration = { action: 'none', reason: null, agent_id: null, offers: [] };
-          if (existingUrls.length || existingName) {
-            registration.reason = 'canonical_or_named_DELTA_already_discoverable; duplicate seller/listing write suppressed';
-          } else {
-            const reg = await req(`${BASE}/api/v1/agents`, {
-              method: 'POST', headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({
-                name: 'DELTA Witness',
-                description: 'x402-native verification and evidence service for autonomous agents on Base.',
-                walletAddress: treasury,
-                chain: 'base',
-                tags: ['x402','verification','evidence','agent-safety'],
-                providerType: 'api',
-                agentUrl: 'https://delta-witness-api.ruphussten.workers.dev'
-              })
-            });
-            if (![200,201].includes(reg.status) || !reg.json?.agentId || !reg.json?.apiKey) throw new Error(`agent_registration_unexpected_${reg.status}:${reg.text.slice(0,240)}`);
-            const apiKey = reg.json.apiKey;
-            console.log(`::add-mask::${apiKey}`);
-            registration.action = 'registered_new_canonical_seller';
-            registration.agent_id = reg.json.agentId;
-            for (const item of canonical) {
-              const create = await req(`${BASE}/api/v1/offers`, {
-                method: 'POST',
-                headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-                body: JSON.stringify({
-                  title: item.title,
-                  description: item.description,
-                  category: item.category,
-                  tags: item.tags,
-                  offerType: 'api',
-                  externalUrl: item.url,
-                  httpMethod: 'POST',
-                  verificationBody: {}
-                })
-              });
-              if (![200,201].includes(create.status) || !create.json?.offerId) throw new Error(`offer_create_${item.key}_unexpected_${create.status}:${create.text.slice(0,240)}`);
-              const detail = await req(`${BASE}/api/v1/offers/${encodeURIComponent(create.json.offerId)}`);
-              const d = detail.json || {};
-              const price = Number(d.priceUsd ?? d.offer?.priceUsd ?? NaN);
-              if (!Number.isFinite(price) || price !== item.expected) throw new Error(`relay_price_mismatch_${item.key}:expected_${item.expected}_got_${price}`);
-              const buyUrl = d.buyUrl ?? d.offer?.buyUrl ?? `${BASE}/x402/${create.json.offerId}`;
-              const challenge = await req(buyUrl.startsWith('http') ? buyUrl : `${BASE}${buyUrl}`, {
-                method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}'
-              });
-              if (challenge.status !== 402) throw new Error(`relay_unpaid_probe_${item.key}_expected_402_got_${challenge.status}`);
-              const paymentRequired = challenge.headers['payment-required'];
-              let decoded = null;
-              if (paymentRequired) { try { decoded = JSON.parse(Buffer.from(paymentRequired, 'base64').toString('utf8')); } catch {} }
-              const accepted = decoded?.accepts?.find(a => String(a.network) === 'eip155:8453');
-              if (!accepted || String(accepted.payTo || '').toLowerCase() !== treasury || Number(accepted.amount) / 1e6 !== item.expected) {
-                throw new Error(`relay_challenge_integrity_mismatch_${item.key}`);
-              }
-              registration.offers.push({ key: item.key, offer_id: create.json.offerId, status: 'live_402_verified', price_usdc: price, buy_url: buyUrl, network: accepted.network, pay_to: accepted.payTo, raw_usdc: accepted.amount });
-            }
-          }
-          const treasuryReport = JSON.parse(fs.readFileSync('/tmp/delta-treasury.json','utf8'));
-          const pricingReport = JSON.parse(fs.readFileSync('/tmp/delta-pricing.json','utf8'));
-          const evidence = {
-            checked_at: new Date().toISOString(),
-            channel_source: 'PayanAgent',
-            listing_status: registration.action === 'registered_new_canonical_seller' ? 'live' : 'existing_or_suppressed',
-            discovery_status: existingUrls.length || existingName ? 'existing_detected' : (registration.offers.length === 3 ? 'three_relay_offers_live' : 'unknown'),
-            buyer_count: 0,
-            settlement_count: 0,
-            verified_neighbor_demand: 'public marketplace has settled adjacent verification/evidence offers; separate web evidence required for amounts',
-            external_requests: 0,
-            intents_402: 0,
-            paid_settlements: 0,
-            treasury_received: treasuryReport.unclassified_usdc,
-            revenue: 0,
-            variable_cost: 0,
-            contribution_margin: 0,
-            evidence_quality: registration.offers.length === 3 ? 'A_live_402_relay_readback_plus_A_direct_canonical_USDC_log' : 'A_duplicate_suppression_plus_A_direct_canonical_USDC_log',
-            current_owner_pricing: pricingReport,
-            treasury_reconciliation: treasuryReport,
-            duplicate_check: { existing_urls: existingUrls, existing_name_match: existingName },
-            registration
-          };
-          fs.mkdirSync('docs/evidence', { recursive: true });
-          fs.writeFileSync('docs/evidence/payanagent-2026-09-11.json', JSON.stringify(evidence, null, 2) + '\n');
-          console.log(JSON.stringify({ channel: evidence.channel_source, listing_status: evidence.listing_status, discovery_status: evidence.discovery_status, agent_id: registration.agent_id, offers: registration.offers.map(o => ({key:o.key, offer_id:o.offer_id, price_usdc:o.price_usdc, raw_usdc:o.raw_usdc})), treasury_unclassified_usdc: treasuryReport.unclassified_usdc, treasury_latest_block: treasuryReport.latest_block }, null, 2));
-          NODE
-
-      - name: Persist sanitized distribution evidence
-        run: |
-          set -euo pipefail
-          git config user.name 'DELTA Distribution Bot'
-          git config user.email 'actions@users.noreply.github.com'
-          git add docs/evidence/payanagent-2026-09-11.json
-          if git diff --cached --quiet; then
-            echo 'No evidence delta to persist.'
-            exit 0
-          fi
-          git commit -m 'evidence: record PayanAgent canonical distribution check'
-          git push origin HEAD:master
+      - run: echo 'Failed pre-write one-shot retired; no external listing write occurred.'
