@@ -3,7 +3,7 @@
   "pricing_policy": "owner-2026-09-10-1-5-10",
   "production": {
     "network": "eip155:8453",
-    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "asset": "0x833589fCD6eDb6E08f4c7c32d4f71b54bdA02913",
     "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
     "capture_usdc": 1,
     "capture_raw": "1000000",
@@ -82,8 +82,8 @@
     },
     {
       "channel": "Proxagora",
-      "listing_status": "provider_compatibility_outreach_sent",
-      "discovery_status": "provider_beta_key_required_for_publish",
+      "listing_status": "provider_compatibility_contact_delivery_failed",
+      "discovery_status": "provider_beta_key_required_for_publish_official_provider_email_stale",
       "buyer_count": 0,
       "settlement_count": 0,
       "external_requests": 0,
@@ -93,8 +93,8 @@
       "revenue": 0,
       "variable_cost": 0,
       "contribution_margin": 0,
-      "evidence_quality": "B_official_docs_plus_sent_message",
-      "note": "Asked official providers@proxagora.com whether native x402 upstream routes can be listed without creating a parallel un-gated backend or duplicate seller identity. No commitment made."
+      "evidence_quality": "A_official_docs_plus_Gmail_DSN",
+      "note": "Attempted the official provider contact providers@proxagora.com to clarify native-x402 upstream compatibility; Gmail returned an address-not-found delivery failure. No alternate private email was guessed, no commitment was made, and the official wishlist-form fallback remains the next safe channel."
     }
   ],
   "aggregate": {
