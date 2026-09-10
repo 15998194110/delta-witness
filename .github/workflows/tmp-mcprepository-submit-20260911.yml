@@ -1,0 +1,25 @@
+name: DELTA MCPRepository Submit
+
+on:
+  push:
+    paths:
+      - .github/workflows/tmp-mcprepository-submit-20260911.yml
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Check current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live public prices before listing write
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Submit canonical repository through MCPRepository official index CLI
+        run: npx -y mcp-index https://github.com/15998194110/delta-witness
