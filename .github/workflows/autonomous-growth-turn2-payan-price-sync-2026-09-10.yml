@@ -1,4 +1,4 @@
-name: DELTA Payan Price Sync Turn2
+name: DELTA Payan Buy Challenge Probe Turn2
 on:
   push:
     branches: [master]
@@ -6,79 +6,72 @@ on:
 permissions:
   contents: write
 jobs:
-  sync:
+  probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
-    env:
-      PAYANAGENT_API_KEY_A: ${{ secrets.PAYANAGENT_API_KEY }}
-      PAYANAGENT_API_KEY_B: ${{ secrets.PAYAN_API_KEY }}
-      PAYANAGENT_API_KEY_C: ${{ secrets.DELTA_PAYANAGENT_API_KEY }}
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
         with: { fetch-depth: 0 }
-      - name: Verify public DELTA offer ownership context and patch prices when credential exists
+      - name: Probe Payan universal x402 routes without payment
         shell: bash
         run: |
           set -euo pipefail
           git fetch origin master
           git checkout master
           git reset --hard origin/master
-          KEY="${PAYANAGENT_API_KEY_A:-}"
-          [ -n "$KEY" ] || KEY="${PAYANAGENT_API_KEY_B:-}"
-          [ -n "$KEY" ] || KEY="${PAYANAGENT_API_KEY_C:-}"
-          AGENT_ID='j579qdk55hztqedrbajb6wek7x8dzfxp'
-          : >/tmp/sync.tsv
-          get_offer(){
-            id="$1" out="$2"
+          : >/tmp/probes.tsv
+          probe(){
+            id="$1" title="$2" expected="$3" code=000 amount='' payto='' network=''
             for i in 1 2 3 4; do
-              code=$(curl -sS --connect-timeout 8 --max-time 25 -o "$out" -w '%{http_code}' "https://payanagent.com/api/v1/offers/$id") || code=000
-              [ "$code" = 200 ] && return 0
+              code=$(curl -sS --connect-timeout 8 --max-time 25 -o /tmp/body-$id -D /tmp/headers-$id -w '%{http_code}' -X POST "https://payanagent.com/x402/$id" -H 'content-type: application/json' -d '{}') || code=000
+              python3 - "$expected" "/tmp/headers-$id" "/tmp/body-$id" >/tmp/parsed-$id.json <<'PY' || true
+          import sys,json,base64,pathlib
+          expected,hp,bp=sys.argv[1:]
+          h=''
+          try:
+            for line in open(hp,errors='ignore'):
+              if line.lower().startswith('payment-required:'): h=line.split(':',1)[1].strip(); break
+          except: pass
+          obj={}
+          if h:
+            try: obj=json.loads(base64.b64decode(h+'==='))
+            except: pass
+          if not obj:
+            try: obj=json.load(open(bp))
+            except: obj={}
+          def walk(v):
+            if isinstance(v,dict):
+              yield v
+              for z in v.values(): yield from walk(z)
+            elif isinstance(v,list):
+              for z in v: yield from walk(z)
+          nodes=list(walk(obj))
+          amount=next((str(x.get('amount')) for x in nodes if x.get('amount') is not None),'')
+          payto=next((str(x.get('payTo')) for x in nodes if x.get('payTo')),'')
+          network=next((str(x.get('network')) for x in nodes if x.get('network')),'')
+          print(json.dumps({'amount':amount,'payTo':payto,'network':network,'expected':expected}))
+          PY
+              amount=$(jq -r '.amount // empty' /tmp/parsed-$id.json 2>/dev/null || true)
+              payto=$(jq -r '.payTo // empty' /tmp/parsed-$id.json 2>/dev/null || true)
+              network=$(jq -r '.network // empty' /tmp/parsed-$id.json 2>/dev/null || true)
+              [ "$code" = 402 ] && break
               sleep $((i*2))
             done
-            return 1
+            if [ "$code" = 402 ] && [ "$amount" = "$expected" ] && [ "${payto,,}" = '0x1990e21bc219696ff7fbc26527dbaed335ac6367' ] && [ "$network" = 'eip155:8453' ]; then status=live_matches_owner_price; else status=challenge_mismatch_or_degraded; fi
+            printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$id" "$title" "$status" "$code" "$amount" "$payto" "$network" >>/tmp/probes.tsv
           }
-          patch_offer(){
-            id="$1" cents="$2" out="$3"
-            for i in 1 2 3 4; do
-              code=$(curl -sS --connect-timeout 8 --max-time 25 -o "$out" -w '%{http_code}' -X PATCH "https://payanagent.com/api/v1/offers/$id" -H "Authorization: Bearer $KEY" -H 'content-type: application/json' -d "{\"priceCents\":$cents}") || code=000
-              case "$code" in 200|204|400|401|403|404|409|422) printf '%s' "$code"; return 0;; esac
-              sleep $((i*2))
-            done
-            printf '%s' "$code"
-          }
-          for spec in \
-            'kh79t54410qb82yjcqsjmgv0d58dn7p3|DELTA Witness Capture|100' \
-            'kh72vd1kdv37109xxzzgmn2xfn8dnc6z|DELTA Witness Guard Preflight|500' \
-            'kh7dskbdz0mj2ctc0dvm6q1yb98dz8dm|DELTA Witness Guarded Action Pilot|1000'
-          do
-            IFS='|' read -r id title cents <<<"$spec"
-            before=/tmp/before-$id.json; after=/tmp/after-$id.json
-            if ! get_offer "$id" "$before"; then printf '%s\t%s\tpublic_get_degraded\t\n' "$id" "$title" >>/tmp/sync.tsv; continue; fi
-            seller=$(jq -r '.offer.agentId // .offer.sellerId // .offer.providerId // .agentId // .sellerId // .providerId // empty' "$before" 2>/dev/null || true)
-            price=$(jq -r '.offer.priceUsd // .priceUsd // empty' "$before" 2>/dev/null || true)
-            desired=$(python3 -c "print($cents/100)")
-            if [ "$price" = "$desired" ] || [ "$price" = "${desired}.0" ]; then printf '%s\t%s\talready_current\t%s\n' "$id" "$title" "$price" >>/tmp/sync.tsv; continue; fi
-            if [ -z "$KEY" ]; then printf '%s\t%s\tcredential_missing\t%s\n' "$id" "$title" "$price" >>/tmp/sync.tsv; continue; fi
-            code=$(patch_offer "$id" "$cents" /tmp/patch-$id.json)
-            if [ "$code" = 200 ] || [ "$code" = 204 ]; then
-              sleep 1
-              get_offer "$id" "$after" || cp /tmp/patch-$id.json "$after"
-              newprice=$(jq -r '.offer.priceUsd // .priceUsd // empty' "$after" 2>/dev/null || true)
-              if [ "$newprice" = "$desired" ] || [ "$newprice" = "${desired}.0" ]; then st=updated_live; else st="patch_${code}_readback_${newprice:-unknown}"; fi
-            else st="patch_http_${code}"; fi
-            printf '%s\t%s\t%s\t%s\n' "$id" "$title" "$st" "$price" >>/tmp/sync.tsv
-          done
+          probe kh79t54410qb82yjcqsjmgv0d58dn7p3 'DELTA Witness Capture' 1000000
+          probe kh72vd1kdv37109xxzzgmn2xfn8dnc6z 'DELTA Witness Guard Preflight' 5000000
+          probe kh7dskbdz0mj2ctc0dvm6q1yb98dz8dm 'DELTA Witness Guarded Action Pilot' 10000000
           python3 - <<'PY'
           import json,pathlib,datetime
           rows=[]
-          for line in pathlib.Path('/tmp/sync.tsv').read_text().splitlines():
-            if not line: continue
-            parts=line.split('\t')
-            rows.append({'offer_id':parts[0],'title':parts[1],'status':parts[2],'prior_price_usd':parts[3] if len(parts)>3 else None})
-          pathlib.Path('docs/channel-status/payan-price-sync-2026-09-10-turn2.json').write_text(json.dumps({'checked_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'rows':rows},indent=2)+'\n')
+          for l in pathlib.Path('/tmp/probes.tsv').read_text().splitlines():
+            p=l.split('\t'); rows.append({'offer_id':p[0],'title':p[1],'status':p[2],'http':p[3],'raw_amount':p[4],'pay_to':p[5],'network':p[6]})
+          pathlib.Path('docs/channel-status/payan-buy-challenge-2026-09-10-turn2.json').write_text(json.dumps({'checked_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'rows':rows},indent=2)+'\n')
           PY
           git config user.name 'DELTA Operator'
           git config user.email 'actions@users.noreply.github.com'
-          git add docs/channel-status/payan-price-sync-2026-09-10-turn2.json
-          git commit -m 'growth: record Payan DELTA offer price sync'
+          git add docs/channel-status/payan-buy-challenge-2026-09-10-turn2.json
+          git commit -m 'growth: record Payan live buy challenge pricing'
           git push origin HEAD:master
