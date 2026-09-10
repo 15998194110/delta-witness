@@ -1,0 +1,48 @@
+{
+  "checked_at": "2026-09-10T23:33:49Z",
+  "owner_pricing": {
+    "capture_raw": 1000000,
+    "public_preflight_raw": 5000000,
+    "guarded_action_pilot_raw": 10000000,
+    "pricing_verify_rc": "0"
+  },
+  "treasury_reconcile_rc": "0",
+  "telemetry_query_rc": "2",
+  "channels": {
+    "ai_security_directory": {
+      "listing_status": "accepted_review_pending",
+      "evidence_quality": "A_direct_official_API"
+    },
+    "made_with_stack": {
+      "listing_status": "nonretryable_http_400",
+      "evidence_quality": "A_direct_official_API"
+    }
+  },
+  "treasury": {
+    "ok": true,
+    "checked_at": "2026-09-10T23:33:35.861Z",
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "start_block": 51096933,
+    "latest_block": 51146932,
+    "lookback_blocks": 50000,
+    "latest_rpc": "https://mainnet.base.org",
+    "treasury_received_candidates": 0,
+    "total_raw": "0",
+    "total_usdc": 0,
+    "known_non_customer_raw": "0",
+    "known_non_customer_usdc": 0,
+    "unclassified_raw": "0",
+    "unclassified_usdc": 0,
+    "revenue_classification": "known platform/test payers are explicitly excluded; remaining receipts stay unclassified until non-project payer and DELTA proof/telemetry are reconciled",
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "transfers": []
+  },
+  "revenue_candidates": null,
+  "policy": {
+    "fees_paid": 0,
+    "wallet_signatures": 0,
+    "duplicate_identities_created": 0
+  }
+}
