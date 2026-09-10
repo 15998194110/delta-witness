@@ -1,0 +1,112 @@
+name: DELTA AgentNDX Submission
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/ops-growth-turn15-agentndx.yml']
+permissions:
+  contents: read
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify DELTA production stays healthy
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          curl --retry 4 --retry-all-errors --retry-delay 1 -fsS "$BASE/health" >/dev/null
+          code=$(curl --retry 4 --retry-all-errors --retry-delay 1 -sS -o /tmp/body -D /tmp/h -w '%{http_code}' -X POST "$BASE/v1/preflight" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
+          hdr=$(awk 'BEGIN{IGNORECASE=1} /^payment-required:/{sub(/^[^:]+:[[:space:]]*/,""); gsub(/\r/,""); print; exit}' /tmp/h)
+          decoded=$(printf '%s' "$hdr" | base64 -d 2>/dev/null || true)
+          amount=$(printf '%s' "$decoded" | jq -r '.. | .amount? // empty' 2>/dev/null | head -1)
+          test "$code" = 402 && test "$amount" = 1000000
+      - name: Check AgentNDX current public index
+        id: existing
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST='delta-witness-api.ruphussten.workers.dev'
+          curl --retry 4 --retry-all-errors --retry-delay 1 -fsS 'https://agentndx.ai/api/servers.json' -o /tmp/servers.json
+          if grep -Fqi "$HOST" /tmp/servers.json || grep -Fqi 'DELTA Witness' /tmp/servers.json; then
+            echo 'already_live=1' >> "$GITHUB_OUTPUT"
+            echo 'AGENTNDX_ALREADY_LIVE=1'
+          else
+            echo 'already_live=0' >> "$GITHUB_OUTPUT"
+            echo 'AGENTNDX_ALREADY_LIVE=0'
+          fi
+      - name: Submit free no-account review form
+        if: steps.existing.outputs.already_live != '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import html.parser, http.cookiejar, urllib.parse, urllib.request, re, sys
+          URL='https://agentndx.ai/submit/'
+          class P(html.parser.HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.forms=[]; self.cur=None
+              def handle_starttag(self, tag, attrs):
+                  a=dict(attrs)
+                  if tag=='form': self.cur={'action':a.get('action',''),'method':a.get('method','get').lower(),'fields':[]}; self.forms.append(self.cur)
+                  elif self.cur is not None and tag in ('input','textarea','select'):
+                      self.cur['fields'].append((tag,a))
+              def handle_endtag(self, tag):
+                  if tag=='form': self.cur=None
+          cj=http.cookiejar.CookieJar(); op=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+          req=urllib.request.Request(URL, headers={'User-Agent':'Mozilla/5.0 DELTA-Witness-Registry-Submit/1.0'})
+          raw=op.open(req, timeout=30).read().decode('utf-8','replace')
+          p=P(); p.feed(raw)
+          form=next((f for f in p.forms if any('github' in ((a.get('name','')+' '+a.get('placeholder','')).lower()) for _,a in f['fields'])), p.forms[0] if p.forms else None)
+          if not form: raise SystemExit('no_form_found')
+          data={}
+          protocols=[]
+          for tag,a in form['fields']:
+              n=a.get('name')
+              if not n: continue
+              t=(n+' '+a.get('id','')+' '+a.get('placeholder','')+' '+a.get('value','')).lower()
+              if a.get('type','').lower()=='hidden': data[n]=a.get('value',''); continue
+              if 'github' in t or 'repo' in t: data[n]='https://github.com/15998194110/delta-witness'
+              elif ('home' in t or 'website' in t) and 'url' in t: data[n]='https://delta-witness-api.ruphussten.workers.dev'
+              elif ('server' in t and 'name' in t) or n.lower() in ('name','server'): data[n]='DELTA Witness'
+              elif 'description' in t or 'one-line' in t or n.lower() in ('desc','summary'): data[n]='Paid machine-verifiable web capture and deterministic preflight witness API for autonomous agents, using x402 on Base with OpenAPI and MCP integration.'
+              elif a.get('type','').lower() in ('checkbox','radio') and any(x in t for x in ('mcp','x402')):
+                  data[n]=a.get('value') or ('x402' if 'x402' in t else 'mcp')
+              elif 'email' in t: pass
+          # Common field-name fallbacks, only if actually present.
+          names={a.get('name') for _,a in form['fields'] if a.get('name')}
+          for k,v in [('server_name','DELTA Witness'),('github_url','https://github.com/15998194110/delta-witness'),('homepage_url','https://delta-witness-api.ruphussten.workers.dev'),('description','Paid machine-verifiable web capture and deterministic preflight witness API for autonomous agents, using x402 on Base with OpenAPI and MCP integration.')]:
+              if k in names: data[k]=v
+          action=urllib.parse.urljoin(URL, form['action'] or URL)
+          body=urllib.parse.urlencode(data, doseq=True).encode()
+          post=urllib.request.Request(action, data=body, method='POST', headers={'User-Agent':'Mozilla/5.0 DELTA-Witness-Registry-Submit/1.0','Content-Type':'application/x-www-form-urlencoded','Referer':URL})
+          try:
+              resp=op.open(post, timeout=30); out=resp.read().decode('utf-8','replace'); code=resp.status; final=resp.geturl()
+          except urllib.error.HTTPError as e:
+              out=e.read().decode('utf-8','replace'); code=e.code; final=e.geturl()
+          print('AGENTNDX_SUBMIT_HTTP=',code,' final=',final)
+          print('fields=',sorted(data.keys()))
+          if code >= 500: raise SystemExit('temporary_server_failure')
+          if code >= 400: raise SystemExit(f'submit_http_{code}')
+          # Success can be a redirect/flash; require one of the site's confirmation phrases in final body.
+          normalized=re.sub(r'\s+',' ',out).lower()
+          if not any(s in normalized for s in ('submission received','review within 48 hours','submitted for review','thank you')):
+              raise SystemExit('no_submission_confirmation')
+          print('AGENTNDX_SUBMISSION_ACCEPTED=1')
+          PY
+      - name: Recheck public index after submission
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          HOST='delta-witness-api.ruphussten.workers.dev'
+          for attempt in 1 2 3; do
+            code=$(curl --retry 3 --retry-all-errors --retry-delay 1 -sS -o /tmp/servers-after.json -w '%{http_code}' 'https://agentndx.ai/api/servers.json')
+            if [ "$code" = 200 ] && { grep -Fqi "$HOST" /tmp/servers-after.json || grep -Fqi 'DELTA Witness' /tmp/servers-after.json; }; then
+              echo 'AGENTNDX_LIVE=1'; exit 0
+            fi
+            sleep $((attempt*2))
+          done
+          echo 'AGENTNDX_LIVE=0_REVIEW_PENDING_OR_PROPAGATING'
+          exit 0
