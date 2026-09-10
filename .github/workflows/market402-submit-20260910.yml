@@ -1,9 +1,7 @@
 name: Market402 DELTA submission 2026-09-10
 
 on:
-  push:
-    paths:
-      - '.github/workflows/market402-submit-20260910.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,6 +10,13 @@ jobs:
   submit:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Check current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live prices before submission
+        run: node scripts/verify-owner-pricing-live.mjs
       - name: Submit DELTA resources with POST probe metadata
         shell: bash
         run: |
@@ -31,6 +36,6 @@ jobs:
               *) echo "MARKET402 channel=degraded recoverable=true endpoint=$endpoint http=$code";;
             esac
           }
-          submit 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 0.03
-          submit 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 0.03
+          submit 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 1
+          submit 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 5
           submit 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot' 10
