@@ -1,0 +1,35 @@
+name: Price Rollout Probe
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/price-rollout-probe.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe semantic price consistency with bounded backoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://delta-witness-api.ruphussten.workers.dev'
+          probe() {
+            name="$1"; path="$2"; expected="$3"; ok=0
+            for i in 1 2 3 4 5 6; do
+              code=$(curl --connect-timeout 10 --max-time 30 --retry 2 --retry-all-errors --retry-delay 1 -sS -o /tmp/body -D /tmp/headers -w '%{http_code}' -X POST "$BASE$path" -H 'content-type: application/json' -d '{}') || code=000
+              hdr=$(awk 'BEGIN{IGNORECASE=1} /^payment-required:/{sub(/^[^:]+:[[:space:]]*/,""); gsub(/\r/,""); print; exit}' /tmp/headers)
+              decoded=$(printf '%s' "$hdr" | base64 -d 2>/dev/null || true)
+              amount=$(printf '%s' "$decoded" | jq -r '.. | .amount? // empty' 2>/dev/null | head -1)
+              payto=$(printf '%s' "$decoded" | jq -r '.. | .payTo? // empty' 2>/dev/null | head -1)
+              network=$(printf '%s' "$decoded" | jq -r '.. | .network? // empty' 2>/dev/null | head -1)
+              echo "attempt=$i product=$name status=$code amount=$amount expected=$expected payTo=$payto network=$network"
+              if [ "$code" = 402 ] && [ "$amount" = "$expected" ] && [ "${payto,,}" = '0x1990e21bc219696ff7fbc26527dbaed335ac6367' ] && [ "$network" = 'eip155:8453' ]; then ok=1; break; fi
+              sleep $((i*3))
+            done
+            test "$ok" = 1
+          }
+          probe capture '/v1/capture' 1000000
+          probe preflight '/v1/preflight' 5000000
+          probe pilot '/v1/guarded-action-pilot' 10000000
