@@ -31,6 +31,6 @@ jobs:
               *) echo "MARKET402 channel=degraded recoverable=true endpoint=$endpoint http=$code";;
             esac
           }
-          submit 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 1
-          submit 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 5
+          submit 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 0.03
+          submit 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 0.03
           submit 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot' 10
