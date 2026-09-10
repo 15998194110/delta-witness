@@ -1,21 +1,24 @@
-# DELTA Witness v0.6
+# DELTA Witness v0.7
 
 [![AllMCPs](https://allmcps.com/api/badge/delta-witness?style=directory)](https://allmcps.com/mcp/delta-witness)
 
 DELTA Witness is a Trust Layer for Autonomous Actions. It observes public sources, records timestamped hashes, and lets software make deterministic preflight decisions without claiming that a source is truthful.
 
-## Production products
+## Production products and current pricing
 
-- Capture: `POST /v1/capture` preserves what a public page says now.
-- Guard: `POST /v1/preflight` compares a fresh observation with prior proof hashes or explicit text rules.
-- Watch: authenticated resellers can prepay a finite number of checks and receive HMAC-signed webhooks.
-- Partner gateway: marketplaces authenticate server-to-server after they bill their customer.
+- Capture: `POST /v1/capture` preserves what a public page says now — **$1.00 USDC**.
+- Guard: `POST /v1/preflight` compares a fresh observation with prior proof hashes or explicit text rules — **$5.00 USDC**.
+- Guarded-Action Pilot: `POST /v1/guarded-action-pilot` provides the higher-value evidence pilot — **$10.00 USDC**.
+- Watch: authenticated resellers can prepay a finite number of checks and receive HMAC-signed webhooks — **$1.00 USDC per new check**.
+- Partner gateway: new authenticated Partner Capture and Partner Preflight calls use the **$1.00 USDC entry price** after the marketplace bills its customer.
 
-Direct Capture and Guard use x402 v2 with Base mainnet USDC. Settlement completes before Browser Run begins. The treasury is receive-only from the application:
+Direct Capture, Guard, and Guarded-Action Pilot use x402 v2 with Base mainnet USDC. Settlement completes before Browser Run begins. The treasury is receive-only from the application:
 
 `0x1990e21bc219696ff7fbc26527dbaed335ac6367`
 
 Never place the treasury private key in Worker, CI, source, or chat.
+
+The `$1 / $5 / $10` public ladder is the current owner-authorized commercial policy. Historical settled/idempotent deliveries and already-prepaid obligations retain their original paid identity; they are not double-charged or retroactively repriced.
 
 ## Safety and economics
 
@@ -23,7 +26,7 @@ Never place the treasury private key in Worker, CI, source, or chat.
 - Request, redirect, time, Browser Run, artifact, and storage bounds are enforced.
 - Raw artifacts remain private in `delta-witness-proofs`; verifier routes expose metadata and hashes and are `noindex`.
 - Fulfillment is idempotent and a settled payment cannot fulfill a different request.
-- Price floors include facilitator, Browser, Worker, R2, and failure allowances plus target margin. Negative-margin observations raise the affected route's floor automatically.
+- Customer-facing prices are fixed by the current owner pricing policy rather than autonomously changed by modeled cost floors. If actual fulfillment economics become negative, DELTA records a pricing-margin alert for operator review instead of silently inventing a new customer price.
 
 ## Verify locally
 
