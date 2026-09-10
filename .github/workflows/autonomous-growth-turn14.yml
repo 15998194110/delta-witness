@@ -8,43 +8,29 @@ permissions:
 jobs:
   growth:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with: { node-version: '22' }
-      - name: Submit DELTA MCP to MCP.Directory
+      - name: Submit DELTA to Not Human Search and verify index
         shell: bash
         run: |
           set +e
-          npm --silent install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium >/dev/null
-          cat > submit-mcp-directory.mjs <<'JS'
-          import { chromium } from 'playwright';
-          const browser=await chromium.launch({headless:true});
-          const page=await browser.newPage();
-          const mutations=[];
-          page.on('response',async r=>{if(r.request().method()!=='GET'){let body='';try{body=(await r.text()).slice(0,6000)}catch{};mutations.push({method:r.request().method(),url:r.url(),status:r.status(),body})}});
-          try{
-            let loaded=false;
-            for(let i=1;i<=3&&!loaded;i++){try{await page.goto('https://mcp.directory/submit',{waitUntil:'domcontentloaded',timeout:60000});loaded=true}catch(e){console.log('NAV_RETRY_'+i+'='+String(e));await page.waitForTimeout(i*1500)}}
-            if(!loaded) throw new Error('mcp.directory unavailable after retries');
-            const gh=page.getByPlaceholder('https://github.com/org/mcp-server').first();
-            console.log('GH_FIELD='+await gh.count());
-            if(!(await gh.count())) throw new Error('GitHub field not found');
-            await gh.fill('https://github.com/15998194110/delta-witness');
-            const npm=page.getByPlaceholder('@org/mcp-server').first(); if(await npm.count()) await npm.fill('delta-witness-mcp');
-            const short=page.getByPlaceholder(/one sentence/i).first(); if(await short.count()) await short.fill('Paid evidence capture and preflight for autonomous agents via MCP and Base x402.');
-            const button=page.getByRole('button',{name:/submit for review/i}).first();
-            console.log('SUBMIT_COUNT='+await button.count());
-            if(await button.count() && !(await button.isDisabled())) {await button.click(); await page.waitForTimeout(7000)}
-            const body=(await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,16000);
-            console.log('FINAL_URL='+page.url());
-            console.log('BODY='+body);
-            console.log('MUTATIONS='+JSON.stringify(mutations));
-            console.log('ACCEPTED='+( /thank|submitted|received|review|success/i.test(body) && !/submit your mcp server.*submission form/i.test(body.slice(0,500)) ? '1':'0'));
-          }catch(e){console.log('ERROR='+String(e))}finally{await browser.close()}
-          JS
-          node --check submit-mcp-directory.mjs && node submit-mcp-directory.mjs
-          rm -f submit-mcp-directory.mjs
+          DOMAIN=delta-witness-api.ruphussten.workers.dev
+          URL=https://$DOMAIN
+          echo '=== SUBMIT ==='
+          for i in 1 2 3; do
+            code=$(curl --connect-timeout 10 --max-time 45 --retry 2 --retry-all-errors --retry-delay 1 -sS -o /tmp/submit.json -w '%{http_code}' -X POST 'https://nothumansearch.ai/api/v1/submit' -H 'Content-Type: application/json' --data "{\"url\":\"$URL\"}")
+            echo "SUBMIT_HTTP=$code"
+            cat /tmp/submit.json; echo
+            case "$code" in 200|201|202|409) break;; esac
+            sleep $((i*2))
+          done
+          echo '=== READBACK ==='
+          for i in 1 2 3 4; do
+            code=$(curl --connect-timeout 10 --max-time 45 --retry 2 --retry-all-errors --retry-delay 1 -sS -o /tmp/site.json -w '%{http_code}' "https://nothumansearch.ai/api/v1/site/$DOMAIN")
+            echo "SITE_HTTP=$code"
+            cat /tmp/site.json | head -c 16000; echo
+            [ "$code" = "200" ] && break
+            sleep $((i*3))
+          done
           exit 0
