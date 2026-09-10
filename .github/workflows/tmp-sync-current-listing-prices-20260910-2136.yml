@@ -1,0 +1,50 @@
+name: TMP sync current DELTA listing prices 20260910 2136
+
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-sync-current-listing-prices-20260910-2136.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Enforce current owner pricing before any external write
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Refresh Market402 existing resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          submit() {
+            local endpoint="$1" price="$2"
+            payload=$(jq -nc --arg resource "$endpoint" --argjson price "$price" '{resource:$resource,declared_price_usd:$price,paid_probe_optin:false,sample_input:{method:"POST",body:{}}}')
+            code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/market402.json -w '%{http_code}' -X POST 'https://market402.com/submit' -H 'content-type: application/json' --data "$payload")
+            echo "MARKET402 endpoint=$endpoint price=$price http=$code body=$(cat /tmp/market402.json)"
+            case "$code" in 200|201|202|204|409) ;; *) exit 1;; esac
+          }
+          submit 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 1
+          submit 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 5
+          submit 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot' 10
+      - name: Refresh 402 Index existing service IDs via canonical URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          API='https://402index.io/api/v1/register'
+          submit() {
+            local name="$1" url="$2" price="$3" category="$4" description="$5"
+            payload=$(jq -nc --arg url "$url" --arg name "$name" --arg description "$description" --arg category "$category" --argjson price "$price" '{url:$url,name:$name,protocol:"x402",http_method:"POST",probe_body:"{}",description:$description,price_usd:$price,payment_asset:"USDC",payment_network:"Base",category:$category,provider:"DELTA Witness",contact_email:"ruphussten85@gmail.com"}')
+            code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/index402.json -w '%{http_code}' -X POST "$API" -H 'content-type: application/json' --data "$payload")
+            echo "INDEX402 endpoint=$url price=$price http=$code body=$(cat /tmp/index402.json)"
+            case "$code" in 200|201|202|204|409) ;; *) exit 1;; esac
+          }
+          submit 'DELTA Witness Capture' 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 1 'developer-tools' 'Timestamped public-web page-state evidence for autonomous agents.'
+          submit 'DELTA Witness Preflight' 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 5 'agent-safety' 'Deterministic fresh-source preflight verification before consequential autonomous actions.'
+          submit 'DELTA Witness Guarded Action Pilot' 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot' 10 'agent-safety' 'Production-verified guarded-action evidence pilot for consequential agent workflows.'
