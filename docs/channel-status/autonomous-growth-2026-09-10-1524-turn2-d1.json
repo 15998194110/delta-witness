@@ -1,0 +1,77 @@
+{
+  "checked_at": "2026-09-10T07:39:55.698Z",
+  "rows": [
+    {
+      "channel": "direct",
+      "event": "payment_required",
+      "success": "false",
+      "event_count": 1237,
+      "gross_usd": 4393.62,
+      "variable_cost_usd": 0,
+      "contribution_margin_usd": 0
+    },
+    {
+      "channel": "direct",
+      "event": "quote_issued",
+      "success": "true",
+      "event_count": 213,
+      "gross_usd": 11.24,
+      "variable_cost_usd": 0,
+      "contribution_margin_usd": 0
+    },
+    {
+      "channel": "direct",
+      "event": "proof_opened",
+      "success": "true",
+      "event_count": 65,
+      "gross_usd": 0,
+      "variable_cost_usd": 0,
+      "contribution_margin_usd": 0
+    },
+    {
+      "channel": "direct",
+      "event": "page_view",
+      "success": "true",
+      "event_count": 49,
+      "gross_usd": 0,
+      "variable_cost_usd": 0,
+      "contribution_margin_usd": 0
+    },
+    {
+      "channel": "direct",
+      "event": "capture_completed",
+      "success": "true",
+      "event_count": 1,
+      "gross_usd": 0.03,
+      "variable_cost_usd": 0.002173,
+      "contribution_margin_usd": 0.027827
+    },
+    {
+      "channel": "direct",
+      "event": "capture_started",
+      "success": "true",
+      "event_count": 1,
+      "gross_usd": 0,
+      "variable_cost_usd": 0,
+      "contribution_margin_usd": 0
+    },
+    {
+      "channel": "direct",
+      "event": "payment_verified",
+      "success": "true",
+      "event_count": 1,
+      "gross_usd": 0.03,
+      "variable_cost_usd": 0,
+      "contribution_margin_usd": 0
+    },
+    {
+      "channel": "direct",
+      "event": "qualified_request",
+      "success": "true",
+      "event_count": 1,
+      "gross_usd": 0.03,
+      "variable_cost_usd": 0,
+      "contribution_margin_usd": 0
+    }
+  ]
+}
