@@ -1,0 +1,27 @@
+name: TMP DELTA growth treasury reconciliation 20260910 2246
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-growth-reconcile-20260910-2246.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Confirm owner pricing source and live public challenge
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Audit paid funnel candidates
+        run: node scripts/query-revenue-candidates.mjs
+      - name: Reconcile canonical Base USDC Treasury independently
+        run: node scripts/reconcile-treasury.mjs
