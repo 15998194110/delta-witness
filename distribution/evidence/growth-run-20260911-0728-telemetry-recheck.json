@@ -1,0 +1,52 @@
+{
+  "checked_at": "2026-09-10T23:40:18Z",
+  "owner_pricing": {
+    "capture_raw": 1000000,
+    "public_preflight_raw": 5000000,
+    "guarded_action_pilot_raw": 10000000,
+    "status": "verified"
+  },
+  "treasury": {
+    "status": "ok",
+    "result": {
+      "ok": true,
+      "checked_at": "2026-09-10T23:40:13.826Z",
+      "network": "eip155:8453",
+      "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+      "start_block": 51097131,
+      "latest_block": 51147130,
+      "lookback_blocks": 50000,
+      "latest_rpc": "https://mainnet.base.org",
+      "treasury_received_candidates": 0,
+      "total_raw": "0",
+      "total_usdc": 0,
+      "known_non_customer_raw": "0",
+      "known_non_customer_usdc": 0,
+      "unclassified_raw": "0",
+      "unclassified_usdc": 0,
+      "revenue_classification": "known platform/test payers are explicitly excluded; remaining receipts stay unclassified until non-project payer and DELTA proof/telemetry are reconciled",
+      "evidence_quality": "A_direct_canonical_USDC_log",
+      "transfers": []
+    }
+  },
+  "telemetry": {
+    "status": "ok",
+    "candidate_rows": "0",
+    "result": {
+      "ok": true,
+      "candidate_rows": 0,
+      "rows": []
+    }
+  },
+  "pending_listing_recheck": {
+    "ai_security_directory": "review_pending",
+    "made_with_stack": "live_public"
+  },
+  "policy": {
+    "submission_writes_this_recheck": 0,
+    "fees_paid": 0,
+    "wallet_signatures": 0,
+    "duplicate_identities_created": 0
+  }
+}
