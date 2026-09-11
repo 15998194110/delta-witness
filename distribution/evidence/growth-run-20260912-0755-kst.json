@@ -1,0 +1,113 @@
+{
+  "run": "DELTA Autonomous Growth",
+  "checked_at": "2026-09-11T22:42:01Z",
+  "canonical_origin": "https://delta-witness-api.ruphussten.workers.dev",
+  "network": "eip155:8453",
+  "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+  "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "pricing_authority": {
+    "policy": "owner-2026-09-10-1-5-10",
+    "live_public_402_verified": true,
+    "capture_raw_usdc": "1000000",
+    "preflight_raw_usdc": "5000000",
+    "guarded_action_pilot_raw_usdc": "10000000"
+  },
+  "channels": [
+    {
+      "channel_source": "mcpservers.org",
+      "listing_status": "approved_live",
+      "discovery_status": "public_canonical_page_verified",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": false,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_official_approval_plus_public_listing"
+    },
+    {
+      "channel_source": "true402",
+      "listing_status": "existing_canonical_entries_deduped",
+      "discovery_status": "present_catalog_refresh_pending",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": false,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_official_registry_API",
+      "action": "No duplicate registration created. Sent one first-contact request to the official public contact asking for an in-place catalog refresh or supported programmatic update path."
+    },
+    {
+      "channel_source": "payanagent_requests",
+      "listing_status": "existing_provider_state_unchanged",
+      "discovery_status": "checked",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": false,
+      "external_requests": 60,
+      "funded_requests_detected": 0,
+      "funded_compatible_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_public_request_inventory_no_A_grade_match"
+    },
+    {
+      "channel_source": "payapi_market",
+      "listing_status": "existing",
+      "discovery_status": "present",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": false,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_public_marketplace_visibility"
+    }
+  ],
+  "treasury_reconciliation": {
+    "start_block": 51138578,
+    "latest_block": 51188577,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "known_non_customer_usdc": 0,
+    "unclassified_usdc": 0,
+    "customer_revenue_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "paid_funnel": {
+    "candidate_rows": 0,
+    "402_intents": 0,
+    "paid_settlements": 0
+  },
+  "external_channel_health": {
+    "indexnow_core": "degraded_recoverable_rate_limit_after_bounded_retries",
+    "indexnow_base_app": "success",
+    "x402_list": "absent",
+    "circle_x402_discovery": "absent",
+    "payapi_market": "present"
+  },
+  "accounting_boundary": {
+    "value_authored": "distinct",
+    "payment_authorized": "distinct",
+    "settlement_confirmed": "distinct",
+    "treasury_received": "distinct",
+    "recognized_customer_revenue_usdc": 0
+  }
+}
