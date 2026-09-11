@@ -1,0 +1,42 @@
+name: TMP DELTA MCPVault inspect 20260912
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-mcpvault-submit-20260912.yml"
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Read operator authority and inspect MCPVault submission contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s AGENTS.md
+          url='https://mcpvault.io/submit'
+          code=$(curl -L --connect-timeout 10 --max-time 30 -sS -o /tmp/submit.html -w '%{http_code}' "$url")
+          echo "MCPVAULT_SUBMIT_PAGE_HTTP=$code bytes=$(wc -c </tmp/submit.html)"
+          test "$code" = '200'
+          echo 'MCPVAULT_FORM_LINES_BEGIN'
+          grep -Eoi '<form[^>]*>|</form>|action="[^"]+"|method="[^"]+"|name="[^"]+"|<script[^>]+src="[^"]+"' /tmp/submit.html | head -100 || true
+          echo 'MCPVAULT_FORM_LINES_END'
+          echo 'MCPVAULT_ENDPOINT_HINTS_BEGIN'
+          grep -Eo '/[^"[:space:]]*(submit|server|api)[^"[:space:]<]*' /tmp/submit.html | sort -u | head -100 || true
+          echo 'MCPVAULT_ENDPOINT_HINTS_END'
+          python - <<'PY'
+          import re,urllib.parse,subprocess
+          html=open('/tmp/submit.html',encoding='utf-8',errors='ignore').read()
+          srcs=re.findall(r'<script[^>]+src=["\']([^"\']+)',html,re.I)
+          print('MCPVAULT_SCRIPT_COUNT',len(srcs))
+          for src in srcs[:40]:
+              u=urllib.parse.urljoin('https://mcpvault.io/submit',src)
+              print('MCPVAULT_SCRIPT',u)
+              try:
+                  body=subprocess.check_output(['curl','-L','--connect-timeout','10','--max-time','30','-sS',u],text=True)
+              except Exception as e:
+                  print('MCPVAULT_SCRIPT_ERR',u,repr(e)); continue
+              hits=sorted(set(re.findall(r'[^"\']{0,120}(?:fetch\(|/api/|submit|repositoryUrl|repoUrl)[^"\']{0,180}',body,re.I)))
+              for h in hits[:30]: print('MCPVAULT_JS_HINT',re.sub(r'\s+',' ',h)[:400])
+          PY
