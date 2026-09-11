@@ -1,0 +1,167 @@
+{
+  "generated_at": "2026-09-11T12:28:00Z",
+  "owner_pricing_policy": "owner-2026-09-10-1-5-10",
+  "pricing_gate": {
+    "status": "verified",
+    "capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_raw_usdc": {
+      "capture": "1000000",
+      "public_preflight": "5000000",
+      "guarded_action_pilot": "10000000"
+    },
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "checked_at": "2026-09-11T12:25:54.834Z",
+    "evidence_quality": "A_live_public_402"
+  },
+  "treasury": {
+    "checked_at": "2026-09-11T12:26:30.157Z",
+    "through_block": 51170119,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "treasury_received_usdc": 0,
+    "unclassified_usdc": 0,
+    "customer_revenue_usdc": 0,
+    "settlement_count": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "notes": "One Base RPC chunk returned a transient rate limit and succeeded on bounded retry; reconciliation completed independently."
+  },
+  "telemetry": {
+    "candidate_rows": 0,
+    "paid_settlements": 0,
+    "evidence_quality": "A_D1_direct_query"
+  },
+  "channels": [
+    {
+      "channel_source": "Global A2A Registry",
+      "listing_status": "live_public_existing_canonical",
+      "discovery_status": "public_visible",
+      "listing_id": "c5b617b5-5958-48a0-87f1-402e2e2873a7",
+      "manifest_url": "https://delta-witness-api.ruphussten.workers.dev/.well-known/agent.json",
+      "verification_level": "unclaimed",
+      "category": "Utilities",
+      "buyer_count": null,
+      "settlement_count": 0,
+      "verified_neighbor_demand": null,
+      "external_requests": 0,
+      "402_intents": null,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_direct_public_registry_readback",
+      "notes": "Canonical DELTA record was independently visible in the public registry; duplicate ingest was prevented."
+    },
+    {
+      "channel_source": "mcpservers.org",
+      "listing_status": "submitted_free_review_pending",
+      "discovery_status": "review_pending",
+      "buyer_count": null,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": null,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_direct_free_form_submission",
+      "notes": "Free Development-category submission succeeded with canonical repository and contact email. Premium option was not used. Site stated review within 12 hours."
+    },
+    {
+      "channel_source": "PayAPI Market",
+      "listing_status": "live_existing_canonical",
+      "discovery_status": "healthy_x402_verified_catalog_refresh_pending",
+      "listing_url": "https://payapi.market/api/delta-witness",
+      "provider_url": "https://payapi.market/provider/delta-witness",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": null,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_direct_marketplace_readback_plus_live_402",
+      "notes": "Canonical listing is healthy and x402 verified. Catalog pricing metadata requires refresh to current owner-authorized pricing; no duplicate listing, payment, or self-test was created."
+    },
+    {
+      "channel_source": "A2ARegistry.org",
+      "listing_status": "not_listed",
+      "discovery_status": "technical_compatibility_blocked",
+      "buyer_count": null,
+      "settlement_count": 0,
+      "verified_neighbor_demand": null,
+      "external_requests": 0,
+      "402_intents": null,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_direct_registry_response",
+      "notes": "Registration was rejected because the current agent card declares no A2A SDK-compatible transport such as JSONRPC. No duplicate write or unsafe workaround was attempted."
+    },
+    {
+      "channel_source": "WorkProtocol",
+      "listing_status": "not_registered",
+      "discovery_status": "payment_gated",
+      "buyer_count": null,
+      "settlement_count": 0,
+      "verified_neighbor_demand": null,
+      "external_requests": 0,
+      "402_intents": null,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_direct_channel_response",
+      "notes": "Directory read and registration route required payment. No payment was sent under the owner financial boundary."
+    }
+  ],
+  "external_channel_degradation": [
+    {
+      "channel": "PayanAgent",
+      "status": "recoverable_partial_refresh_degradation",
+      "notes": "Two existing offer refreshes returned marketplace server errors while the canonical Guarded-Action buy route remained current and healthy."
+    },
+    {
+      "channel": "IndexNow core",
+      "status": "deferred_recheck",
+      "notes": "Upstream rate limit persisted through bounded retries; Base-app IndexNow succeeded independently."
+    }
+  ],
+  "outreach": {
+    "sent_this_run": 0,
+    "explicit_interest_replies_advanced": 0,
+    "notes": "No new explicit-interest inbound thread was found; no cold outreach was sent because the natural-day cap had already been reached."
+  },
+  "aggregate_current_run": {
+    "buyer_count_new_verified": 0,
+    "settlement_count": 0,
+    "external_requests": 0,
+    "paid_settlements": 0,
+    "treasury_received": 0,
+    "revenue": 0,
+    "variable_cost": 0,
+    "contribution_margin": 0,
+    "evidence_quality": "A_core_revenue_state_with_channel_specific_grades"
+  },
+  "material_development": {
+    "type": "completed_high_value_listing_readback",
+    "channel": "Global A2A Registry",
+    "detail": "DELTA Witness is publicly discoverable as a canonical agent record and duplicate ingest was prevented."
+  },
+  "execution_run": "https://github.com/15998194110/delta-witness/actions/runs/34598864939"
+}
