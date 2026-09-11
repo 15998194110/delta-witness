@@ -82,3 +82,50 @@ jobs:
       - name: Check PayAI Bazaar visibility
         if: always()
         run: node scripts/check-bazaar.mjs
+      - name: Check new external discovery channels without mutation
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          HOST='delta-witness-api.ruphussten.workers.dev'
+
+          fetch_bounded() {
+            local url="$1" out="$2"
+            curl -fsS --connect-timeout 10 --max-time 25 \
+              --retry 3 --retry-delay 2 --retry-all-errors \
+              "$url" -o "$out"
+          }
+
+          X402_LIST=degraded
+          if fetch_bounded "https://x402-list.com/api/v1/services?q=${HOST}&per_page=10" /tmp/x402-list.json; then
+            if node -e "const j=require('/tmp/x402-list.json'); const a=Array.isArray(j.data)?j.data:[]; process.exit(a.some(x=>JSON.stringify(x).toLowerCase().includes('${HOST}'))?0:1)"; then
+              X402_LIST=present
+            else
+              X402_LIST=absent
+            fi
+          fi
+
+          CIRCLE=degraded
+          if fetch_bounded "https://api.circle.com/v2/x402/discovery/resources?query=${HOST}" /tmp/circle.json; then
+            if node -e "const j=require('/tmp/circle.json'); process.exit(JSON.stringify(j).toLowerCase().includes('${HOST}')?0:1)"; then
+              CIRCLE=present
+            else
+              CIRCLE=absent
+            fi
+          fi
+
+          PAYAPI=degraded
+          if fetch_bounded "https://payapi.market/marketplace?verified=0" /tmp/payapi.html; then
+            if grep -qi 'DELTA Witness' /tmp/payapi.html; then PAYAPI=present; else PAYAPI=absent; fi
+          fi
+
+          echo "DISCOVERY_CHANNEL x402_list=$X402_LIST circle=$CIRCLE payapi=$PAYAPI"
+          {
+            echo '### Additional discovery channels'
+            echo "- x402 List: \`$X402_LIST\`"
+            echo "- Circle x402 Discovery: \`$CIRCLE\`"
+            echo "- PayAPI Market: \`$PAYAPI\`"
+            echo ''
+            echo 'These are read-only discovery checks. Channel degradation is isolated and never blocks Treasury reconciliation or other checks.'
+          } >> "$GITHUB_STEP_SUMMARY"
