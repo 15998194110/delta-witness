@@ -1,0 +1,27 @@
+name: DELTA one-shot growth gate 20260911-1156
+
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-growth-gate-20260911-1156.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Owner pricing policy check
+        run: node scripts/check-owner-pricing.mjs
+      - name: Live public 402 verification
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Independent Base Treasury reconciliation
+        run: node scripts/reconcile-treasury.mjs
