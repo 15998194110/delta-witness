@@ -1,4 +1,4 @@
-name: TMP DELTA growth run 20260911 0900
+name: TMP DELTA SwarmBazaar inspect 20260911 0900
 on:
   push:
     paths:
@@ -6,61 +6,21 @@ on:
 permissions:
   contents: read
 jobs:
-  reconcile-and-probe:
+  inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Owner pricing source gate
-        run: node scripts/check-owner-pricing.mjs
-      - name: Live public pricing gate
-        run: node scripts/verify-owner-pricing-live.mjs
-      - name: Independent Base Treasury reconciliation
-        run: node scripts/reconcile-treasury.mjs | tee /tmp/treasury.json
-      - name: Inspect SwarmBazaar free-listing submission contract
+      - name: Owner pricing gate
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Inspect free listing form values and handler
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL --retry 4 --retry-delay 2 --retry-all-errors --connect-timeout 12 --max-time 35 \
-            'https://swarmbazaar.com/onboard.html' -o /tmp/swarm.html
-          python - <<'PY'
-          from html.parser import HTMLParser
-          import json
-          class P(HTMLParser):
-              def __init__(self):
-                  super().__init__(); self.forms=[]; self.cur=None
-              def handle_starttag(self, tag, attrs):
-                  a=dict(attrs)
-                  if tag=='form':
-                      self.cur={'action':a.get('action'),'method':a.get('method','get').lower(),'fields':[]}
-                      self.forms.append(self.cur)
-                  elif self.cur is not None and tag in ('input','select','textarea','button'):
-                      self.cur['fields'].append({k:a.get(k) for k in ('name','type','value','required','checked') if k in a})
-              def handle_endtag(self, tag):
-                  if tag=='form': self.cur=None
-          h=open('/tmp/swarm.html',encoding='utf-8').read(); p=P(); p.feed(h)
-          lowered=h.lower()
-          terms=[w for w in ['terms','agree','agreement','consent','legal','privacy'] if w in lowered]
-          print(json.dumps({'forms':p.forms,'terms_signals':terms,'bytes':len(h)},indent=2))
-          PY
-          echo '--- submit handler excerpts ---'
-          grep -nEi 'fetch\(|submit|/api/|formdata|featured_plan' /tmp/swarm.html | head -80 || true
-      - name: Probe fresh free discovery surfaces for existing DELTA identity
-        shell: bash
-        run: |
-          set +e
-          for u in \
-            'https://swarmbazaar.com/data/census-vendors.json' \
-            'https://402.pub/' \
-            'https://402.rest/' \
-            'https://endpoint.x402jp.com/'
-          do
-            echo "=== $u ==="
-            body="$(curl -fsSL --retry 3 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 "$u" 2>/tmp/curl.err)"
-            rc=$?
-            if [ $rc -ne 0 ]; then echo "degraded rc=$rc $(cat /tmp/curl.err)"; continue; fi
-            printf '%s' "$body" | grep -Eio 'delta[- ]witness|delta-witness-api\.ruphussten\.workers\.dev' | head -20 || true
-          done
+          curl -fsSL --retry 4 --retry-delay 2 --retry-all-errors --connect-timeout 12 --max-time 35 'https://swarmbazaar.com/onboard.html' -o /tmp/swarm.html
+          sed -n '55,155p' /tmp/swarm.html
