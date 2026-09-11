@@ -18,34 +18,37 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with: { node-version: '22' }
-      - name: Verify owner pricing and live DELTA before marketplace registration
+      - name: Verify owner pricing and live DELTA
         run: |
           set -euo pipefail
           node scripts/check-owner-pricing.mjs
           node scripts/verify-owner-pricing-live.mjs
-      - name: Public dedupe existing WorkProtocol agent
+      - name: Dedupe public directory when readable
         id: dedupe
         shell: bash
         run: |
-          set -euo pipefail
+          set -u
           code=000
           : >/tmp/wp-agents.json
           for i in 1 2 3; do
             code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/wp-agents.json -w '%{http_code}' 'https://workprotocol.ai/api/agents?search=DELTA%20Witness&limit=100') || code=000
-            case "$code" in 200) break;; 429|500|502|503|504|000) sleep $((i*2));; *) break;; esac
+            case "$code" in 200|402) break;; 429|500|502|503|504|000) sleep $((i*2));; *) break;; esac
           done
           echo "WORKPROTOCOL agents_read_http=$code"
-          test "$code" = 200
-          if jq -e '.. | objects | select((((.name? // "") + " " + (.description? // "") + " " + (.agentCardUrl? // .agent_card_url? // "")) | ascii_downcase | contains("delta witness")) or ((.agentCardUrl? // .agent_card_url? // "") | contains("delta-witness-api.ruphussten.workers.dev")))' /tmp/wp-agents.json >/dev/null 2>&1; then
+          if [ "$code" = 200 ] && jq -e '.. | objects | select((((.name? // "") + " " + (.description? // "") + " " + (.agentCardUrl? // .agent_card_url? // "")) | ascii_downcase | contains("delta witness")) or ((.agentCardUrl? // .agent_card_url? // "") | contains("delta-witness-api.ruphussten.workers.dev")))' /tmp/wp-agents.json >/dev/null 2>&1; then
             echo 'exists=true' >> "$GITHUB_OUTPUT"
             echo 'WORKPROTOCOL agent_status=already_present duplicate_registration_prevented=true'
-            jq -c '.. | objects | select((((.name? // "") + " " + (.description? // "") + " " + (.agentCardUrl? // .agent_card_url? // "")) | ascii_downcase | contains("delta witness")) or ((.agentCardUrl? // .agent_card_url? // "") | contains("delta-witness-api.ruphussten.workers.dev"))) | {id,name,description,walletAddress,agentCardUrl,status,reputation,completedJobs,totalEarned}' /tmp/wp-agents.json | head -5
           else
-            echo 'exists=false' >> "$GITHUB_OUTPUT"
-            echo 'WORKPROTOCOL agent_status=not_present'
+            echo 'exists=unknown' >> "$GITHUB_OUTPUT"
+            if [ "$code" = 402 ]; then
+              echo 'WORKPROTOCOL directory_read=payment_required payment_sent=false fallback=server_side_registration_uniqueness'
+            else
+              echo "WORKPROTOCOL directory_read=degraded http=$code fallback=server_side_registration_uniqueness"
+            fi
           fi
-      - name: Register one DELTA WorkProtocol agent
-        if: steps.dedupe.outputs.exists == 'false'
+          exit 0
+      - name: Register exactly one DELTA identity or accept duplicate response
+        if: steps.dedupe.outputs.exists != 'true'
         id: register
         shell: bash
         run: |
@@ -57,9 +60,13 @@ jobs:
           for i in 1 2 3; do
             code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/wp-register.json -w '%{http_code}' -X POST 'https://workprotocol.ai/api/agents/register' -H 'content-type: application/json' --data "$payload") || code=000
             echo "WORKPROTOCOL register_attempt=$i http=$code sanitized=$(jq -c 'walk(if type=="object" then del(.apiKey,.api_key,.token,.secret) else . end)' /tmp/wp-register.json 2>/dev/null || echo '{}')"
-            case "$code" in 200|201|202|409) break;; 429|500|502|503|504|000) sleep $((i*3));; *) break;; esac
+            case "$code" in 200|201|202|409|400|422) break;; 429|500|502|503|504|000) sleep $((i*3));; *) break;; esac
           done
-          if [ "$code" = 409 ]; then echo 'WORKPROTOCOL duplicate_identity_prevented=true'; exit 0; fi
+          if [ "$code" = 409 ] || grep -Eqi 'already|duplicate|exists' /tmp/wp-register.json; then
+            echo 'WORKPROTOCOL agent_status=already_present duplicate_registration_prevented=true'
+            echo 'credential_captured=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           case "$code" in 200|201|202) ;; *) exit 1;; esac
           key=$(jq -r '.agent.apiKey // .apiKey // .api_key // empty' /tmp/wp-register.json)
           agent=$(jq -r '.agent.id // .agentId // .id // empty' /tmp/wp-register.json)
@@ -73,31 +80,38 @@ jobs:
             echo 'credential_captured=false' >> "$GITHUB_OUTPUT"
           fi
           echo "agent_id=$agent" >> "$GITHUB_OUTPUT"
-      - name: Public agent readback
+          echo "WORKPROTOCOL agent_status=registered agent_id=$agent treasury=0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+      - name: Read back newly registered agent if endpoint permits
+        if: steps.register.outputs.agent_id != ''
         shell: bash
         run: |
-          set -euo pipefail
-          sleep 2
-          curl --fail --retry 3 --retry-all-errors --retry-delay 2 'https://workprotocol.ai/api/agents?search=DELTA%20Witness&limit=100' -o /tmp/wp-after.json
-          jq -c '.. | objects | select((((.name? // "") + " " + (.description? // "") + " " + (.agentCardUrl? // .agent_card_url? // "")) | ascii_downcase | contains("delta witness")) or ((.agentCardUrl? // .agent_card_url? // "") | contains("delta-witness-api.ruphussten.workers.dev"))) | {id,name,description,walletAddress,agentCardUrl,status,reputation,completedJobs,totalEarned}' /tmp/wp-after.json | tee /tmp/wp-readback.jsonl
-          test -s /tmp/wp-readback.jsonl
-      - name: Scan only open funded demand without claiming
+          set -u
+          id='${{ steps.register.outputs.agent_id }}'
+          code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/wp-agent-after.json -w '%{http_code}' "https://workprotocol.ai/api/agents/$id") || code=000
+          echo "WORKPROTOCOL agent_readback_http=$code"
+          if [ "$code" = 200 ]; then
+            jq -c '{id:(.agent.id // .id),name:(.agent.name // .name),description:(.agent.description // .description),walletAddress:(.agent.walletAddress // .walletAddress),agentCardUrl:(.agent.agentCardUrl // .agentCardUrl),status:(.agent.status // .status),reputation:(.agent.reputation // .reputation)}' /tmp/wp-agent-after.json
+          fi
+          exit 0
+      - name: Scan open funded demand without claiming
         shell: bash
         run: |
-          set -euo pipefail
+          set -u
           code=000
           : >/tmp/wp-jobs.json
           for i in 1 2 3; do
             code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/wp-jobs.json -w '%{http_code}' 'https://workprotocol.ai/api/jobs?status=open&limit=100&sort=newest') || code=000
-            case "$code" in 200) break;; 429|500|502|503|504|000) sleep $((i*2));; *) break;; esac
+            case "$code" in 200|402) break;; 429|500|502|503|504|000) sleep $((i*2));; *) break;; esac
           done
           echo "WORKPROTOCOL jobs_read_http=$code"
-          test "$code" = 200
+          if [ "$code" != 200 ]; then
+            echo 'WORKPROTOCOL funded_scan=deferred payment_sent=false claimed=0'
+            exit 0
+          fi
           jq -c '[.. | objects | select((.status? // "") == "open" and ((.paymentAmount? // .payment_amount? // .amount? // "0")|tonumber? // 0) > 0)] | unique_by(.id) | map({id,title,description,category,paymentAmount,paymentCurrency,paymentRail,escrowStatus,acceptanceCriteria,deadline,claims,maxWorkers,competitionMode,minReputation})' /tmp/wp-jobs.json >/tmp/wp-open-funded.json
           echo "WORKPROTOCOL open_funded_count=$(jq length /tmp/wp-open-funded.json)"
           jq -c '.[] | select((((.title // "")+" "+(.description // "")+" "+((.acceptanceCriteria // [])|tostring)) | ascii_downcase | test("evidence|verify|verification|audit|public web|website|endpoint|health check|monitor|source|research|data validation|change detection"))) | {id,title,category,paymentAmount,paymentCurrency,paymentRail,escrowStatus,deadline,claims,maxWorkers,competitionMode,minReputation,acceptanceCriteria}' /tmp/wp-open-funded.json | tee /tmp/wp-delta-fit-candidates.jsonl || true
-          echo "WORKPROTOCOL delta_fit_candidate_count=$(wc -l </tmp/wp-delta-fit-candidates.jsonl | tr -d ' ')"
-          echo 'WORKPROTOCOL action=scan_only claimed=0 legal_commitment=0'
+          echo "WORKPROTOCOL delta_fit_candidate_count=$(wc -l </tmp/wp-delta-fit-candidates.jsonl | tr -d ' ') claimed=0 legal_commitment=0"
       - name: Preserve credential encrypted only when newly issued
         if: steps.register.outputs.credential_captured == 'true'
         uses: actions/upload-artifact@v4
