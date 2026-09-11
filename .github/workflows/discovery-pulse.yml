@@ -31,6 +31,10 @@ jobs:
       - name: Reconcile AllMCPs listing without duplication
         continue-on-error: true
         run: node scripts/reconcile-allmcps-listing.mjs
+      - name: Scan PayanAgent funded buyer demand
+        if: always()
+        continue-on-error: true
+        run: node scripts/scan-payan-demand.mjs
       - name: Verify machine discovery surfaces
         run: |
           set -e
@@ -77,7 +81,7 @@ jobs:
             echo "- IndexNow core: \`$CORE_OUTCOME\`"
             echo "- IndexNow Base app: \`$BASE_APP_OUTCOME\`"
             echo ''
-            echo 'Treasury uses bounded retries plus multiple Base RPC fallbacks. External provider outages are isolated and do not block the remaining discovery checks.'
+            echo 'Treasury uses bounded retries plus multiple Base RPC fallbacks. External provider outages are isolated and never block the remaining discovery checks.'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Check PayAI Bazaar visibility
         if: always()
