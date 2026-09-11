@@ -1,0 +1,126 @@
+{
+  "checked_at_utc": "2026-09-11T01:08:10Z",
+  "owner_pricing_authority": {
+    "public_capture_usdc": 1.0,
+    "partner_capture_usdc": 1.0,
+    "partner_preflight_usdc": 1.0,
+    "watch_check_usdc": 1.0,
+    "public_preflight_usdc": 5.0,
+    "guarded_action_pilot_usdc": 10.0,
+    "live_public_raw": {
+      "capture": 1000000,
+      "preflight": 5000000,
+      "guarded_action_pilot": 10000000
+    },
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "live_readback": "passed",
+    "evidence_quality": "A_direct_live_402_readback"
+  },
+  "treasury_reconciliation": {
+    "checked_at_utc": "2026-09-11T01:05:50.622Z",
+    "latest_block": 51149698,
+    "start_block": 51099699,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "total_usdc": 0.0,
+    "known_non_customer_usdc": 0.0,
+    "unclassified_usdc": 0.0,
+    "customer_treasury_received_usdc": 0.0,
+    "customer_revenue_usdc": 0.0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "recoverable_degradation": "mainnet.base.org returned HTTP 429 on the final log chunk after bounded retries; reconciliation immediately fell back to base-rpc.publicnode.com and completed with zero matching receipts."
+  },
+  "channels": [
+    {
+      "channel": "x402 Endpoint / x402 Inc.",
+      "source": "https://endpoint.x402jp.com/",
+      "listing_status": "independently_aggregated_existing_identity",
+      "discovery_status": "live_machine_discovery",
+      "catalog_size_observed": 16801,
+      "source_directories_reported": 3,
+      "delta_readback": "Direct catalog fetch contained DELTA Witness and delta-witness-api.ruphussten.workers.dev multiple times.",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": "Catalog republishes x402scan 1-day tx_count for most-called endpoints; not counted as DELTA customer demand.",
+      "external_requests": null,
+      "402_intents": null,
+      "paid_settlements": 0,
+      "treasury_received": 0.0,
+      "revenue": 0.0,
+      "variable_cost": 0.0,
+      "contribution_margin": 0.0,
+      "evidence_quality": "A_direct_public_catalog_readback",
+      "action": "No submission or duplicate identity created because DELTA was already independently present in the machine-readable cross-directory catalog."
+    },
+    {
+      "channel": "SwarmBazaar",
+      "source": "https://swarmbazaar.com/",
+      "listing_status": "submitted_free_review_queue",
+      "discovery_status": "pending_review",
+      "official_submit_endpoint": "https://swarmbazaar.com/api/onboard",
+      "submission_http": 200,
+      "submission_response": {"ok": true, "payment": null},
+      "duplicate_guard": "No DELTA identity found in census-vendors.json or sellers.html immediately before POST.",
+      "submitted_offer": {
+        "category": "seller",
+        "protocols": ["x402", "MCP", "A2A"],
+        "offering_price": "Capture $1 · Preflight $5 · Guarded pilot $10 · Base USDC",
+        "featured_plan": "none",
+        "endpoint": "https://delta-witness-api.ruphussten.workers.dev/v1/capture"
+      },
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": null,
+      "external_requests": null,
+      "402_intents": null,
+      "paid_settlements": 0,
+      "treasury_received": 0.0,
+      "revenue": 0.0,
+      "variable_cost": 0.0,
+      "contribution_margin": 0.0,
+      "evidence_quality": "A_direct_official_api_response",
+      "action": "Executed one canonical free submission after source and live pricing gates. Paid seller plans were explicitly not selected. Review/public visibility remains pending and is not claimed live."
+    },
+    {
+      "channel": "402.rest",
+      "source": "https://402.rest/",
+      "listing_status": "not_actioned",
+      "discovery_status": "recoverable_external_degradation",
+      "observation": "GitHub runner received HTTP 404 on repeated root fetches after bounded retries.",
+      "external_requests": null,
+      "402_intents": null,
+      "paid_settlements": 0,
+      "treasury_received": 0.0,
+      "revenue": 0.0,
+      "variable_cost": 0.0,
+      "contribution_margin": 0.0,
+      "evidence_quality": "B_direct_http_response",
+      "action": "Isolated channel degradation and continued all independent production, Treasury and distribution checks."
+    }
+  ],
+  "outreach": {
+    "new_first_contacts_sent": 0,
+    "new_explicit_interest_replies_pending": 0,
+    "status": "Read-only review of the PulseFeed DELTA thread found no unanswered explicit-interest message: each incoming technical reply already had a later DELTA response. No chase or duplicate outreach was sent."
+  },
+  "funnel": {
+    "buyer_count_verified": 0,
+    "customer_external_requests": 0,
+    "customer_402_intents": 0,
+    "customer_paid_settlements": 0,
+    "customer_treasury_received_usdc": 0.0,
+    "customer_revenue_usdc": 0.0,
+    "customer_variable_cost_usd": 0.0,
+    "customer_contribution_margin_usd": 0.0
+  },
+  "run_result": {
+    "new_stranger_treasury_received_usdc": 0.0,
+    "new_customer_paid_settlements": 0,
+    "new_customer_revenue_usdc": 0.0,
+    "material_distribution_development": "DELTA Witness is now directly confirmed present in x402 Endpoint, an x402 Inc. cross-directory machine-readable catalog covering 16,801 endpoints; no duplicate submission was needed.",
+    "new_submission": "SwarmBazaar accepted the canonical DELTA free listing with HTTP 200 and no payment object; status remains review_pending until public readback.",
+    "core_production_failure": false
+  }
+}
