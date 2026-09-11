@@ -1,0 +1,276 @@
+name: TMP DELTA true402 growth run 20260912
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-true402-growth-20260912.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  growth:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Check current owner pricing policy
+        id: policy
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node scripts/check-owner-pricing.mjs 2>&1 | tee /tmp/owner-pricing.txt
+
+      - name: Verify live public x402 prices without payment
+        id: live
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node scripts/verify-owner-pricing-live.mjs 2>&1 | tee /tmp/live-pricing.txt
+
+      - name: Audit paid funnel candidates
+        id: funnel
+        if: always()
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node scripts/query-revenue-candidates.mjs 2>&1 | tee /tmp/revenue-candidates.txt
+
+      - name: Reconcile Base Treasury independently
+        id: treasury
+        if: always()
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node scripts/reconcile-treasury.mjs > /tmp/treasury.json
+          cat /tmp/treasury.json
+
+      - name: Scan funded PayanAgent buyer demand
+        id: demand
+        if: always()
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node scripts/scan-payan-demand.mjs 2>&1 | tee /tmp/payan-demand.txt
+
+      - name: Dedupe and register canonical Capture on true402
+        id: true402
+        if: steps.policy.outcome == 'success' && steps.live.outcome == 'success'
+        continue-on-error: true
+        env:
+          DELTA_ORIGIN: https://delta-witness-api.ruphussten.workers.dev
+          DELTA_ENDPOINT: https://delta-witness-api.ruphussten.workers.dev/v1/capture
+          DELTA_TREASURY: 0x1990e21bc219696ff7fbc26527dbaed335ac6367
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          const origin = process.env.DELTA_ORIGIN;
+          const endpoint = process.env.DELTA_ENDPOINT;
+          const treasury = process.env.DELTA_TREASURY.toLowerCase();
+          const registry = 'https://true402.dev/api/v1/services';
+          const out = {
+            channel: 'true402',
+            listing_status: 'unknown',
+            discovery_status: 'unknown',
+            duplicate_avoided: false,
+            submission_attempts: 0,
+            responses: [],
+            evidence_quality: 'A_official_registry_API'
+          };
+
+          function rows(j) {
+            if (Array.isArray(j)) return j;
+            for (const key of ['services','data','items','results']) if (Array.isArray(j?.[key])) return j[key];
+            return [];
+          }
+          function hit(row) {
+            const s = JSON.stringify(row).toLowerCase();
+            return s.includes('delta witness') || s.includes('delta-witness-api.ruphussten.workers.dev') || s.includes(treasury);
+          }
+          async function scan() {
+            const found = [];
+            for (let offset = 0; offset < 2000; offset += 100) {
+              let res;
+              for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                  res = await fetch(`${registry}?limit=100&offset=${offset}`, { signal: AbortSignal.timeout(20000) });
+                  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                  break;
+                } catch (e) {
+                  if (attempt === 3) throw e;
+                  await sleep(700 * attempt);
+                }
+              }
+              const j = await res.json();
+              const a = rows(j);
+              for (const r of a) if (hit(r)) found.push(r);
+              const total = Number(j?.total ?? j?.count ?? NaN);
+              const hasMore = j?.has_more ?? j?.hasMore;
+              if (hasMore === false) break;
+              if (Number.isFinite(total) && offset + a.length >= total) break;
+              if (a.length < 100) break;
+            }
+            return found;
+          }
+
+          async function submitOnce() {
+            const body = {
+              url: origin,
+              manifest: {
+                x402: '1.0',
+                name: 'DELTA Witness Capture',
+                description: 'Independent public page-state evidence for consequential agent actions. Canonical DELTA Capture is paid directly in Base USDC to the provider Treasury.',
+                capabilities: ['evidence','verification','agent-safety','x402','capture'],
+                pricing: { currency: 'USDC', base: '1.00', unit: 'request' },
+                payment: {
+                  address: process.env.DELTA_TREASURY,
+                  chain: 'base',
+                  facilitator: 'https://facilitator.payai.network'
+                },
+                endpoint
+              }
+            };
+            out.submission_attempts += 1;
+            try {
+              const res = await fetch(registry, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(body),
+                signal: AbortSignal.timeout(25000)
+              });
+              const text = await res.text();
+              let parsed = text;
+              try { parsed = JSON.parse(text); } catch {}
+              out.responses.push({ status: res.status, body: parsed });
+              return { ok: res.ok, status: res.status };
+            } catch (e) {
+              out.responses.push({ transport_error: String(e) });
+              return { ok: false, status: 0 };
+            }
+          }
+
+          (async () => {
+            let existing;
+            try { existing = await scan(); }
+            catch (e) {
+              out.listing_status = 'degraded_precheck';
+              out.discovery_status = 'degraded';
+              out.precheck_error = String(e);
+              fs.writeFileSync('/tmp/true402.json', JSON.stringify(out, null, 2));
+              console.log(JSON.stringify(out, null, 2));
+              return;
+            }
+            if (existing.length) {
+              out.listing_status = 'already_listed';
+              out.discovery_status = 'present';
+              out.duplicate_avoided = true;
+              out.matches = existing;
+              fs.writeFileSync('/tmp/true402.json', JSON.stringify(out, null, 2));
+              console.log(JSON.stringify(out, null, 2));
+              return;
+            }
+
+            let submitted = await submitOnce();
+            await sleep(1500);
+            let readback = [];
+            try { readback = await scan(); } catch (e) { out.readback_error = String(e); }
+
+            if (!readback.length && !submitted.ok && (submitted.status === 0 || submitted.status >= 500 || submitted.status === 429)) {
+              await sleep(2500);
+              submitted = await submitOnce();
+              await sleep(2000);
+              try { readback = await scan(); } catch (e) { out.readback_error_2 = String(e); }
+            }
+
+            if (readback.length) {
+              out.listing_status = 'live';
+              out.discovery_status = 'present';
+              out.matches = readback;
+            } else if (submitted.ok) {
+              out.listing_status = 'submitted_readback_pending';
+              out.discovery_status = 'pending';
+            } else {
+              out.listing_status = 'channel_degraded_retry_exhausted';
+              out.discovery_status = 'unknown';
+            }
+            fs.writeFileSync('/tmp/true402.json', JSON.stringify(out, null, 2));
+            console.log(JSON.stringify(out, null, 2));
+          })().catch(e => {
+            out.fatal = String(e);
+            fs.writeFileSync('/tmp/true402.json', JSON.stringify(out, null, 2));
+            console.error(e);
+          });
+          NODE
+
+      - name: Record run evidence
+        if: always()
+        env:
+          POLICY_OUTCOME: ${{ steps.policy.outcome }}
+          LIVE_OUTCOME: ${{ steps.live.outcome }}
+          FUNNEL_OUTCOME: ${{ steps.funnel.outcome }}
+          TREASURY_OUTCOME: ${{ steps.treasury.outcome }}
+          DEMAND_OUTCOME: ${{ steps.demand.outcome }}
+          TRUE402_OUTCOME: ${{ steps.true402.outcome }}
+        run: |
+          mkdir -p distribution/evidence
+          node <<'NODE'
+          const fs = require('fs');
+          const read = p => { try { return fs.readFileSync(p,'utf8').trim(); } catch { return ''; } };
+          const parse = s => { try { return JSON.parse(s); } catch { return s || null; } };
+          const treasury = parse(read('/tmp/treasury.json'));
+          const true402 = parse(read('/tmp/true402.json'));
+          const evidence = {
+            run: 'DELTA Autonomous Growth',
+            checked_at: new Date().toISOString(),
+            repository_sha: process.env.GITHUB_SHA,
+            owner_pricing_gate: process.env.POLICY_OUTCOME,
+            live_public_402_gate: process.env.LIVE_OUTCOME,
+            paid_funnel_audit: process.env.FUNNEL_OUTCOME,
+            treasury_reconciliation: process.env.TREASURY_OUTCOME,
+            funded_demand_scan: process.env.DEMAND_OUTCOME,
+            true402_action: process.env.TRUE402_OUTCOME || 'skipped',
+            pricing_check_output: parse(read('/tmp/owner-pricing.txt')),
+            live_price_output: parse(read('/tmp/live-pricing.txt')),
+            funnel_output: parse(read('/tmp/revenue-candidates.txt')),
+            treasury,
+            demand_output: parse(read('/tmp/payan-demand.txt')),
+            true402,
+            tracking: {
+              channel_source: ['canonical_production','base_treasury','payanagent','true402'],
+              listing_status: true402?.listing_status ?? 'not_run',
+              discovery_status: true402?.discovery_status ?? 'not_run',
+              buyer_count: 0,
+              settlement_count: 0,
+              external_requests: 0,
+              intents_402: 0,
+              paid_settlements: 0,
+              treasury_received: treasury?.treasury_received_candidates ?? null,
+              revenue: 0,
+              variable_cost: 0,
+              contribution_margin: 0,
+              evidence_quality: 'A_live_402_plus_canonical_USDC_logs; true402=A_official_registry_API'
+            },
+            note: 'value_authored, payment_authorized, settlement_confirmed and treasury_received remain distinct; only reconciled non-project treasury_received may become customer revenue.'
+          };
+          fs.writeFileSync('distribution/evidence/growth-run-20260912-0730-kst-true402.json', JSON.stringify(evidence, null, 2) + '\n');
+          NODE
+
+      - name: Commit evidence
+        if: always()
+        continue-on-error: true
+        run: |
+          git config user.name 'delta-growth-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add distribution/evidence/growth-run-20260912-0730-kst-true402.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'ops: record DELTA growth run 2026-09-12 07:30 KST'
+          git pull --rebase origin master
+          git push origin HEAD:master
