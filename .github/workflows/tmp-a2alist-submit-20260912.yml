@@ -1,0 +1,102 @@
+name: TMP DELTA A2A List submit 20260912
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-a2alist-submit-20260912.yml"
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Read current owner authority
+        run: |
+          test -s AGENTS.md
+          test -s docs/pricing-policy-2026-09-10.md
+          grep -q 'Public Capture.*1.00 USDC' docs/pricing-policy-2026-09-10.md
+          grep -q 'Public Preflight.*5.00 USDC' docs/pricing-policy-2026-09-10.md
+          grep -q 'Guarded-Action Pilot.*10.00 USDC' docs/pricing-policy-2026-09-10.md
+      - name: Verify current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live public 402 amounts before listing write
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Check A2A List for existing canonical DELTA listing
+        id: dedupe
+        shell: bash
+        run: |
+          set -u
+          found=0
+          for q in 'DELTA%20Witness' 'delta-witness' 'delta%20witness'; do
+            body=$(curl -L --connect-timeout 10 --max-time 25 -sS "https://a2alist.ai/api/agents?q=${q}&per_page=100" || true)
+            printf 'A2ALIST_DEDUPE query=%s body=%q\n' "$q" "$body"
+            if printf '%s' "$body" | grep -Eqi 'delta-witness-api\.ruphussten\.workers\.dev|github\.com/15998194110/delta-witness|"name"[[:space:]]*:[[:space:]]*"DELTA Witness"'; then
+              found=1
+              break
+            fi
+          done
+          echo "found=$found" >> "$GITHUB_OUTPUT"
+          echo "A2ALIST_DEDUPE found=$found"
+      - name: Submit canonical DELTA via free A2A protocol
+        id: submit
+        if: steps.dedupe.outputs.found != '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload=$(jq -cn '{jsonrpc:"2.0",id:1,method:"tasks/send",params:{name:"DELTA Witness",url:"https://delta-witness-api.ruphussten.workers.dev",description:"Evidence capture and preflight trust layer for autonomous web actions. Machine-payable x402 endpoints settle canonical USDC on Base directly to the DELTA treasury.",protocol:"x402",category:"API",github_url:"https://github.com/15998194110/delta-witness",pricing:"Capture $1 USDC; Public Preflight $5 USDC; Guarded-Action Pilot $10 USDC",endpoint_count:3}}')
+          endpoint='https://a2alist.ai/api/a2a'
+          max=4
+          for attempt in $(seq 1 "$max"); do
+            code=$(curl -L --connect-timeout 10 --max-time 30 -sS -o /tmp/a2alist-body.txt -w '%{http_code}' \
+              -X POST "$endpoint" -H 'content-type: application/json' --data "$payload" || printf '000')
+            body=$(cat /tmp/a2alist-body.txt 2>/dev/null || true)
+            printf 'A2ALIST_SUBMIT attempt=%s http=%s body=%q\n' "$attempt" "$code" "$body"
+            if [[ "$code" =~ ^2 ]]; then
+              if printf '%s' "$body" | jq -e '.result.taskId // empty' >/dev/null 2>&1; then
+                task_id=$(printf '%s' "$body" | jq -r '.result.taskId')
+                status=$(printf '%s' "$body" | jq -r '.result.status // "unknown"')
+                echo "task_id=$task_id" >> "$GITHUB_OUTPUT"
+                echo "status=$status" >> "$GITHUB_OUTPUT"
+                echo "A2ALIST_ACCEPTED task_id=$task_id status=$status"
+                exit 0
+              fi
+              if printf '%s' "$body" | grep -Eqi 'already|duplicate|exists'; then
+                echo 'A2ALIST_ALREADY_PRESENT duplicate_write_avoided=true'
+                exit 0
+              fi
+              echo '2xx response without taskId or duplicate confirmation' >&2
+              exit 1
+            fi
+            if [[ "$code" == '409' ]] || printf '%s' "$body" | grep -Eqi 'already|duplicate|exists'; then
+              echo 'A2ALIST_ALREADY_PRESENT duplicate_write_avoided=true'
+              exit 0
+            fi
+            if [[ "$code" == '429' || "$code" =~ ^5 || "$code" == '000' ]]; then
+              sleep $((attempt * attempt))
+              continue
+            fi
+            echo "non-retryable submission response: HTTP $code" >&2
+            exit 1
+          done
+          echo 'recoverable A2A List channel degradation exhausted for this run' >&2
+          exit 1
+      - name: Check submission state and public visibility
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          task='${{ steps.submit.outputs.task_id }}'
+          if [[ -n "$task" ]]; then
+            for delay in 0 5 15; do
+              sleep "$delay"
+              payload=$(jq -cn --arg task "$task" '{jsonrpc:"2.0",id:2,method:"tasks/get",params:{taskId:$task}}')
+              body=$(curl -L --connect-timeout 10 --max-time 25 -sS -X POST 'https://a2alist.ai/api/a2a' -H 'content-type: application/json' --data "$payload" || true)
+              printf 'A2ALIST_TASK_READBACK delay=%s body=%q\n' "$delay" "$body"
+            done
+          fi
+          visible=0
+          body=$(curl -L --connect-timeout 10 --max-time 25 -sS 'https://a2alist.ai/api/agents?q=DELTA%20Witness&per_page=100' || true)
+          if printf '%s' "$body" | grep -Eqi 'delta-witness-api\.ruphussten\.workers\.dev|github\.com/15998194110/delta-witness|"name"[[:space:]]*:[[:space:]]*"DELTA Witness"'; then visible=1; fi
+          echo "A2ALIST_PUBLIC_READBACK visible=$visible"
