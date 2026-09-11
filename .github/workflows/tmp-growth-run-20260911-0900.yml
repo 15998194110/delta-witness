@@ -46,6 +46,8 @@ jobs:
           terms=[w for w in ['terms','agree','agreement','consent','legal','privacy'] if w in lowered]
           print(json.dumps({'forms':p.forms,'terms_signals':terms,'bytes':len(h)},indent=2))
           PY
+          echo '--- submit handler excerpts ---'
+          grep -nEi 'fetch\(|submit|/api/|formdata|featured_plan' /tmp/swarm.html | head -80 || true
       - name: Probe fresh free discovery surfaces for existing DELTA identity
         shell: bash
         run: |
