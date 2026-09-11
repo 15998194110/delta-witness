@@ -42,3 +42,36 @@ jobs:
           npm view delta-witness-mcp versions --json
           echo 'NPM_LATEST_README_PRICING_LINES='
           npm view delta-witness-mcp@latest readme | grep -E 'DELTA_MAX_USD_PER_CALL|public list prices|Capture|Preflight|Guarded-Action' || true
+      - name: Read-only Circle x402 Discovery audit
+        if: always()
+        run: |
+          set -e
+          URL='https://api.circle.com/v2/x402/discovery/resources'
+          for attempt in 1 2 3; do
+            code=$(curl -sS --connect-timeout 10 --max-time 45 -o /tmp/circle-x402.json -w '%{http_code}' "$URL" || true)
+            echo "CIRCLE_HTTP_ATTEMPT_${attempt}=$code"
+            if [ "$code" = "200" ]; then break; fi
+            sleep $((attempt * 2))
+          done
+          test "$code" = "200"
+          node - <<'NODE'
+          const fs = require('fs');
+          const text = fs.readFileSync('/tmp/circle-x402.json','utf8');
+          const needle = 'delta-witness-api.ruphussten.workers.dev';
+          const found = text.toLowerCase().includes(needle);
+          const json = JSON.parse(text);
+          const topKeys = json && typeof json === 'object' ? Object.keys(json) : [];
+          function arrays(x, out=[]) {
+            if (Array.isArray(x)) out.push(x.length);
+            if (x && typeof x === 'object') for (const v of Object.values(x)) arrays(v,out);
+            return out;
+          }
+          function matches(x, path='$', out=[]) {
+            if (typeof x === 'string' && x.toLowerCase().includes(needle)) out.push({path,value:x});
+            else if (Array.isArray(x)) x.forEach((v,i)=>matches(v,`${path}[${i}]`,out));
+            else if (x && typeof x === 'object') for (const [k,v] of Object.entries(x)) matches(v,`${path}.${k}`,out);
+            return out;
+          }
+          const ms = matches(json);
+          console.log(JSON.stringify({circle_discovery_ok:true, delta_present:found, top_keys:topKeys, array_lengths:arrays(json).slice(0,20), match_count:ms.length, matches:ms.slice(0,20)}, null, 2));
+          NODE
