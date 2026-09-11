@@ -1,0 +1,109 @@
+name: TMP APIs.io direct submission 20260912-0018
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - '.github/workflows/tmp-apisio-submit-20260912-0018.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+
+      - name: Verify current owner policy and live x402 prices
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+
+      - name: Submit canonical DELTA API to APIs.io without duplication
+        shell: bash
+        run: |
+          set -euo pipefail
+          API='https://apis.io/api/v1'
+          ORIGIN='https://delta-witness-api.ruphussten.workers.dev'
+          CONTACT='ruphussten85@gmail.com'
+
+          request() {
+            local method="$1" url="$2" out="$3" data="${4:-}"
+            local code=000
+            : > "$out"
+            for i in 1 2 3 4; do
+              if [ "$method" = GET ]; then
+                code=$(curl --connect-timeout 10 --max-time 45 -sS -o "$out" -w '%{http_code}' "$url") || code=000
+              else
+                code=$(curl --connect-timeout 10 --max-time 45 -sS -o "$out" -w '%{http_code}' -X "$method" "$url" -H 'content-type: application/json' --data "$data") || code=000
+              fi
+              echo "APISIO_HTTP method=$method attempt=$i http=$code url=$url"
+              case "$code" in
+                200|201|202|204|409) printf '%s' "$code"; return 0;;
+                429|500|502|503|504|000) sleep $((i*3));;
+                *) printf '%s' "$code"; return 0;;
+              esac
+            done
+            printf '%s' "$code"
+          }
+
+          # Canonical duplicate guard. Search is read-only and keyless.
+          search_code=$(request GET "$API/search?q=delta%20witness&limit=25" /tmp/apisio-search.json)
+          if [ "$search_code" = 200 ] && jq -e --arg origin "$ORIGIN" '[.. | strings | select(contains($origin))] | length > 0' /tmp/apisio-search.json >/dev/null 2>&1; then
+            echo 'APISIO_ALREADY_INDEXED canonical_origin=true duplicate_submission=false'
+            exit 0
+          fi
+
+          # Use APIs.io's own public discovery endpoint so the submission is grounded in
+          # DELTA's live OpenAPI / llms / MCP surfaces rather than hand-copied metadata.
+          discover_url="$API/submit/discover?url=$(python - <<'PY'
+import urllib.parse
+print(urllib.parse.quote('https://delta-witness-api.ruphussten.workers.dev', safe=''))
+PY
+)"
+          discover_code=$(request GET "$discover_url" /tmp/apisio-discover.json)
+          if [ "$discover_code" != 200 ]; then
+            echo "APISIO_DISCOVERY_DEGRADED recoverable=true http=$discover_code body=$(cat /tmp/apisio-discover.json)"
+            exit 1
+          fi
+
+          jq -e '.preview and (.preview.name // "" | length > 0)' /tmp/apisio-discover.json >/dev/null
+          jq -n \
+            --slurpfile d /tmp/apisio-discover.json \
+            --arg contact "$CONTACT" \
+            --arg origin "$ORIGIN" '
+              ($d[0]) as $x |
+              {
+                apisjson: ($x.apisjson // null),
+                name: ($x.preview.name // "DELTA Witness"),
+                provider: ($x.preview.provider // "Ruphus Sten Studio"),
+                docsUrl: ($x.preview.docsUrl // ($origin + "/openapi.json")),
+                tags: ($x.preview.tags // ["x402","MCP","AI agents","verification","evidence"]),
+                contact: $contact,
+                newsletter: false,
+                url: (($x.apisjson.url // null) // (($x.origin // $origin) + "/apis.json")),
+                discovered: ($x.discovered // null),
+                rating: ($x.rating // null)
+              }
+            ' > /tmp/apisio-payload.json
+
+          submit_code=$(request POST "$API/submit" /tmp/apisio-submit.json "$(cat /tmp/apisio-payload.json)")
+          echo "APISIO_SUBMIT http=$submit_code body=$(cat /tmp/apisio-submit.json)"
+          case "$submit_code" in
+            200|201|202|204|409) ;;
+            *) echo "APISIO_SUBMIT_DEGRADED recoverable=true http=$submit_code"; exit 1;;
+          esac
+
+          # A successful queue receipt is evidence of submission, not a claim that the
+          # public listing is already live. Read back search once; future canonical pulse
+          # can observe publication without resubmitting.
+          sleep 3
+          read_code=$(request GET "$API/search?q=delta%20witness&limit=25" /tmp/apisio-readback.json)
+          if [ "$read_code" = 200 ] && jq -e --arg origin "$ORIGIN" '[.. | strings | select(contains($origin))] | length > 0' /tmp/apisio-readback.json >/dev/null 2>&1; then
+            echo 'APISIO_PUBLIC_READBACK listed=true evidence_quality=A_public_catalog duplicate_submission=false'
+          else
+            echo "APISIO_PUBLIC_READBACK listed=false queued_or_pending=true http=$read_code"
+          fi
