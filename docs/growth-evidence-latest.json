@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-10T14:51:02.000Z",
+  "checked_at": "2026-09-11T19:06:54.000Z",
   "owner_pricing": {
     "public_capture_usdc": 1,
     "partner_capture_usdc": 1,
@@ -14,83 +14,96 @@
     },
     "network": "eip155:8453",
     "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
-    "live_readback_checked_at": "2026-09-10T14:50:31.272Z",
-    "evidence_quality": "A_direct_source_and_live_402_readback"
+    "live_readback_checked_at": "2026-09-11T19:05:55.015Z",
+    "evidence_quality": "A_direct_live_402_readback"
   },
-  "automation_deduplication": {
-    "canonical_growth_task": "synchronized_to_owner_1_5_10_policy",
-    "overlapping_six_hour_growth_task": "disabled",
-    "new_parallel_growth_tasks_created": 0,
-    "temporary_execution_workflows_retired_after_use": true,
-    "evidence_quality": "A_native_task_and_repository_write_readback"
+  "production_integrity": {
+    "health": "ok",
+    "version": "0.7.0",
+    "capture_402_verified": true,
+    "preflight_402_verified": true,
+    "guarded_action_pilot_402_verified": true,
+    "canonical_base_usdc_verified": true,
+    "treasury_pay_to_verified": true,
+    "paid_transactions_generated_by_diagnostics": 0,
+    "customer_revenue_generated_by_diagnostics": 0,
+    "core_production_failure": false,
+    "evidence_quality": "A_direct_live_endpoint_checks"
   },
   "distribution": {
-    "market402": {
-      "listing_status": "already_listed_refreshed_without_duplicate_queue_entry",
-      "capture_declared_price_usdc": 1,
-      "preflight_declared_price_usdc": 5,
-      "pilot_declared_price_usdc": 10,
-      "instant_checks": "11_of_11_spec_compliant_each",
-      "verified_badge": "scheduled_probe_pending",
-      "evidence_quality": "A_direct_official_api_response"
+    "official_mcp_registry": {
+      "listing_status": "active_existing_canonical",
+      "discovery_status": "official_registry_active_v0.7.0",
+      "duplicate_listing_created": false,
+      "evidence_quality": "A_prior_official_registry_readback_reconciled_this_run"
     },
-    "402index": {
-      "listing_status": "active_healthy",
-      "capture": {
-        "service_id": "73b990f5-02f6-4ef4-9892-645349938b63",
-        "price_usdc": 1,
-        "reliability_score": 82
-      },
-      "preflight": {
-        "service_id": "8632f21c-6981-488e-bff5-dc0d41055886",
-        "price_usdc": 5,
-        "reliability_score": 82
-      },
-      "guarded_action_pilot": {
-        "service_id": "e98fec92-fe53-47bc-b274-fe228479fe49",
-        "price_usdc": 10,
-        "reliability_score": 85
-      },
-      "x402_payment_valid": true,
-      "verified_badge": false,
-      "evidence_quality": "A_direct_official_api_response"
+    "allmcps": {
+      "listing_status": "active_existing_canonical",
+      "discovery_status": "active",
+      "duplicate_listing_created": false,
+      "evidence_quality": "A_direct_current_readback"
+    },
+    "payanagent": {
+      "listing_status": "existing_canonical_catalog_refresh_pending",
+      "discovery_status": "guarded_action_public_buy_route_current; capture_and_preflight_refresh_degraded",
+      "recoverable_external_degradation": true,
+      "bounded_retry_exhausted_this_run": true,
+      "deferred_recheck": true,
+      "duplicate_seller_created": false,
+      "evidence_quality": "A_authenticated_existing_identity_plus_public_buy_route"
     },
     "payai_bazaar": {
-      "discovery_status": "stale_catalog_metadata_recoverable_external_degradation",
-      "observed_cached_capture_raw_usdc": "30000",
-      "observed_cached_preflight_raw_usdc": "30000",
+      "listing_status": "existing",
+      "discovery_status": "catalog_refresh_pending",
       "live_production_conflict": true,
       "self_pay_refresh_attempted": false,
-      "reason_no_self_pay": "owner financial boundary and non-customer canary exclusion",
-      "next_action": "deferred_recheck_and_free_reindex_path_only",
-      "evidence_quality": "A_direct_official_catalog_scan"
+      "next_action": "free_reindex_or_deferred_recheck_only",
+      "evidence_quality": "A_complete_current_catalog_scan"
     },
-    "x402scout": {
-      "listing_status": "not_registered",
-      "discovery_status": "channel_suspended_by_owner",
-      "primary_public_host": "https://x402scout.com",
-      "primary_attempts": 4,
-      "primary_http": 503,
-      "primary_body_signal": "Service Suspended; This service has been suspended by its owner.",
-      "official_source_alternate": "https://x402-discovery-api.onrender.com",
-      "alternate_attempts": 4,
-      "alternate_http": 503,
-      "alternate_body_signal": "Service Suspended; This service has been suspended by its owner.",
+    "payapi_market": {
+      "listing_status": "present_existing_canonical",
+      "discovery_status": "present",
       "duplicate_listing_created": false,
-      "paid_action_taken": false,
-      "classification": "isolated_external_channel_suspension_deferred_no_core_impact",
-      "next_action": "low_frequency_recheck_if_service_returns_or_maintainer_publishes_new_official_endpoint",
-      "evidence_quality": "A_official_source_endpoint_plus_direct_http_response"
+      "evidence_quality": "A_current_public_market_readback"
     },
-    "current_opportunity_scan": {
-      "gold402_24klabs": "free_but_pull_request_submission; no autonomous PR because contribution path can entail repository contribution terms/legal commitment",
-      "402_ad": "free_human_submission_available; programmatic path costs_0_10_usdc_and_is_prohibited_by_no_spend_boundary",
-      "agenthire": "seller_surface_detected_but Solana/account-oriented; no Base-native direct no-account seller registration evidence",
-      "evidence_quality": "B_public_current_docs"
+    "x402_list": {
+      "listing_status": "not_present",
+      "discovery_status": "absent_current_readback",
+      "evidence_quality": "B_public_current_api"
+    },
+    "circle_x402_discovery": {
+      "listing_status": "not_present",
+      "discovery_status": "absent_current_readback",
+      "evidence_quality": "B_public_current_api"
+    },
+    "exviv": {
+      "listing_status": "not_confirmed",
+      "discovery_status": "current_adjacent_x402_demand_verified; directory_query_is_paid",
+      "direct_free_submission_found": false,
+      "paid_action_taken": false,
+      "evidence_quality": "B_current_public_market_and_api"
+    },
+    "taskmarket": {
+      "listing_status": "not_applicable",
+      "discovery_status": "real_base_usdc_funded_task_market_active; no_current_delta_fit_request_verified",
+      "wallet_or_identity_write_required_for_worker_submission": true,
+      "paid_or_wallet_action_taken": false,
+      "evidence_quality": "B_current_public_market_and_docs"
+    },
+    "0xwork": {
+      "listing_status": "not_registered",
+      "discovery_status": "disqualified_for_autonomous_bidding_due_worker_stake_requirement",
+      "paid_or_wallet_action_taken": false,
+      "evidence_quality": "A_official_current_skill_docs"
+    },
+    "reporanker": {
+      "listing_status": "not_submitted",
+      "discovery_status": "free_listing_available_but_github_oauth_ui_required_and_low_buyer_evidence",
+      "evidence_quality": "B_current_public_submission_page"
     },
     "indexnow": {
-      "core": "upstream_429_after_4_bounded_retries_recoverable",
-      "base_app": "http_200_success",
+      "core": "upstream_rate_limited_after_bounded_retries_recoverable",
+      "base_app": "success",
       "independent_checks_continued": true
     }
   },
@@ -106,26 +119,28 @@
     "paid_funnel_candidate_rows": 0
   },
   "treasury_reconciliation": {
-    "checked_at": "2026-09-10T14:50:08.122Z",
-    "latest_base_block": 51131227,
+    "checked_at": "2026-09-11T19:06:35.176Z",
+    "latest_base_block": 51182121,
     "lookback_blocks": 50000,
-    "canonical_usdc_receipt_candidates": 1,
-    "total_usdc": 0.03,
-    "known_non_customer_usdc": 0.03,
+    "canonical_usdc_receipt_candidates": 0,
+    "total_usdc": 0,
+    "known_non_customer_usdc": 0,
     "unclassified_usdc": 0,
-    "known_non_customer_tx": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
-    "known_non_customer_classification": "payapi_platform_verification",
     "customer_revenue_usdc": 0,
     "evidence_quality": "A_direct_canonical_USDC_log"
   },
-  "operational_corrections": {
-    "treasury_independence": "first one-shot omitted Cloudflare audit credentials and stopped before treasury; corrected immediately so canonical treasury reconciliation ran before the optional paid-funnel audit and both then completed",
-    "core_production_failure": false
-  },
   "outreach": {
     "sent_this_run": 0,
-    "reason": "daily outreach ceiling already reached by prior same-day DELTA communications; no chase sent",
-    "new_unanswered_explicit_integration_intent": false,
-    "latest_material_thread": "PulseFeed technical exchange already has a later outbound reply"
+    "new_explicit_interest_reply": false,
+    "known_vertical_marketplace_native_x402_feature_request": "already_advanced_no_repeat_contact",
+    "known_payapi_refresh_thread": "awaiting_new_reply_no_chase"
+  },
+  "operational": {
+    "canonical_discovery_pulse_run_id": 34636966525,
+    "canonical_discovery_pulse_conclusion": "success",
+    "external_dependency_failures_isolated": true,
+    "duplicate_growth_loop_created": false,
+    "duplicate_seller_identity_created": false,
+    "irreversible_or_financial_action_taken": false
   }
 }
