@@ -1,0 +1,189 @@
+{
+  "generated_at": "2026-09-11T14:31:00Z",
+  "run_local": "2026-09-11 23:18 KST",
+  "owner_pricing_policy": "owner-2026-09-10-1-5-10",
+  "pricing_gate": {
+    "status": "verified",
+    "verification_source": "canonical DELTA Discovery Pulse run 34609572577",
+    "public_raw_usdc": {
+      "capture": "1000000",
+      "public_preflight": "5000000",
+      "guarded_action_pilot": "10000000"
+    },
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "evidence_quality": "A_live_public_402",
+    "notes": "Current owner-pricing policy check and live public 402 verification both completed successfully before any price-bearing action."
+  },
+  "treasury": {
+    "reconciliation_status": "completed_successfully",
+    "verification_source": "canonical DELTA Discovery Pulse run 34609572577 / Reconcile Base Treasury step",
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": null,
+    "treasury_received_usdc": null,
+    "unclassified_usdc": null,
+    "customer_revenue_usdc": null,
+    "settlement_count": null,
+    "evidence_quality": "A_canonical_reconciliation_execution; raw result extraction pending",
+    "notes": "Treasury reconciliation completed independently using the canonical retrying multi-RPC script. Exact raw result lines were not exposed by the GitHub connector in this run, so no zero or revenue amount is inferred. Previous 22:16 KST baseline was zero candidates through Base block 51171621."
+  },
+  "telemetry": {
+    "audit_status": "completed_successfully",
+    "verification_source": "canonical DELTA Discovery Pulse run 34609572577 / Audit paid funnel candidates step",
+    "candidate_rows": null,
+    "paid_settlements": null,
+    "evidence_quality": "A_canonical_query_execution; raw result extraction pending",
+    "notes": "No count is fabricated when raw step output is unavailable through the connector."
+  },
+  "channels": [
+    {
+      "channel_source": "PayAPI Market",
+      "listing_status": "live_existing_canonical",
+      "discovery_status": "public_x402_verified_catalog_refresh_pending",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": true,
+      "external_requests": null,
+      "402_intents": null,
+      "paid_settlements": null,
+      "treasury_received": null,
+      "revenue": null,
+      "variable_cost": 0,
+      "contribution_margin": null,
+      "evidence_quality": "A_direct_listing_readback_plus_live_402",
+      "notes": "Two existing canonical DELTA listings were directly read back. No duplicate was created. Public catalog metadata remains pending refresh; current owner-authorized runtime prices remain authoritative. Provider-dashboard access inspection was started through the official UI only, with no fee, wallet signature, new seller identity or new listing."
+    },
+    {
+      "channel_source": "PayanAgent",
+      "listing_status": "existing_canonical",
+      "discovery_status": "reconciled_current_run",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": null,
+      "external_requests": null,
+      "402_intents": null,
+      "paid_settlements": null,
+      "treasury_received": null,
+      "revenue": null,
+      "variable_cost": 0,
+      "contribution_margin": null,
+      "evidence_quality": "A_authenticated_reconciliation_execution"
+    },
+    {
+      "channel_source": "AllMCPs",
+      "listing_status": "live_existing_canonical",
+      "discovery_status": "reconciled_current_run",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": null,
+      "external_requests": null,
+      "402_intents": null,
+      "paid_settlements": null,
+      "treasury_received": null,
+      "revenue": null,
+      "variable_cost": 0,
+      "contribution_margin": null,
+      "evidence_quality": "A_direct_reconciliation_execution"
+    },
+    {
+      "channel_source": "PayAI Bazaar",
+      "listing_status": "live_existing_canonical",
+      "discovery_status": "catalog_check_completed_current_run",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": true,
+      "external_requests": null,
+      "402_intents": null,
+      "paid_settlements": null,
+      "treasury_received": null,
+      "revenue": null,
+      "variable_cost": 0,
+      "contribution_margin": null,
+      "evidence_quality": "A_canonical_catalog_check_execution"
+    },
+    {
+      "channel_source": "x402-list.com",
+      "listing_status": "not_submitted",
+      "discovery_status": "fee_gate",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_current_public_submission_policy",
+      "notes": "workers.dev-hosted service submission requires a paid review path, so no autonomous pay-to-list action was taken."
+    },
+    {
+      "channel_source": "Agora402",
+      "listing_status": "not_submitted",
+      "discovery_status": "fee_gate",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_current_public_submission_policy",
+      "notes": "Listing path requires USDC payment; skipped under zero-capital and no-autonomous-fee boundary."
+    },
+    {
+      "channel_source": "APIHub",
+      "listing_status": "not_submitted",
+      "discovery_status": "wallet_or_account_auth_required",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_current_public_onboarding_policy",
+      "notes": "No autonomous wallet signature or account/legal commitment was performed."
+    }
+  ],
+  "external_channel_degradation": [
+    {
+      "channel": "official MCP Registry direct fetch",
+      "status": "recoverable_timeout",
+      "impact": "isolated; canonical DELTA checks and Treasury reconciliation completed independently"
+    },
+    {
+      "channel": "TinyFish public fetch",
+      "status": "recoverable_rate_limit",
+      "impact": "isolated; alternate GitHub/Gmail/canonical production checks continued"
+    }
+  ],
+  "outreach": {
+    "sent_this_run": 0,
+    "new_explicit_interest_replies": 0,
+    "natural_day_cap_status": "exhausted_before_this_run",
+    "notes": "No new inbound explicit-interest DELTA thread was found after the latest sent replies. No fourth cold/correction email was sent."
+  },
+  "aggregate_current_run": {
+    "buyer_count_new_verified": 0,
+    "settlement_count": null,
+    "external_requests": null,
+    "402_intents": null,
+    "paid_settlements": null,
+    "treasury_received": null,
+    "revenue": null,
+    "variable_cost": 0,
+    "contribution_margin": null,
+    "evidence_quality": "A_core_checks_completed; exact raw financial metrics intentionally not inferred"
+  },
+  "material_development": null,
+  "execution_run": "https://github.com/15998194110/delta-witness/actions/runs/34609572577"
+}
