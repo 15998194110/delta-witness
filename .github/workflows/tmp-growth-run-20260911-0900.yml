@@ -1,4 +1,4 @@
-name: TMP DELTA SwarmBazaar inspect 20260911 0900
+name: TMP DELTA SwarmBazaar submit 20260911 0900
 on:
   push:
     paths:
@@ -6,9 +6,9 @@ on:
 permissions:
   contents: read
 jobs:
-  inspect:
+  submit:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,9 +18,31 @@ jobs:
         run: |
           node scripts/check-owner-pricing.mjs
           node scripts/verify-owner-pricing-live.mjs
-      - name: Inspect free listing form values and handler
+      - name: Duplicate guard and free listing submission
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL --retry 4 --retry-delay 2 --retry-all-errors --connect-timeout 12 --max-time 35 'https://swarmbazaar.com/onboard.html' -o /tmp/swarm.html
-          sed -n '55,155p' /tmp/swarm.html
+          ORIGIN='https://delta-witness-api.ruphussten.workers.dev/'
+          MATCH='delta-witness-api.ruphussten.workers.dev|DELTA Witness'
+          found=0
+          for u in 'https://swarmbazaar.com/data/census-vendors.json' 'https://swarmbazaar.com/sellers.html'; do
+            body="$(curl -fsSL --retry 3 --retry-delay 2 --retry-all-errors --connect-timeout 12 --max-time 35 "$u" || true)"
+            if printf '%s' "$body" | grep -Eiq "$MATCH"; then found=1; echo "existing_swarmbazaar_identity=$u"; fi
+          done
+          if [ "$found" -eq 1 ]; then
+            echo 'listing_status=already_present_no_duplicate_submit'
+            exit 0
+          fi
+          payload='{"name":"DELTA Witness","url":"https://delta-witness-api.ruphussten.workers.dev/","tagline":"Evidence and deterministic preflight verification for consequential agent actions.","category":"seller","protocols":"x402, MCP, A2A","offering_title":"Independent evidence and preflight verification","offering_detail":"Timestamped public-state proofs and deterministic change checks before autonomous actions.","offering_price":"Capture $1 · Preflight $5 · Guarded pilot $10 · Base USDC","logo":"","featured_plan":"none","endpoint":"https://delta-witness-api.ruphussten.workers.dev/v1/capture","email":"1012287336@qq.com","website2":""}'
+          code="$(curl -sS --connect-timeout 12 --max-time 35 -o /tmp/swarm-response.json -w '%{http_code}' \
+            -H 'content-type: application/json' -H 'user-agent: DELTA-Witness-Listing/1.0' \
+            --data "$payload" 'https://swarmbazaar.com/api/onboard')"
+          echo "submission_http=$code"
+          cat /tmp/swarm-response.json
+          echo
+          case "$code" in
+            200|201|202) echo 'listing_status=submitted_free_review_queue' ;;
+            409) echo 'listing_status=already_submitted_no_retry' ;;
+            429|5??) echo 'listing_status=recoverable_channel_degradation_defer_recheck' ;;
+            *) echo 'listing_status=unexpected_response_no_paid_or_duplicate_fallback'; exit 1 ;;
+          esac
