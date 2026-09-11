@@ -25,3 +25,13 @@ jobs:
         run: node scripts/verify-owner-pricing-live.mjs
       - name: Independent Base Treasury reconciliation
         run: node scripts/reconcile-treasury.mjs
+      - name: Read-only npm distribution audit
+        run: |
+          echo 'NPM_VERSION='
+          npm view delta-witness-mcp version
+          echo 'NPM_DIST_TAGS='
+          npm view delta-witness-mcp dist-tags --json
+          echo 'NPM_VERSIONS='
+          npm view delta-witness-mcp versions --json
+          echo 'NPM_LATEST_README_PRICING_LINES='
+          npm view delta-witness-mcp@latest readme | grep -E 'DELTA_MAX_USD_PER_CALL|public list prices|Capture|Preflight|Guarded-Action' || true
