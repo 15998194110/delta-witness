@@ -1,0 +1,96 @@
+name: TMP DELTA x402 Arena register 20260912
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-x402arena-register-20260912.yml"
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Read current owner authority
+        run: |
+          test -s AGENTS.md
+          test -s docs/pricing-policy-2026-09-10.md
+          grep -q 'Public Capture.*1.00 USDC' docs/pricing-policy-2026-09-10.md
+          grep -q 'Public Preflight.*5.00 USDC' docs/pricing-policy-2026-09-10.md
+          grep -q 'Guarded-Action Pilot.*10.00 USDC' docs/pricing-policy-2026-09-10.md
+      - name: Verify current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live public 402 amounts before listing write
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Dedupe against public Arena registry
+        id: dedupe
+        shell: bash
+        run: |
+          set -u
+          url='https://core.x402arena.gg/operator/agents'
+          body=''
+          code='000'
+          for attempt in 1 2 3 4; do
+            code=$(curl -L --connect-timeout 10 --max-time 30 -sS -o /tmp/arena-agents.txt -w '%{http_code}' "$url" || printf '000')
+            body=$(cat /tmp/arena-agents.txt 2>/dev/null || true)
+            printf 'X402ARENA_DEDUPE attempt=%s http=%s bytes=%s\n' "$attempt" "$code" "${#body}"
+            if [[ "$code" =~ ^2 ]]; then break; fi
+            if [[ "$code" == '429' || "$code" =~ ^5 || "$code" == '000' ]]; then sleep $((attempt * attempt)); continue; fi
+            break
+          done
+          found=0
+          if printf '%s' "$body" | grep -Eqi 'delta-witness-api\.ruphussten\.workers\.dev|0x1990e21bc219696ff7fbc26527dbaed335ac6367|delta-witness-capture'; then found=1; fi
+          echo "found=$found" >> "$GITHUB_OUTPUT"
+          echo "registry_http=$code" >> "$GITHUB_OUTPUT"
+          echo "X402ARENA_DEDUPE found=$found registry_http=$code"
+      - name: Register canonical Capture endpoint when free
+        id: submit
+        if: steps.dedupe.outputs.found != '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint='https://core.x402arena.gg/register'
+          payload=$(jq -cn '{name:"delta-witness-capture",endpoint:"https://delta-witness-api.ruphussten.workers.dev/v1/capture",description:"Tamper-evident evidence capture for autonomous web actions.",niche:"agent-trust",walletAddress:"0x1990e21bc219696ff7fbc26527dbaed335ac6367",method:"POST",resourceType:"http"}')
+          max=4
+          for attempt in $(seq 1 "$max"); do
+            code=$(curl -L --connect-timeout 10 --max-time 30 -sS -D /tmp/arena-headers.txt -o /tmp/arena-body.txt -w '%{http_code}' -X POST "$endpoint" -H 'content-type: application/json' --data "$payload" || printf '000')
+            body=$(cat /tmp/arena-body.txt 2>/dev/null || true)
+            printf 'X402ARENA_REGISTER attempt=%s http=%s body=%q\n' "$attempt" "$code" "$body"
+            if [[ "$code" =~ ^2 ]]; then
+              echo 'result=accepted' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if [[ "$code" == '409' ]] || printf '%s' "$body" | grep -Eqi 'already|duplicate|exists'; then
+              echo 'result=already_present' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if [[ "$code" == '402' ]]; then
+              echo 'X402ARENA_REGISTRATION_PAYMENT_REQUIRED owner_boundary=no_payment'
+              grep -iE 'payment-required|x-payment|amount|price' /tmp/arena-headers.txt || true
+              echo 'result=payment_required' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if [[ "$code" == '429' || "$code" =~ ^5 || "$code" == '000' ]]; then
+              sleep $((attempt * attempt))
+              continue
+            fi
+            echo "result=non_retryable_http_$code" >> "$GITHUB_OUTPUT"
+            exit 0
+          done
+          echo 'result=degraded_exhausted' >> "$GITHUB_OUTPUT"
+      - name: Read back Arena listing
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          body=''
+          for delay in 0 5 15; do
+            sleep "$delay"
+            body=$(curl -L --connect-timeout 10 --max-time 30 -sS 'https://core.x402arena.gg/operator/agents' || true)
+            if printf '%s' "$body" | grep -Eqi 'delta-witness-api\.ruphussten\.workers\.dev|0x1990e21bc219696ff7fbc26527dbaed335ac6367|delta-witness-capture'; then
+              echo 'X402ARENA_READBACK visible=1'
+              exit 0
+            fi
+          done
+          echo 'X402ARENA_READBACK visible=0'
