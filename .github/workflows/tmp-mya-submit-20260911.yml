@@ -1,0 +1,90 @@
+name: DELTA MYA one-shot submission
+
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-mya-submit-20260911.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Check current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify current owner live prices without payment
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Check and submit canonical DELTA listing
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://www.monetizeyouragent.fun'
+          NAME='DELTA Witness'
+          URL='https://delta-witness-api.ruphussten.workers.dev'
+
+          existing=''
+          for endpoint in \
+            "$BASE/api/v1/entries?q=DELTA%20Witness" \
+            "$BASE/api/v1/entries?search=DELTA%20Witness" \
+            "$BASE/api/v1/entries"; do
+            code=$(curl -L -sS --connect-timeout 10 --max-time 30 -o /tmp/mya-read.json -w '%{http_code}' "$endpoint" || true)
+            echo "MYA_READ endpoint=$endpoint http=$code"
+            if [ "$code" = '200' ]; then
+              body=$(cat /tmp/mya-read.json)
+              if printf '%s' "$body" | grep -Fqi 'DELTA Witness' || printf '%s' "$body" | grep -Fqi 'delta-witness-api.ruphussten.workers.dev'; then
+                existing='yes'
+                echo 'MYA_CURRENT existing canonical DELTA identity found; no duplicate POST.'
+                break
+              fi
+            fi
+          done
+
+          if [ "$existing" = 'yes' ]; then
+            exit 0
+          fi
+
+          payload=$(cat <<'JSON'
+          {
+            "name": "DELTA Witness",
+            "category": "Earn Now",
+            "subcategory": "Sell API Access",
+            "url": "https://delta-witness-api.ruphussten.workers.dev",
+            "description": "x402-native evidence and action-preflight API on Base. Public Capture 1 USDC, Public Preflight 5 USDC, Guarded-Action Pilot 10 USDC; canonical Base USDC settles directly to the DELTA Treasury. OpenAPI, x402 manifest, MCP metadata and public proofs available from the production origin.",
+            "stage": "Live"
+          }
+          JSON
+          )
+
+          success=''
+          for attempt in 1 2 3; do
+            code=$(curl -L -sS --connect-timeout 10 --max-time 30 \
+              -H 'content-type: application/json' \
+              -o /tmp/mya-submit.json -w '%{http_code}' \
+              -X POST "$BASE/api/v1/entries/submit" \
+              --data "$payload" || true)
+            echo "MYA_SUBMIT attempt=$attempt http=$code"
+            cat /tmp/mya-submit.json || true
+            echo
+            if [ "$code" = '200' ] || [ "$code" = '201' ] || [ "$code" = '202' ]; then
+              success='yes'
+              break
+            fi
+            if [ "$code" = '409' ] || grep -Eqi 'already|duplicate|exists' /tmp/mya-submit.json 2>/dev/null; then
+              echo 'MYA_CURRENT submission endpoint reports existing identity; stopping without duplicate.'
+              success='yes'
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then sleep $((attempt * 2)); fi
+          done
+
+          if [ "$success" != 'yes' ]; then
+            echo 'MYA_DEGRADED recoverable submission channel failure after bounded retries.'
+            exit 1
+          fi
