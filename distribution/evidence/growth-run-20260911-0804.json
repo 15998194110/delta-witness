@@ -1,0 +1,157 @@
+{
+  "checked_at_utc": "2026-09-11T00:15:31.274Z",
+  "owner_pricing_authority": {
+    "public_capture_usdc": 1.0,
+    "partner_capture_usdc": 1.0,
+    "partner_preflight_usdc": 1.0,
+    "watch_check_usdc": 1.0,
+    "public_preflight_usdc": 5.0,
+    "guarded_action_pilot_usdc": 10.0,
+    "live_public_raw": {
+      "capture": 1000000,
+      "preflight": 5000000,
+      "guarded_action_pilot": 10000000
+    },
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "live_readback": "passed"
+  },
+  "treasury_reconciliation": {
+    "source": "Alchemy Base canonical USDC transfer scan",
+    "latest_block": 51147952,
+    "start_block": 51097953,
+    "transfer_count": 0,
+    "treasury_received_candidates": 0,
+    "treasury_received_total_usdc": 0.0,
+    "known_noncustomer_total_usdc": 0.0,
+    "unclassified_usdc": 0.0,
+    "evidence_quality": "A",
+    "fallback_degradation": "Blockscout returned HTTP 429 after bounded retries; independent Alchemy reconciliation completed successfully."
+  },
+  "paid_funnel_telemetry": {
+    "external_requests": 0,
+    "402_intents": 0,
+    "paid_settlements": 0,
+    "customer_treasury_received_count": 0,
+    "customer_treasury_received_total_usdc": 0.0,
+    "candidate_rows": 0
+  },
+  "channels": [
+    {
+      "channel": "agent-tools.cloud A2A Server Directory",
+      "source": "https://agent-tools.cloud/",
+      "listing_status": "live_passive",
+      "discovery_status": "public_machine_discovery",
+      "delta_observation": {
+        "name": "DELTA Witness",
+        "health": "Healthy",
+        "version": "0.5.0",
+        "skills": 6,
+        "protocol_version": "0.3.0",
+        "quality_grade": "C+",
+        "quality_score": 8.9,
+        "canonical_endpoint": "https://delta-witness-api.ruphussten.workers.dev/"
+      },
+      "directory_observation": {
+        "indexed_a2a_servers": 1529,
+        "healthy_a2a_servers": 1391
+      },
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": null,
+      "external_requests": null,
+      "402_intents": null,
+      "paid_settlements": null,
+      "treasury_received": 0.0,
+      "revenue": 0.0,
+      "variable_cost": 0.0,
+      "contribution_margin": 0.0,
+      "evidence_quality": "B_public_independent_readback",
+      "action": "No duplicate submission: DELTA was independently indexed already."
+    },
+    {
+      "channel": "x402 Arena",
+      "source": "https://x402arena.gg/",
+      "listing_status": "live_existing",
+      "discovery_status": "public_leaderboard",
+      "delta_listings": 6,
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0.0,
+      "revenue": 0.0,
+      "variable_cost": 0.0,
+      "contribution_margin": 0.0,
+      "verified_neighbor_demand": {
+        "sitesignal_code_assets": {"revenue_usd": 0.20, "queries": 4, "buyers": 2},
+        "bincrease_opportunity_shortlist": {"revenue_usd": 0.10, "queries": 2, "buyers": 2},
+        "sitesignal_url_evidence": {"revenue_usd": 0.02, "queries": 1, "buyers": 1},
+        "butterflydelta_order_preflight": {"revenue_usd": 0.01, "queries": 1, "buyers": 1},
+        "revenue_radar_base_wallet_preflight": {"revenue_usd": 0.01, "queries": 1, "buyers": 1}
+      },
+      "evidence_quality": "A_public_independent_market_readback",
+      "action": "No duplicate registration; preserved existing six canonical DELTA entries and owner pricing."
+    },
+    {
+      "channel": "AI Product Index / percall.dev",
+      "source": "https://index.percall.dev/",
+      "listing_status": "not_registered",
+      "discovery_status": "free_autonomous_registration_available",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": null,
+      "external_requests": null,
+      "402_intents": null,
+      "paid_settlements": null,
+      "treasury_received": 0.0,
+      "revenue": 0.0,
+      "variable_cost": 0.0,
+      "contribution_margin": 0.0,
+      "evidence_quality": "A_official_registration_docs",
+      "action": "Attempted canonical [register] issue after dedupe; GitHub App returned 403 Resource not accessible by integration. Treated as channel degradation, not mission failure; no duplicate or paid fallback used."
+    },
+    {
+      "channel": "x402 List",
+      "source": "https://x402-list.com/api",
+      "listing_status": "not_submitted_this_run",
+      "discovery_status": "official_submission_requires_fee_for_workers.dev service URL",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": null,
+      "external_requests": null,
+      "402_intents": null,
+      "paid_settlements": null,
+      "treasury_received": 0.0,
+      "revenue": 0.0,
+      "variable_cost": 0.0,
+      "contribution_margin": 0.0,
+      "evidence_quality": "A_official_api_docs",
+      "action": "Skipped $1 USDC submission fee under no-autonomous-payment boundary."
+    }
+  ],
+  "outreach": {
+    "new_first_contacts_sent": 0,
+    "new_explicit_interest_replies": 0,
+    "status": "No new reply after DELTA's existing PulseFeed integration response; no chasing silence."
+  },
+  "distribution_integrity": {
+    "npm_registry_observation": "Published delta-witness-mcp remains v0.6.1 while repository source is v0.7.0; no v0.7.0 git tag or GitHub release exists, so no autonomous release was forced.",
+    "git_tags": ["v0.6.0", "v0.6.1"],
+    "github_releases": 0
+  },
+  "run_result": {
+    "new_stranger_treasury_received_usdc": 0.0,
+    "new_customer_paid_settlements": 0,
+    "new_customer_revenue_usdc": 0.0,
+    "new_material_distribution_observation": "DELTA Witness independently indexed and Healthy in agent-tools.cloud A2A Server Directory.",
+    "recoverable_failures_isolated": [
+      "local container proxy DNS failure",
+      "Blockscout HTTP 429",
+      "AI Product Index GitHub issue write 403",
+      "temporary workflow evidence persistence failure after successful core checks"
+    ]
+  }
+}
