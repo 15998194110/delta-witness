@@ -40,7 +40,7 @@ jobs:
               else
                 code=$(curl --connect-timeout 10 --max-time 45 -sS -o "$out" -w '%{http_code}' -X "$method" "$url" -H 'content-type: application/json' --data "$data") || code=000
               fi
-              echo "APISIO_HTTP method=$method attempt=$i http=$code url=$url"
+              echo "APISIO_HTTP method=$method attempt=$i http=$code url=$url" >&2
               case "$code" in
                 200|201|202|204|409) printf '%s' "$code"; return 0;;
                 429|500|502|503|504|000) sleep $((i*3));;
@@ -50,20 +50,14 @@ jobs:
             printf '%s' "$code"
           }
 
-          # Canonical duplicate guard. Search is read-only and keyless.
           search_code=$(request GET "$API/search?q=delta%20witness&limit=25" /tmp/apisio-search.json)
           if [ "$search_code" = 200 ] && jq -e --arg origin "$ORIGIN" '[.. | strings | select(contains($origin))] | length > 0' /tmp/apisio-search.json >/dev/null 2>&1; then
             echo 'APISIO_ALREADY_INDEXED canonical_origin=true duplicate_submission=false'
             exit 0
           fi
 
-          # Use APIs.io's own public discovery endpoint so the submission is grounded in
-          # DELTA's live OpenAPI / llms / MCP surfaces rather than hand-copied metadata.
-          discover_url="$API/submit/discover?url=$(python - <<'PY'
-import urllib.parse
-print(urllib.parse.quote('https://delta-witness-api.ruphussten.workers.dev', safe=''))
-PY
-)"
+          encoded_origin=$(python -c "import urllib.parse; print(urllib.parse.quote('https://delta-witness-api.ruphussten.workers.dev', safe=''))")
+          discover_url="$API/submit/discover?url=$encoded_origin"
           discover_code=$(request GET "$discover_url" /tmp/apisio-discover.json)
           if [ "$discover_code" != 200 ]; then
             echo "APISIO_DISCOVERY_DEGRADED recoverable=true http=$discover_code body=$(cat /tmp/apisio-discover.json)"
@@ -97,9 +91,6 @@ PY
             *) echo "APISIO_SUBMIT_DEGRADED recoverable=true http=$submit_code"; exit 1;;
           esac
 
-          # A successful queue receipt is evidence of submission, not a claim that the
-          # public listing is already live. Read back search once; future canonical pulse
-          # can observe publication without resubmitting.
           sleep 3
           read_code=$(request GET "$API/search?q=delta%20witness&limit=25" /tmp/apisio-readback.json)
           if [ "$read_code" = 200 ] && jq -e --arg origin "$ORIGIN" '[.. | strings | select(contains($origin))] | length > 0' /tmp/apisio-readback.json >/dev/null 2>&1; then
