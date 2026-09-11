@@ -1,103 +1,15 @@
-name: TMP DELTA true402 growth run 20260912
+name: RETIRED - TMP DELTA true402 growth run 20260912
 
-# Triggered one-shot after initial workflow registration.
+# Retired after migration into the canonical discovery pulse.
 on:
-  push:
-    branches: ["master"]
-    paths:
-      - ".github/workflows/tmp-true402-growth-20260912.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  growth:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with: { node-version: '22' }
-
-      - name: Check current owner pricing policy
-        id: policy
-        continue-on-error: true
-        run: node scripts/check-owner-pricing.mjs
-
-      - name: Verify live public x402 prices without payment
-        id: live
-        continue-on-error: true
-        run: node scripts/verify-owner-pricing-live.mjs
-
-      - name: Audit paid funnel candidates
-        id: funnel
-        if: always()
-        continue-on-error: true
-        run: node scripts/query-revenue-candidates.mjs
-
-      - name: Reconcile Base Treasury independently
-        id: treasury
-        if: always()
-        continue-on-error: true
-        run: node scripts/reconcile-treasury.mjs
-
-      - name: Scan funded PayanAgent buyer demand
-        id: demand
-        if: always()
-        continue-on-error: true
-        run: node scripts/scan-payan-demand.mjs
-
-      - name: Dedupe and register canonical Capture on true402
-        id: true402
-        if: steps.policy.outcome == 'success' && steps.live.outcome == 'success'
-        continue-on-error: true
-        env:
-          DELTA_ORIGIN: https://delta-witness-api.ruphussten.workers.dev
-          DELTA_ENDPOINT: https://delta-witness-api.ruphussten.workers.dev/v1/capture
-          DELTA_TREASURY: 0x1990e21bc219696ff7fbc26527dbaed335ac6367
-        run: |
-          node <<'NODE'
-          const sleep = ms => new Promise(r => setTimeout(r, ms));
-          const registry = 'https://true402.dev/api/v1/services';
-          const origin = process.env.DELTA_ORIGIN;
-          const endpoint = process.env.DELTA_ENDPOINT;
-          const treasury = process.env.DELTA_TREASURY.toLowerCase();
-          const result = {channel:'true402', listing_status:'unknown', discovery_status:'unknown', duplicate_avoided:false, attempts:0, evidence_quality:'A_official_registry_API'};
-          const rows = j => Array.isArray(j) ? j : (['services','data','items','results'].map(k=>j?.[k]).find(Array.isArray) || []);
-          const match = x => { const s=JSON.stringify(x).toLowerCase(); return s.includes('delta witness') || s.includes('delta-witness-api.ruphussten.workers.dev') || s.includes(treasury); };
-          async function getJson(url) {
-            let err;
-            for (let i=1;i<=3;i++) {
-              try { const r=await fetch(url,{signal:AbortSignal.timeout(20000)}); if(!r.ok) throw new Error(`HTTP ${r.status}`); return await r.json(); }
-              catch(e){err=e; if(i<3) await sleep(700*i);}
-            }
-            throw err;
-          }
-          async function scan(){
-            const found=[];
-            for(let offset=0;offset<2000;offset+=100){
-              const j=await getJson(`${registry}?limit=100&offset=${offset}`); const a=rows(j);
-              found.push(...a.filter(match));
-              const total=Number(j?.total ?? j?.count ?? NaN); const more=j?.has_more ?? j?.hasMore;
-              if(more===false || (Number.isFinite(total)&&offset+a.length>=total) || a.length<100) break;
-            }
-            return found;
-          }
-          async function post(){
-            result.attempts++;
-            const body={url:origin,manifest:{x402:'1.0',name:'DELTA Witness Capture',description:'Independent public page-state evidence for consequential agent actions. Base USDC settles directly to DELTA Treasury.',capabilities:['evidence','verification','agent-safety','x402','capture'],pricing:{currency:'USDC',base:'1.00',unit:'request'},payment:{address:process.env.DELTA_TREASURY,chain:'base',facilitator:'https://facilitator.payai.network'},endpoint}};
-            try { const r=await fetch(registry,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(25000)}); const t=await r.text(); let b=t; try{b=JSON.parse(t)}catch{}; result.last_response={status:r.status,body:b}; return {ok:r.ok,status:r.status}; }
-            catch(e){result.last_response={transport_error:String(e)}; return {ok:false,status:0};}
-          }
-          (async()=>{
-            let found;
-            try{found=await scan()}catch(e){result.listing_status='degraded_precheck';result.discovery_status='degraded';result.error=String(e);console.log('TRUE402_RESULT '+JSON.stringify(result));return;}
-            if(found.length){result.listing_status='already_listed';result.discovery_status='present';result.duplicate_avoided=true;result.matches=found;console.log('TRUE402_RESULT '+JSON.stringify(result));return;}
-            let p=await post(); await sleep(1500); let rb=[]; try{rb=await scan()}catch(e){result.readback_error=String(e)}
-            if(!rb.length && !p.ok && (p.status===0||p.status===429||p.status>=500)){await sleep(2500);p=await post();await sleep(2000);try{rb=await scan()}catch(e){result.readback_error_2=String(e)}}
-            if(rb.length){result.listing_status='live';result.discovery_status='present';result.matches=rb;}
-            else if(p.ok){result.listing_status='submitted_readback_pending';result.discovery_status='pending';}
-            else{result.listing_status='channel_degraded_retry_exhausted';result.discovery_status='unknown';}
-            console.log('TRUE402_RESULT '+JSON.stringify(result));
-          })().catch(e=>{result.fatal=String(e);console.log('TRUE402_RESULT '+JSON.stringify(result));});
-          NODE
+      - run: echo 'Retired; canonical discovery pulse owns the active growth check.'
