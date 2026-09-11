@@ -42,36 +42,38 @@ jobs:
           npm view delta-witness-mcp versions --json
           echo 'NPM_LATEST_README_PRICING_LINES='
           npm view delta-witness-mcp@latest readme | grep -E 'DELTA_MAX_USD_PER_CALL|public list prices|Capture|Preflight|Guarded-Action' || true
-      - name: Read-only Circle x402 Discovery audit
+      - name: Exact Circle x402 Discovery queries
         if: always()
         run: |
           set -e
-          URL='https://api.circle.com/v2/x402/discovery/resources'
-          for attempt in 1 2 3; do
-            code=$(curl -sS --connect-timeout 10 --max-time 45 -o /tmp/circle-x402.json -w '%{http_code}' "$URL" || true)
-            echo "CIRCLE_HTTP_ATTEMPT_${attempt}=$code"
-            if [ "$code" = "200" ]; then break; fi
-            sleep $((attempt * 2))
-          done
-          test "$code" = "200"
-          node - <<'NODE'
+          BASE='https://api.circle.com/v2/x402/discovery/resources'
+          queries=(
+            'delta-witness-api.ruphussten.workers.dev'
+            'DELTA Witness'
+            '0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          )
+          i=0
+          for q in "${queries[@]}"; do
+            i=$((i+1))
+            encoded=$(node -p "encodeURIComponent(process.argv[1])" "$q")
+            url="$BASE?query=$encoded"
+            code=0
+            for attempt in 1 2 3; do
+              code=$(curl -sS --connect-timeout 10 --max-time 45 -o "/tmp/circle-$i.json" -w '%{http_code}' "$url" || true)
+              echo "CIRCLE_QUERY_${i}_HTTP_ATTEMPT_${attempt}=$code"
+              if [ "$code" = "200" ]; then break; fi
+              sleep $((attempt * 2))
+            done
+            test "$code" = "200"
+            Q="$q" FILE="/tmp/circle-$i.json" node - <<'NODE'
           const fs = require('fs');
-          const text = fs.readFileSync('/tmp/circle-x402.json','utf8');
-          const needle = 'delta-witness-api.ruphussten.workers.dev';
-          const found = text.toLowerCase().includes(needle);
-          const json = JSON.parse(text);
-          const topKeys = json && typeof json === 'object' ? Object.keys(json) : [];
-          function arrays(x, out=[]) {
-            if (Array.isArray(x)) out.push(x.length);
-            if (x && typeof x === 'object') for (const v of Object.values(x)) arrays(v,out);
-            return out;
-          }
-          function matches(x, path='$', out=[]) {
-            if (typeof x === 'string' && x.toLowerCase().includes(needle)) out.push({path,value:x});
-            else if (Array.isArray(x)) x.forEach((v,i)=>matches(v,`${path}[${i}]`,out));
-            else if (x && typeof x === 'object') for (const [k,v] of Object.entries(x)) matches(v,`${path}.${k}`,out);
-            return out;
-          }
-          const ms = matches(json);
-          console.log(JSON.stringify({circle_discovery_ok:true, delta_present:found, top_keys:topKeys, array_lengths:arrays(json).slice(0,20), match_count:ms.length, matches:ms.slice(0,20)}, null, 2));
+          const json = JSON.parse(fs.readFileSync(process.env.FILE,'utf8'));
+          const items = Array.isArray(json.items) ? json.items : [];
+          const needles = ['delta-witness-api.ruphussten.workers.dev','delta witness','0x1990e21bc219696ff7fbc26527dbaed335ac6367'];
+          const hits = items.filter(item => {
+            const s = JSON.stringify(item).toLowerCase();
+            return needles.some(n => s.includes(n));
+          });
+          console.log(JSON.stringify({query:process.env.Q,item_count:items.length,pagination:json.pagination||null,delta_hit_count:hits.length,delta_hits:hits},null,2));
           NODE
+          done
