@@ -1,0 +1,137 @@
+{
+  "generated_at": "2026-09-11T13:17:00Z",
+  "run_local": "2026-09-11 22:16 KST",
+  "owner_pricing_policy": "owner-2026-09-10-1-5-10",
+  "pricing_gate": {
+    "status": "verified",
+    "checked_at": "2026-09-11T13:15:54.438Z",
+    "public_raw_usdc": {
+      "capture": "1000000",
+      "public_preflight": "5000000",
+      "guarded_action_pilot": "10000000"
+    },
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "evidence_quality": "A_live_public_402"
+  },
+  "treasury": {
+    "checked_at": "2026-09-11T13:16:35.188Z",
+    "through_block": 51171621,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "treasury_received_usdc": 0,
+    "unclassified_usdc": 0,
+    "customer_revenue_usdc": 0,
+    "settlement_count": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "notes": "A Base RPC chunk hit a transient rate limit and succeeded on bounded retry; reconciliation completed independently."
+  },
+  "telemetry": {
+    "candidate_rows_last_2h": 0,
+    "paid_settlements": 0,
+    "evidence_quality": "A_D1_direct_query"
+  },
+  "channels": [
+    {
+      "channel_source": "AgentPact",
+      "listing_status": "live_public_active",
+      "discovery_status": "three_active_canonical_offers",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_public_offer_readback",
+      "notes": "Single deterministic DELTA identity with current Capture, Public Preflight and Guarded-Action offers. Adjacent public needs exist but are not funded buyer orders."
+    },
+    {
+      "channel_source": "PayanAgent",
+      "listing_status": "existing_canonical",
+      "discovery_status": "partial_refresh_degraded_guarded_route_current",
+      "buyer_count": null,
+      "settlement_count": 0,
+      "verified_neighbor_demand": null,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_authenticated_readback",
+      "notes": "Two existing offer refresh attempts returned recoverable marketplace server errors; current Guarded-Action buy route read back with canonical Base USDC and Treasury. No duplicate seller or offer was created."
+    },
+    {
+      "channel_source": "AllMCPs",
+      "listing_status": "live_existing_canonical",
+      "discovery_status": "current_active",
+      "buyer_count": null,
+      "settlement_count": 0,
+      "verified_neighbor_demand": null,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_direct_listing_readback"
+    },
+    {
+      "channel_source": "PayAI Bazaar",
+      "listing_status": "live_existing_canonical",
+      "discovery_status": "catalog_refresh_pending",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_full_catalog_scan_plus_live_402"
+    }
+  ],
+  "external_channel_degradation": [
+    {
+      "channel": "PayanAgent",
+      "status": "recoverable_partial_refresh_degradation"
+    },
+    {
+      "channel": "IndexNow core",
+      "status": "deferred_recheck_after_bounded_retries",
+      "notes": "Upstream rate limit persisted through four retries; Base-app IndexNow succeeded independently."
+    }
+  ],
+  "outreach": {
+    "sent_this_run": 0,
+    "new_explicit_interest_replies": 0,
+    "notes": "No new explicit-interest inbound thread required advancement. No new cold email was sent because the natural-day outreach allowance was already exhausted."
+  },
+  "aggregate_current_run": {
+    "buyer_count_new_verified": 0,
+    "settlement_count": 0,
+    "external_requests": 0,
+    "402_intents": 0,
+    "paid_settlements": 0,
+    "treasury_received": 0,
+    "revenue": 0,
+    "variable_cost": 0,
+    "contribution_margin": 0,
+    "evidence_quality": "A_core_revenue_state_with_channel_specific_grades"
+  },
+  "material_development": {
+    "type": "completed_high_value_listing",
+    "channel": "AgentPact",
+    "detail": "DELTA Witness has one canonical AgentPact identity and three active public offers under current owner pricing."
+  },
+  "execution_run": "https://github.com/15998194110/delta-witness/actions/runs/34603309634"
+}
