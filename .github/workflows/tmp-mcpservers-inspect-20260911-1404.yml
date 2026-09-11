@@ -13,50 +13,63 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with: { node-version: '22' }
-      - name: Read current operator authority
-        run: |
-          test -s AGENTS.md
-          test -s docs/pricing-policy-2026-09-10.md
-          grep -q 'Public Capture.*1.00 USDC' docs/pricing-policy-2026-09-10.md
-          grep -q 'Public Preflight.*5.00 USDC' docs/pricing-policy-2026-09-10.md
-          grep -q 'Guarded-Action Pilot.*10.00 USDC' docs/pricing-policy-2026-09-10.md
-      - name: Verify current owner pricing policy
-        run: node scripts/check-owner-pricing.mjs
-      - name: Verify live public 402 amounts
-        run: node scripts/verify-owner-pricing-live.mjs
-      - name: Reconcile Base Treasury independently
-        env:
-          TREASURY_ADDRESS: '0x1990e21bc219696ff7fbc26527dbaed335ac6367'
-        run: node scripts/reconcile-treasury.mjs
       - name: Inspect free submission contract without writing
         shell: bash
         run: |
           set -euo pipefail
           url='https://mcpservers.org/submit'
           for attempt in 1 2 3 4; do
-            code=$(curl -L --connect-timeout 10 --max-time 30 -sS -D /tmp/headers -c /tmp/cookies -o /tmp/page.html -w '%{http_code}' "$url" || printf '000')
+            code=$(curl --compressed -L --connect-timeout 10 --max-time 30 -sS -D /tmp/headers -c /tmp/cookies -o /tmp/page.bin -w '%{http_code}' "$url" || printf '000')
             echo "MCPSERVERS_GET attempt=$attempt http=$code"
             if [[ "$code" == 2* ]]; then break; fi
             if [[ "$code" == 429 || "$code" == 5* || "$code" == 000 ]]; then sleep $((attempt*attempt)); continue; fi
             exit 1
           done
-          echo '--- FORM TAGS ---'
-          grep -Eoi '<form[^>]*>' /tmp/page.html | head -20 || true
-          echo '--- INPUT/TEXTAREA/SELECT NAMES ---'
-          grep -Eoi '<(input|textarea|select)[^>]*>' /tmp/page.html | sed -E 's/>/>\n/g' | grep -Ei 'name=|type=|value=' | head -100 || true
-          echo '--- OPTIONS ---'
-          grep -Eoi '<option[^>]*>[^<]*' /tmp/page.html | head -100 || true
-          echo '--- LEGAL/PAYMENT TERMS ---'
-          grep -Eio '.{0,120}(terms|agree|agreement|privacy|premium|payment|fee|stripe|checkout).{0,180}' /tmp/page.html | head -50 || true
+          file /tmp/page.bin || true
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          b=Path('/tmp/page.bin').read_bytes()
+          print('BYTES',len(b),'NULS',b.count(b'\x00'),'HEAD',repr(b[:80]))
+          for enc in ('utf-8','utf-16','latin-1'):
+              try:
+                  s=b.decode(enc)
+                  if '<html' in s.lower() or '<form' in s.lower():
+                      print('DECODE',enc)
+                      break
+              except Exception:
+                  pass
+          else:
+              s=b.decode('utf-8','ignore').replace('\x00','')
+              print('DECODE','utf-8-ignore-stripnul')
+          Path('/tmp/page.txt').write_text(s,encoding='utf-8')
+          def emit(label, pat, flags=re.I|re.S, limit=100):
+              print('---',label,'---')
+              ms=re.findall(pat,s,flags)
+              for x in ms[:limit]:
+                  if isinstance(x,tuple): x=' '.join(x)
+                  print(re.sub(r'\s+',' ',x)[:2000])
+              print('COUNT',len(ms))
+          emit('FORM TAGS',r'<form\b[^>]*>')
+          emit('FIELDS',r'<(?:input|textarea|select)\b[^>]*>')
+          emit('OPTIONS',r'<option\b[^>]*>.*?</option>')
+          emit('BUTTONS',r'<button\b[^>]*>.*?</button>')
+          print('--- LEGAL/PAYMENT CONTEXT ---')
+          for kw in ('terms','agree','agreement','privacy','premium','payment','fee','stripe','checkout','captcha','turnstile'):
+              for m in list(re.finditer(kw,s,re.I))[:10]:
+                  lo=max(0,m.start()-180); hi=min(len(s),m.end()+300)
+                  print(kw, re.sub(r'\s+',' ',s[lo:hi])[:800])
+          print('--- NEXT/FORM ACTION HINTS ---')
+          for pat in (r'action=["\'][^"\']+["\']', r'/api/[A-Za-z0-9_?=&%./:-]+', r'fetch\([^)]{0,500}\)', r'formAction[^,}\]]{0,600}'):
+              for x in list(dict.fromkeys(re.findall(pat,s,re.I|re.S)))[:30]: print(re.sub(r'\s+',' ',x)[:1200])
+          PY
           echo '--- CANONICAL DEDUPE PROBES ---'
           for probe in \
             'https://mcpservers.org/?q=delta-witness' \
             'https://mcpservers.org/servers?search=delta-witness' \
             'https://mcpservers.org/search?q=delta-witness'; do
-            p=$(curl -L --connect-timeout 10 --max-time 20 -sS "$probe" || true)
-            if printf '%s' "$p" | grep -Fqi 'https://github.com/15998194110/delta-witness'; then
+            p=$(curl --compressed -L --connect-timeout 10 --max-time 20 -sS "$probe" || true)
+            if printf '%s' "$p" | tr -d '\000' | grep -Fqi 'https://github.com/15998194110/delta-witness'; then
               echo "MCPSERVERS_DEDUPE present=1 probe=$probe"
             else
               echo "MCPSERVERS_DEDUPE present=0 probe=$probe"
