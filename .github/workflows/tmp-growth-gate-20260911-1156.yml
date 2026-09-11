@@ -12,6 +12,9 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,9 +26,13 @@ jobs:
         run: node scripts/check-owner-pricing.mjs
       - name: Live public 402 verification
         run: node scripts/verify-owner-pricing-live.mjs
+      - name: Paid-funnel telemetry audit
+        run: node scripts/query-revenue-candidates.mjs
       - name: Independent Base Treasury reconciliation
+        if: always()
         run: node scripts/reconcile-treasury.mjs
       - name: Read-only npm distribution audit
+        if: always()
         run: |
           echo 'NPM_VERSION='
           npm view delta-witness-mcp version
