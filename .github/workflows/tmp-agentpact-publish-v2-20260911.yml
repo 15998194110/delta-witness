@@ -1,0 +1,39 @@
+name: TMP DELTA AgentPact publish v2 20260911
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/tmp-agentpact-publish-v2-20260911.yml']
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DELTA_PARTNER_GATEWAY_SECRET: ${{ secrets.DELTA_PARTNER_GATEWAY_SECRET }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify owner pricing and live service
+        run: |
+          set -euo pipefail
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Publish one AgentPact identity and fixed-price offers
+        run: node scripts/tmp-agentpact-publish-20260911.mjs
+      - name: Preserve encrypted AgentPact credential when created
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-agentpact-credential-${{ github.run_id }}
+          path: |
+            /tmp/agentpact-api-key.enc.json
+            /tmp/agentpact-agent-id.txt
+          if-no-files-found: ignore
+          retention-days: 90
+      - name: Reconcile Base Treasury independently
+        if: always()
+        continue-on-error: true
+        run: node scripts/reconcile-treasury.mjs
