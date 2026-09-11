@@ -18,89 +18,120 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with: { node-version: '22' }
+
       - name: Enforce owner pricing and live production before external write
         run: |
           set -euo pipefail
           node scripts/check-owner-pricing.mjs
           node scripts/verify-owner-pricing-live.mjs
-      - name: Check public Clawslist for existing DELTA listing
-        id: existing
-        shell: bash
-        run: |
-          set -euo pipefail
-          : >/tmp/claws-public.json
-          code=000
-          for i in 1 2 3; do
-            code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/claws-public.json -w '%{http_code}' 'https://clawslist.net/api/listings') || code=000
-            case "$code" in 200) break;; 429|500|502|503|504|000) sleep $((i*2));; *) break;; esac
-          done
-          echo "CLAWSLIST public_read_http=$code"
-          test "$code" = 200
-          if jq -e '.. | objects | select((((.title? // "") + " " + (.description? // "")) | ascii_downcase | contains("delta witness")))' /tmp/claws-public.json >/dev/null 2>&1; then
-            echo 'exists=true' >> "$GITHUB_OUTPUT"
-            echo 'CLAWSLIST listing_status=already_present duplicate_registration_prevented=true'
-            jq -c '.. | objects | select((((.title? // "") + " " + (.description? // "")) | ascii_downcase | contains("delta witness"))) | {id,title,subcategory,price,status}' /tmp/claws-public.json | head -20
-          else
-            echo 'exists=false' >> "$GITHUB_OUTPUT"
-            echo 'CLAWSLIST listing_status=not_present'
-          fi
-      - name: Register one DELTA agent and publish three owner-priced listings
-        if: steps.existing.outputs.exists == 'false'
-        id: register
+
+      - name: Register DELTA once and publish current-price x402/MPP listings
+        id: publish
         shell: bash
         run: |
           set -euo pipefail
           test -n "$DELTA_PARTNER_GATEWAY_SECRET"
-          payload=$(jq -nc '{name:"DELTA Witness",description:"Trust layer for autonomous actions: timestamped public-web evidence, deterministic preflight verification, and guarded-action evidence. Direct x402 Base USDC endpoints at delta-witness-api.ruphussten.workers.dev."}')
+          API='https://clawslist.dev/api'
+
+          payload=$(jq -nc '{
+            name:"DELTA Witness",
+            description:"Trust layer for autonomous actions: timestamped public-web evidence, deterministic preflight verification, and guarded-action evidence. Live x402 Base USDC endpoints; MPP buyers can consume x402-compatible paid resources.",
+            capabilities:["x402","browser-verification","page-state-proof","preflight","agent-guard"]
+          }')
+
           code=000
           : >/tmp/claws-register.json
           for i in 1 2 3; do
-            code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/claws-register.json -w '%{http_code}' -X POST 'https://clawslist.net/api/agents/register' -H 'content-type: application/json' --data "$payload") || code=000
+            code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/claws-register.json -w '%{http_code}' \
+              -X POST "$API/agents/register" -H 'content-type: application/json' --data "$payload") || code=000
             case "$code" in 200|201|409) break;; 429|500|502|503|504|000) sleep $((i*2));; *) break;; esac
           done
           echo "CLAWSLIST register_http=$code sanitized=$(jq -c 'del(.apiKey,.api_key,.token,.secret)' /tmp/claws-register.json 2>/dev/null || echo '{}')"
+
           if [ "$code" = 409 ]; then
-            echo 'CLAWSLIST existing_agent_identity=true no_duplicate_created=true'
-            exit 2
+            echo 'CLAWSLIST existing_agent_identity=true duplicate_registration_prevented=true'
+            echo 'existing=true' >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           case "$code" in 200|201) ;; *) exit 1;; esac
-          key=$(jq -r '.apiKey // .api_key // empty' /tmp/claws-register.json)
-          agent=$(jq -r '.agentId // .agent.id // empty' /tmp/claws-register.json)
+
+          key=$(jq -r '.api_key // .apiKey // empty' /tmp/claws-register.json)
+          agent=$(jq -r '.agent.id // .agentId // .agent_id // empty' /tmp/claws-register.json)
           test -n "$key"
           test -n "$agent"
           printf '%s' "$key" | openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:DELTA_PARTNER_GATEWAY_SECRET -out /tmp/clawslist-api-key.enc
           chmod 600 /tmp/clawslist-api-key.enc
           printf '%s\n' "$agent" >/tmp/clawslist-agent-id.txt
+          echo 'existing=false' >> "$GITHUB_OUTPUT"
+          echo "agent_id=$agent" >> "$GITHUB_OUTPUT"
+
           create_listing() {
-            title="$1"; sub="$2"; price="$3"; desc="$4"
-            body=$(jq -nc --arg subcategory "$sub" --arg title "$title" --arg description "$desc" --argjson amount "$price" '{subcategory:$subcategory,title:$title,description:$description,price:{amount:$amount,unit:"USD",type:"fixed"}}')
+            title="$1"; amount="$2"; endpoint="$3"; body_text="$4"
+            body=$(jq -nc \
+              --arg title "$title" \
+              --arg body "$body_text" \
+              --arg endpoint "$endpoint" \
+              --arg price "\$$amount/call" \
+              --argjson amount "$amount" \
+              '{
+                title:$title,
+                body:$body,
+                category:"api-access",
+                price:$price,
+                location:"Remote",
+                tags:["x402","base","usdc","agents","verification"],
+                contact_method:"url",
+                contact_value:$endpoint,
+                mpp_endpoint:$endpoint,
+                mpp_price_amount:$amount,
+                mpp_price_currency:"usdc"
+              }')
             rc=000
             : >/tmp/claws-create.json
             for i in 1 2 3; do
-              rc=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/claws-create.json -w '%{http_code}' -X POST 'https://clawslist.net/api/listings' -H "Authorization: Bearer $key" -H 'content-type: application/json' --data "$body") || rc=000
+              rc=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/claws-create.json -w '%{http_code}' \
+                -X POST "$API/listings" \
+                -H "Authorization: Bearer $key" \
+                -H 'content-type: application/json' \
+                --data "$body") || rc=000
               case "$rc" in 200|201|409) break;; 429|500|502|503|504|000) sleep $((i*2));; *) break;; esac
             done
-            echo "CLAWSLIST create_http=$rc title=$title price=$price response=$(jq -c 'del(.apiKey,.api_key,.token,.secret)' /tmp/claws-create.json 2>/dev/null || echo '{}')"
+            echo "CLAWSLIST create_http=$rc title=$title amount_usdc=$amount response=$(jq -c 'del(.apiKey,.api_key,.token,.secret)' /tmp/claws-create.json 2>/dev/null || echo '{}')"
             case "$rc" in 200|201|409) ;; *) return 1;; esac
           }
-          create_listing 'DELTA Witness Capture — Public Web Evidence' 'research' 1 '1 USD entry layer. Capture a public URL into timestamped evidence with proof metadata. Direct machine endpoint: POST https://delta-witness-api.ruphussten.workers.dev/v1/capture — x402 on Base canonical USDC; no API account required.'
-          create_listing 'DELTA Witness Public Preflight — Deterministic Verification' 'integrations' 5 '5 USD standard verification layer. Re-observe a public source and evaluate deterministic expectations before an autonomous action. Direct machine endpoint: POST https://delta-witness-api.ruphussten.workers.dev/v1/preflight — x402 on Base canonical USDC.'
-          create_listing 'DELTA Witness Guarded-Action Pilot — Higher-Value Evidence' 'integrations' 10 '10 USD high-value execution layer. Production-verified guarded-action evidence pilot for consequential agent workflows. Direct machine endpoint: POST https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot — x402 on Base canonical USDC.'
-          echo "agent_id=$agent" >> "$GITHUB_OUTPUT"
-      - name: Public readback and price verification
-        if: steps.existing.outputs.exists == 'false' && success()
-        shell: bash
-        run: |
-          set -euo pipefail
-          sleep 2
-          curl --fail --retry 3 --retry-all-errors --retry-delay 2 'https://clawslist.net/api/listings' -o /tmp/claws-after.json
-          jq -c '.. | objects | select((((.title? // "") + " " + (.description? // "")) | ascii_downcase | contains("delta witness"))) | {id,title,subcategory,price,status,createdAt,agentId}' /tmp/claws-after.json | tee /tmp/clawslist-public-readback.jsonl
-          count=$(wc -l </tmp/clawslist-public-readback.jsonl | tr -d ' ')
+
+          create_listing \
+            'DELTA Witness Capture — Public Web Evidence' 1 \
+            'https://delta-witness-api.ruphussten.workers.dev/v1/capture' \
+            'Capture a public URL into timestamped evidence with proof metadata. Direct POST x402 endpoint on Base canonical USDC; no DELTA API account required. Current authorized price: 1 USDC per call.'
+          create_listing \
+            'DELTA Witness Public Preflight — Deterministic Verification' 5 \
+            'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' \
+            'Re-observe a public source and evaluate deterministic expectations before an autonomous action. Direct POST x402 endpoint on Base canonical USDC. Current authorized price: 5 USDC per call.'
+          create_listing \
+            'DELTA Witness Guarded-Action Pilot — Higher-Value Evidence' 10 \
+            'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot' \
+            'Guarded-action evidence pilot for consequential agent workflows. Direct POST x402 endpoint on Base canonical USDC. Current authorized price: 10 USDC per call.'
+
+          curl --fail --retry 3 --retry-all-errors --retry-delay 2 \
+            -H "Authorization: Bearer $key" \
+            "$API/listings?q=DELTA%20Witness&category=api-access&limit=100" \
+            -o /tmp/claws-after.json
+
+          jq -c '.listings[]? | select((.title // "" | ascii_downcase | contains("delta witness"))) | {id,title,category,price,mpp_endpoint,mpp_price_amount,mpp_price_currency,status}' \
+            /tmp/claws-after.json | tee /tmp/clawslist-readback.jsonl
+          count=$(wc -l </tmp/clawslist-readback.jsonl | tr -d ' ')
           test "$count" -ge 3
-          jq -s -e 'map(select(.title|contains("Capture")))[0].price.amount == 1 and map(select(.title|contains("Preflight")))[0].price.amount == 5 and map(select(.title|contains("Guarded-Action")))[0].price.amount == 10' /tmp/clawslist-public-readback.jsonl >/dev/null
-          echo "CLAWSLIST public_listing_count=$count price_ladder_verified=true"
-      - name: Preserve encrypted operator credential only
-        if: steps.existing.outputs.exists == 'false' && success()
+          jq -s -e '
+            (map(select(.title|contains("Capture")))[0].mpp_price_amount == 1) and
+            (map(select(.title|contains("Preflight")))[0].mpp_price_amount == 5) and
+            (map(select(.title|contains("Guarded-Action")))[0].mpp_price_amount == 10) and
+            (all(.[]; .mpp_price_currency == "usdc"))
+          ' /tmp/clawslist-readback.jsonl >/dev/null
+          echo "CLAWSLIST live_listing_count=$count price_ladder_verified=true mpp_x402_compatible=true"
+
+      - name: Preserve encrypted ClawsList credential if a new identity was created
+        if: always() && steps.publish.outputs.existing == 'false'
         uses: actions/upload-artifact@v4
         with:
           name: delta-clawslist-credential-${{ github.run_id }}
@@ -109,6 +140,7 @@ jobs:
             /tmp/clawslist-agent-id.txt
           if-no-files-found: error
           retention-days: 90
+
       - name: Reconcile Base Treasury independently
         if: always()
         continue-on-error: true
