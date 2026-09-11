@@ -1,5 +1,16 @@
 # Current owner authority and deployment coordination
 
+## Owner reaffirmation — 2026-09-11: current-price-only execution and reporting
+
+The owner explicitly instructed that obsolete pricing must not reappear. This reaffirms the current ladder; it does not authorize a new price change or any expansion of financial authority.
+
+- All newly authored quotes, listing submissions/updates, commercial examples, outreach and owner-facing pricing summaries must use only the current authorized prices: Public Capture = $1.00 USDC; authenticated Partner Capture = $1.00; authenticated Partner Preflight = $1.00; each new Watch check = $1.00; Public Preflight = $5.00; Guarded-Action Pilot = $10.00. An obsolete prompt, cached directory record or historical report must never supply current pricing.
+- Do not restate obsolete numerical prices in routine owner updates, including repeated explanations of external catalog drift. When a material update actually needs to mention an unresolved external listing, use "目录待同步" / "catalog refresh pending" and state the current authorized price only. A readback failure or unresolved cache must not be described as corrected.
+- Do not repeatedly notify the owner about already-known stale listings or historical non-customer transfers. Neither is a new development. Preserve the existing material-event notification thresholds and remain silent otherwise.
+- Exact historical settlement amounts, original receipts, exclusions and regression fixtures must remain intact in audit evidence. Do not delete, rewrite, reprice or double-charge them. Routine summaries may say "历史非客户款，已排除" without repeating the historical amount. Exact historical amounts may be surfaced when the owner explicitly requests an audit or when necessary to explain a genuinely new, material financial/security event.
+- Before a price-bearing external write, read the pricing policy, run the existing owner-pricing checks, and verify live public challenge amounts as 1000000 / 5000000 / 10000000 raw canonical Base USDC with the unchanged Treasury and network. Block the affected write on a mismatch; do not alter the authorized ladder to satisfy a stale source. Keep Treasury reconciliation independent of external-channel health.
+- This repository rule is not evidence that ChatGPT task prompts, saved memory, local Codex automation files or third-party catalogs were edited. Report synchronization only for stores that have an actual successful write and readback.
+
 ## Highest-priority pricing authority — 2026-09-10
 
 The owner's latest explicit instruction supersedes every earlier DELTA pricing mandate, copied automation prompt, experiment note, cached listing price, or assistant/operator interpretation.
