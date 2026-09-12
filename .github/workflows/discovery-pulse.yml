@@ -41,6 +41,10 @@ jobs:
         if: always()
         continue-on-error: true
         run: node scripts/scan-payan-demand.mjs | tee /tmp/delta-payan-demand.json
+      - name: Scan Agent Exchange funded buyer demand
+        if: always()
+        continue-on-error: true
+        run: node scripts/scan-agentexchange-demand.mjs | tee /tmp/delta-agentexchange-demand.json
       - name: Verify machine discovery surfaces
         run: |
           set -e
@@ -149,6 +153,7 @@ jobs:
           name: delta-pulse-state-${{ github.run_id }}
           path: |
             /tmp/delta-payan-demand.json
+            /tmp/delta-agentexchange-demand.json
             /tmp/delta-revenue-candidates.json
             /tmp/delta-treasury.json
           if-no-files-found: warn
