@@ -10,29 +10,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Inspect public submission page implementation only
+      - name: Inspect public submission client modules only
         run: |
           set -euo pipefail
           curl -fsSL --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors https://402.ad/submit -o /tmp/submit.html
           python - <<'PY'
-          import re, pathlib, html
+          import re, pathlib, html, urllib.parse, subprocess
           s=pathlib.Path('/tmp/submit.html').read_text(errors='replace')
-          print('HTML_LEN',len(s))
-          for label,pat in [
-            ('FORMS',r'<form\b[^>]*>'),
-            ('INPUTS',r'<input\b[^>]*>'),
-            ('TEXTAREAS',r'<textarea\b[^>]*>'),
-            ('BUTTONS',r'<button\b[^>]*>[^<]{0,120}</button>'),
-            ('ENDPOINTS',r'/(?:api|v1)/[A-Za-z0-9_./?=&-]+'),
-            ('HIDDEN_ACTIONS',r'(?:action|endpoint|submit|submission|review)[^<>]{0,240}')]:
-              print(label+'_BEGIN')
-              vals=[]
-              for m in re.finditer(pat,s,re.I|re.S):
-                  v=html.unescape(m.group(0))
-                  if v not in vals: vals.append(v)
-              for v in vals[:120]: print(v[:600].replace('\n',' '))
-              print(label+'_END')
-          for needle in ['GitHub Repository URL','What are you using?','Submit for Review','/v1/submit']:
-              i=s.find(needle)
-              print('CONTEXT',needle, s[max(0,i-1500):i+2500].replace('\n',' ') if i>=0 else 'NOT_FOUND')
+          print('SCRIPT_TAGS_BEGIN')
+          for m in re.finditer(r'<script\b[^>]*>.*?</script>',s,re.I|re.S): print(html.unescape(m.group(0))[:5000].replace('\n',' '))
+          print('SCRIPT_TAGS_END')
+          print('MODULE_LINKS_BEGIN')
+          urls=[]
+          for m in re.finditer(r'(?:href|src)=["\']([^"\']+\.js[^"\']*)',s,re.I):
+              u=urllib.parse.urljoin('https://402.ad/submit',html.unescape(m.group(1)))
+              if u not in urls: urls.append(u)
+          for u in urls: print(u)
+          print('MODULE_LINKS_END')
+          pathlib.Path('/tmp/js').mkdir(exist_ok=True)
+          for i,u in enumerate(urls):
+              subprocess.run(['curl','-fsSL','--connect-timeout','10','--max-time','30','--retry','3','--retry-delay','2','--retry-all-errors',u,'-o',f'/tmp/js/{i}.js'],check=False)
+          print('CLIENT_HINTS_BEGIN')
+          for p in pathlib.Path('/tmp/js').glob('*.js'):
+              t=p.read_text(errors='replace')
+              for needle in ['/v1/submit','Submit for Review','github-url','use-case','search-query','searchedFirst','searched_first']:
+                  start=0
+                  while True:
+                      j=t.find(needle,start)
+                      if j<0: break
+                      print(p.name, needle, t[max(0,j-1200):j+2500].replace('\n',' ')[:4500])
+                      start=j+len(needle)
+          print('CLIENT_HINTS_END')
           PY
