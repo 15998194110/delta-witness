@@ -1,20 +1,18 @@
-name: DELTA run11 treasury-only reconciliation
+name: RETIRED - DELTA run11 treasury reconciliation 20260912
+
+# One-shot read-only Treasury reconciliation completed successfully on 2026-09-12.
+# Canonical Base USDC logs were scanned through block 51214487 with zero
+# Treasury receipt candidates in the 50,000-block window. No funds moved.
+# This workflow is retired to prevent duplicate loops.
 on:
-  push:
-    branches: ["master"]
-    paths:
-      - ".github/workflows/tmp-run11-treasury-20260912-2205.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  treasury:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-      - name: Reconcile Base Treasury independently
-        run: node scripts/reconcile-treasury.mjs
+      - run: echo 'Treasury reconciliation completed; one-shot workflow retired.'
