@@ -14,25 +14,25 @@ jobs:
         run: |
           set -euo pipefail
           curl -fsSL --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors https://402.ad/submit -o /tmp/submit.html
-          echo 'SCRIPT_SRCS_BEGIN'
-          grep -oE '<script[^>]+src="[^"]+"' /tmp/submit.html | sed -E 's/.*src="([^"]+)"/\1/' || true
-          echo 'SCRIPT_SRCS_END'
-          echo 'FORM_ACTIONS_BEGIN'
-          grep -oE '<form[^>]*(action|method)=[^>]*>' /tmp/submit.html || true
-          echo 'FORM_ACTIONS_END'
-          echo 'ENDPOINT_HINTS_BEGIN'
-          grep -oE '/[A-Za-z0-9_./?=&-]*(submit|submission|review)[A-Za-z0-9_./?=&-]*' /tmp/submit.html | sort -u | head -100 || true
-          echo 'ENDPOINT_HINTS_END'
-          mkdir -p /tmp/js
           python - <<'PY'
-          import re, pathlib, urllib.parse, subprocess
-          h=pathlib.Path('/tmp/submit.html').read_text(errors='replace')
-          srcs=re.findall(r'<script[^>]+src=["\']([^"\']+)',h)
-          for i,s in enumerate(srcs):
-              u=urllib.parse.urljoin('https://402.ad/submit',s)
-              p=f'/tmp/js/{i}.js'
-              subprocess.run(['curl','-fsSL','--connect-timeout','10','--max-time','30','--retry','3','--retry-delay','2','--retry-all-errors',u,'-o',p],check=False)
+          import re, pathlib, html
+          s=pathlib.Path('/tmp/submit.html').read_text(errors='replace')
+          print('HTML_LEN',len(s))
+          for label,pat in [
+            ('FORMS',r'<form\b[^>]*>'),
+            ('INPUTS',r'<input\b[^>]*>'),
+            ('TEXTAREAS',r'<textarea\b[^>]*>'),
+            ('BUTTONS',r'<button\b[^>]*>[^<]{0,120}</button>'),
+            ('ENDPOINTS',r'/(?:api|v1)/[A-Za-z0-9_./?=&-]+'),
+            ('HIDDEN_ACTIONS',r'(?:action|endpoint|submit|submission|review)[^<>]{0,240}')]:
+              print(label+'_BEGIN')
+              vals=[]
+              for m in re.finditer(pat,s,re.I|re.S):
+                  v=html.unescape(m.group(0))
+                  if v not in vals: vals.append(v)
+              for v in vals[:120]: print(v[:600].replace('\n',' '))
+              print(label+'_END')
+          for needle in ['GitHub Repository URL','What are you using?','Submit for Review','/v1/submit']:
+              i=s.find(needle)
+              print('CONTEXT',needle, s[max(0,i-1500):i+2500].replace('\n',' ') if i>=0 else 'NOT_FOUND')
           PY
-          echo 'JS_ENDPOINT_HINTS_BEGIN'
-          grep -RhoE '.{0,120}(fetch\(|axios|/api/[^"'"' ]+|/v1/[^"'"' ]+|submit[^"'"' ]*).{0,220}' /tmp/js 2>/dev/null | grep -Ei 'submit|review|submission' | head -120 || true
-          echo 'JS_ENDPOINT_HINTS_END'
