@@ -1,0 +1,45 @@
+name: DELTA one-shot mcp.so submit
+
+on:
+  push:
+    paths:
+      - '.github/workflows/temp-mcpso-submit-20260912.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Submit canonical DELTA repository to mcp.so
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://mcp.so/api/submit-project'
+          payload='{"url":"https://github.com/15998194110/delta-witness","avatar_url":""}'
+          tmp="$(mktemp)"
+          ok=0
+          for attempt in 1 2 3 4; do
+            code="$(curl -sS --connect-timeout 10 --max-time 30 -o "$tmp" -w '%{http_code}' \
+              -X POST "$url" \
+              -H 'Content-Type: application/json' \
+              --data "$payload" || true)"
+            echo "attempt=$attempt http_status=$code"
+            cat "$tmp" || true
+            echo
+            if [[ "$code" =~ ^2 ]]; then
+              ok=1
+              break
+            fi
+            if [[ "$code" == "409" ]]; then
+              echo 'mcp.so reports an existing listing; treating as canonical duplicate avoidance.'
+              ok=1
+              break
+            fi
+            sleep $((attempt * 3))
+          done
+          if [[ "$ok" != "1" ]]; then
+            echo 'mcp.so submission remained unavailable after bounded retries.' >&2
+            exit 1
+          fi
