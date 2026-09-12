@@ -1,0 +1,17 @@
+name: TMP AgentPact monitor 20260913 0550
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/tmp-agentpact-monitor-20260913-0550.yml']
+permissions:
+  contents: read
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Scan AgentPact public seller, offers, needs and deals
+        run: node scripts/scan-agentpact-demand.mjs
