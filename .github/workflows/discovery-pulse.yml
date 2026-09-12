@@ -147,6 +147,45 @@ jobs:
             echo ''
             echo 'These are read-only discovery checks. Channel degradation is isolated and never blocks Treasury reconciliation or other checks.'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Check extended registries without mutation
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          HOST='delta-witness-api.ruphussten.workers.dev'
+
+          fetch_bounded() {
+            local url="$1" out="$2"
+            curl -fsS --connect-timeout 10 --max-time 25 \
+              --retry 3 --retry-delay 2 --retry-all-errors \
+              "$url" -o "$out"
+          }
+
+          AIPROX=degraded
+          if fetch_bounded 'https://aiprox.dev/api/agents' /tmp/aiprox-agents.json; then
+            if grep -qi 'delta-witness' /tmp/aiprox-agents.json; then AIPROX=present; else AIPROX=absent; fi
+          fi
+
+          A2A=degraded
+          if fetch_bounded 'https://www.a2a-registry.org/agent/dev.workers.delta_witness' /tmp/a2a-delta.html; then
+            if grep -qi 'DELTA Witness' /tmp/a2a-delta.html; then A2A=present; else A2A=absent; fi
+          fi
+
+          OPEN402=degraded
+          if fetch_bounded 'https://raw.githubusercontent.com/ArcedeDev/open-402/main/registry/domains.txt' /tmp/open402-domains.txt; then
+            if grep -Fqi "$HOST" /tmp/open402-domains.txt; then OPEN402=present; else OPEN402=absent; fi
+          fi
+
+          echo "EXTENDED_REGISTRY aiprox=$AIPROX a2a=$A2A open402=$OPEN402"
+          {
+            echo '### Extended registry checks'
+            echo "- AIProx: \`$AIPROX\`"
+            echo "- A2A Global Registry: \`$A2A\`"
+            echo "- Open 402 Directory: \`$OPEN402\`"
+            echo ''
+            echo 'These are read-only checks of existing canonical DELTA identities/listings. No duplicate registration is attempted.'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Refresh true402 discovery without duplication
         continue-on-error: true
         run: node scripts/register-true402.mjs
