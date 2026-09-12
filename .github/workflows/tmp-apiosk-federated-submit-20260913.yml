@@ -66,7 +66,7 @@ jobs:
               throw new Error(`Discovery payment mismatch for ${path}: ${JSON.stringify(a)}`);
             }
           }
-          console.log('APISK_MANIFEST_GATE: standards-compatible 1/5/10 canonical Base USDC document verified');
+          console.log('APISK_MANIFEST_GATE: standards-compatible current-price canonical Base USDC document verified');
           NODE
       - name: Install browser runtime
         run: |
@@ -89,8 +89,6 @@ jobs:
                 console.log('APISK_BLOCKER: interactive verification/authentication detected before preview');
                 process.exitCode = 79; return;
               }
-              const controls = await page.locator('input, textarea, button').evaluateAll(nodes => nodes.map(n => ({tag:n.tagName,type:n.getAttribute('type'),name:n.getAttribute('name'),placeholder:n.getAttribute('placeholder'),value:n.getAttribute('value'),text:(n.textContent||'').trim()})));
-              console.log('APISK_CONTROLS_INITIAL', JSON.stringify(controls));
               const input = page.locator('input[type="url"], input[name*="url" i], input[placeholder*="url" i], input').first();
               if (await input.count() === 0) throw new Error('No manifest/discovery URL input found');
               await input.fill(manifestUrl);
@@ -99,7 +97,7 @@ jobs:
               if (await preview.count() === 0) throw new Error('No preview/validation button found');
               await preview.click();
               await page.waitForLoadState('networkidle', { timeout: 60000 }).catch(()=>{});
-              await page.waitForTimeout(2000);
+              await page.waitForTimeout(1500);
               const previewText = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
               console.log('APISK_PREVIEW_TEXT', previewText.slice(0, 12000));
               if (/turnstile|captcha|wallet signature|connect wallet|sign in|log in/i.test(previewText)) {
@@ -107,32 +105,80 @@ jobs:
                 process.exitCode = 79; return;
               }
               if (/no valid x402 resources found|couldn.t read that|invalid discovery|validation failed/i.test(previewText)) throw new Error('Apiosk rejected discovery compatibility document');
-              for (const route of ['/v1/capture','/v1/preflight','/v1/guarded-action-pilot']) {
-                const needle = route.replace('/v1/','');
-                if (!previewText.toLowerCase().includes(needle.toLowerCase())) console.log(`APISK_PREVIEW_NOTE: route label ${route} not rendered verbatim`);
+
+              const controls = await page.locator('input, textarea, select, button').evaluateAll(nodes => nodes.map(n => ({tag:n.tagName,type:n.getAttribute('type'),name:n.getAttribute('name'),id:n.getAttribute('id'),placeholder:n.getAttribute('placeholder'),required:n.hasAttribute('required'),value:n.value ?? n.getAttribute('value'),text:(n.textContent||'').trim()})));
+              console.log('APISK_CONTROLS_REVIEW', JSON.stringify(controls));
+
+              async function fillField(labelRe, nameRes, value) {
+                let loc = page.getByLabel(labelRe).first();
+                if (await loc.count()) { await loc.fill(value); return true; }
+                for (const re of nameRes) {
+                  loc = page.locator(`input[name], textarea[name]`).filter({ has: page.locator('nothing') });
+                  const named = page.locator('input,textarea').filter({ hasNot: page.locator('nothing') });
+                  const count = await named.count();
+                  for (let i=0;i<count;i++) {
+                    const n = (await named.nth(i).getAttribute('name')) || '';
+                    const id = (await named.nth(i).getAttribute('id')) || '';
+                    if (re.test(n) || re.test(id)) { await named.nth(i).fill(value); return true; }
+                  }
+                }
+                return false;
               }
+
+              await fillField(/Display name/i, [/display.*name/i,/^name$/i], 'DELTA Witness');
+              await fillField(/^Slug/i, [/slug/i], 'delta-witness');
+              await fillField(/Provider website/i, [/provider.*website/i,/website/i,/homepage/i], 'https://delta-witness-app.pages.dev/');
+              await fillField(/GitHub/i, [/github/i], 'https://github.com/15998194110/delta-witness');
+              await fillField(/Description/i, [/description/i,/summary/i], 'Machine-verifiable public-web evidence capture, deterministic preflight verification, and guarded-action proof bundles for autonomous agents using canonical x402 settlement on Base USDC.');
+              await fillField(/Contact email/i, [/contact.*email/i,/email/i], 'ruphussten@163.com');
+
+              let category = page.getByLabel(/Category/i).first();
+              if (await category.count()) {
+                const tag = await category.evaluate(el => el.tagName);
+                if (tag === 'SELECT') {
+                  const options = await category.locator('option').evaluateAll(os => os.map(o => ({value:o.value,text:(o.textContent||'').trim()})));
+                  const preferred = options.find(o => /tools/i.test(o.text)) || options.find(o => /web/i.test(o.text)) || options.find(o => /ai/i.test(o.text));
+                  if (preferred) await category.selectOption(preferred.value);
+                }
+              }
+
               const requiredCheckboxes = page.locator('input[type="checkbox"][required]');
               if (await requiredCheckboxes.count() > 0) {
                 console.log('APISK_BLOCKER: required checkbox/legal acknowledgement present; not accepting autonomously');
                 process.exitCode = 79; return;
               }
-              const buttons = await page.locator('button').evaluateAll(nodes => nodes.map(n => (n.textContent||'').trim()).filter(Boolean));
-              console.log('APISK_BUTTONS_PREVIEW', JSON.stringify(buttons));
-              let submit = page.getByRole('button', { name: /submit.*review|send.*review|submit listing|publish/i }).first();
-              if (await submit.count() === 0) {
-                const candidates = page.locator('button[type="submit"]');
-                if (await candidates.count() === 1) submit = candidates.first();
+
+              const required = page.locator('input[required], textarea[required], select[required]');
+              const requiredState = [];
+              for (let i=0;i<await required.count();i++) {
+                const el = required.nth(i);
+                requiredState.push({name:await el.getAttribute('name'),id:await el.getAttribute('id'),type:await el.getAttribute('type'),value:await el.inputValue().catch(()=>null)});
               }
-              if (await submit.count() === 0) throw new Error('No unambiguous submit-for-review button found');
+              console.log('APISK_REQUIRED_STATE', JSON.stringify(requiredState));
+              if (requiredState.some(x => !x.value && x.type !== 'checkbox')) throw new Error(`Unfilled required Apiosk review field: ${JSON.stringify(requiredState)}`);
+
+              const buttons = await page.locator('button').evaluateAll(nodes => nodes.map(n => (n.textContent||'').trim()).filter(Boolean));
+              console.log('APISK_BUTTONS_REVIEW', JSON.stringify(buttons));
+              let submit = page.getByRole('button', { name: /publish.*review|submit.*review|send.*review|submit listing|publish/i }).first();
+              if (await submit.count() === 0) throw new Error('No unambiguous publish-for-review button found');
+
+              const responsePromise = page.waitForResponse(r => r.request().method() === 'POST' && /apiosk\.com/.test(r.url()), {timeout:15000}).catch(()=>null);
               await submit.click();
+              const postResponse = await responsePromise;
               await page.waitForLoadState('networkidle', { timeout: 60000 }).catch(()=>{});
-              await page.waitForTimeout(2500);
+              await page.waitForTimeout(2000);
+              if (postResponse) {
+                console.log('APISK_POST_RESPONSE', postResponse.status(), postResponse.url(), (await postResponse.text().catch(()=>'' )).slice(0,4000));
+                if (postResponse.status() >= 400) throw new Error(`Apiosk submission POST failed with ${postResponse.status()}`);
+              } else {
+                console.log('APISK_POST_RESPONSE none observed');
+              }
               const finalText = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
               console.log('APISK_FINAL_URL', page.url());
               console.log('APISK_FINAL_TEXT', finalText.slice(0, 12000));
-              if (/error|failed|invalid/i.test(finalText) && !/submitted|review|success|received|pending/i.test(finalText)) throw new Error('Submission page reports failure');
-              if (!/submitted|review|success|received|pending/i.test(finalText)) throw new Error('Could not verify submission acceptance');
-              console.log('APISK_SUBMISSION_ACCEPTED: DELTA x402 compatibility manifest entered Apiosk review queue');
+              if (!postResponse && !/submitted|pending|received|thank|review queue|under review/i.test(finalText)) throw new Error('Could not verify Apiosk review submission');
+              if (/error|failed|invalid/i.test(finalText) && !/submitted|pending|received|thank|review queue|under review/i.test(finalText)) throw new Error('Submission page reports failure');
+              console.log('APISK_SUBMISSION_VERIFIED: DELTA entered Apiosk operator review queue');
             } finally {
               await browser.close();
             }
