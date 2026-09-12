@@ -1,0 +1,82 @@
+name: DELTA one-shot 402 Index canonical refresh 20260912-1148
+
+on:
+  push:
+    paths:
+      - '.github/workflows/temp-402index-refresh-20260912-1148.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Gate on current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+
+      - name: Gate on live canonical public 402 amounts
+        run: node scripts/verify-owner-pricing-live.mjs
+
+      - name: Register or refresh canonical endpoints on 402 Index
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/402index
+          register() {
+            local slug="$1" url="$2" name="$3" desc="$4" price="$5"
+            body=$(jq -nc \
+              --arg url "$url" \
+              --arg name "$name" \
+              --arg description "$desc" \
+              --argjson price "$price" \
+              '{url:$url,name:$name,protocol:"x402",http_method:"POST",description:$description,price_usd:$price,payment_asset:"USDC",payment_network:"Base",category:"tools/verification",provider:"DELTA Witness"}')
+            for attempt in 1 2 3; do
+              code=$(curl -sS --connect-timeout 15 --max-time 45 -o "/tmp/402index/${slug}.json" -w '%{http_code}' \
+                -X POST 'https://402index.io/api/v1/register' \
+                -H 'Content-Type: application/json' \
+                --data "$body" || true)
+              echo "$code" > "/tmp/402index/${slug}.status"
+              if [ "$code" = "201" ] || [ "$code" = "200" ]; then return 0; fi
+              if [ "$code" = "429" ] || [ "$code" = "500" ] || [ "$code" = "502" ] || [ "$code" = "503" ] || [ "$code" = "504" ] || [ "$code" = "000" ]; then
+                sleep $((attempt * 4))
+                continue
+              fi
+              return 0
+            done
+          }
+
+          register capture 'https://delta-witness-api.ruphussten.workers.dev/v1/capture' 'DELTA Witness — Capture' 'Timestamped evidence capture for a public HTTPS source, settled via canonical x402 on Base USDC.' 1
+          register preflight 'https://delta-witness-api.ruphussten.workers.dev/v1/preflight' 'DELTA Witness — Public Preflight' 'Deterministic preflight verification of fresh public page state before an autonomous action, settled via canonical x402 on Base USDC.' 5
+          register guarded 'https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot' 'DELTA Witness — Guarded-Action Pilot' 'Higher-value guarded-action evidence pilot for autonomous workflows, settled via canonical x402 on Base USDC.' 10
+
+      - name: Record registration evidence
+        if: always()
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const items = {};
+          for (const k of ['capture','preflight','guarded']) {
+            items[k] = {
+              http_status: fs.existsSync(`/tmp/402index/${k}.status`) ? fs.readFileSync(`/tmp/402index/${k}.status`,'utf8').trim() : null,
+              response: fs.existsSync(`/tmp/402index/${k}.json`) ? fs.readFileSync(`/tmp/402index/${k}.json`,'utf8') : null,
+            };
+          }
+          fs.writeFileSync('distribution/evidence/402index-refresh-20260912-1148-kst.json', JSON.stringify({checked_at:new Date().toISOString(),channel:'402index',canonical_origin:'https://delta-witness-api.ruphussten.workers.dev',items}, null, 2));
+          NODE
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add distribution/evidence/402index-refresh-20260912-1148-kst.json
+          git commit -m 'chore: record 402 Index canonical refresh 2026-09-12 11:48 KST' || exit 0
+          for attempt in 1 2 3; do
+            git pull --rebase origin master || true
+            if git push origin HEAD:master; then exit 0; fi
+            sleep $((attempt * 3))
+          done
+          exit 1
