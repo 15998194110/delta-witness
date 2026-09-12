@@ -44,8 +44,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Submit canonical x402 manifest for Apiosk review
         env:
-          MANIFEST_URL: https://delta-witness-api.ruphussten.workers.dev/.well-known/x402
-          TREASURY: 0x1990e21bc219696ff7fbc26527dbaed335ac6367
+          MANIFEST_URL: "https://delta-witness-api.ruphussten.workers.dev/.well-known/x402"
+          TREASURY: "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
         run: |
           node <<'NODE'
           const { chromium } = require('playwright');
@@ -61,9 +61,7 @@ jobs:
               process.exitCode = 79;
               return;
             }
-            const controls = await page.locator('input, textarea, button').evaluateAll(nodes => nodes.map(n => ({
-              tag:n.tagName, type:n.getAttribute('type'), name:n.getAttribute('name'), placeholder:n.getAttribute('placeholder'), value:n.getAttribute('value'), text:(n.textContent||'').trim()
-            })));
+            const controls = await page.locator('input, textarea, button').evaluateAll(nodes => nodes.map(n => ({tag:n.tagName,type:n.getAttribute('type'),name:n.getAttribute('name'),placeholder:n.getAttribute('placeholder'),value:n.getAttribute('value'),text:(n.textContent||'').trim()})));
             console.log('APISK_CONTROLS_INITIAL', JSON.stringify(controls));
             const input = page.locator('input[type="url"], input[name*="url" i], input[placeholder*="url" i], input').first();
             if (await input.count() === 0) throw new Error('No manifest/discovery URL input found');
