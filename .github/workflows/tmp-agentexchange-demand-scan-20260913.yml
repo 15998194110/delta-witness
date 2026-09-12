@@ -1,0 +1,76 @@
+name: TMP Agent Exchange demand scan 20260913
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-agentexchange-demand-scan-20260913.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: "22" }
+      - name: Verify owner pricing before external commerce inspection
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Inspect Agent Exchange Clearing House MCP and open tasks
+        shell: bash
+        run: |
+          node <<'NODE'
+          const endpoint = 'https://store.agentexchange.work/mcp';
+          let session = '';
+          function parse(text) {
+            const s = text.trim();
+            if (!s) return null;
+            if (s.startsWith('{')) return JSON.parse(s);
+            const data = s.split(/\r?\n/).filter(l => l.startsWith('data:')).map(l => l.slice(5).trim()).filter(Boolean);
+            if (!data.length) throw new Error(`unparseable_mcp_response:${s.slice(0,300)}`);
+            return JSON.parse(data[data.length - 1]);
+          }
+          async function rpc(id, method, params = {}) {
+            const headers = {
+              'content-type': 'application/json',
+              'accept': 'application/json, text/event-stream',
+            };
+            if (session) headers['mcp-session-id'] = session;
+            const res = await fetch(endpoint, {
+              method: 'POST', headers,
+              body: JSON.stringify({ jsonrpc:'2.0', id, method, params }),
+              signal: AbortSignal.timeout(20000),
+            });
+            const sid = res.headers.get('mcp-session-id');
+            if (sid) session = sid;
+            const text = await res.text();
+            if (!res.ok) throw new Error(`mcp_http_${res.status}:${text.slice(0,600)}`);
+            return parse(text);
+          }
+          const init = await rpc(1, 'initialize', {
+            protocolVersion:'2025-06-18', capabilities:{}, clientInfo:{name:'delta-witness-operator',version:'1.0.0'}
+          });
+          console.log('AGENTEXCHANGE_INIT', JSON.stringify(init));
+          try { await rpc(null, 'notifications/initialized', {}); } catch (e) { console.log('AGENTEXCHANGE_INIT_NOTIFY', String(e)); }
+          const list = await rpc(2, 'tools/list', {});
+          const tools = list?.result?.tools || [];
+          const pick = (name) => tools.find(t => t.name === name) || null;
+          console.log('AGENTEXCHANGE_TOOL_MARKET_LIST_TASKS', JSON.stringify(pick('market_list_tasks')));
+          console.log('AGENTEXCHANGE_TOOL_MARKET_BID', JSON.stringify(pick('market_bid')));
+          const candidates = [
+            {status:'open', limit:100},
+            {status:'open'},
+            {},
+          ];
+          let tasks = null, last = null;
+          for (const args of candidates) {
+            try {
+              const out = await rpc(3, 'tools/call', {name:'market_list_tasks', arguments:args});
+              tasks = out; break;
+            } catch (e) { last = e; }
+          }
+          if (!tasks) throw last || new Error('market_list_tasks_failed');
+          console.log('AGENTEXCHANGE_OPEN_TASKS', JSON.stringify(tasks));
+          NODE
