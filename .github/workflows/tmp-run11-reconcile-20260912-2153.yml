@@ -1,0 +1,26 @@
+name: DELTA run11 one-shot reconciliation
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-run11-reconcile-20260912-2153.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Check current owner pricing authority
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live public x402 prices
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Audit paid-funnel candidates
+        run: node scripts/query-revenue-candidates.mjs
+      - name: Reconcile Base Treasury
+        run: node scripts/reconcile-treasury.mjs
