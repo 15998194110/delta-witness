@@ -1,0 +1,177 @@
+{
+  "checked_at": "2026-09-12T21:36:35.148Z",
+  "owner_pricing": {
+    "policy": "owner-2026-09-10-1-5-10",
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "public_raw_usdc": {
+      "capture": "1000000",
+      "preflight": "5000000",
+      "guarded_action_pilot": "10000000"
+    },
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "live_readback_checked_at": "2026-09-12T21:36:08.065Z",
+    "evidence_quality": "A_direct_live_402_readback"
+  },
+  "production_integrity": {
+    "health": "ok",
+    "version": "0.7.0",
+    "capture_402_verified": true,
+    "preflight_402_verified": true,
+    "guarded_action_pilot_402_verified": true,
+    "canonical_base_usdc_verified": true,
+    "treasury_pay_to_verified": true,
+    "paid_transactions_generated_by_diagnostics": 0,
+    "customer_revenue_generated_by_diagnostics": 0,
+    "core_production_failure": false,
+    "evidence_quality": "A_direct_live_endpoint_checks"
+  },
+  "distribution": {
+    "agent402": {
+      "listing_status": "present_existing_canonical",
+      "discovery_status": "listed_routable_health_1",
+      "tool_count": 6,
+      "network": "eip155:8453",
+      "duplicate_identity_created": false,
+      "evidence_quality": "A_official_api"
+    },
+    "allmcps": {
+      "listing_status": "active_existing_canonical",
+      "discovery_status": "active",
+      "duplicate_listing_created": false,
+      "evidence_quality": "A_direct_current_readback"
+    },
+    "mcp_directory": {
+      "listing_status": "submitted_pending_review_existing_submission",
+      "discovery_status": "not_yet_publicly_searchable",
+      "current_submission_http": 409,
+      "current_submission_message": "This repository has already been submitted. We'll review it soon!",
+      "duplicate_listing_created": false,
+      "new_submission_created_this_run": false,
+      "review_target": "within_24_hours_platform_claim_not_owner_guarantee",
+      "evidence_quality": "A_official_submission_endpoint_plus_current_public_search"
+    },
+    "payanagent": {
+      "listing_status": "existing_canonical",
+      "discovery_status": "degraded_recoverable",
+      "seller_auth_error": "http_500",
+      "offer_readback_errors": 3,
+      "funded_compatible_requests": 0,
+      "duplicate_seller_created": false,
+      "evidence_quality": "C_channel_degraded"
+    },
+    "agentexchange": {
+      "listing_status": "not_applicable",
+      "discovery_status": "present",
+      "buyer_count": 1,
+      "external_requests": 2,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "evidence_quality": "A_official_market_mcp"
+    },
+    "agentpact": {
+      "listing_status": "present",
+      "discovery_status": "present",
+      "offer_count": 3,
+      "offers": [
+        {"product": "capture", "status": "active", "price_usdc": 1},
+        {"product": "public_preflight", "status": "active", "price_usdc": 5},
+        {"product": "guarded_action_pilot", "status": "active", "price_usdc": 10}
+      ],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 17,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0,
+      "evidence_quality": "A_official_public_api"
+    },
+    "payai_bazaar": {
+      "listing_status": "existing",
+      "discovery_status": "present_stale_catalog_amounts",
+      "scan_complete": true,
+      "catalog_entries_scanned": 28579,
+      "live_production_conflict": true,
+      "known_stale_raw_amount": "30000",
+      "self_pay_refresh_attempted": false,
+      "evidence_quality": "A_complete_current_catalog_scan"
+    },
+    "payapi_market": {
+      "listing_status": "present_existing_canonical",
+      "discovery_status": "present",
+      "evidence_quality": "B_current_public_readback"
+    },
+    "x402_list": {
+      "listing_status": "not_present",
+      "discovery_status": "absent_current_readback",
+      "evidence_quality": "B_public_current_api"
+    },
+    "circle_x402_discovery": {
+      "listing_status": "not_present",
+      "discovery_status": "absent_current_readback",
+      "evidence_quality": "B_public_current_api"
+    },
+    "x402_discovery_service": {
+      "listing_status": "degraded_external",
+      "discovery_status": "service_suspended_http_503",
+      "recoverable_external_degradation": true,
+      "evidence_quality": "A_official_endpoint_response"
+    },
+    "true402": {
+      "listing_status": "existing_state_not_mutated_this_run",
+      "discovery_status": "degraded_precheck_after_3_bounded_fetch_failures",
+      "submission_attempts": 0,
+      "recoverable_external_degradation": true,
+      "evidence_quality": "A_official_registry_api_attempt"
+    },
+    "indexnow": {
+      "core": "upstream_429_after_4_bounded_retries_recoverable",
+      "base_app": "success_http_200",
+      "independent_checks_continued": true
+    }
+  },
+  "funnel": {
+    "buyer_count_verified": 0,
+    "customer_external_requests": 0,
+    "customer_402_intents": 0,
+    "customer_paid_settlements": 0,
+    "customer_treasury_received_usdc": 0,
+    "customer_revenue_usdc": 0,
+    "customer_variable_cost_usd": 0,
+    "customer_contribution_margin_usd": 0,
+    "paid_funnel_candidate_rows": 0
+  },
+  "treasury_reconciliation": {
+    "checked_at": "2026-09-12T21:30:17.081Z",
+    "latest_base_block": 51229633,
+    "lookback_blocks": 50000,
+    "canonical_usdc_receipt_candidates": 0,
+    "total_usdc": 0,
+    "known_non_customer_usdc": 0,
+    "unclassified_usdc": 0,
+    "customer_revenue_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "outreach": {
+    "sent_this_run": 0,
+    "new_explicit_interest_reply": false,
+    "silence_chased": false
+  },
+  "operational": {
+    "canonical_discovery_pulse_run_id": 34720107014,
+    "canonical_discovery_pulse_conclusion": "success",
+    "mcp_directory_probe_run_id": 34720409814,
+    "external_dependency_failures_isolated": true,
+    "duplicate_submission_created": false,
+    "temporary_duplicate_one_shot_workflow_created_then_removed": true,
+    "temporary_duplicate_one_shot_cleanup_commit": "96c16d33f4da50eb1665d1a636bbe98412e3197c",
+    "active_duplicate_growth_loop": false,
+    "duplicate_seller_identity_created": false,
+    "irreversible_or_financial_action_taken": false
+  }
+}
