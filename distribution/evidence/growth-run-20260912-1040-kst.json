@@ -1,0 +1,121 @@
+{
+  "checked_at": "2026-09-12T10:40:28+09:00",
+  "pricing_authority": {
+    "policy_check": "passed",
+    "live_public_402_check": "passed",
+    "canonical_base_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+  },
+  "treasury_reconciliation": {
+    "network": "eip155:8453",
+    "latest_block": 51193933,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "treasury_received": 0,
+    "revenue": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "paid_funnel": {
+    "candidate_rows_last_2h": 0,
+    "payment_authorized": 0,
+    "settlement_confirmed": 0,
+    "paid_settlements": 0,
+    "treasury_received": 0
+  },
+  "channels": [
+    {
+      "source": "payanagent_requests",
+      "listing_status": "existing_provider_state_unchanged",
+      "discovery_status": "checked",
+      "external_requests": 60,
+      "funded_requests_detected": 0,
+      "funded_compatible_requests": 0,
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_public_request_inventory_no_A_grade_match"
+    },
+    {
+      "source": "payai_bazaar",
+      "listing_status": "canonical_routes_present_catalog_refresh_pending",
+      "discovery_status": "full_catalog_scan_complete",
+      "external_requests": 0,
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_public_discovery_catalog_live_origin_pricing_verified_separately"
+    },
+    {
+      "source": "official_mcp_registry",
+      "listing_status": "active_existing",
+      "discovery_status": "verified_active",
+      "package": "delta-witness-mcp@0.7.0",
+      "registry_name": "io.github.15998194110/delta-witness",
+      "mutation": false,
+      "evidence_quality": "A_official_registry_check"
+    },
+    {
+      "source": "mcp.so",
+      "listing_status": "not_confirmed",
+      "discovery_status": "direct_submit_channel_degraded_after_bounded_retries",
+      "fallback_status": "official_github_submission_path_not_writable_by_current_integration",
+      "mutation": false,
+      "evidence_quality": "B_official_submission_paths_checked"
+    },
+    {
+      "source": "x402_arena",
+      "listing_status": "existing_canonical_entries_detected_no_duplicate_created",
+      "discovery_status": "checked",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": false,
+      "evidence_quality": "C_revenue_event_feed_not_yet_onchain_verified"
+    },
+    {
+      "source": "workpnp",
+      "listing_status": "not_registered",
+      "discovery_status": "checked",
+      "funded_compatible_requests": 0,
+      "verified_neighbor_demand": false,
+      "evidence_quality": "C_only_public_paid_record_seen_is_platform_selftest"
+    },
+    {
+      "source": "taskforce",
+      "listing_status": "not_registered",
+      "discovery_status": "checked",
+      "verified_neighbor_demand": false,
+      "evidence_quality": "C_programmatic_registration_available_but_independent_paid_demand_not_verified"
+    },
+    {
+      "source": "agrenting",
+      "listing_status": "not_registered",
+      "discovery_status": "checked",
+      "verified_neighbor_demand": false,
+      "evidence_quality": "C_programmatic_registration_available_but_sampled_marketplace_agents_show_no_completed_tasks_or_earnings"
+    },
+    {
+      "source": "agentsbay",
+      "listing_status": "not_registered",
+      "discovery_status": "checked",
+      "verified_neighbor_demand": false,
+      "evidence_quality": "C_public_open_job_inventory_is_low_quality_and_transparency_metrics_not_independently_confirmed"
+    }
+  ],
+  "outreach": {
+    "natural_day": "2026-09-12",
+    "sent_count": 3,
+    "daily_cap": 3,
+    "new_explicit_interest_replies": 0,
+    "new_first_contacts_sent_this_run": 0
+  },
+  "notification_threshold_event": false
+}
