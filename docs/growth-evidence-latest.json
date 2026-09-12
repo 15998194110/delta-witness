@@ -1,6 +1,7 @@
 {
-  "checked_at": "2026-09-11T19:06:54.000Z",
+  "checked_at": "2026-09-12T21:36:35.148Z",
   "owner_pricing": {
+    "policy": "owner-2026-09-10-1-5-10",
     "public_capture_usdc": 1,
     "partner_capture_usdc": 1,
     "partner_preflight_usdc": 1,
@@ -13,8 +14,9 @@
       "guarded_action_pilot": "10000000"
     },
     "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
-    "live_readback_checked_at": "2026-09-11T19:05:55.015Z",
+    "live_readback_checked_at": "2026-09-12T21:36:08.065Z",
     "evidence_quality": "A_direct_live_402_readback"
   },
   "production_integrity": {
@@ -31,11 +33,13 @@
     "evidence_quality": "A_direct_live_endpoint_checks"
   },
   "distribution": {
-    "official_mcp_registry": {
-      "listing_status": "active_existing_canonical",
-      "discovery_status": "official_registry_active_v0.7.0",
-      "duplicate_listing_created": false,
-      "evidence_quality": "A_prior_official_registry_readback_reconciled_this_run"
+    "agent402": {
+      "listing_status": "present_existing_canonical",
+      "discovery_status": "listed_routable_health_1",
+      "tool_count": 6,
+      "network": "eip155:8453",
+      "duplicate_identity_created": false,
+      "evidence_quality": "A_official_api"
     },
     "allmcps": {
       "listing_status": "active_existing_canonical",
@@ -43,28 +47,64 @@
       "duplicate_listing_created": false,
       "evidence_quality": "A_direct_current_readback"
     },
+    "mcp_directory": {
+      "listing_status": "submitted_pending_review_existing_submission",
+      "discovery_status": "not_yet_publicly_searchable",
+      "current_submission_http": 409,
+      "current_submission_message": "This repository has already been submitted. We'll review it soon!",
+      "duplicate_listing_created": false,
+      "new_submission_created_this_run": false,
+      "review_target": "within_24_hours_platform_claim_not_owner_guarantee",
+      "evidence_quality": "A_official_submission_endpoint_plus_current_public_search"
+    },
     "payanagent": {
-      "listing_status": "existing_canonical_catalog_refresh_pending",
-      "discovery_status": "guarded_action_public_buy_route_current; capture_and_preflight_refresh_degraded",
-      "recoverable_external_degradation": true,
-      "bounded_retry_exhausted_this_run": true,
-      "deferred_recheck": true,
+      "listing_status": "existing_canonical",
+      "discovery_status": "degraded_recoverable",
+      "seller_auth_error": "http_500",
+      "offer_readback_errors": 3,
+      "funded_compatible_requests": 0,
       "duplicate_seller_created": false,
-      "evidence_quality": "A_authenticated_existing_identity_plus_public_buy_route"
+      "evidence_quality": "C_channel_degraded"
+    },
+    "agentexchange": {
+      "listing_status": "not_applicable",
+      "discovery_status": "present",
+      "buyer_count": 1,
+      "external_requests": 2,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "evidence_quality": "A_official_market_mcp"
+    },
+    "agentpact": {
+      "listing_status": "present",
+      "discovery_status": "present",
+      "offer_count": 3,
+      "offers": [
+        {"product": "capture", "status": "active", "price_usdc": 1},
+        {"product": "public_preflight", "status": "active", "price_usdc": 5},
+        {"product": "guarded_action_pilot", "status": "active", "price_usdc": 10}
+      ],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 17,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0,
+      "evidence_quality": "A_official_public_api"
     },
     "payai_bazaar": {
       "listing_status": "existing",
-      "discovery_status": "catalog_refresh_pending",
+      "discovery_status": "present_stale_catalog_amounts",
+      "scan_complete": true,
+      "catalog_entries_scanned": 28579,
       "live_production_conflict": true,
+      "known_stale_raw_amount": "30000",
       "self_pay_refresh_attempted": false,
-      "next_action": "free_reindex_or_deferred_recheck_only",
       "evidence_quality": "A_complete_current_catalog_scan"
     },
     "payapi_market": {
       "listing_status": "present_existing_canonical",
       "discovery_status": "present",
-      "duplicate_listing_created": false,
-      "evidence_quality": "A_current_public_market_readback"
+      "evidence_quality": "B_current_public_readback"
     },
     "x402_list": {
       "listing_status": "not_present",
@@ -76,34 +116,22 @@
       "discovery_status": "absent_current_readback",
       "evidence_quality": "B_public_current_api"
     },
-    "exviv": {
-      "listing_status": "not_confirmed",
-      "discovery_status": "current_adjacent_x402_demand_verified; directory_query_is_paid",
-      "direct_free_submission_found": false,
-      "paid_action_taken": false,
-      "evidence_quality": "B_current_public_market_and_api"
+    "x402_discovery_service": {
+      "listing_status": "degraded_external",
+      "discovery_status": "service_suspended_http_503",
+      "recoverable_external_degradation": true,
+      "evidence_quality": "A_official_endpoint_response"
     },
-    "taskmarket": {
-      "listing_status": "not_applicable",
-      "discovery_status": "real_base_usdc_funded_task_market_active; no_current_delta_fit_request_verified",
-      "wallet_or_identity_write_required_for_worker_submission": true,
-      "paid_or_wallet_action_taken": false,
-      "evidence_quality": "B_current_public_market_and_docs"
-    },
-    "0xwork": {
-      "listing_status": "not_registered",
-      "discovery_status": "disqualified_for_autonomous_bidding_due_worker_stake_requirement",
-      "paid_or_wallet_action_taken": false,
-      "evidence_quality": "A_official_current_skill_docs"
-    },
-    "reporanker": {
-      "listing_status": "not_submitted",
-      "discovery_status": "free_listing_available_but_github_oauth_ui_required_and_low_buyer_evidence",
-      "evidence_quality": "B_current_public_submission_page"
+    "true402": {
+      "listing_status": "existing_state_not_mutated_this_run",
+      "discovery_status": "degraded_precheck_after_3_bounded_fetch_failures",
+      "submission_attempts": 0,
+      "recoverable_external_degradation": true,
+      "evidence_quality": "A_official_registry_api_attempt"
     },
     "indexnow": {
-      "core": "upstream_rate_limited_after_bounded_retries_recoverable",
-      "base_app": "success",
+      "core": "upstream_429_after_4_bounded_retries_recoverable",
+      "base_app": "success_http_200",
       "independent_checks_continued": true
     }
   },
@@ -119,8 +147,8 @@
     "paid_funnel_candidate_rows": 0
   },
   "treasury_reconciliation": {
-    "checked_at": "2026-09-11T19:06:35.176Z",
-    "latest_base_block": 51182121,
+    "checked_at": "2026-09-12T21:30:17.081Z",
+    "latest_base_block": 51229633,
     "lookback_blocks": 50000,
     "canonical_usdc_receipt_candidates": 0,
     "total_usdc": 0,
@@ -132,14 +160,17 @@
   "outreach": {
     "sent_this_run": 0,
     "new_explicit_interest_reply": false,
-    "known_vertical_marketplace_native_x402_feature_request": "already_advanced_no_repeat_contact",
-    "known_payapi_refresh_thread": "awaiting_new_reply_no_chase"
+    "silence_chased": false
   },
   "operational": {
-    "canonical_discovery_pulse_run_id": 34636966525,
+    "canonical_discovery_pulse_run_id": 34720107014,
     "canonical_discovery_pulse_conclusion": "success",
+    "mcp_directory_probe_run_id": 34720409814,
     "external_dependency_failures_isolated": true,
-    "duplicate_growth_loop_created": false,
+    "duplicate_submission_created": false,
+    "temporary_duplicate_one_shot_workflow_created_then_removed": true,
+    "temporary_duplicate_one_shot_cleanup_commit": "96c16d33f4da50eb1665d1a636bbe98412e3197c",
+    "active_duplicate_growth_loop": false,
     "duplicate_seller_identity_created": false,
     "irreversible_or_financial_action_taken": false
   }
