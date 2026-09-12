@@ -1,0 +1,89 @@
+name: TMP DELTA monitor 20260913 0236
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/tmp-delta-monitor-20260913-0236.yml']
+permissions:
+  contents: read
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Enforce owner pricing and verify live public 402s
+        run: |
+          set -euo pipefail
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: AgentPact public seller offers deals and demand
+        shell: bash
+        run: |
+          set -euo pipefail
+          API='https://api.agentpact.xyz/api'
+          AGENT='5fdb4f2a-0d15-4e27-8d4a-15998194110d'
+          fetch_retry() {
+            url="$1"; out="$2"; code=000
+            : >"$out"
+            for delay in 0 3 8; do
+              [ "$delay" = 0 ] || sleep "$delay"
+              code=$(curl --connect-timeout 10 --max-time 30 -sS -o "$out" -w '%{http_code}' "$url") || code=000
+              case "$code" in 200|201|204|400|404) break;; 429|500|502|503|504|000) continue;; *) break;; esac
+            done
+            echo "$code"
+          }
+          agent_code=$(fetch_retry "$API/agents/$AGENT" /tmp/ap-agent.json)
+          offers_code=$(fetch_retry "$API/offers?query=DELTA%20Witness&limit=100" /tmp/ap-offers.json)
+          needs_code=$(fetch_retry "$API/needs?limit=100" /tmp/ap-needs.json)
+          deals_code=$(fetch_retry "$API/deals?agentId=$AGENT&limit=100" /tmp/ap-deals.json)
+          echo "AGENTPACT_HTTP agent=$agent_code offers=$offers_code needs=$needs_code deals=$deals_code"
+          echo -n 'AGENTPACT_AGENT '; jq -c '{id:(.id // .agent.id // .agentId),handle:(.handle // .agent.handle),status:(.status // .agent.status),wallet:(.walletAddress // .ownerWalletAddress // .agent.walletAddress)}' /tmp/ap-agent.json 2>/dev/null || echo '{}'
+          echo 'AGENTPACT_OFFERS'
+          jq -c '[.. | objects | select(((.title? // "") | tostring | startswith("DELTA Witness"))) | {id,title,status,basePrice,base_price,price,currency,active}] | unique_by(.id)' /tmp/ap-offers.json 2>/dev/null || echo '[]'
+          echo 'AGENTPACT_DEALS'
+          jq -c '[.. | objects | select((.id? != null) and ((.offerId? != null) or (.buyerAgentId? != null) or (.sellerAgentId? != null) or (.escrowStatus? != null) or (.paymentStatus? != null))) | {id,title,status,state,funded,fundedAt,buyerAgentId,buyerId,sellerAgentId,offerId,amount,budget,currency,escrowStatus,paymentStatus,createdAt,updatedAt}] | unique_by(.id) | .[0:50]' /tmp/ap-deals.json 2>/dev/null || echo '[]'
+          echo 'AGENTPACT_MATCHED_NEEDS'
+          jq -c '[.. | objects | select((.id? != null) and (((((.title? // "") + " " + (.description? // "") + " " + ((.tags? // []) | tostring)) | ascii_downcase) | test("evidence|verify|verification|preflight|proof|audit|public api|web|browser|x402|usdc|base")))) | {id,title,status,budget,price,currency,funded,fundingStatus,buyer,buyerId,buyerAgentId,tags,createdAt,updatedAt}] | unique_by(.id) | .[0:30]' /tmp/ap-needs.json 2>/dev/null || echo '[]'
+      - name: Recheck ClawsList canonical listings without hammering
+        shell: bash
+        run: |
+          set -euo pipefail
+          API='https://clawslist.dev/api/listings'
+          for id in PIy3TKBL8_VM0J_y1L7By ShSptZQ5ogohZrJfmLZ2e JgvxR2SiW5mQ2E9v0uxzb; do
+            out="/tmp/claws-$id.json"; code=000
+            for delay in 0 4; do
+              [ "$delay" = 0 ] || sleep "$delay"
+              code=$(curl --connect-timeout 10 --max-time 25 -sS -o "$out" -w '%{http_code}' "$API/$id") || code=000
+              case "$code" in 200|400|401|403|404) break;; 429|500|502|503|504|000) continue;; *) break;; esac
+            done
+            echo -n "CLAWSLIST_READ id=$id http=$code data="
+            jq -c '{id:(.id // .listing.id),title:(.title // .listing.title),status:(.status // .listing.status),category:(.category // .listing.category),mpp_price_amount:(.mpp_price_amount // .listing.mpp_price_amount),mpp_price_currency:(.mpp_price_currency // .listing.mpp_price_currency),mpp_endpoint:(.mpp_endpoint // .listing.mpp_endpoint)}' "$out" 2>/dev/null || echo '{}'
+          done
+      - name: Check Vertical Marketplace inquiry for a newer founder decision
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://verticalmarketplace.ai/api/inquiries/0e333a7e-7cf3-4840-aac9-932848862b39'
+          code=000; : >/tmp/vertical.json
+          for delay in 0 4 10; do
+            [ "$delay" = 0 ] || sleep "$delay"
+            code=$(curl --connect-timeout 10 --max-time 30 -sS -o /tmp/vertical.json -w '%{http_code}' "$url") || code=000
+            case "$code" in 200|400|401|403|404) break;; 429|500|502|503|504|000) continue;; *) break;; esac
+          done
+          echo "VERTICAL_HTTP $code"
+          jq -c '{status,state,updatedAt,updated_at,messages:([.. | objects | select((.message? != null) or (.body? != null)) | {createdAt,created_at,role,sender,from,message:(.message // .body)}] | .[-5:])}' /tmp/vertical.json 2>/dev/null || echo '{}'
+      - name: Verify approved mcpservers listing is live
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://mcpservers.org/servers/15998194110/delta-witness'
+          code=$(curl --connect-timeout 10 --max-time 30 -LsS -o /tmp/mcpservers.html -w '%{http_code}' "$url") || code=000
+          title=$(grep -o -m1 '<title>[^<]*' /tmp/mcpservers.html | sed 's/<title>//' || true)
+          if grep -qi 'DELTA Witness' /tmp/mcpservers.html; then present=true; else present=false; fi
+          echo "MCPSERVERS http=$code delta_present=$present title=$title"
+      - name: Reconcile Base Treasury independently
+        if: always()
+        run: node scripts/reconcile-treasury.mjs
