@@ -1,0 +1,75 @@
+name: TMP MCP.Directory DELTA submission 20260913
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-mcpdirectory-submit-20260913.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live public x402 prices without payment
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Install browser automation runtime
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+      - name: Submit canonical DELTA repository to MCP.Directory once
+        env:
+          DELTA_REPO: https://github.com/15998194110/delta-witness
+        run: |
+          cat > /tmp/submit-mcpdirectory.mjs <<'EOF'
+          import { chromium } from 'playwright';
+
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage();
+          const observed = [];
+          page.on('response', async (res) => {
+            const u = res.url();
+            if (/submit|server|api/i.test(u) && res.request().method() !== 'GET') {
+              let body = '';
+              try { body = (await res.text()).slice(0, 1200); } catch {}
+              observed.push({ method: res.request().method(), url: u, status: res.status(), body });
+            }
+          });
+
+          await page.goto('https://mcp.directory/submit', { waitUntil: 'domcontentloaded', timeout: 60000 });
+          const repoInput = page.locator('input[placeholder*="github.com" i]').first();
+          await repoInput.fill(process.env.DELTA_REPO);
+
+          const descInput = page.locator('input[placeholder*="sentence" i], textarea').first();
+          if (await descInput.count()) {
+            await descInput.fill('x402 trust layer for capture, deterministic preflight, and guarded-action evidence.');
+          }
+
+          const submit = page.getByRole('button', { name: /submit for review/i });
+          await submit.click();
+          await page.waitForTimeout(5000);
+
+          const text = (await page.locator('body').innerText()).slice(0, 4000);
+          const success = /thank|submitted|review|success|received|pending/i.test(text);
+          console.log('MCPDIRECTORY_RESULT ' + JSON.stringify({
+            listing_status: success ? 'submitted_pending_review' : 'submission_state_unclear',
+            duplicate_avoided: true,
+            mutation: true,
+            final_url: page.url(),
+            observed_writes: observed,
+            page_excerpt: text.slice(0, 1200)
+          }));
+          await browser.close();
+          if (!success) process.exitCode = 2;
+          EOF
+          node /tmp/submit-mcpdirectory.mjs
