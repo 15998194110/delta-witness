@@ -1,0 +1,66 @@
+name: DELTA one-shot MCP Registry reconcile
+
+on:
+  push:
+    paths:
+      - '.github/workflows/temp-mcp-registry-reconcile-20260912.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: "22" }
+      - name: Verify current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live public x402 pricing
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Render MCP Registry metadata
+        run: node scripts/render-mcp-server.mjs
+      - name: Validate package version is public
+        run: |
+          set -euo pipefail
+          EXPECTED="$(node -p "require('./packages/mcp-server/package.json').version")"
+          LIVE="$(npm view delta-witness-mcp version)"
+          test "$LIVE" = "$EXPECTED"
+          echo "npm_version=$LIVE"
+      - name: Reconcile official MCP Registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+          URL="https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${PLATFORM}.tar.gz"
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 3 "$URL" | tar xz mcp-publisher
+          ./mcp-publisher validate server.json
+          if node scripts/check-mcp-registry.mjs server.json; then
+            printf '%s\n' '{"status":"already_active","name":"io.github.15998194110/delta-witness","version":"0.7.0"}' > /tmp/result.json
+          else
+            ./mcp-publisher login github-oidc
+            set +e
+            PUBLISH_OUTPUT="$(./mcp-publisher publish server.json 2>&1)"
+            PUBLISH_STATUS=$?
+            set -e
+            printf '%s\n' "$PUBLISH_OUTPUT"
+            if [ "$PUBLISH_STATUS" -ne 0 ] && ! grep -q 'cannot publish duplicate version' <<<"$PUBLISH_OUTPUT"; then
+              exit "$PUBLISH_STATUS"
+            fi
+            for attempt in 1 2 3 4 5; do
+              if node scripts/check-mcp-registry.mjs server.json; then
+                printf '%s\n' '{"status":"published_and_active","name":"io.github.15998194110/delta-witness","version":"0.7.0"}' > /tmp/result.json
+                break
+              fi
+              sleep $((attempt * 3))
+            done
+            test -s /tmp/result.json
+          fi
+      - name: Upload reconcile result
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-mcp-registry-result
+          path: /tmp/result.json
+          if-no-files-found: error
