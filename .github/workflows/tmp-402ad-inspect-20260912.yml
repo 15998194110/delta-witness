@@ -10,21 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Inspect public submit page client handler only
+      - name: Inspect public client endpoint
         run: |
-          set -euo pipefail
-          curl -fsSL --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors https://402.ad/_app/immutable/nodes/40.DGySbIch.js -o /tmp/page.js
-          python - <<'PY'
-          import pathlib
-          t=pathlib.Path('/tmp/page.js').read_text(errors='replace')
-          print('PAGE_LEN',len(t))
-          for needle in ['/v1/submit','fetch(','github-url','use-case','search-query','searched','agent_type','agentType','github_url','githubUrl','package','submission']:
-              start=0; n=0
-              while True:
-                  j=t.find(needle,start)
-                  if j<0: break
-                  print('NEEDLE',needle)
-                  print(t[max(0,j-2200):j+5200].replace('\n',' ')[:8000])
-                  start=j+len(needle); n+=1
-                  if n>=6: break
-          PY
+          curl -fsSL https://402.ad/_app/immutable/chunks/BR_VVxa5.js -o /tmp/client.js
+          grep -oE '.{0,500}(submitMcpServer|submitService|/v1/[A-Za-z0-9_./-]+).{0,1200}' /tmp/client.js | head -80
