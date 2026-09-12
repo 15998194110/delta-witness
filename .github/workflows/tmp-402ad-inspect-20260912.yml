@@ -10,7 +10,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Inspect public client endpoint
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Inspect public submission client
         run: |
-          curl -fsSL https://402.ad/_app/immutable/chunks/BR_VVxa5.js -o /tmp/client.js
-          grep -oE '.{0,500}(submitMcpServer|submitService|/v1/[A-Za-z0-9_./-]+).{0,1200}' /tmp/client.js | head -80
+          set -euo pipefail
+          curl -fsSL --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors https://402.ad/_app/immutable/chunks/BR_VVxa5.js -o /tmp/client.js
+          node - <<'NODE'
+          const fs=require('fs');
+          const s=fs.readFileSync('/tmp/client.js','utf8');
+          console.log('CLIENT_LEN',s.length);
+          for (const needle of ['submitMcpServer','submitService','/v1/submit','/v1/','/submit','fetch(']) {
+            let p=0,n=0;
+            while((p=s.indexOf(needle,p))>=0 && n<8){
+              console.log('NEEDLE',needle,s.slice(Math.max(0,p-1800),Math.min(s.length,p+5000)).replace(/\n/g,' '));
+              p+=needle.length;n++;
+            }
+          }
+          NODE
