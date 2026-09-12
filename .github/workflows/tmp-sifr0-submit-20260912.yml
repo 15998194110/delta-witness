@@ -9,6 +9,9 @@ on:
 jobs:
   submit:
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
@@ -17,7 +20,7 @@ jobs:
         run: node scripts/check-owner-pricing.mjs
       - name: Verify live public 402 amounts
         run: node scripts/verify-owner-pricing-live.mjs
-      - name: Register canonical DELTA Witness listing in SIFR-0 without duplication
+      - name: Reconcile canonical DELTA Witness listing in SIFR-0 without duplication
         run: node scripts/register-sifr0.mjs
       - name: Audit paid funnel candidates
         if: always()
