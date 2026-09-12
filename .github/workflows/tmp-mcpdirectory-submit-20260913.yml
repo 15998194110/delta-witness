@@ -31,7 +31,7 @@ jobs:
         env:
           DELTA_REPO: https://github.com/15998194110/delta-witness
         run: |
-          cat > /tmp/submit-mcpdirectory.mjs <<'EOF'
+          cat > submit-mcpdirectory.mjs <<'EOF'
           import { chromium } from 'playwright';
 
           const browser = await chromium.launch({ headless: true });
@@ -72,4 +72,4 @@ jobs:
           await browser.close();
           if (!success) process.exitCode = 2;
           EOF
-          node /tmp/submit-mcpdirectory.mjs
+          node submit-mcpdirectory.mjs
