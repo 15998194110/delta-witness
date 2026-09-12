@@ -1,0 +1,65 @@
+{
+  "checked_at": "2026-09-12T10:59:40Z",
+  "pricing_policy": "owner-2026-09-10-1-5-10",
+  "production": {
+    "capture_raw_usdc": "1000000",
+    "preflight_raw_usdc": "5000000",
+    "guarded_action_pilot_raw_usdc": "10000000",
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "status": "verified_live_402"
+  },
+  "channels": [
+    {
+      "channel": "SIFR-0",
+      "source": "https://api.sifr0.dev/v1/register",
+      "listing_status": "live",
+      "discovery_status": "present",
+      "registry_id": "69d76129-8e89-4669-98e0-4a9638069c7a",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": false,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_official_registry_API_no_buyer_settlement_evidence",
+      "registration": {
+        "http_status": 201,
+        "duplicate_precheck": "absent",
+        "duplicate_recheck": "present",
+        "subsequent_reconciliation": "already_listed_duplicate_avoided",
+        "services_count": 3,
+        "categories": ["agent-verification", "web-evidence", "x402", "agent-safety"]
+      },
+      "notes": "Free, no-account programmatic registration. No listing fee, wallet signature, custody, asset movement, private key, or legal commitment. Registry contains an adjacent verified agent-verification/x402 provider, but no independent buyer or settlement evidence was found, so neighbor demand remains unverified."
+    }
+  ],
+  "telemetry_reconciliation": {
+    "candidate_rows": 0,
+    "paid_settlements": 0,
+    "status": "no_paid_funnel_candidates"
+  },
+  "treasury_reconciliation": {
+    "start_block": 51160715,
+    "latest_block": 51210714,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "total_usdc": 0,
+    "known_non_customer_usdc": 0,
+    "unclassified_usdc": 0,
+    "customer_revenue": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "risk_boundary": {
+    "listing_fees_paid": 0,
+    "assets_moved": false,
+    "wallet_authorized": false,
+    "legal_commitments_accepted": false,
+    "private_keys_exposed": false
+  }
+}
