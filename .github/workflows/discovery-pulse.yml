@@ -25,6 +25,9 @@ jobs:
         run: node scripts/check-owner-pricing.mjs
       - name: Verify current owner live prices without payment
         run: node scripts/verify-owner-pricing-live.mjs
+      - name: Register x402 Discovery service without duplication
+        continue-on-error: true
+        run: node scripts/register-x402-discovery.mjs
       - name: Register Agent402 seller origin without duplication
         continue-on-error: true
         run: node scripts/register-agent402.mjs
