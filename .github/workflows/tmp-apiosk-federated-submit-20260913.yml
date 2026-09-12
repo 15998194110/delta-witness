@@ -1,0 +1,113 @@
+name: TMP - Apiosk federated submission 20260913
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-apiosk-federated-submit-20260913.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Enforce current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live canonical public 402 pricing
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Confirm reviewed Apiosk catalog absence
+        shell: bash
+        run: |
+          set -euo pipefail
+          for q in 'DELTA%20Witness' 'delta-witness-api.ruphussten.workers.dev'; do
+            body="$(curl -fsS --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors "https://gateway.apiosk.com/v1/apis?search=$q")"
+            printf '%s' "$body" | grep -q 'No APIs found matching your criteria.' || {
+              echo "APISK_DUPLICATE_GUARD: possible existing reviewed listing for query=$q; refusing submission"
+              exit 78
+            }
+          done
+          provider="$(curl -fsS --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors 'https://gateway.apiosk.com/v1/providers?search=DELTA')"
+          printf '%s' "$provider" | grep -q 'No providers found matching your criteria.' || {
+            echo 'APISK_DUPLICATE_GUARD: possible existing DELTA provider; refusing submission'
+            exit 78
+          }
+          echo 'APISK_DUPLICATE_GUARD: reviewed catalog/provider absence confirmed'
+      - name: Install browser runtime
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Submit canonical x402 manifest for Apiosk review
+        env:
+          MANIFEST_URL: https://delta-witness-api.ruphussten.workers.dev/.well-known/x402
+          TREASURY: 0x1990e21bc219696ff7fbc26527dbaed335ac6367
+        run: |
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const manifestUrl = process.env.MANIFEST_URL;
+          const treasury = process.env.TREASURY.toLowerCase();
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage();
+          try {
+            await page.goto('https://gateway.apiosk.com/federated/new', { waitUntil: 'networkidle', timeout: 60000 });
+            const initialText = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
+            if (/turnstile|captcha|wallet signature|connect wallet|sign in|log in/i.test(initialText)) {
+              console.log('APISK_BLOCKER: interactive verification/authentication detected before preview');
+              process.exitCode = 79;
+              return;
+            }
+            const controls = await page.locator('input, textarea, button').evaluateAll(nodes => nodes.map(n => ({
+              tag:n.tagName, type:n.getAttribute('type'), name:n.getAttribute('name'), placeholder:n.getAttribute('placeholder'), value:n.getAttribute('value'), text:(n.textContent||'').trim()
+            })));
+            console.log('APISK_CONTROLS_INITIAL', JSON.stringify(controls));
+            const input = page.locator('input[type="url"], input[name*="url" i], input[placeholder*="url" i], input').first();
+            if (await input.count() === 0) throw new Error('No manifest/discovery URL input found');
+            await input.fill(manifestUrl);
+            let preview = page.getByRole('button', { name: /preview|validate|check|continue|read manifest/i }).first();
+            if (await preview.count() === 0) preview = page.locator('button[type="submit"]').first();
+            if (await preview.count() === 0) throw new Error('No preview/validation button found');
+            await preview.click();
+            await page.waitForLoadState('networkidle', { timeout: 60000 }).catch(()=>{});
+            await page.waitForTimeout(1500);
+            const previewText = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
+            console.log('APISK_PREVIEW_TEXT', previewText.slice(0, 12000));
+            if (/turnstile|captcha|wallet signature|connect wallet|sign in|log in/i.test(previewText)) {
+              console.log('APISK_BLOCKER: interactive verification/authentication detected after preview');
+              process.exitCode = 79;
+              return;
+            }
+            if (!previewText.toLowerCase().includes(treasury)) throw new Error('Preview does not show canonical DELTA Treasury');
+            const requiredPricing = [/(?:\$|USDC\s*)?1(?:\.0+)?\s*(?:USDC)?/i,/(?:\$|USDC\s*)?5(?:\.0+)?\s*(?:USDC)?/i,/(?:\$|USDC\s*)?10(?:\.0+)?\s*(?:USDC)?/i];
+            if (!requiredPricing.every(re => re.test(previewText))) throw new Error('Preview does not expose all current owner-authorized public prices 1/5/10');
+            const requiredCheckboxes = page.locator('input[type="checkbox"][required]');
+            if (await requiredCheckboxes.count() > 0) {
+              console.log('APISK_BLOCKER: required checkbox/legal acknowledgement present; not accepting autonomously');
+              process.exitCode = 79;
+              return;
+            }
+            const buttons = await page.locator('button').evaluateAll(nodes => nodes.map(n => (n.textContent||'').trim()).filter(Boolean));
+            console.log('APISK_BUTTONS_PREVIEW', JSON.stringify(buttons));
+            let submit = page.getByRole('button', { name: /submit.*review|send.*review|submit listing|publish/i }).first();
+            if (await submit.count() === 0) {
+              const candidates = page.locator('button[type="submit"]');
+              if (await candidates.count() === 1) submit = candidates.first();
+            }
+            if (await submit.count() === 0) throw new Error('No unambiguous submit-for-review button found');
+            await submit.click();
+            await page.waitForLoadState('networkidle', { timeout: 60000 }).catch(()=>{});
+            await page.waitForTimeout(2000);
+            const finalText = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
+            console.log('APISK_FINAL_URL', page.url());
+            console.log('APISK_FINAL_TEXT', finalText.slice(0, 12000));
+            if (/error|failed|invalid/i.test(finalText) && !/submitted|review|success|received|pending/i.test(finalText)) throw new Error('Submission page reports failure');
+            if (!/submitted|review|success|received|pending/i.test(finalText)) throw new Error('Could not verify submission acceptance');
+            console.log('APISK_SUBMISSION_ACCEPTED: canonical DELTA x402 manifest entered Apiosk review queue');
+          } finally {
+            await browser.close();
+          }
+          NODE
