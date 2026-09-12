@@ -10,35 +10,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Inspect public submission client modules only
+      - name: Inspect exact public Svelte entry modules
         run: |
           set -euo pipefail
-          curl -fsSL --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors https://402.ad/submit -o /tmp/submit.html
+          curl -fsSL --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors https://402.ad/_app/immutable/entry/app.CxGPwYm-.js -o /tmp/app.js
+          curl -fsSL --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors https://402.ad/_app/immutable/entry/start.BvCnqg5Q.js -o /tmp/start.js
           python - <<'PY'
-          import re, pathlib, html, urllib.parse, subprocess
-          s=pathlib.Path('/tmp/submit.html').read_text(errors='replace')
-          print('SCRIPT_TAGS_BEGIN')
-          for m in re.finditer(r'<script\b[^>]*>.*?</script>',s,re.I|re.S): print(html.unescape(m.group(0))[:5000].replace('\n',' '))
-          print('SCRIPT_TAGS_END')
-          print('MODULE_LINKS_BEGIN')
-          urls=[]
-          for m in re.finditer(r'(?:href|src)=["\']([^"\']+\.js[^"\']*)',s,re.I):
-              u=urllib.parse.urljoin('https://402.ad/submit',html.unescape(m.group(1)))
-              if u not in urls: urls.append(u)
-          for u in urls: print(u)
-          print('MODULE_LINKS_END')
-          pathlib.Path('/tmp/js').mkdir(exist_ok=True)
-          for i,u in enumerate(urls):
-              subprocess.run(['curl','-fsSL','--connect-timeout','10','--max-time','30','--retry','3','--retry-delay','2','--retry-all-errors',u,'-o',f'/tmp/js/{i}.js'],check=False)
-          print('CLIENT_HINTS_BEGIN')
-          for p in pathlib.Path('/tmp/js').glob('*.js'):
-              t=p.read_text(errors='replace')
-              for needle in ['/v1/submit','Submit for Review','github-url','use-case','search-query','searchedFirst','searched_first']:
-                  start=0
+          import pathlib,re
+          for p in ['/tmp/app.js','/tmp/start.js']:
+              t=pathlib.Path(p).read_text(errors='replace')
+              print('FILE',p,'LEN',len(t))
+              for needle in ['nodes','node','40','submit','_app/immutable/nodes','imports']:
+                  hits=[]; start=0
                   while True:
                       j=t.find(needle,start)
                       if j<0: break
-                      print(p.name, needle, t[max(0,j-1200):j+2500].replace('\n',' ')[:4500])
-                      start=j+len(needle)
-          print('CLIENT_HINTS_END')
+                      hits.append(t[max(0,j-800):j+1800].replace('\n',' ')[:2600]); start=j+len(needle)
+                      if len(hits)>=8: break
+                  for h in hits: print('NEEDLE',needle,h)
+              print('JS_PATHS_BEGIN')
+              for m in re.finditer(r'["\']([^"\']+\.js)["\']',t):
+                  v=m.group(1)
+                  if '_app/' in v or 'nodes/' in v or 'chunks/' in v: print(v)
+              print('JS_PATHS_END')
           PY
