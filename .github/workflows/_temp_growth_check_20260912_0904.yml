@@ -20,16 +20,28 @@ jobs:
       - name: Live public x402 price gate
         run: node scripts/verify-owner-pricing-live.mjs
       - name: Paid funnel telemetry
+        continue-on-error: true
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: node scripts/query-funnel.mjs
       - name: Revenue candidates
+        continue-on-error: true
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: node scripts/query-revenue-candidates.mjs
       - name: Base Treasury reconciliation
         run: node scripts/reconcile-treasury.mjs
       - name: PayanAgent funded demand scan
+        continue-on-error: true
         run: node scripts/scan-payan-demand.mjs
       - name: Bazaar discovery check
+        continue-on-error: true
         run: node scripts/check-bazaar.mjs
       - name: Agent402 canonical state
-        run: node scripts/register-agent402.mjs --check-only || true
+        continue-on-error: true
+        run: node scripts/register-agent402.mjs --check-only
       - name: True402 canonical state
-        run: node scripts/register-true402.mjs --check-only || true
+        continue-on-error: true
+        run: node scripts/register-true402.mjs --check-only
