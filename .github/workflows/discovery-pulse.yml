@@ -45,6 +45,10 @@ jobs:
         if: always()
         continue-on-error: true
         run: node scripts/scan-agentexchange-demand.mjs | tee /tmp/delta-agentexchange-demand.json
+      - name: Scan AgentPact seller and funded buyer demand
+        if: always()
+        continue-on-error: true
+        run: node scripts/scan-agentpact-demand.mjs | tee /tmp/delta-agentpact-demand.json
       - name: Verify machine discovery surfaces
         run: |
           set -e
@@ -154,6 +158,7 @@ jobs:
           path: |
             /tmp/delta-payan-demand.json
             /tmp/delta-agentexchange-demand.json
+            /tmp/delta-agentpact-demand.json
             /tmp/delta-revenue-candidates.json
             /tmp/delta-treasury.json
           if-no-files-found: warn
