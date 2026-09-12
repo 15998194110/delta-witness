@@ -10,23 +10,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Search 402.ad for canonical DELTA listing
+      - name: Attempt free canonical DELTA submission
         run: |
           set -euo pipefail
-          for q in "DELTA Witness" "DELTA Witness evidence capture verification"; do
-            echo "QUERY=$q"
-            curl -fsSL --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors \
-              -H 'Content-Type: application/json' \
-              -d "$(node -e 'process.stdout.write(JSON.stringify({query:process.argv[1]}))' "$q")" \
-              https://402.ad/v1/search -o /tmp/search.json
-            node - <<'NODE'
-          const fs = require('fs');
-          const body = JSON.parse(fs.readFileSync('/tmp/search.json','utf8'));
-          const rows = Array.isArray(body) ? body : (body.results || body.services || body.items || []);
-          console.log('RESULT_COUNT', rows.length);
-          for (const r of rows.slice(0,20)) {
-            const s = JSON.stringify(r);
-            if (/delta|ruphussten|witness/i.test(s)) console.log('DELTA_MATCH', s);
-          }
+          node - <<'NODE' > /tmp/payload.json
+          const payload = {
+            agent_type: 'custom_agent',
+            service_url: 'https://delta-witness-api.ruphussten.workers.dev/v1/capture',
+            tool_name: null,
+            use_case: 'Enable autonomous agents to discover and purchase cryptographically verifiable evidence capture and preflight verification through canonical x402 payment on Base.',
+            search_query: 'DELTA Witness evidence capture verification',
+            contact_email: '',
+            organization: 'DELTA Witness',
+            additional_description: 'DELTA Witness provides machine-verifiable evidence capture, preflight verification, and guarded-action pilot endpoints with canonical x402 settlement on Base USDC and public discovery metadata.',
+            discovered_via: ''
+          };
+          process.stdout.write(JSON.stringify(payload));
           NODE
-          done
+          status=$(curl -sS --connect-timeout 10 --max-time 30 \
+            -o /tmp/body -w '%{http_code}' \
+            -H 'content-type: application/json' \
+            --data-binary @/tmp/payload.json \
+            https://402.ad/web/submit || true)
+          echo "HTTP_STATUS=$status"
+          echo 'RESPONSE_BEGIN'
+          cat /tmp/body || true
+          echo
+          echo 'RESPONSE_END'
+          # Do not bypass any human verification requirement. A 2xx means direct free submission worked;
+          # a 4xx human/auth gate is terminal for this automatic path and requires user completion in the website form.
