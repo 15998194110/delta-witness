@@ -36,12 +36,12 @@ jobs:
             echo 'X402ARENA_RESULT channel=x402arena listing_status=deferred discovery_status=degraded mutation=false reason=dedupe_unavailable'
             exit 0
           fi
-          if grep -Fqi "$HOST" /tmp/arena-agents.json || grep -Fqi 'DELTA Witness' /tmp/arena-agents.json; then
+          if grep -Fqi "$HOST" /tmp/arena-agents.json || grep -Fqi 'delta-witness' /tmp/arena-agents.json; then
             echo 'X402ARENA_RESULT channel=x402arena listing_status=already_listed discovery_status=present duplicate_avoided=true mutation=false'
             exit 0
           fi
 
-          payload=$(jq -cn '{name:"DELTA Witness",endpoint:"https://delta-witness-api.ruphussten.workers.dev/v1/capture",description:"Independent timestamped public-page evidence and proof metadata for autonomous agents.",niche:"verification",walletAddress:"0x1990e21bc219696ff7fbc26527dbaed335ac6367",method:"POST",resourceType:"http",inputSchema:{type:"object",required:["url"],properties:{url:{type:"string",description:"Public HTTPS page to capture"}}},outputSchema:{type:"object",properties:{proof_id:{type:"string"},manifest_url:{type:"string"},public_proof_url:{type:"string"},observed_at:{type:"string"}}}}')
+          payload=$(jq -cn '{name:"delta-witness",endpoint:"https://delta-witness-api.ruphussten.workers.dev/v1/capture",description:"Independent timestamped public-page evidence and proof metadata for autonomous agents.",niche:"verification",walletAddress:"0x1990e21bc219696ff7fbc26527dbaed335ac6367",method:"POST",resourceType:"http",inputSchema:{type:"object",required:["url"],properties:{url:{type:"string",description:"Public HTTPS page to capture"}}},outputSchema:{type:"object",properties:{proof_id:{type:"string"},manifest_url:{type:"string"},public_proof_url:{type:"string"},observed_at:{type:"string"}}}}')
           registered=0
           for attempt in 1 2 3 4; do
             code=$(curl -sS --connect-timeout 10 --max-time 30 -o /tmp/arena-register.json -w '%{http_code}' \
