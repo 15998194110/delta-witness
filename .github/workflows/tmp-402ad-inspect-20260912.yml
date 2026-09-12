@@ -10,21 +10,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with: { node-version: '22' }
-      - name: Inspect public submission client
+      - name: Search 402.ad for canonical DELTA listing
         run: |
           set -euo pipefail
-          curl -fsSL --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors https://402.ad/_app/immutable/chunks/BR_VVxa5.js -o /tmp/client.js
-          node - <<'NODE'
-          const fs=require('fs');
-          const s=fs.readFileSync('/tmp/client.js','utf8');
-          console.log('CLIENT_LEN',s.length);
-          for (const needle of ['submitMcpServer','submitService','/v1/submit','/v1/','/submit','fetch(']) {
-            let p=0,n=0;
-            while((p=s.indexOf(needle,p))>=0 && n<8){
-              console.log('NEEDLE',needle,s.slice(Math.max(0,p-1800),Math.min(s.length,p+5000)).replace(/\n/g,' '));
-              p+=needle.length;n++;
-            }
+          for q in "DELTA Witness" "DELTA Witness evidence capture verification"; do
+            echo "QUERY=$q"
+            curl -fsSL --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors \
+              -H 'Content-Type: application/json' \
+              -d "$(node -e 'process.stdout.write(JSON.stringify({query:process.argv[1]}))' "$q")" \
+              https://402.ad/v1/search -o /tmp/search.json
+            node - <<'NODE'
+          const fs = require('fs');
+          const body = JSON.parse(fs.readFileSync('/tmp/search.json','utf8'));
+          const rows = Array.isArray(body) ? body : (body.results || body.services || body.items || []);
+          console.log('RESULT_COUNT', rows.length);
+          for (const r of rows.slice(0,20)) {
+            const s = JSON.stringify(r);
+            if (/delta|ruphussten|witness/i.test(s)) console.log('DELTA_MATCH', s);
           }
           NODE
+          done
