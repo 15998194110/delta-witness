@@ -1,0 +1,51 @@
+name: DELTA one-shot growth audit
+
+on:
+  push:
+    paths:
+      - '.github/workflows/temp-growth-audit-20260912.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: "22" }
+      - name: Verify current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live public x402 pricing
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Audit paid funnel
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/query-revenue-candidates.mjs 2>&1 | tee /tmp/revenue.txt
+      - name: Reconcile Base Treasury
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/reconcile-treasury.mjs 2>&1 | tee /tmp/treasury.txt
+      - name: Scan PayanAgent funded demand
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/scan-payan-demand.mjs 2>&1 | tee /tmp/payan.txt
+      - name: Check Bazaar visibility
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/check-bazaar.mjs 2>&1 | tee /tmp/bazaar.txt
+      - name: Upload audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-growth-audit-result
+          path: |
+            /tmp/revenue.txt
+            /tmp/treasury.txt
+            /tmp/payan.txt
+            /tmp/bazaar.txt
+          if-no-files-found: error
