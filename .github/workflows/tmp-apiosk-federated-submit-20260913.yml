@@ -27,22 +27,20 @@ jobs:
           set -euo pipefail
           for q in 'DELTA%20Witness' 'delta-witness-api.ruphussten.workers.dev'; do
             body="$(curl -fsS --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors "https://gateway.apiosk.com/v1/apis?search=$q")"
-            if printf '%s' "$body" | grep -Eqi '0 pay-per-call listings|No APIs found matching'; then
-              echo "APISK_DUPLICATE_GUARD: no reviewed API match for query=$q"
-            else
-              echo "APISK_DUPLICATE_GUARD: possible existing reviewed listing for query=$q; refusing submission"
-              printf '%s\n' "$body" | head -c 4000
-              exit 78
-            fi
+            printf '%s' "$body" | node -e '
+              let s=""; process.stdin.on("data",d=>s+=d).on("end",()=>{
+                const j=JSON.parse(s); const total=Number(j?.meta?.total ?? j?.apis?.length ?? -1);
+                if (total!==0) { console.error("APISK_DUPLICATE_GUARD: reviewed API match possible", JSON.stringify(j).slice(0,2000)); process.exit(78); }
+                console.log("APISK_DUPLICATE_GUARD: reviewed API total=0");
+              });'
           done
           provider="$(curl -fsS --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors 'https://gateway.apiosk.com/v1/providers?search=DELTA')"
-          if printf '%s' "$provider" | grep -Eqi 'No providers found matching|0 providers'; then
-            echo 'APISK_DUPLICATE_GUARD: no reviewed DELTA provider match'
-          else
-            echo 'APISK_DUPLICATE_GUARD: possible existing DELTA provider; refusing submission'
-            printf '%s\n' "$provider" | head -c 4000
-            exit 78
-          fi
+          printf '%s' "$provider" | node -e '
+            let s=""; process.stdin.on("data",d=>s+=d).on("end",()=>{
+              const j=JSON.parse(s); const total=Number(j?.meta?.total ?? j?.providers?.length ?? -1);
+              if (total!==0) { console.error("APISK_DUPLICATE_GUARD: reviewed provider match possible", JSON.stringify(j).slice(0,2000)); process.exit(78); }
+              console.log("APISK_DUPLICATE_GUARD: reviewed provider total=0");
+            });'
       - name: Install browser runtime
         run: |
           npm install --no-save playwright@1.55.0
@@ -63,8 +61,7 @@ jobs:
             const initialText = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
             if (/turnstile|captcha|wallet signature|connect wallet|sign in|log in/i.test(initialText)) {
               console.log('APISK_BLOCKER: interactive verification/authentication detected before preview');
-              process.exitCode = 79;
-              return;
+              process.exitCode = 79; return;
             }
             const controls = await page.locator('input, textarea, button').evaluateAll(nodes => nodes.map(n => ({tag:n.tagName,type:n.getAttribute('type'),name:n.getAttribute('name'),placeholder:n.getAttribute('placeholder'),value:n.getAttribute('value'),text:(n.textContent||'').trim()})));
             console.log('APISK_CONTROLS_INITIAL', JSON.stringify(controls));
@@ -81,17 +78,14 @@ jobs:
             console.log('APISK_PREVIEW_TEXT', previewText.slice(0, 12000));
             if (/turnstile|captcha|wallet signature|connect wallet|sign in|log in/i.test(previewText)) {
               console.log('APISK_BLOCKER: interactive verification/authentication detected after preview');
-              process.exitCode = 79;
-              return;
+              process.exitCode = 79; return;
             }
             if (!previewText.toLowerCase().includes(treasury)) throw new Error('Preview does not show canonical DELTA Treasury');
-            const requiredPricing = [/(?:\$|USDC\s*)?1(?:\.0+)?\s*(?:USDC)?/i,/(?:\$|USDC\s*)?5(?:\.0+)?\s*(?:USDC)?/i,/(?:\$|USDC\s*)?10(?:\.0+)?\s*(?:USDC)?/i];
-            if (!requiredPricing.every(re => re.test(previewText))) throw new Error('Preview does not expose all current owner-authorized public prices 1/5/10');
+            for (const price of ['$1', '$5', '$10']) if (!previewText.includes(price)) throw new Error(`Preview missing current authorized price ${price}`);
             const requiredCheckboxes = page.locator('input[type="checkbox"][required]');
             if (await requiredCheckboxes.count() > 0) {
               console.log('APISK_BLOCKER: required checkbox/legal acknowledgement present; not accepting autonomously');
-              process.exitCode = 79;
-              return;
+              process.exitCode = 79; return;
             }
             const buttons = await page.locator('button').evaluateAll(nodes => nodes.map(n => (n.textContent||'').trim()).filter(Boolean));
             console.log('APISK_BUTTONS_PREVIEW', JSON.stringify(buttons));
@@ -110,7 +104,5 @@ jobs:
             if (/error|failed|invalid/i.test(finalText) && !/submitted|review|success|received|pending/i.test(finalText)) throw new Error('Submission page reports failure');
             if (!/submitted|review|success|received|pending/i.test(finalText)) throw new Error('Could not verify submission acceptance');
             console.log('APISK_SUBMISSION_ACCEPTED: canonical DELTA x402 manifest entered Apiosk review queue');
-          } finally {
-            await browser.close();
-          }
+          } finally { await browser.close(); }
           NODE
