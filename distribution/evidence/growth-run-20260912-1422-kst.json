@@ -1,0 +1,181 @@
+{
+  "checked_at": "2026-09-12T05:22:00Z",
+  "policy": "owner-2026-09-10-1-5-10",
+  "pricing_gate": {
+    "status": "verified",
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "public_capture_raw_usdc": "1000000",
+    "public_preflight_raw_usdc": "5000000",
+    "guarded_action_pilot_raw_usdc": "10000000",
+    "evidence_quality": "A_live_canonical_402"
+  },
+  "channels": [
+    {
+      "channel": "agent402",
+      "listing_status": "already_listed",
+      "discovery_status": "routable_healthy",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_official_registry_api"
+    },
+    {
+      "channel": "payanagent",
+      "listing_status": "existing_provider_state_partially_degraded",
+      "discovery_status": "checked",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": false,
+      "external_requests": 60,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_public_request_inventory_no_A_grade_match",
+      "notes": "Two legacy offer refreshes returned recoverable server errors; one current offer and buy route remained canonical. No duplicate seller created."
+    },
+    {
+      "channel": "allmcps",
+      "listing_status": "already_listed_active",
+      "discovery_status": "present",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": null,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_public_directory_readback"
+    },
+    {
+      "channel": "x402arena",
+      "listing_status": "already_listed",
+      "discovery_status": "present",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_official_registry_market_activity_self_reported",
+      "duplicate_avoided": true,
+      "notes": "Registry dedupe found the canonical DELTA service before mutation. Marketplace-wide activity is self-reported and is not accepted as settlement or revenue proof."
+    },
+    {
+      "channel": "payapi",
+      "listing_status": "existing_canonical_listing",
+      "discovery_status": "present",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": null,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_public_market_readback"
+    },
+    {
+      "channel": "x402_list",
+      "listing_status": "not_listed",
+      "discovery_status": "absent",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": null,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_official_api_read"
+    },
+    {
+      "channel": "circle_x402_discovery",
+      "listing_status": "not_listed",
+      "discovery_status": "absent",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": null,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B_official_api_read"
+    }
+  ],
+  "treasury_reconciliation": {
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "start_block": 51150502,
+    "latest_block": 51200501,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "treasury_received_usdc": 0,
+    "customer_revenue_usdc": 0,
+    "unclassified_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "funnel": {
+    "value_authored": 0,
+    "payment_authorized": 0,
+    "settlement_confirmed": 0,
+    "treasury_received": 0,
+    "external_requests": 60,
+    "402_intents": 0,
+    "paid_settlements": 0,
+    "revenue": 0,
+    "variable_cost": 0,
+    "contribution_margin": 0
+  },
+  "external_degradations": [
+    {
+      "channel": "indexnow_core",
+      "status": "recoverable_rate_limit",
+      "retries": 4,
+      "impact": "isolated; Base-app IndexNow and all Treasury/discovery checks continued"
+    },
+    {
+      "channel": "payanagent_legacy_offer_refresh",
+      "status": "recoverable_server_error",
+      "affected_legacy_offers": 2,
+      "impact": "isolated; current canonical offer and buy route remained valid"
+    }
+  ],
+  "outreach": {
+    "new_explicit_interest_replies": 0,
+    "emails_sent_this_run": 0,
+    "reason_no_new_outreach": "daily outreach cap already consumed by prior authorized first-contact/refresh communications; no silence-chasing"
+  },
+  "catalog_state": {
+    "payai_bazaar": "catalog_refresh_pending",
+    "true402": "catalog_refresh_pending",
+    "note": "No obsolete numerical prices are treated as current authority."
+  },
+  "notification_threshold_met": false
+}
