@@ -57,6 +57,45 @@
       "review_target": "within_24_hours_platform_claim_not_owner_guarantee",
       "evidence_quality": "A_official_submission_endpoint_plus_current_public_search"
     },
+    "walnut_world": {
+      "listing_status": "indexed_existing_canonical",
+      "discovery_status": "present_public_index",
+      "github_index_note": "package 15998194110 indexed; delta-witness; GitHub checked 2d ago",
+      "duplicate_listing_created": false,
+      "evidence_quality": "B_current_public_index"
+    },
+    "x402_arena": {
+      "listing_status": "present_existing_canonical",
+      "listing_count": 6,
+      "discovery_status": "six_delta_entries_live",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "paid_settlements": 0,
+      "revenue_usdc": 0,
+      "verified_neighbor_demand": {
+        "marketplace_reported_revenue_usd": 109.38,
+        "marketplace_reported_queries": 10799,
+        "marketplace_reported_buyers": 81,
+        "aligned_preflight_example": "butterflydelta-order-preflight",
+        "aligned_preflight_paid_queries": 1,
+        "aligned_preflight_buyers": 1
+      },
+      "duplicate_listing_created": false,
+      "evidence_quality": "B_current_public_marketplace_with_concentration_anomaly"
+    },
+    "x402_new": {
+      "listing_status": "not_visible_by_delta_search",
+      "discovery_status": "bazaar_auto_index_path_only_no_direct_free_form",
+      "directory_reported_services": 14201,
+      "directory_reported_providers": 3833,
+      "directory_reported_calls_30d": 338000,
+      "verified_neighbor_demand": [
+        {"service": "repair_validate_attest", "calls_30d": 4, "unique_payers": 1},
+        {"service": "onrender_preflight", "calls_30d": 1, "unique_payers": 1}
+      ],
+      "mutation_taken": false,
+      "evidence_quality": "B_current_public_directory_and_service_stats"
+    },
     "payanagent": {
       "listing_status": "existing_canonical",
       "discovery_status": "degraded_recoverable",
@@ -108,8 +147,9 @@
     },
     "x402_list": {
       "listing_status": "not_present",
-      "discovery_status": "absent_current_readback",
-      "evidence_quality": "B_public_current_api"
+      "discovery_status": "absent_current_readback_workers_dev_submission_is_paid",
+      "paid_action_taken": false,
+      "evidence_quality": "B_public_current_api_and_submission_policy"
     },
     "circle_x402_discovery": {
       "listing_status": "not_present",
@@ -128,6 +168,15 @@
       "submission_attempts": 0,
       "recoverable_external_degradation": true,
       "evidence_quality": "A_official_registry_api_attempt"
+    },
+    "clawslist": {
+      "listing_status": "identity_state_not_recreated",
+      "discovery_status": "public_site_reachable_auth_required_for_agent_api",
+      "public_market_activity_observed": true,
+      "duplicate_identity_created": false,
+      "registration_attempted": false,
+      "deferred_recheck": true,
+      "evidence_quality": "B_current_public_site_plus_prior_auth_gate"
     },
     "indexnow": {
       "core": "upstream_429_after_4_bounded_retries_recoverable",
