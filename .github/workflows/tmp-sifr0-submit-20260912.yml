@@ -1,31 +1,17 @@
-name: DELTA one-time SIFR-0 submit
+name: RETIRED - DELTA SIFR-0 submit 20260912
+
+# One-shot free SIFR-0 registration completed successfully on 2026-09-12.
+# Canonical DELTA Witness listing is live and duplicate-protected; pricing and
+# Treasury evidence are recorded in docs/evidence/2026-09-12T1059-sifr0-growth-run.json.
 on:
-  push:
-    branches: ["master"]
-    paths:
-      - ".github/workflows/tmp-sifr0-submit-20260912.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  submit:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with: { node-version: '22' }
-      - name: Verify current owner pricing policy
-        run: node scripts/check-owner-pricing.mjs
-      - name: Verify live public 402 amounts
-        run: node scripts/verify-owner-pricing-live.mjs
-      - name: Reconcile canonical DELTA Witness listing in SIFR-0 without duplication
-        run: node scripts/register-sifr0.mjs
-      - name: Audit paid funnel candidates
-        if: always()
-        continue-on-error: true
-        run: node scripts/query-revenue-candidates.mjs
-      - name: Reconcile Base Treasury independently
-        if: always()
-        run: node scripts/reconcile-treasury.mjs
+      - run: echo 'SIFR-0 registration completed; one-shot workflow retired.'
