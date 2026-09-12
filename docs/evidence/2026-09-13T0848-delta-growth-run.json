@@ -1,0 +1,191 @@
+{
+  "checked_at": "2026-09-12T23:48:14Z",
+  "owner_pricing": {
+    "policy": "owner-2026-09-10-1-5-10",
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "public_raw_usdc": {
+      "capture": "1000000",
+      "preflight": "5000000",
+      "guarded_action_pilot": "10000000"
+    },
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "evidence_quality": "A_direct_live_402_readback"
+  },
+  "production_integrity": {
+    "health": "ok",
+    "version": "0.7.0",
+    "capture_402_verified": true,
+    "preflight_402_verified": true,
+    "guarded_action_pilot_402_verified": true,
+    "canonical_base_usdc_verified": true,
+    "treasury_pay_to_verified": true,
+    "paid_transactions_generated_by_diagnostics": 0,
+    "customer_revenue_generated_by_diagnostics": 0,
+    "core_production_failure": false,
+    "evidence_quality": "A_direct_live_endpoint_checks"
+  },
+  "distribution": {
+    "agent402": {
+      "listing_status": "present_existing_canonical",
+      "discovery_status": "listed_routable_health_1",
+      "tool_count": 6,
+      "duplicate_identity_created": false,
+      "evidence_quality": "A_official_api"
+    },
+    "allmcps": {
+      "listing_status": "active_existing_canonical",
+      "discovery_status": "active",
+      "duplicate_listing_created": false,
+      "evidence_quality": "A_direct_current_readback"
+    },
+    "agentpact": {
+      "listing_status": "present",
+      "discovery_status": "present",
+      "seller_id": "5fdb4f2a-0d15-4e27-8d4a-15998194110d",
+      "offer_count": 3,
+      "offers": [
+        {"product": "capture", "status": "active", "price_usdc": 1, "id": "e0591c9f-48d3-43fb-b297-c540b986b29f"},
+        {"product": "public_preflight", "status": "active", "price_usdc": 5, "id": "8e29257c-3b53-445a-a827-5aef416bd3c5"},
+        {"product": "guarded_action_pilot", "status": "active", "price_usdc": 10, "id": "e70aad83-2af5-4495-8225-1abc6030bb97"}
+      ],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 17,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0,
+      "evidence_quality": "A_official_public_api"
+    },
+    "agentexchange": {
+      "buyer_count": 1,
+      "external_requests": 2,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "evidence_quality": "A_official_market_mcp"
+    },
+    "payanagent": {
+      "listing_status": "existing_canonical",
+      "discovery_status": "degraded_recoverable",
+      "seller_auth_error": "http_500",
+      "funded_compatible_requests": 0,
+      "duplicate_seller_created": false,
+      "evidence_quality": "C_channel_degraded"
+    },
+    "payai_bazaar": {
+      "listing_status": "existing",
+      "discovery_status": "present_stale_catalog_amounts",
+      "live_production_conflict": true,
+      "known_stale_raw_amount": "30000",
+      "self_pay_refresh_attempted": false,
+      "evidence_quality": "A_complete_current_catalog_scan"
+    },
+    "payapi_market": {
+      "listing_status": "present_existing_canonical",
+      "discovery_status": "present",
+      "evidence_quality": "B_current_public_readback"
+    },
+    "x402_list": {
+      "listing_status": "not_present",
+      "discovery_status": "absent_current_readback",
+      "evidence_quality": "B_public_current_api"
+    },
+    "circle_x402_discovery": {
+      "listing_status": "not_present",
+      "discovery_status": "absent_current_readback",
+      "evidence_quality": "B_public_current_api"
+    },
+    "x402_discovery_service": {
+      "listing_status": "degraded_external",
+      "discovery_status": "service_suspended_http_503",
+      "recoverable_external_degradation": true,
+      "evidence_quality": "A_official_endpoint_response"
+    },
+    "true402": {
+      "listing_status": "existing_state_no_duplicate",
+      "discovery_status": "existing_with_known_stale_capture_preflight_metadata",
+      "duplicate_listing_created": false,
+      "evidence_quality": "A_official_registry_api"
+    },
+    "aiprox": {
+      "listing_status": "active_existing_canonical",
+      "listing_id": 2047,
+      "discovery_status": "active",
+      "capability": "agent-commerce",
+      "rail": "x402",
+      "endpoint": "https://delta-witness-api.ruphussten.workers.dev/v1/guarded-action-pilot",
+      "price_usdc": 10,
+      "total_calls": 0,
+      "total_jobs": 0,
+      "verified": false,
+      "duplicate_listing_created": false,
+      "historical_created_at": "2026-09-07T06:26:25Z",
+      "evidence_quality": "A_official_public_registry_api"
+    },
+    "a2a_global_registry": {
+      "listing_status": "present_existing",
+      "discovery_status": "public_unclaimed",
+      "registry_id": "dev.workers.delta_witness",
+      "registered_date": "2026-09-10",
+      "manifest_url": "https://delta-witness-api.ruphussten.workers.dev/.well-known/agent.json",
+      "duplicate_listing_created": false,
+      "evidence_quality": "B_current_public_registry_readback"
+    },
+    "open_402_directory": {
+      "listing_status": "not_present_current_registry",
+      "discovery_status": "eligible_manifest_published_not_yet_indexed",
+      "registry_domains_checked": 6672,
+      "registry_endpoints_reported": 14943,
+      "canonical_domain": "delta-witness-api.ruphussten.workers.dev",
+      "manifest_url": "https://delta-witness-api.ruphussten.workers.dev/.well-known/agent.json",
+      "submission_this_run": false,
+      "reason_not_submitted": "No zero-fee direct programmatic submit endpoint exposed through current non-metered action surface; PR route requires a fork/cross-repo branch workflow not exposed by the active connector. Registry also supports nightly auto-discovery.",
+      "evidence_quality": "A_official_registry_source_plus_current_registry_scan"
+    }
+  },
+  "funnel": {
+    "buyer_count_verified": 0,
+    "customer_external_requests": 0,
+    "customer_402_intents": 0,
+    "customer_paid_settlements": 0,
+    "customer_treasury_received_usdc": 0,
+    "customer_revenue_usdc": 0,
+    "customer_variable_cost_usd": 0,
+    "customer_contribution_margin_usd": 0,
+    "paid_funnel_candidate_rows": 0
+  },
+  "treasury_reconciliation": {
+    "checked_at": "2026-09-12T23:47:00Z",
+    "latest_base_block": 51233744,
+    "lookback_blocks": 50000,
+    "canonical_usdc_receipt_candidates": 0,
+    "total_usdc": 0,
+    "known_non_customer_usdc": 0,
+    "unclassified_usdc": 0,
+    "customer_revenue_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "outreach": {
+    "sent_this_run": 0,
+    "new_explicit_interest_reply": false,
+    "silence_chased": false
+  },
+  "operational": {
+    "canonical_discovery_pulse_run_id": 34726291120,
+    "canonical_discovery_pulse_conclusion": "success",
+    "external_dependency_failures_isolated": true,
+    "duplicate_submission_created": false,
+    "aiprox_duplicate_probe_run_id": 34726371813,
+    "aiprox_duplicate_probe_conclusion": "success_existing_detected_no_post",
+    "temporary_aiprox_workflow_removed": true,
+    "temporary_aiprox_cleanup_commit": "0b9845a380861dd7c853b568f3e64101577d2202",
+    "active_duplicate_growth_loop": false,
+    "duplicate_seller_identity_created": false,
+    "irreversible_or_financial_action_taken": false
+  }
+}
