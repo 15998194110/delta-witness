@@ -1,0 +1,20 @@
+name: DELTA run11 treasury-only reconciliation
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-run11-treasury-20260912-2205.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  treasury:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Reconcile Base Treasury independently
+        run: node scripts/reconcile-treasury.mjs
