@@ -1,0 +1,76 @@
+name: TMP - x402 Discovery registration 20260913
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-x402discovery-register-20260913.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Enforce current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live canonical public 402 pricing
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Register one canonical DELTA Capture service without duplication
+        shell: bash
+        run: |
+          set -euo pipefail
+          API='https://x402-discovery-api.onrender.com'
+          URL='https://delta-witness-api.ruphussten.workers.dev/v1/capture'
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+
+          fetch_catalog() {
+            curl -fsS --connect-timeout 10 --max-time 45 --retry 4 --retry-delay 2 --retry-all-errors "$API/catalog?limit=1000"
+          }
+
+          CATALOG="$(fetch_catalog)"
+          if printf '%s' "$CATALOG" | grep -Fqi "$URL"; then
+            echo 'X402DISCOVERY_PRESENT: exact canonical Capture URL already listed; no duplicate write'
+            exit 0
+          fi
+
+          cat >/tmp/delta-register.json <<JSON
+          {
+            "id": "delta-witness-capture",
+            "name": "DELTA Witness",
+            "description": "Machine-verifiable public-web evidence capture for autonomous agents. Returns timestamped proof metadata and content hashes; payment is canonical x402 Base USDC and raw artifacts remain private.",
+            "url": "$URL",
+            "category": "utility",
+            "price_usd": 1.0,
+            "network": "base",
+            "wallet_address": "$TREASURY",
+            "tags": ["verification", "evidence", "web", "agents", "x402"],
+            "capability_tags": ["verification", "evidence", "web", "agents", "x402"]
+          }
+          JSON
+
+          STATUS="$(curl -sS --connect-timeout 10 --max-time 45 --retry 4 --retry-delay 2 --retry-all-errors -o /tmp/delta-register-response.json -w '%{http_code}' \
+            -X POST "$API/register" -H 'content-type: application/json' --data-binary @/tmp/delta-register.json)"
+          cat /tmp/delta-register-response.json
+
+          if [ "$STATUS" = '409' ]; then
+            echo 'X402DISCOVERY_PRESENT: registry reports existing entry; treating as canonical presence'
+          elif [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 300 ]; then
+            echo "X402DISCOVERY_REGISTER_FAILED status=$STATUS"
+            exit 1
+          else
+            echo "X402DISCOVERY_REGISTER_ACCEPTED status=$STATUS"
+          fi
+
+          sleep 2
+          CATALOG2="$(fetch_catalog)"
+          if printf '%s' "$CATALOG2" | grep -Fqi "$URL"; then
+            echo 'X402DISCOVERY_READBACK_PRESENT: exact canonical Capture URL discoverable'
+          else
+            echo 'X402DISCOVERY_READBACK_PENDING: registration accepted but catalog propagation not yet visible'
+          fi
