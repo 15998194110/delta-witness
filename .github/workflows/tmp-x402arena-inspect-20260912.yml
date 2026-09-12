@@ -1,0 +1,35 @@
+name: Temporary x402 Arena inspection
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-x402arena-inspect-20260912.yml"
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Verify owner pricing policy before external channel work
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Inspect existing DELTA entries on x402 Arena without mutation
+        run: |
+          set -euo pipefail
+          curl -fsS --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors \
+            https://core.x402arena.gg/operator/agents > /tmp/agents.json
+          curl -fsS --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors \
+            https://core.x402arena.gg/leaderboard > /tmp/leaderboard.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const agents=JSON.parse(fs.readFileSync('/tmp/agents.json','utf8')).agents||[];
+          const board=JSON.parse(fs.readFileSync('/tmp/leaderboard.json','utf8')).leaderboard||[];
+          const matches=agents.filter(x=>String(x.agentId||'').toLowerCase().includes('delta-witness'));
+          const ranks=board.filter(x=>String(x.agentId||'').toLowerCase().includes('delta-witness'));
+          console.log('X402_ARENA_DELTA_AGENTS '+JSON.stringify(matches));
+          console.log('X402_ARENA_DELTA_LEADERBOARD '+JSON.stringify(ranks));
+          console.log('X402_ARENA_COUNTS '+JSON.stringify({agents:agents.length,deltaAgents:matches.length,deltaLeaderboard:ranks.length}));
+          NODE
