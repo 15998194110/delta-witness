@@ -1,0 +1,36 @@
+name: DELTA x402 Arena read-only inspection
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-x402arena-inspect-20260912.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect existing DELTA Arena registrations and recent events
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors \
+            https://core.x402arena.gg/operator/agents -o /tmp/agents.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const j=JSON.parse(fs.readFileSync('/tmp/agents.json','utf8'));
+          const arr=Array.isArray(j)?j:(j.agents||j.data||[]);
+          const hits=arr.filter(x=>JSON.stringify(x).toLowerCase().includes('delta-witness'));
+          console.log(JSON.stringify({total_agents:arr.length,delta_count:hits.length,delta:hits},null,2));
+          NODE
+          curl -fsS --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors \
+            'https://core.x402arena.gg/operator/events?limit=100' -o /tmp/events.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const j=JSON.parse(fs.readFileSync('/tmp/events.json','utf8'));
+          const arr=Array.isArray(j)?j:(j.events||j.data||[]);
+          const hits=arr.filter(x=>JSON.stringify(x).toLowerCase().includes('delta-witness'));
+          console.log(JSON.stringify({recent_events:arr.length,delta_events:hits},null,2));
+          NODE
