@@ -1,0 +1,38 @@
+name: Temporary 402.ad free form inspection
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-402ad-inspect-20260912.yml"
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Inspect public submission page implementation only
+        run: |
+          set -euo pipefail
+          curl -fsSL --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors https://402.ad/submit -o /tmp/submit.html
+          echo 'SCRIPT_SRCS_BEGIN'
+          grep -oE '<script[^>]+src="[^"]+"' /tmp/submit.html | sed -E 's/.*src="([^"]+)"/\1/' || true
+          echo 'SCRIPT_SRCS_END'
+          echo 'FORM_ACTIONS_BEGIN'
+          grep -oE '<form[^>]*(action|method)=[^>]*>' /tmp/submit.html || true
+          echo 'FORM_ACTIONS_END'
+          echo 'ENDPOINT_HINTS_BEGIN'
+          grep -oE '/[A-Za-z0-9_./?=&-]*(submit|submission|review)[A-Za-z0-9_./?=&-]*' /tmp/submit.html | sort -u | head -100 || true
+          echo 'ENDPOINT_HINTS_END'
+          mkdir -p /tmp/js
+          python - <<'PY'
+          import re, pathlib, urllib.parse, subprocess
+          h=pathlib.Path('/tmp/submit.html').read_text(errors='replace')
+          srcs=re.findall(r'<script[^>]+src=["\']([^"\']+)',h)
+          for i,s in enumerate(srcs):
+              u=urllib.parse.urljoin('https://402.ad/submit',s)
+              p=f'/tmp/js/{i}.js'
+              subprocess.run(['curl','-fsSL','--connect-timeout','10','--max-time','30','--retry','3','--retry-delay','2','--retry-all-errors',u,'-o',p],check=False)
+          PY
+          echo 'JS_ENDPOINT_HINTS_BEGIN'
+          grep -RhoE '.{0,120}(fetch\(|axios|/api/[^"'"' ]+|/v1/[^"'"' ]+|submit[^"'"' ]*).{0,220}' /tmp/js 2>/dev/null | grep -Ei 'submit|review|submission' | head -120 || true
+          echo 'JS_ENDPOINT_HINTS_END'
