@@ -27,17 +27,22 @@ jobs:
           set -euo pipefail
           for q in 'DELTA%20Witness' 'delta-witness-api.ruphussten.workers.dev'; do
             body="$(curl -fsS --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors "https://gateway.apiosk.com/v1/apis?search=$q")"
-            printf '%s' "$body" | grep -q 'No APIs found matching your criteria.' || {
+            if printf '%s' "$body" | grep -Eqi '0 pay-per-call listings|No APIs found matching'; then
+              echo "APISK_DUPLICATE_GUARD: no reviewed API match for query=$q"
+            else
               echo "APISK_DUPLICATE_GUARD: possible existing reviewed listing for query=$q; refusing submission"
+              printf '%s\n' "$body" | head -c 4000
               exit 78
-            }
+            fi
           done
           provider="$(curl -fsS --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors 'https://gateway.apiosk.com/v1/providers?search=DELTA')"
-          printf '%s' "$provider" | grep -q 'No providers found matching your criteria.' || {
+          if printf '%s' "$provider" | grep -Eqi 'No providers found matching|0 providers'; then
+            echo 'APISK_DUPLICATE_GUARD: no reviewed DELTA provider match'
+          else
             echo 'APISK_DUPLICATE_GUARD: possible existing DELTA provider; refusing submission'
+            printf '%s\n' "$provider" | head -c 4000
             exit 78
-          }
-          echo 'APISK_DUPLICATE_GUARD: reviewed catalog/provider absence confirmed'
+          fi
       - name: Install browser runtime
         run: |
           npm install --no-save playwright@1.55.0
