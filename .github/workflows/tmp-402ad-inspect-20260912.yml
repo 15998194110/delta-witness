@@ -10,27 +10,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Inspect exact public Svelte entry modules
+      - name: Inspect public submit page client handler only
         run: |
           set -euo pipefail
-          curl -fsSL --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors https://402.ad/_app/immutable/entry/app.CxGPwYm-.js -o /tmp/app.js
-          curl -fsSL --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors https://402.ad/_app/immutable/entry/start.BvCnqg5Q.js -o /tmp/start.js
+          curl -fsSL --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 2 --retry-all-errors https://402.ad/_app/immutable/nodes/40.DGySbIch.js -o /tmp/page.js
           python - <<'PY'
-          import pathlib,re
-          for p in ['/tmp/app.js','/tmp/start.js']:
-              t=pathlib.Path(p).read_text(errors='replace')
-              print('FILE',p,'LEN',len(t))
-              for needle in ['nodes','node','40','submit','_app/immutable/nodes','imports']:
-                  hits=[]; start=0
-                  while True:
-                      j=t.find(needle,start)
-                      if j<0: break
-                      hits.append(t[max(0,j-800):j+1800].replace('\n',' ')[:2600]); start=j+len(needle)
-                      if len(hits)>=8: break
-                  for h in hits: print('NEEDLE',needle,h)
-              print('JS_PATHS_BEGIN')
-              for m in re.finditer(r'["\']([^"\']+\.js)["\']',t):
-                  v=m.group(1)
-                  if '_app/' in v or 'nodes/' in v or 'chunks/' in v: print(v)
-              print('JS_PATHS_END')
+          import pathlib
+          t=pathlib.Path('/tmp/page.js').read_text(errors='replace')
+          print('PAGE_LEN',len(t))
+          for needle in ['/v1/submit','fetch(','github-url','use-case','search-query','searched','agent_type','agentType','github_url','githubUrl','package','submission']:
+              start=0; n=0
+              while True:
+                  j=t.find(needle,start)
+                  if j<0: break
+                  print('NEEDLE',needle)
+                  print(t[max(0,j-2200):j+5200].replace('\n',' ')[:8000])
+                  start=j+len(needle); n+=1
+                  if n>=6: break
           PY
