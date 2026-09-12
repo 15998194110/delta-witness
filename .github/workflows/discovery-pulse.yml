@@ -1,4 +1,4 @@
-# Manual canonical pulse marker: 2026-09-12T22:35+09:00
+# Manual canonical pulse marker: 2026-09-12T22:42+09:00
 name: DELTA Discovery Pulse
 on:
   schedule:
@@ -40,7 +40,7 @@ jobs:
       - name: Scan PayanAgent funded buyer demand
         if: always()
         continue-on-error: true
-        run: node scripts/scan-payan-demand.mjs
+        run: node scripts/scan-payan-demand.mjs | tee /tmp/delta-payan-demand.json
       - name: Verify machine discovery surfaces
         run: |
           set -e
@@ -60,12 +60,12 @@ jobs:
           test "$STATUS" = "402"
           grep -qi '^payment-required:' /tmp/delta-preflight.headers
       - name: Audit paid funnel candidates
-        run: node scripts/query-revenue-candidates.mjs
+        run: node scripts/query-revenue-candidates.mjs | tee /tmp/delta-revenue-candidates.json
       - name: Reconcile Base Treasury
         if: always()
         id: treasury
         continue-on-error: true
-        run: node scripts/reconcile-treasury.mjs
+        run: node scripts/reconcile-treasury.mjs | tee /tmp/delta-treasury.json
       - name: Push core IndexNow
         id: indexnow-core
         continue-on-error: true
@@ -142,3 +142,14 @@ jobs:
       - name: Refresh true402 discovery without duplication
         continue-on-error: true
         run: node scripts/register-true402.mjs
+      - name: Upload canonical pulse evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-pulse-state-${{ github.run_id }}
+          path: |
+            /tmp/delta-payan-demand.json
+            /tmp/delta-revenue-candidates.json
+            /tmp/delta-treasury.json
+          if-no-files-found: warn
+          retention-days: 7
