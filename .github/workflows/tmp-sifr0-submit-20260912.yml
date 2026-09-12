@@ -1,0 +1,21 @@
+name: DELTA one-time SIFR-0 submit
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-sifr0-submit-20260912.yml"
+  workflow_dispatch:
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Verify current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live public 402 amounts
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Register canonical DELTA Witness listing in SIFR-0 without duplication
+        run: node scripts/register-sifr0.mjs
