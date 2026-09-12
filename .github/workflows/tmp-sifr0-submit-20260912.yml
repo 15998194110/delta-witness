@@ -20,6 +20,9 @@ jobs:
       - name: Register canonical DELTA Witness listing in SIFR-0 without duplication
         run: node scripts/register-sifr0.mjs
       - name: Audit paid funnel candidates
+        if: always()
+        continue-on-error: true
         run: node scripts/query-revenue-candidates.mjs
       - name: Reconcile Base Treasury independently
+        if: always()
         run: node scripts/reconcile-treasury.mjs
