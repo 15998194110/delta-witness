@@ -1,4 +1,4 @@
-# Retry marker: 2026-09-13T10:23+09:00
+# Retry marker: 2026-09-13T10:26+09:00
 name: TMP - Apiosk federated submission 20260913
 on:
   push:
@@ -27,13 +27,11 @@ jobs:
       - name: Confirm Apiosk catalog absence and validate canonical discovery
         run: |
           node <<'NODE'
-          const qs = ['DELTA Witness','delta-witness-api.ruphussten.workers.dev'];
-          for (const q of qs) {
+          for (const q of ['DELTA Witness','delta-witness-api.ruphussten.workers.dev']) {
             const r = await fetch(`https://gateway.apiosk.com/v1/apis?search=${encodeURIComponent(q)}`, {signal:AbortSignal.timeout(20000)});
             if (!r.ok) throw new Error(`catalog_http_${r.status}`);
             const j = await r.json();
-            const total = Number(j?.meta?.total ?? j?.apis?.length ?? -1);
-            if (total !== 0) throw new Error(`duplicate_guard_existing_api_${q}`);
+            if (Number(j?.meta?.total ?? j?.apis?.length ?? -1) !== 0) throw new Error(`duplicate_guard_existing_api_${q}`);
           }
           const p = await fetch('https://gateway.apiosk.com/v1/providers?search=DELTA', {signal:AbortSignal.timeout(20000)});
           if (!p.ok) throw new Error(`provider_http_${p.status}`);
@@ -65,77 +63,75 @@ jobs:
           const treasury = '0x1990e21bc219696ff7fbc26527dbaed335ac6367';
           const browser = await chromium.launch({headless:true});
           try {
-            let done = false;
-            let last = null;
+            let done=false, last=null;
             for (let attempt=1; attempt<=3 && !done; attempt++) {
-              const page = await browser.newPage();
+              const page=await browser.newPage();
               try {
-                await page.goto('https://gateway.apiosk.com/federated/new', {waitUntil:'networkidle', timeout:60000});
-                const initial = (await page.locator('body').innerText()).replace(/\s+/g,' ');
+                await page.goto('https://gateway.apiosk.com/federated/new',{waitUntil:'networkidle',timeout:60000});
+                const initial=(await page.locator('body').innerText()).replace(/\s+/g,' ');
                 if (/turnstile|captcha|connect wallet|wallet signature|sign in|log in/i.test(initial)) throw new Error('USER_ACTION_REQUIRED_INTERACTIVE_AUTH');
-                const input = page.locator('input[name="discovery_url"],input[type="url"]').first();
-                await input.fill(manifest);
+                await page.locator('input[name="discovery_url"],input[type="url"]').first().fill(manifest);
                 await page.getByRole('button',{name:/read my x402 endpoint|preview|validate/i}).first().click();
                 await page.waitForLoadState('networkidle',{timeout:60000}).catch(()=>{});
                 await page.waitForTimeout(1200);
-                const preview = (await page.locator('body').innerText()).replace(/\s+/g,' ');
-                console.log('APISK_PREVIEW', preview.slice(0,8000));
+                const preview=(await page.locator('body').innerText()).replace(/\s+/g,' ');
+                console.log('APISK_PREVIEW',preview.slice(0,8000));
                 if (/we couldn't read that|no valid x402 resources found|invalid discovery|validation failed/i.test(preview)) throw new Error('manifest_rejected');
+                if (!/read 3 x402 resources/i.test(preview)) throw new Error('preview_did_not_parse_three_resources');
                 if (!preview.toLowerCase().includes(treasury)) throw new Error('preview_missing_treasury');
-                for (const price of ['$1','$5','$10']) if (!preview.includes(price)) throw new Error(`preview_missing_${price}`);
-                const requiredChecks = page.locator('input[type="checkbox"][required]');
+                if (!/lowest per-call price:\s*\$1\.00/i.test(preview)) throw new Error('preview_lowest_price_mismatch');
+                const requiredChecks=page.locator('input[type="checkbox"][required]');
                 if (await requiredChecks.count()) throw new Error('USER_ACTION_REQUIRED_LEGAL_ACK');
-                const fill = async (selectors, value) => {
-                  for (const s of selectors) {
-                    const loc = page.locator(s).first();
-                    if (await loc.count()) { await loc.fill(value); return true; }
+
+                const fillLabel=async(re,value)=>{const l=page.getByLabel(re).first();if(await l.count()){await l.fill(value);return true;}return false;};
+                await fillLabel(/Display name/i,'DELTA Witness');
+                await fillLabel(/^Slug/i,'delta-witness');
+                await fillLabel(/Provider website/i,'https://delta-witness-app.pages.dev/');
+                await fillLabel(/GitHub/i,'https://github.com/15998194110/delta-witness');
+                await fillLabel(/Description/i,'Machine-verifiable public-web evidence capture, deterministic preflight verification, and guarded-action proof bundles for autonomous agents using canonical x402 settlement on Base USDC.');
+                await fillLabel(/Contact email/i,'ruphussten@163.com');
+
+                let category=page.getByLabel(/Category/i).first();
+                if (await category.count()) {
+                  const opts=await category.locator('option').evaluateAll(os=>os.map(o=>({value:o.value,text:(o.textContent||'').trim()})));
+                  const chosen=opts.find(o=>/^Tools$/i.test(o.text)) || opts.find(o=>/^Web$/i.test(o.text)) || opts.find(o=>/^Ai$/i.test(o.text));
+                  if (chosen) await category.selectOption(chosen.value);
+                } else {
+                  category=page.locator('select[name*="category" i]').first();
+                  if(await category.count()) {
+                    const opts=await category.locator('option').evaluateAll(os=>os.map(o=>({value:o.value,text:(o.textContent||'').trim()})));
+                    const chosen=opts.find(o=>/^Tools$/i.test(o.text)) || opts.find(o=>/^Web$/i.test(o.text));
+                    if(chosen) await category.selectOption(chosen.value);
                   }
-                  return false;
-                };
-                await fill(['input[name="display_name"]','input[name="name"]'], 'DELTA Witness');
-                await fill(['input[name="slug"]'], 'delta-witness');
-                await fill(['input[name="provider_website"]','input[name="website"]','input[name="homepage"]'], 'https://delta-witness-app.pages.dev/');
-                await fill(['input[name="github"]','input[name="github_url"]'], 'https://github.com/15998194110/delta-witness');
-                await fill(['input[name="contact_email"]','input[name="email"]'], 'ruphussten@163.com');
-                await fill(['textarea[name="description"]','textarea[name="summary"]'], 'Machine-verifiable public-web evidence capture, deterministic preflight verification, and guarded-action proof bundles for autonomous agents using canonical x402 settlement on Base USDC.');
-                const required = page.locator('input[required],textarea[required],select[required]');
+                }
+
+                const required=page.locator('input[required],textarea[required],select[required]');
                 const missing=[];
-                for (let i=0;i<await required.count();i++) {
-                  const el=required.nth(i); const type=await el.getAttribute('type');
-                  if (type==='checkbox') continue;
+                for(let i=0;i<await required.count();i++){
+                  const el=required.nth(i); const type=await el.getAttribute('type'); if(type==='checkbox') continue;
                   const val=await el.inputValue().catch(()=> '');
-                  if (!val) missing.push((await el.getAttribute('name')) || (await el.getAttribute('id')) || `required_${i}`);
+                  if(!val) missing.push((await el.getAttribute('name'))||(await el.getAttribute('id'))||`required_${i}`);
                 }
-                if (missing.length) throw new Error(`required_fields_missing:${missing.join(',')}`);
-                let submit = page.getByRole('button',{name:/publish.*review|submit.*review|send.*review|submit listing|publish/i}).first();
-                if (!(await submit.count())) {
-                  const candidates=page.locator('button[type="submit"]');
-                  if (await candidates.count()===1) submit=candidates.first();
-                }
-                if (!(await submit.count())) throw new Error('submit_button_missing');
-                const responsePromise=page.waitForResponse(r=>r.request().method()==='POST' && /gateway\.apiosk\.com/.test(r.url()), {timeout:20000}).catch(()=>null);
+                if(missing.length) throw new Error(`required_fields_missing:${missing.join(',')}`);
+
+                let submit=page.getByRole('button',{name:/publish for review|publish.*review|submit.*review|send.*review/i}).first();
+                if(!(await submit.count())) throw new Error('submit_button_missing');
+                const responsePromise=page.waitForResponse(r=>r.request().method()==='POST'&&/gateway\.apiosk\.com/.test(r.url()),{timeout:20000}).catch(()=>null);
                 await submit.click();
                 const post=await responsePromise;
                 await page.waitForLoadState('networkidle',{timeout:60000}).catch(()=>{});
                 await page.waitForTimeout(1600);
                 const finalText=(await page.locator('body').innerText()).replace(/\s+/g,' ');
-                console.log('APISK_FINAL', finalText.slice(0,8000));
-                if (post) {
-                  const body=(await post.text().catch(()=>'' )).slice(0,4000);
-                  console.log('APISK_POST', post.status(), post.url(), body);
-                  if (post.status()>=400) throw new Error(`submit_http_${post.status}`);
-                }
-                if (!post && !/submitted|pending|received|thank|review queue|under review/i.test(finalText)) throw new Error('acceptance_unverified');
-                console.log('APISK_SUBMISSION_VERIFIED');
-                done=true;
-              } catch (e) {
-                last=e;
-                const msg=e?.message || String(e);
-                console.log(`APISK_ATTEMPT_${attempt}`, msg);
-                if (/USER_ACTION_REQUIRED/.test(msg)) throw e;
-                if (attempt<3) await new Promise(r=>setTimeout(r, attempt*2000));
-              } finally { await page.close(); }
+                console.log('APISK_FINAL',finalText.slice(0,8000));
+                if(post){const body=(await post.text().catch(()=>'' )).slice(0,4000);console.log('APISK_POST',post.status(),post.url(),body);if(post.status()>=400)throw new Error(`submit_http_${post.status}`);}
+                if(!post&&!/submitted|pending|received|thank|review queue|under review/i.test(finalText))throw new Error('acceptance_unverified');
+                console.log('APISK_SUBMISSION_VERIFIED'); done=true;
+              } catch(e) {
+                last=e; const msg=e?.message||String(e); console.log(`APISK_ATTEMPT_${attempt}`,msg);
+                if(/USER_ACTION_REQUIRED/.test(msg)) throw e;
+                if(attempt<3) await new Promise(r=>setTimeout(r,attempt*2000));
+              } finally {await page.close();}
             }
-            if (!done) throw last || new Error('submission_failed_after_retries');
-          } finally { await browser.close(); }
+            if(!done)throw last||new Error('submission_failed_after_retries');
+          } finally {await browser.close();}
           NODE
