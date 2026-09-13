@@ -1,0 +1,49 @@
+name: TMP - Circle Agent Marketplace form inspect 20260913
+
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-circle-agent-marketplace-inspect-20260913.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Verify current canonical price gate
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Inspect Circle public service-submission form without mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          FORM='https://docs.google.com/forms/d/e/1FAIpQLSeVGlFm-rglBEd8nPqWTdbg2XIe8jY7dd43iFC-FhP2WANQvQ/viewform?usp=send_form'
+          curl -L --fail --silent --show-error --retry 3 --retry-all-errors --max-time 30 \
+            -A 'Mozilla/5.0 DELTA-Witness/1.0' "$FORM" -o /tmp/circle-form.html
+          echo "CIRCLE_FORM_BYTES $(wc -c < /tmp/circle-form.html)"
+          python - <<'PY'
+          import re, html, pathlib
+          s=pathlib.Path('/tmp/circle-form.html').read_text(errors='replace')
+          print('CIRCLE_FORM_LOGIN_REQUIRED', bool(re.search(r'sign in|accounts\.google\.com', s, re.I)))
+          for m in re.finditer(r'<div[^>]*role="listitem"[^>]*>(.*?)</div>\s*</div>\s*</div>', s, re.S):
+              block=m.group(1)
+              text=' '.join(re.sub(r'<[^>]+>',' ',block).split())
+              entries=sorted(set(re.findall(r'entry\.(\d+)', block)))
+              if text or entries:
+                  print('CIRCLE_FORM_ITEM', {'text': html.unescape(text)[:500], 'entries': entries})
+          # Fallback: expose unique entry ids and nearby question text.
+          ids=sorted(set(re.findall(r'entry\.(\d+)',s)))
+          print('CIRCLE_FORM_ENTRY_IDS', ids)
+          for eid in ids:
+              idx=s.find('entry.'+eid)
+              snip=re.sub(r'<[^>]+>',' ',s[max(0,idx-1500):idx+1000])
+              snip=' '.join(html.unescape(snip).split())
+              print('CIRCLE_FORM_NEAR', eid, snip[-700:])
+          PY
