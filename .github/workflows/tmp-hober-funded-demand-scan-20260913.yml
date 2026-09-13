@@ -1,0 +1,50 @@
+name: TMP - Hober funded demand scan 20260913
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-hober-funded-demand-scan-20260913.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Install browser runtime
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+      - name: Inspect public Hober open-jobs data without mutation
+        run: |
+          node <<'NODE'
+          const { chromium } = await import('playwright');
+          const browser = await chromium.launch({headless:true});
+          const page = await browser.newPage();
+          const seen = new Set();
+          const candidates = [];
+          page.on('response', async r => {
+            const u=r.url();
+            if (!/^https:\/\/(app|api)\.hober\.dev\//.test(u)) return;
+            if (seen.has(u)) return; seen.add(u);
+            const ct=(r.headers()['content-type']||'').toLowerCase();
+            if (!ct.includes('json')) return;
+            try {
+              const text=await r.text();
+              if (/job|escrow|budget|funded|marketplace/i.test(text)) candidates.push({status:r.status(),url:u,body:text.slice(0,30000)});
+            } catch {}
+          });
+          try {
+            await page.goto('https://app.hober.dev/marketplace/jobs',{waitUntil:'networkidle',timeout:60000});
+            await page.waitForTimeout(5000);
+            const body=(await page.locator('body').innerText()).replace(/\s+/g,' ');
+            console.log('HOBER_PAGE',body.slice(0,16000));
+            console.log('HOBER_JSON',JSON.stringify(candidates));
+          } finally { await browser.close(); }
+          NODE
