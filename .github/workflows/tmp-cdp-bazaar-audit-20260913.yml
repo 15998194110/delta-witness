@@ -1,4 +1,4 @@
-name: TMP - CDP Bazaar DELTA price audit 20260913
+name: TMP - x402 facilitator routing audit 20260913
 on:
   push:
     branches: ["master"]
@@ -17,42 +17,37 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - name: Verify canonical live owner prices
-        run: |
-          node scripts/check-owner-pricing.mjs
-          node scripts/verify-owner-pricing-live.mjs
-      - name: Read Coinbase CDP Bazaar without mutation
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Inspect installed x402 version and multi-facilitator selection
         run: |
           node <<'NODE'
-          const host='delta-witness-api.ruphussten.workers.dev';
-          const base='https://api.cdp.coinbase.com/platform/v2/x402/discovery';
-          const endpoints=['/v1/capture','/v1/preflight','/v1/guarded-action-pilot'];
-          const urls=[
-            `${base}/search?query=${encodeURIComponent(host)}`,
-            `${base}/search?urlSubstring=${encodeURIComponent(host)}`,
+          const fs = await import('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('node_modules/@x402/core/package.json','utf8'));
+          console.log('X402_CORE_VERSION', pkg.version);
+          const candidates = [
+            'node_modules/@x402/core/dist/esm/server/x402ResourceServer.js',
+            'node_modules/@x402/core/dist/esm/server/index.mjs',
+            'node_modules/@x402/core/dist/cjs/server/x402ResourceServer.js',
           ];
-          async function get(url){
-            const r=await fetch(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(30000)});
-            const text=await r.text();
-            console.log('CDP_HTTP',r.status,url,text.slice(0,20000));
-            if(!r.ok) return null;
-            try{return JSON.parse(text)}catch{return null}
-          }
-          const bodies=[];
-          for(const url of urls) bodies.push(await get(url));
-          const flat=[];
-          function walk(v){
-            if(!v)return;
-            if(Array.isArray(v)){for(const x of v)walk(x);return;}
-            if(typeof v==='object'){
-              const s=JSON.stringify(v).toLowerCase();
-              if(s.includes(host)) flat.push(v);
-              for(const x of Object.values(v)) if(typeof x==='object') walk(x);
+          let source=''; let sourcePath='';
+          for (const p of candidates) if (fs.existsSync(p)) { source=fs.readFileSync(p,'utf8'); sourcePath=p; break; }
+          if (!source) {
+            const stack=['node_modules/@x402/core'];
+            while(stack.length && !source){
+              const d=stack.pop();
+              for(const e of fs.readdirSync(d,{withFileTypes:true})){
+                const p=`${d}/${e.name}`;
+                if(e.isDirectory()) stack.push(p);
+                else if(/x402ResourceServer\.(js|mjs)$/.test(e.name)){source=fs.readFileSync(p,'utf8');sourcePath=p;break;}
+              }
             }
           }
-          for(const b of bodies) walk(b);
-          const uniq=[...new Map(flat.map(x=>[JSON.stringify(x),x])).values()];
-          const matches=uniq.filter(x=>endpoints.some(p=>JSON.stringify(x).includes(`${host}${p}`)||JSON.stringify(x).includes(`https://${host}${p}`)));
-          console.log('CDP_DELTA_MATCHES',JSON.stringify(matches,null,2));
-          console.log('CDP_DELTA_SUMMARY',JSON.stringify({host,match_count:matches.length,expected_usdc:{capture:1,preflight:5,'guarded-action-pilot':10}},null,2));
+          console.log('X402_RESOURCE_SERVER_SOURCE', sourcePath || 'not-found');
+          const markers=['facilitatorClientsMap','constructor(facilitatorClients','getFacilitatorClient','supportedResponsesMap'];
+          for(const marker of markers){
+            const i=source.indexOf(marker);
+            console.log(`MARKER_${marker}`, i, i>=0 ? source.slice(Math.max(0,i-1400),Math.min(source.length,i+3000)) : 'missing');
+          }
           NODE
