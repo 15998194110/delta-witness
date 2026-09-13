@@ -1,0 +1,22 @@
+name: Temporary DELTA run7 reconciliation
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-run7-reconcile-20260914.yml'
+permissions:
+  contents: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Owner pricing policy gate
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live public 402 pricing
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Reconcile Base Treasury independently
+        run: node scripts/reconcile-treasury.mjs
