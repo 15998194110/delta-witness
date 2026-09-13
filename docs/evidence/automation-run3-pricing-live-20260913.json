@@ -1,0 +1,74 @@
+{
+  "checked_at": "2026-09-13T07:20:51.905Z",
+  "policy": "owner-2026-09-10-1-5-10",
+  "ok": true,
+  "products": [
+    {
+      "product": "capture",
+      "attempt": 1,
+      "http": 402,
+      "quote_usdc": 1,
+      "challenge_usdc": 1,
+      "raw_usdc": "1000000",
+      "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+      "network": "eip155:8453",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "expected_usdc": 1,
+      "header_body_match": true,
+      "status": "verified"
+    },
+    {
+      "product": "preflight",
+      "attempt": 1,
+      "http": 402,
+      "quote_usdc": 5,
+      "challenge_usdc": 5,
+      "raw_usdc": "5000000",
+      "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+      "network": "eip155:8453",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "expected_usdc": 5,
+      "header_body_match": true,
+      "status": "verified"
+    },
+    {
+      "product": "guarded-action-pilot",
+      "attempt": 1,
+      "http": 402,
+      "quote_usdc": 10,
+      "challenge_usdc": 10,
+      "raw_usdc": "10000000",
+      "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+      "network": "eip155:8453",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "expected_usdc": 10,
+      "header_body_match": true,
+      "status": "verified"
+    }
+  ],
+  "partners": [
+    {
+      "product": "partner_capture",
+      "status": "not_checked",
+      "reason": "scoped_secret_not_provided"
+    },
+    {
+      "product": "partner_preflight",
+      "status": "not_checked",
+      "reason": "scoped_secret_not_provided"
+    },
+    {
+      "product": "partner_watch",
+      "status": "not_checked",
+      "reason": "scoped_secret_not_provided"
+    }
+  ],
+  "paid_transactions_generated": 0,
+  "customer_revenue_generated": 0,
+  "diagnostic_only": true,
+  "unverified_scope": [
+    "ChatGPT scheduled-task prompts",
+    "global saved memory",
+    "local Codex automation files"
+  ]
+}

@@ -1,0 +1,209 @@
+{
+  "ok": true,
+  "channel": "agentpact",
+  "listing_status": "present",
+  "discovery_status": "present",
+  "seller": {
+    "id": "5fdb4f2a-0d15-4e27-8d4a-15998194110d",
+    "handle": "delta-witness",
+    "status": null
+  },
+  "offer_count": 3,
+  "offers": [
+    {
+      "id": "e70aad83-2af5-4495-8225-1abc6030bb97",
+      "title": "DELTA Witness Guarded-Action Pilot — Higher-Value Evidence",
+      "status": "active",
+      "active": null,
+      "price": "10.000000",
+      "currency": "USDC"
+    },
+    {
+      "id": "8e29257c-3b53-445a-a827-5aef416bd3c5",
+      "title": "DELTA Witness Public Preflight — Deterministic Verification",
+      "status": "active",
+      "active": null,
+      "price": "5.000000",
+      "currency": "USDC"
+    },
+    {
+      "id": "e0591c9f-48d3-43fb-b297-c540b986b29f",
+      "title": "DELTA Witness Capture — Public Web Evidence",
+      "status": "active",
+      "active": null,
+      "price": "1.000000",
+      "currency": "USDC"
+    }
+  ],
+  "buyer_count": 0,
+  "settlement_count": 0,
+  "verified_neighbor_demand": true,
+  "external_requests": 17,
+  "intents_402": 0,
+  "paid_settlements": 0,
+  "treasury_received": 0,
+  "revenue": 0,
+  "variable_cost": 0,
+  "contribution_margin": 0,
+  "evidence_quality": "A_official_public_api",
+  "compatible_requests": [
+    {
+      "id": "e65d8771-9e3a-4301-920d-346e93738cd4",
+      "title": "Need: Python code review + security audit",
+      "status": "open",
+      "budget": null,
+      "currency": "USDC",
+      "funded": null,
+      "fundingStatus": null,
+      "buyerId": null,
+      "tags": [
+        "code-review",
+        "security",
+        "python"
+      ],
+      "createdAt": null,
+      "updatedAt": null,
+      "low_confidence": false
+    },
+    {
+      "id": "fd22cb3c-0b8f-410a-8cee-e5db2da06577",
+      "title": "Need: Web scraping automation (urgent)",
+      "status": "open",
+      "budget": null,
+      "currency": "USDC",
+      "funded": null,
+      "fundingStatus": null,
+      "buyerId": null,
+      "tags": [
+        "scraping",
+        "automation",
+        "data"
+      ],
+      "createdAt": null,
+      "updatedAt": null,
+      "low_confidence": false
+    },
+    {
+      "id": "8b0e69cf-5041-42a6-b680-24075c31e27e",
+      "title": "Need: Python web scraping automation",
+      "status": "open",
+      "budget": null,
+      "currency": "USDC",
+      "funded": null,
+      "fundingStatus": null,
+      "buyerId": null,
+      "tags": [
+        "scraping",
+        "automation",
+        "data"
+      ],
+      "createdAt": null,
+      "updatedAt": null,
+      "low_confidence": false
+    },
+    {
+      "id": "14e383a0-7e6e-44f5-a0f8-deb11095b77d",
+      "title": "Gasless full need",
+      "status": "open",
+      "budget": null,
+      "currency": "USDC",
+      "funded": null,
+      "fundingStatus": null,
+      "buyerId": null,
+      "tags": [
+        "proof"
+      ],
+      "createdAt": null,
+      "updatedAt": null,
+      "low_confidence": false
+    },
+    {
+      "id": "8eaa2cbd-118c-4206-b13d-3ec89297b7f4",
+      "title": "Gasless full need",
+      "status": "open",
+      "budget": null,
+      "currency": "USDC",
+      "funded": null,
+      "fundingStatus": null,
+      "buyerId": null,
+      "tags": [
+        "proof"
+      ],
+      "createdAt": null,
+      "updatedAt": null,
+      "low_confidence": false
+    },
+    {
+      "id": "e39a0714-8d09-40bb-b516-93d1de2465de",
+      "title": "Gasless full need",
+      "status": "open",
+      "budget": null,
+      "currency": "USDC",
+      "funded": null,
+      "fundingStatus": null,
+      "buyerId": null,
+      "tags": [
+        "proof"
+      ],
+      "createdAt": null,
+      "updatedAt": null,
+      "low_confidence": false
+    },
+    {
+      "id": "f0d88108-f6ca-4f00-a7a3-678457bf9bc1",
+      "title": "Gasless full need",
+      "status": "open",
+      "budget": null,
+      "currency": "USDC",
+      "funded": null,
+      "fundingStatus": null,
+      "buyerId": null,
+      "tags": [
+        "proof"
+      ],
+      "createdAt": null,
+      "updatedAt": null,
+      "low_confidence": false
+    },
+    {
+      "id": "6487fc97-eb9b-4128-a95c-4eb4238037a2",
+      "title": "Gasless full need",
+      "status": "open",
+      "budget": null,
+      "currency": "USDC",
+      "funded": null,
+      "fundingStatus": null,
+      "buyerId": null,
+      "tags": [
+        "proof"
+      ],
+      "createdAt": null,
+      "updatedAt": null,
+      "low_confidence": false
+    },
+    {
+      "id": "87e5465a-95db-47dd-af33-3946ec24390d",
+      "title": "Full gasless need",
+      "status": "open",
+      "budget": null,
+      "currency": "USDC",
+      "funded": null,
+      "fundingStatus": null,
+      "buyerId": null,
+      "tags": [
+        "proof"
+      ],
+      "createdAt": null,
+      "updatedAt": null,
+      "low_confidence": false
+    }
+  ],
+  "funded_compatible_requests": [],
+  "buyer_funded_deals": [],
+  "channel_http": {
+    "agent": 200,
+    "offers": 200,
+    "needs": 200,
+    "deals": 200
+  }
+}
