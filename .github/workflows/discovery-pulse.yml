@@ -1,4 +1,4 @@
-# Manual canonical pulse marker: 2026-09-13T09:53+09:00
+# Manual canonical pulse marker: 2026-09-13T23:06+09:00
 name: DELTA Discovery Pulse
 on:
   schedule:
@@ -189,6 +189,9 @@ jobs:
       - name: Refresh true402 discovery without duplication
         continue-on-error: true
         run: node scripts/register-true402.mjs
+      - name: Register nohumans.directory without duplication
+        continue-on-error: true
+        run: node scripts/register-nohumans.mjs
       - name: Upload canonical pulse evidence
         if: always()
         uses: actions/upload-artifact@v4
