@@ -20,3 +20,4 @@ jobs:
         run: node scripts/verify-owner-pricing-live.mjs
       - name: Reconcile Base Treasury independently
         run: node scripts/reconcile-treasury.mjs
+# run7 trigger
