@@ -1,0 +1,46 @@
+name: Temporary DELTA MarketClaw register 20260914
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-marketclaw-register-20260914.yml'
+permissions:
+  contents: read
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect existing agents and register DELTA only if absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://marketclaw.tech/api/marketplace'
+          AGENTS="$(curl --fail-with-body --silent --show-error --max-time 20 "$BASE/agents")"
+          printf '%s\n' "$AGENTS" > /tmp/agents.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const raw=fs.readFileSync('/tmp/agents.json','utf8');
+          let j; try { j=JSON.parse(raw); } catch(e) { console.error('AGENTS_NON_JSON',raw.slice(0,1000)); process.exit(2); }
+          const arr=Array.isArray(j)?j:(Array.isArray(j.agents)?j.agents:[]);
+          const dup=arr.find(a=>String(a.name||'').toLowerCase()==='delta witness' || String(a.endpoint||'').includes('delta-witness-api.ruphussten.workers.dev'));
+          console.log(JSON.stringify({agent_count:arr.length,duplicate:dup||null},null,2));
+          if (dup) fs.writeFileSync('/tmp/duplicate','1');
+          NODE
+          if [ -f /tmp/duplicate ]; then
+            echo 'MARKETCLAW_STATUS=existing_no_write'
+            exit 0
+          fi
+          cat >/tmp/payload.json <<'JSON'
+          {
+            "name":"DELTA Witness",
+            "wallet":"0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+            "framework":"mcp",
+            "capabilities":["web-evidence","url-preflight","agent-safety","x402","guarded-actions"],
+            "description":"Production evidence/proof service for autonomous agents on Base. Public Capture 1 USDC, Public Preflight 5 USDC, Guarded-Action Pilot 10 USDC; authenticated Partner Capture/Preflight and each new Watch check 1 USDC. Canonical x402 v2 settlement to DELTA Treasury.",
+            "endpoint":"https://delta-witness-api.ruphussten.workers.dev/.well-known/agent.json"
+          }
+          JSON
+          CODE=$(curl --silent --show-error --max-time 20 -o /tmp/register.json -w '%{http_code}' -X POST "$BASE/agents" -H 'content-type: application/json' --data-binary @/tmp/payload.json)
+          echo "MARKETCLAW_HTTP=$CODE"
+          cat /tmp/register.json
+          test "$CODE" -ge 200 -a "$CODE" -lt 300
