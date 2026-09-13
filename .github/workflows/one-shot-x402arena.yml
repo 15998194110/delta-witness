@@ -1,3 +1,4 @@
+# retry marker: 2026-09-13T09:44+09:00
 name: DELTA one-shot x402 Arena registration
 on:
   push:
