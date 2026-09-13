@@ -1,0 +1,50 @@
+{
+  "checked_at": "2026-09-13T09:53:46.938Z",
+  "channel": "agents.net",
+  "action": "canonical_listing_submission",
+  "listing_status": "submitted_pending_review",
+  "dedup_search_http": 200,
+  "existing_canonical_match_before_submit": false,
+  "pricing_gate": {
+    "ok": true,
+    "public_capture_raw_usdc": "1000000",
+    "public_preflight_raw_usdc": "5000000",
+    "guarded_action_pilot_raw_usdc": "10000000",
+    "partner_capture_minimum_usdc": 1,
+    "partner_preflight_minimum_usdc": 1,
+    "partner_watch_minimum_usdc": 1,
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+  },
+  "submission_http": 200,
+  "submission_response": {
+    "success": true,
+    "message": "Agent submitted successfully! We'll review it and get back to you within 2-3 business days. You'll receive an email notification once your agent is approved or if we need more information.",
+    "submissionId": 190
+  },
+  "submitted_record": {
+    "name": "DELTA Witness",
+    "category": "Engineering",
+    "platform": "Custom",
+    "apiEndpoint": "https://delta-witness-api.ruphussten.workers.dev",
+    "description": "Production trust layer for autonomous actions: timestamped public page-state evidence plus deterministic preflight verification before consequential agent actions. x402 v2 on Base; Capture 1 USDC, Public Preflight 5 USDC, Guarded-Action Pilot 10 USDC."
+  },
+  "treasury_reconciliation": {
+    "status": "completed",
+    "latest_block": 51251928,
+    "new_canonical_usdc_receipts": 0,
+    "customer_revenue_usdc": 0,
+    "rpc_recovery": "mainnet.base.org rate-limit was isolated; scan continued via base-rpc.publicnode.com"
+  },
+  "agentpact": {
+    "seller_present": true,
+    "active_offer_prices_usdc": [1, 5, 10],
+    "buyer_funded_compatible_requests": 0,
+    "buyer_funded_deals": 0,
+    "paid_settlements": 0
+  },
+  "financial_action_taken": false,
+  "outreach_sent": false,
+  "evidence_quality": "A_official_api_write_response_plus_live_price_and_chain_reconciliation"
+}
