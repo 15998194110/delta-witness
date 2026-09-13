@@ -18,36 +18,35 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - name: Install locked dependencies
-        run: npm ci
-      - name: Inspect installed x402 version and multi-facilitator selection
+      - run: npm ci
+      - name: Prove same-network multi-facilitator semantics without external calls
         run: |
           node <<'NODE'
-          const fs = await import('node:fs');
-          const pkg = JSON.parse(fs.readFileSync('node_modules/@x402/core/package.json','utf8'));
-          console.log('X402_CORE_VERSION', pkg.version);
-          const candidates = [
-            'node_modules/@x402/core/dist/esm/server/x402ResourceServer.js',
-            'node_modules/@x402/core/dist/esm/server/index.mjs',
-            'node_modules/@x402/core/dist/cjs/server/x402ResourceServer.js',
-          ];
-          let source=''; let sourcePath='';
-          for (const p of candidates) if (fs.existsSync(p)) { source=fs.readFileSync(p,'utf8'); sourcePath=p; break; }
-          if (!source) {
-            const stack=['node_modules/@x402/core'];
-            while(stack.length && !source){
-              const d=stack.pop();
-              for(const e of fs.readdirSync(d,{withFileTypes:true})){
-                const p=`${d}/${e.name}`;
-                if(e.isDirectory()) stack.push(p);
-                else if(/x402ResourceServer\.(js|mjs)$/.test(e.name)){source=fs.readFileSync(p,'utf8');sourcePath=p;break;}
-              }
+          import { x402ResourceServer } from '@x402/core/server';
+          import { registerExactEvmScheme } from '@x402/evm/exact/server';
+          const supported={kinds:[{x402Version:2,scheme:'exact',network:'eip155:8453'}],extensions:[],signers:{'eip155:*':['0x0000000000000000000000000000000000000001']}};
+          function fake(name){
+            return {
+              name,
+              async getSupported(){ console.log('GET_SUPPORTED',name); return structuredClone(supported); },
+              async verify(){ console.log('VERIFY_CALLED',name); return {isValid:false,invalidReason:`${name}_probe`,payer:'0x0000000000000000000000000000000000000002'}; },
+              async settle(){ console.log('SETTLE_CALLED',name); return {success:false,errorReason:`${name}_probe`,payer:'0x0000000000000000000000000000000000000002',network:'eip155:8453',transaction:''}; },
+            };
+          }
+          async function audit(order){
+            const clients=order.map(fake);
+            const server=new x402ResourceServer(clients);
+            registerExactEvmScheme(server);
+            await server.initialize();
+            console.log('ORDER',order.join(','));
+            console.log('OWN_KEYS',Object.getOwnPropertyNames(server));
+            for(const key of Object.getOwnPropertyNames(server)){
+              if(/facilitator|supported/i.test(key)) console.dir({key,value:server[key]},{depth:8});
             }
+            const req={scheme:'exact',network:'eip155:8453',amount:'1000000',asset:'0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',payTo:'0x1990e21bc219696ff7fbc26527dbaed335ac6367',maxTimeoutSeconds:300,extra:{name:'USD Coin',version:'2'}};
+            const payload={x402Version:2,accepted:req,payload:{signature:'0x',authorization:{from:'0x0000000000000000000000000000000000000002',to:req.payTo,value:req.amount,validAfter:'0',validBefore:'999999999999',nonce:'0x'+'00'.repeat(32)}}};
+            try{await server.verifyPayment(payload,req);}catch(e){console.log('VERIFY_ERROR',String(e));}
           }
-          console.log('X402_RESOURCE_SERVER_SOURCE', sourcePath || 'not-found');
-          const markers=['facilitatorClientsMap','constructor(facilitatorClients','getFacilitatorClient','supportedResponsesMap'];
-          for(const marker of markers){
-            const i=source.indexOf(marker);
-            console.log(`MARKER_${marker}`, i, i>=0 ? source.slice(Math.max(0,i-1400),Math.min(source.length,i+3000)) : 'missing');
-          }
+          await audit(['A','B']);
+          await audit(['B','A']);
           NODE
