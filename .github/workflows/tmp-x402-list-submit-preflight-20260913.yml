@@ -34,7 +34,7 @@ jobs:
             description:"Independent public page-state evidence and deterministic preflight verification for consequential agent actions, with direct x402 settlement on Base USDC.",
             website_url:"https://delta-witness-app.pages.dev/",
             category:"Verification",
-            endpoints:["POST /v1/capture","POST /v1/preflight","POST /v1/guarded-action-pilot"],
+            endpoints:["/v1/capture","/v1/preflight","/v1/guarded-action-pilot"],
             notes:"Current owner-authorized prices are Capture 1 USDC, Public Preflight 5 USDC, and Guarded-Action Pilot 10 USDC. Production challenges use Base eip155:8453, canonical Base USDC, and Treasury 0x1990e21bc219696ff7fbc26527dbaed335ac6367. Pricing should be measured from live 402 responses rather than copied metadata."
           }')
 
@@ -59,18 +59,19 @@ jobs:
           elif [ "$code" = 402 ]; then
             node - <<'NODE'
           const fs=require('fs');
-          const body=JSON.parse(fs.readFileSync('/tmp/x402-list-submit-body.json','utf8')||'{}');
-          const accepts = body.accepts || body.error?.accepts || body.payment?.accepts || [];
-          const a = accepts[0] || {};
+          let body={};
+          try { body=JSON.parse(fs.readFileSync('/tmp/x402-list-submit-body.json','utf8')||'{}'); } catch {}
+          const accepts = body.accepts || body.error?.accepts || body.payment?.accepts || body.paymentRequirements?.accepts || [];
+          const a = accepts[0] || body.paymentRequirements || body.payment || {};
           console.log(JSON.stringify({
             event:'x402_list_payment_boundary',
             payment_required:true,
-            amount_raw:a.amount ?? null,
+            amount_raw:a.amount ?? a.maxAmountRequired ?? null,
             network:a.network ?? null,
             asset:a.asset ?? null,
             payTo:a.payTo ?? a.pay_to ?? null,
             scheme:a.scheme ?? null,
-            error:body.error?.message ?? null
+            error:body.error?.message ?? body.message ?? null
           }));
           NODE
             echo 'X402_LIST_SUBMIT listing_status=blocked_exact_financial_authorization payment_required=true'
