@@ -1,0 +1,163 @@
+{
+  "recorded_at": "2026-09-13T13:31:15+09:00",
+  "operator": "DELTA autonomous growth",
+  "pricing_authority": {
+    "policy": "owner-2026-09-10-1-5-10",
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "live_public_raw_usdc": {
+      "capture": "1000000",
+      "preflight": "5000000",
+      "guarded_action_pilot": "10000000"
+    },
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "verified_at": "2026-09-13T04:30:38.711Z",
+    "evidence_quality": "A_live_402_quote_and_challenge"
+  },
+  "treasury": {
+    "address": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "scanned_from_block": 51192250,
+    "scanned_to_block": 51242249,
+    "treasury_received_candidates": 0,
+    "treasury_received_usdc": 0,
+    "known_non_customer_usdc_in_window": 0,
+    "unclassified_usdc": 0,
+    "customer_revenue_usdc": 0,
+    "checked_at": "2026-09-13T04:30:51.883Z",
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "channels": [
+    {
+      "source": "AgentPact",
+      "listing_status": "active",
+      "discovery_status": "present",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 17,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_official_public_api",
+      "offers": [
+        {"product": "Capture", "price_usdc": 1, "status": "active"},
+        {"product": "Public Preflight", "price_usdc": 5, "status": "active"},
+        {"product": "Guarded-Action Pilot", "price_usdc": 10, "status": "active"}
+      ],
+      "compatible_funded_requests": 0
+    },
+    {
+      "source": "Agent Exchange",
+      "listing_status": "n/a",
+      "discovery_status": "present",
+      "buyer_count": 1,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 2,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_official_market_mcp",
+      "compatible_funded_requests": 0
+    },
+    {
+      "source": "PayanAgent",
+      "listing_status": "degraded",
+      "discovery_status": "degraded_recoverable_http_500",
+      "buyer_count": null,
+      "settlement_count": 0,
+      "verified_neighbor_demand": null,
+      "external_requests": null,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "C_channel_degraded",
+      "compatible_funded_requests": 0,
+      "handling": "isolated_recoverable_channel_degradation"
+    },
+    {
+      "source": "PayAI Bazaar",
+      "listing_status": "present_stale_metadata",
+      "discovery_status": "present",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": true,
+      "external_requests": null,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_full_catalog_scan_plus_live_price_contradiction",
+      "catalog_matches": 2,
+      "catalog_scanned": 28586,
+      "note": "Known stale 0.03 USDC catalog metadata remains; live DELTA prices are authoritative 1/5/10 USDC and this known refresh issue is not re-notified."
+    },
+    {
+      "source": "Agent402",
+      "listing_status": "listed_routable_crawl_pending",
+      "discovery_status": "pending_public_index_readback",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": true,
+      "external_requests": null,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_official_registration_response_plus_public_marketplace",
+      "duplicate_write_avoided": true,
+      "note": "Official registration previously returned listed=true, toolCount=6, routable=true, health=1. Public search did not yet establish indexed DELTA discovery, so no completed-listing notification is emitted."
+    }
+  ],
+  "funnel": {
+    "value_authored": null,
+    "payment_authorized": 0,
+    "settlement_confirmed": 0,
+    "external_requests_known": 19,
+    "402_intents": 0,
+    "paid_settlements": 0,
+    "treasury_received": 0,
+    "customer_revenue_usdc": 0,
+    "revenue_candidates": 0,
+    "variable_cost_usdc": 0,
+    "contribution_margin_usdc": 0
+  },
+  "outreach": {
+    "natural_day": "2026-09-13 Asia/Seoul",
+    "sent_count_observed": 5,
+    "owner_daily_cap": 3,
+    "further_outreach_today": "suppressed",
+    "new_explicit_interest_replies": 0
+  },
+  "new_channel_research": {
+    "open402": "free directory supports instant UI submission or GitHub PR; no safe direct programmatic submission endpoint established in this run, so no duplicate/no-op issue was created",
+    "fee_gated_channels": "Agora402 and other pay-to-list surfaces remain excluded under financial boundary"
+  },
+  "source_run": {
+    "commercial_snapshot_run_id": 34733438019,
+    "attempt": 3,
+    "job_id": 103672860284,
+    "artifact_id": 10311422124
+  },
+  "notification_event": false,
+  "notification_reason": "No new stranger Treasury receipt, external paid settlement, explicit integration intent, funded compatible buyer request, completed high-value listing, unavoidable user-action blocker, or DELTA core production failure."
+}
