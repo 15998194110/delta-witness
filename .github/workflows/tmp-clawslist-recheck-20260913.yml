@@ -1,0 +1,169 @@
+name: TMP DELTA ClawsList Recheck 20260913
+
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/tmp-clawslist-recheck-20260913.yml']
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      DELTA_PARTNER_GATEWAY_SECRET: ${{ secrets.DELTA_PARTNER_GATEWAY_SECRET }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+
+      - name: Verify current owner pricing and live public challenges
+        run: |
+          set -euo pipefail
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+
+      - name: Recheck canonical ClawsList identity, listings, inbox and demand
+        shell: bash
+        run: |
+          set -euo pipefail
+          API='https://clawslist.dev/api'
+          ARTIFACT_ID='10263292005'
+          mkdir -p /tmp/clawscred
+
+          # Reuse the canonical encrypted credential created with the existing DELTA identity.
+          # Never print or persist the decrypted key.
+          code=000
+          for i in 1 2 3; do
+            code=$(curl -L --connect-timeout 10 --max-time 40 -sS \
+              -o /tmp/clawscred.zip -w '%{http_code}' \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip") || code=000
+            case "$code" in 200) break;; 429|500|502|503|504|000) sleep $((i*2));; *) break;; esac
+          done
+          if [ "$code" != 200 ]; then
+            echo "CLAWSLIST_RECHECK degraded_recoverable=true stage=credential_artifact http=$code"
+            exit 0
+          fi
+
+          unzip -oq /tmp/clawscred.zip -d /tmp/clawscred
+          test -s /tmp/clawscred/clawslist-api-key.enc
+          test -n "$DELTA_PARTNER_GATEWAY_SECRET"
+          openssl enc -d -aes-256-cbc -pbkdf2 \
+            -pass env:DELTA_PARTNER_GATEWAY_SECRET \
+            -in /tmp/clawscred/clawslist-api-key.enc \
+            -out /tmp/clawscred/key
+          chmod 600 /tmp/clawscred/key
+          key=$(cat /tmp/clawscred/key)
+          rm -f /tmp/clawscred/key /tmp/clawscred.zip
+          test -n "$key"
+
+          get_json() {
+            local url="$1" out="$2"
+            local rc=000
+            for i in 1 2 3; do
+              rc=$(curl --connect-timeout 10 --max-time 30 -sS \
+                -o "$out" -w '%{http_code}' \
+                -H "Authorization: Bearer $key" "$url") || rc=000
+              case "$rc" in 200) break;; 429|500|502|503|504|000) sleep $((i*2));; *) break;; esac
+            done
+            printf '%s' "$rc"
+          }
+
+          me_http=$(get_json "$API/agents/me" /tmp/claws-me.json)
+          if [ "$me_http" != 200 ]; then
+            echo "CLAWSLIST_RECHECK degraded_recoverable=true stage=agent_me http=$me_http"
+            unset key
+            exit 0
+          fi
+
+          : >/tmp/claws-listings.jsonl
+          active=0
+          for id in PIy3TKBL8_VM0J_y1L7By ShSptZQ5ogohZrJfmLZ2e JgvxR2SiW5mQ2E9v0uxzb; do
+            rc=$(get_json "$API/listings/$id" "/tmp/listing-$id.json")
+            if [ "$rc" = 200 ]; then
+              jq -c '{id,title,status,category,mpp_price_amount,mpp_price_currency,mpp_endpoint}' "/tmp/listing-$id.json" >>/tmp/claws-listings.jsonl
+              [ "$(jq -r '.status // empty' "/tmp/listing-$id.json")" = active ] && active=$((active+1))
+            else
+              echo "CLAWSLIST_RECHECK listing_read_degraded=true listing_id=$id http=$rc"
+            fi
+          done
+
+          inbox_http=$(get_json "$API/inbox" /tmp/claws-inbox.json)
+          stats_http=$(get_json "$API/stats" /tmp/claws-stats.json)
+          wanted_http=$(get_json "$API/listings?category=services-wanted&sort=newest&limit=100" /tmp/claws-wanted.json)
+          gigs_http=$(get_json "$API/listings?category=gigs&sort=newest&limit=100" /tmp/claws-gigs.json)
+
+          inbox_count=0
+          explicit_interest_count=0
+          if [ "$inbox_http" = 200 ]; then
+            inbox_count=$(jq 'if type=="array" then length else (.replies // .messages // [] | length) end' /tmp/claws-inbox.json 2>/dev/null || echo 0)
+            explicit_interest_count=$(jq '[((if type=="array" then . else (.replies // .messages // []) end)[]?) | select(((.message // "") | ascii_downcase) | test("interested|buy|purchase|hire|integration|integrate|paid|pay you|use delta|use your|need your|quote|proof|preflight"))] | length' /tmp/claws-inbox.json 2>/dev/null || echo 0)
+          fi
+
+          relevant_requests=0
+          for f in /tmp/claws-wanted.json /tmp/claws-gigs.json; do
+            if [ -s "$f" ]; then
+              n=$(jq '[.listings[]? | select((((.title // "") + " " + (.body // "") + " " + ((.tags // [])|join(" "))) | ascii_downcase) | test("proof|verify|verification|browser|scrap|web data|audit|workflow|evidence|preflight|security"))] | length' "$f" 2>/dev/null || echo 0)
+              relevant_requests=$((relevant_requests+n))
+            fi
+          done
+
+          # Output only non-secret aggregate/seller/listing state; never print private inbox text.
+          jq -n \
+            --argjson active "$active" \
+            --argjson inbox_count "$inbox_count" \
+            --argjson explicit_interest_count "$explicit_interest_count" \
+            --argjson relevant_requests "$relevant_requests" \
+            --arg me_http "$me_http" \
+            --arg inbox_http "$inbox_http" \
+            --arg stats_http "$stats_http" \
+            --arg wanted_http "$wanted_http" \
+            --arg gigs_http "$gigs_http" \
+            --slurpfile me /tmp/claws-me.json \
+            --slurpfile stats /tmp/claws-stats.json \
+            '{
+              channel:"clawslist",
+              listing_status:(if $active==3 then "present_active" else "partial_or_degraded" end),
+              discovery_status:"present",
+              seller:{id:($me[0].id // null),name:($me[0].name // null),status:($me[0].status // null),reputation_score:($me[0].reputation_score // null),total_transactions:($me[0].total_transactions // null)},
+              active_listing_count:$active,
+              inbox_count:$inbox_count,
+              explicit_interest_threads:$explicit_interest_count,
+              external_requests:$relevant_requests,
+              marketplace_stats:($stats[0] // null),
+              paid_settlements:0,
+              treasury_received:0,
+              revenue:0,
+              variable_cost:0,
+              contribution_margin:0,
+              evidence_quality:"A_official_authenticated_api",
+              http:{agent:$me_http,inbox:$inbox_http,stats:$stats_http,wanted:$wanted_http,gigs:$gigs_http},
+              mutation:false
+            }' | tee /tmp/delta-clawslist-recheck.json
+
+          cat /tmp/claws-listings.jsonl
+          unset key
+
+      - name: Reconcile Base Treasury independently
+        if: always()
+        continue-on-error: true
+        run: node scripts/reconcile-treasury.mjs | tee /tmp/delta-treasury-claws-recheck.json
+
+      - name: Upload sanitized recheck evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-clawslist-recheck-${{ github.run_id }}
+          path: |
+            /tmp/delta-clawslist-recheck.json
+            /tmp/claws-listings.jsonl
+            /tmp/delta-treasury-claws-recheck.json
+          if-no-files-found: warn
+          retention-days: 7
