@@ -1,0 +1,102 @@
+name: DELTA Automation Turn4 One-Shot Scan
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-automation-turn4-scan-20260913.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    if: contains(github.event.head_commit.message, '[delta-turn4-scan]')
+    runs-on: ubuntu-latest
+    env:
+      DELTA_PARTNER_GATEWAY_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Current owner policy check
+        run: node scripts/check-owner-pricing.mjs > /tmp/policy.txt
+      - name: Live public 402 pricing and identity verification
+        continue-on-error: true
+        env:
+          PRICING_AUDIT_OUTPUT: /tmp/pricing.json
+        run: node scripts/verify-owner-pricing-live.mjs --diagnostic
+      - name: Revenue funnel candidates
+        if: always()
+        continue-on-error: true
+        run: node scripts/query-revenue-candidates.mjs > /tmp/funnel.json
+      - name: Base Treasury reconciliation
+        if: always()
+        continue-on-error: true
+        run: node scripts/reconcile-treasury.mjs > /tmp/treasury.json
+      - name: AgentPact demand and deal state
+        if: always()
+        continue-on-error: true
+        run: node scripts/scan-agentpact-demand.mjs > /tmp/agentpact.json
+      - name: Agent Exchange demand
+        if: always()
+        continue-on-error: true
+        run: node scripts/scan-agentexchange-demand.mjs > /tmp/agentexchange.json
+      - name: Payan demand
+        if: always()
+        continue-on-error: true
+        run: node scripts/scan-payan-demand.mjs > /tmp/payan.json
+      - name: Current discovery probes with bounded retries
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          HOST='delta-witness-api.ruphussten.workers.dev'
+          fetch_bounded() { curl -fsS --connect-timeout 10 --max-time 25 --retry 3 --retry-delay 2 --retry-all-errors "$1" -o "$2"; }
+          CIRCLE=degraded
+          if fetch_bounded "https://api.circle.com/v2/x402/discovery/resources?query=${HOST}" /tmp/circle.json; then
+            if grep -Fqi "$HOST" /tmp/circle.json; then CIRCLE=present; else CIRCLE=absent; fi
+          fi
+          CLAWS=degraded
+          if fetch_bounded "https://clawslist.com" /tmp/claws.html; then CLAWS=reachable; fi
+          ATLAS=degraded
+          if fetch_bounded "https://www.402atlas.com" /tmp/atlas.html; then
+            if grep -Fqi "$HOST" /tmp/atlas.html || grep -Fqi 'DELTA Witness' /tmp/atlas.html; then ATLAS=present; else ATLAS=absent_or_not_indexed; fi
+          fi
+          printf '{"circle":"%s","clawslist":"%s","atlas":"%s"}\n' "$CIRCLE" "$CLAWS" "$ATLAS" > /tmp/discovery.json
+      - name: Assemble one-shot evidence
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const read = (p) => {
+            try { const t=fs.readFileSync(p,'utf8').trim(); try{return JSON.parse(t)}catch{return {raw:t}} } catch(e) { return {missing:true,error:e.message} }
+          };
+          const out = {
+            checked_at: new Date().toISOString(),
+            run_kind: 'automation_turn4_one_shot_read_only',
+            pricing: read('/tmp/pricing.json'),
+            funnel: read('/tmp/funnel.json'),
+            treasury: read('/tmp/treasury.json'),
+            agentpact: read('/tmp/agentpact.json'),
+            agentexchange: read('/tmp/agentexchange.json'),
+            payan: read('/tmp/payan.json'),
+            discovery: read('/tmp/discovery.json'),
+            financial_action_taken: false,
+            listing_write_taken: false,
+            outreach_sent: false
+          };
+          fs.mkdirSync('docs/evidence',{recursive:true});
+          fs.writeFileSync('docs/evidence/2026-09-13T1838-kst-automation-turn4.json', JSON.stringify(out,null,2)+'\n');
+          NODE
+      - name: Commit evidence only
+        if: always()
+        run: |
+          git config user.name 'delta-automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/evidence/2026-09-13T1838-kst-automation-turn4.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'docs: record automation turn4 reconciliation evidence'
+            git push
+          fi
