@@ -1,0 +1,18 @@
+name: DELTA one-shot x402 Arena registration
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/one-shot-x402arena.yml"
+  workflow_dispatch:
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Register or verify canonical DELTA listing
+        run: node scripts/register-x402arena.mjs
