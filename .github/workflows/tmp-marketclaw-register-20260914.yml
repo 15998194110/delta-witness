@@ -10,38 +10,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Inspect existing agents and register DELTA only if absent
+      - name: Inspect DELTA listing and current task demand
         shell: bash
         run: |
           set -euo pipefail
           BASE='https://marketclaw.tech/api/marketplace'
-          AGENTS="$(curl --fail-with-body --silent --show-error --max-time 20 "$BASE/agents")"
-          printf '%s\n' "$AGENTS" > /tmp/agents.json
+          curl --fail-with-body --silent --show-error --max-time 20 "$BASE/agents" > /tmp/agents.json
+          curl --fail-with-body --silent --show-error --max-time 20 "$BASE/tasks" > /tmp/tasks.json
           node - <<'NODE'
           const fs=require('fs');
-          const raw=fs.readFileSync('/tmp/agents.json','utf8');
-          let j; try { j=JSON.parse(raw); } catch(e) { console.error('AGENTS_NON_JSON',raw.slice(0,1000)); process.exit(2); }
-          const arr=Array.isArray(j)?j:(Array.isArray(j.agents)?j.agents:[]);
-          const dup=arr.find(a=>String(a.name||'').toLowerCase()==='delta witness' || String(a.endpoint||'').includes('delta-witness-api.ruphussten.workers.dev'));
-          console.log(JSON.stringify({agent_count:arr.length,duplicate:dup||null},null,2));
-          if (dup) fs.writeFileSync('/tmp/duplicate','1');
+          const a=JSON.parse(fs.readFileSync('/tmp/agents.json','utf8'));
+          const t=JSON.parse(fs.readFileSync('/tmp/tasks.json','utf8'));
+          const agents=Array.isArray(a)?a:(Array.isArray(a.agents)?a.agents:[]);
+          const tasks=Array.isArray(t)?t:(Array.isArray(t.tasks)?t.tasks:[]);
+          const delta=agents.find(x=>String(x.name||'').toLowerCase()==='delta witness' || String(x.endpoint||'').includes('delta-witness-api.ruphussten.workers.dev')) || null;
+          const open=tasks.filter(x=>!['completed','cancelled','assigned'].includes(String(x.status||'').toLowerCase()));
+          const fit=open.filter(x=>JSON.stringify(x).toLowerCase().match(/verify|evidence|proof|preflight|web|browser|url|audit|agent|safety|guard/));
+          console.log(JSON.stringify({agent_count:agents.length,delta,task_count:tasks.length,open_task_count:open.length,fit_task_count:fit.length,fit_tasks:fit.slice(0,20)},null,2));
           NODE
-          if [ -f /tmp/duplicate ]; then
-            echo 'MARKETCLAW_STATUS=existing_no_write'
-            exit 0
-          fi
-          cat >/tmp/payload.json <<'JSON'
-          {
-            "name":"DELTA Witness",
-            "wallet":"0x1990e21bc219696ff7fbc26527dbaed335ac6367",
-            "framework":"mcp",
-            "capabilities":["web-evidence","url-preflight","agent-safety","x402","guarded-actions"],
-            "description":"Production evidence/proof service for autonomous agents on Base. Public Capture 1 USDC, Public Preflight 5 USDC, Guarded-Action Pilot 10 USDC; authenticated Partner Capture/Preflight and each new Watch check 1 USDC. Canonical x402 v2 settlement to DELTA Treasury.",
-            "endpoint":"https://delta-witness-api.ruphussten.workers.dev/.well-known/agent.json"
-          }
-          JSON
-          CODE=$(curl --silent --show-error --max-time 20 -o /tmp/register.json -w '%{http_code}' -X POST "$BASE/agents" -H 'content-type: application/json' --data-binary @/tmp/payload.json)
-          echo "MARKETCLAW_HTTP=$CODE"
-          cat /tmp/register.json
-          test "$CODE" -ge 200 -a "$CODE" -lt 300
-# trigger registration audit
