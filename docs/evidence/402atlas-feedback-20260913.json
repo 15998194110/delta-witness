@@ -1,0 +1,10 @@
+{
+  "channel": "402atlas",
+  "action": "request_independent_service_test",
+  "http_status": "200",
+  "response": "{\"ok\":true,\"note\":\"read weekly; leave an email if you want a reply\"}",
+  "pricing_written": false,
+  "fee_paid": false,
+  "wallet_signature": false,
+  "duplicate_identity_created": false
+}
