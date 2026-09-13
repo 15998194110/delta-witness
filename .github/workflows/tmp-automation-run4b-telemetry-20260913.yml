@@ -1,0 +1,36 @@
+name: TMP - DELTA automation turn4 telemetry reconcile 20260913
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-automation-run4b-telemetry-20260913.yml"
+permissions:
+  contents: write
+jobs:
+  telemetry:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Reconcile recent settlement and fulfillment telemetry
+        run: |
+          mkdir -p docs/evidence
+          node scripts/query-revenue-candidates.mjs > docs/evidence/automation-run4b-revenue-candidates-20260913.json
+      - name: Snapshot 1-day funnel
+        continue-on-error: true
+        run: node scripts/query-funnel.mjs 1 > docs/evidence/automation-run4b-funnel-20260913.txt
+      - name: Commit evidence and self-clean workflow
+        if: always()
+        shell: bash
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git rm .github/workflows/tmp-automation-run4b-telemetry-20260913.yml
+          git add docs/evidence/automation-run4b-*-20260913.* || true
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'evidence: automation run4 telemetry reconcile'
+          git push
