@@ -1,17 +1,61 @@
-name: RETIRED - DELTA commercial signal validation 20260913
-
-# One-shot validation completed successfully. 402radar cumulative settlement
-# telemetry and Agent Bazaar public-listing detection now run through the
-# existing canonical check-bazaar step; no duplicate monitoring loop remains.
+name: TMP - DELTA read-only commercial pulse 20260913
 on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-growth-gate-20260911-1156.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  retired:
-    if: ${{ false }}
+  snapshot:
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
     steps:
-      - run: echo 'Commercial-signal validation completed; one-shot retired.'
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify current canonical price gate
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Scan PayanAgent funded demand
+        continue-on-error: true
+        run: node scripts/scan-payan-demand.mjs | tee /tmp/payan.json
+      - name: Scan Agent Exchange funded demand
+        continue-on-error: true
+        run: node scripts/scan-agentexchange-demand.mjs | tee /tmp/agentexchange.json
+      - name: Scan AgentPact funded demand
+        continue-on-error: true
+        run: node scripts/scan-agentpact-demand.mjs | tee /tmp/agentpact.json
+      - name: Audit paid funnel candidates
+        continue-on-error: true
+        run: node scripts/query-revenue-candidates.mjs | tee /tmp/funnel.json
+      - name: Reconcile Base Treasury
+        continue-on-error: true
+        run: node scripts/reconcile-treasury.mjs | tee /tmp/treasury.json
+      - name: Read commercial discovery signals
+        continue-on-error: true
+        env:
+          BAZAAR_MAX_PAGES: '400'
+        run: node scripts/check-bazaar.mjs | tee /tmp/commercial-signals.txt
+      - name: Upload snapshot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-readonly-commercial-pulse-${{ github.run_id }}
+          path: |
+            /tmp/payan.json
+            /tmp/agentexchange.json
+            /tmp/agentpact.json
+            /tmp/funnel.json
+            /tmp/treasury.json
+            /tmp/commercial-signals.txt
+          retention-days: 7
+          if-no-files-found: warn
