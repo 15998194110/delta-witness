@@ -1,10 +1,10 @@
 {
-  "checked_at": "2026-09-13T09:42:50.172Z",
+  "checked_at": "2026-09-13T09:45:08.932Z",
   "run_kind": "automation_turn4_one_shot_read_only",
   "pricing": {
-    "checked_at": "2026-09-13T09:42:29.484Z",
+    "checked_at": "2026-09-13T09:44:49.115Z",
     "policy": "owner-2026-09-10-1-5-10",
-    "ok": false,
+    "ok": true,
     "products": [
       {
         "product": "capture",
@@ -52,24 +52,24 @@
     "partners": [
       {
         "product": "partner_capture",
-        "http": 401,
-        "minimum_usdc": null,
-        "attempt": 3,
-        "status": "floor_mismatch"
+        "http": 402,
+        "minimum_usdc": 1,
+        "attempt": 1,
+        "status": "verified"
       },
       {
         "product": "partner_preflight",
-        "http": 401,
-        "minimum_usdc": null,
-        "attempt": 3,
-        "status": "floor_mismatch"
+        "http": 402,
+        "minimum_usdc": 1,
+        "attempt": 1,
+        "status": "verified"
       },
       {
         "product": "partner_watch",
-        "http": 401,
-        "minimum_usdc": null,
-        "attempt": 3,
-        "status": "floor_mismatch"
+        "http": 402,
+        "minimum_usdc": 1,
+        "attempt": 1,
+        "status": "verified"
       }
     ],
     "paid_transactions_generated": 0,
@@ -86,12 +86,12 @@
   },
   "treasury": {
     "ok": true,
-    "checked_at": "2026-09-13T09:42:35.363Z",
+    "checked_at": "2026-09-13T09:44:53.923Z",
     "network": "eip155:8453",
     "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
     "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
-    "start_block": 51201602,
-    "latest_block": 51251601,
+    "start_block": 51201672,
+    "latest_block": 51251671,
     "lookback_blocks": 50000,
     "latest_rpc": "https://mainnet.base.org",
     "treasury_received_candidates": 0,
