@@ -1,0 +1,239 @@
+{
+  "run_at": "2026-09-13T09:45:00+09:00",
+  "pricing_authority": {
+    "policy": "owner-2026-09-10-1-5-10",
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "live_public_raw_usdc": {
+      "capture": "1000000",
+      "preflight": "5000000",
+      "guarded_action_pilot": "10000000"
+    },
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "evidence_quality": "A"
+  },
+  "treasury": {
+    "address": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "scanned_to_block": 51235091,
+    "treasury_received_candidates": 0,
+    "treasury_received_usdc": 0,
+    "known_non_customer_usdc": 0,
+    "unclassified_usdc": 0,
+    "customer_revenue_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "channels": [
+    {
+      "source": "AgentPact",
+      "listing_status": "active",
+      "discovery_status": "present",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": false,
+      "external_requests": 17,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A",
+      "offers": [
+        {"product": "Capture", "price_usdc": 1, "status": "active"},
+        {"product": "Public Preflight", "price_usdc": 5, "status": "active"},
+        {"product": "Guarded-Action Pilot", "price_usdc": 10, "status": "active"}
+      ],
+      "compatible_funded_requests": 0
+    },
+    {
+      "source": "Agent Exchange",
+      "listing_status": "n/a",
+      "discovery_status": "present",
+      "buyer_count": 1,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 2,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B",
+      "compatible_funded_requests": 0
+    },
+    {
+      "source": "x402 Arena",
+      "listing_status": "already_listed",
+      "discovery_status": "present",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_official_arena_API",
+      "duplicate_write_avoided": true,
+      "catalog_note": "Arena contains multiple historical DELTA identities, several with obsolete cached price metadata. No duplicate registration was created. Live DELTA public prices remain the owner-authoritative 1/5/10 USDC ladder; Arena self-reported revenue is not treated as customer revenue without Treasury confirmation."
+    },
+    {
+      "source": "true402",
+      "listing_status": "active",
+      "discovery_status": "present",
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A",
+      "duplicate_write_avoided": true
+    },
+    {
+      "source": "PayAPI Market",
+      "listing_status": "present",
+      "discovery_status": "present",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": null,
+      "external_requests": null,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B"
+    },
+    {
+      "source": "AIProx",
+      "listing_status": "present",
+      "discovery_status": "present",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": null,
+      "external_requests": null,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B"
+    },
+    {
+      "source": "A2A Global Registry",
+      "listing_status": "present",
+      "discovery_status": "present",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": null,
+      "external_requests": null,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "B"
+    },
+    {
+      "source": "x402 Discovery",
+      "listing_status": "degraded",
+      "discovery_status": "HTTP_503_service_suspended",
+      "buyer_count": null,
+      "settlement_count": null,
+      "verified_neighbor_demand": null,
+      "external_requests": null,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "C",
+      "handling": "isolated_recoverable_channel_degradation"
+    },
+    {
+      "source": "PayanAgent",
+      "listing_status": "degraded",
+      "discovery_status": "seller_http_500_offer_reads_http_400",
+      "buyer_count": null,
+      "settlement_count": 0,
+      "verified_neighbor_demand": true,
+      "external_requests": 0,
+      "402_intents": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "C",
+      "compatible_funded_requests": 0,
+      "handling": "isolated_recoverable_channel_degradation"
+    }
+  ],
+  "submissions_outreach": {
+    "natural_day_timezone": "Asia/Seoul",
+    "first_contacts_sent_today": 3,
+    "daily_cap": 3,
+    "new_this_run": [
+      {
+        "target": "Launch MCP",
+        "official_public_contact": "hello@launchmcp.co",
+        "status": "submitted_by_email_pending_review",
+        "message_id": "1a09832ee67ea06d"
+      },
+      {
+        "target": "MCP Agents Market",
+        "official_public_contact": "hello@mcpagentsmarket.com",
+        "status": "submitted_by_email_pending_review",
+        "message_id": "1a09833b51cb6481"
+      }
+    ],
+    "new_explicit_interest_replies": 0
+  },
+  "deferred_or_blocked": [
+    {
+      "channel": "BusinessMCP",
+      "reason": "listing flow presents a one-time listing fee; autonomous payment prohibited",
+      "action": "no_payment"
+    },
+    {
+      "channel": "TrackMCP",
+      "reason": "free submission page verified but no safe direct programmatic form endpoint established; browser automation wallet unavailable",
+      "action": "deferred"
+    },
+    {
+      "channel": "WorkUSDC",
+      "reason": "proposal credit/application fee is pay-to-work",
+      "action": "excluded"
+    },
+    {
+      "channel": "Swarmwage",
+      "reason": "seller publication requires dedicated wallet/private-key signing",
+      "action": "read_only_only"
+    },
+    {
+      "channel": "Molted",
+      "reason": "advertised public jobs API returned 404 and advertised repository was unavailable",
+      "action": "recoverable_deferred_recheck"
+    }
+  ],
+  "notification_event": false,
+  "notification_reason": "No new stranger Treasury receipt, paid settlement, explicit integration intent, funded compatible buyer request, completed new high-value listing, unavoidable user-action blocker, or DELTA core production failure."
+}
