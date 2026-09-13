@@ -1,32 +1,32 @@
-name: TMP - Agent402 duplicate suppression validation 20260913
+name: RETIRED - DELTA commercial routing audits 20260913
+
+# Completed read-only/local commercial routing audits on 2026-09-13.
+# Evidence retained in GitHub Actions history and artifacts.
+#
+# Findings:
+# - Coinbase CDP Bazaar had no DELTA resources in exact urlSubstring discovery.
+# - Installed @x402/core 2.24.0 selects the first facilitator advertising the
+#   same x402Version/network/scheme; same-network clients are not a failover pool.
+# - Agent402 /api/index temporarily omitted DELTA, so the canonical origin was
+#   registered once. The authoritative seller-trust surface confirms listed=true,
+#   manifestParsed=true, healthScore=1, 6 tools / 3 paid tools, price range $1-$10.
+# - Agent402 Smart Router currently will not spend buyer money on DELTA because
+#   its live gate requires >=50 observed settled calls and a paid resource at or
+#   below the router's $0.005 underlying cap. Owner pricing remains 1/5/10; no
+#   self-payments or price reductions were made to game this gate.
+# - scripts/register-agent402.mjs now uses the documented free proof-of-work
+#   seller-trust tier as a secondary authoritative duplicate guard when /api/index
+#   lags. A second pass proved duplicate_avoided=true and submission_attempts=0.
+
 on:
-  push:
-    branches: ["master"]
-    paths:
-      - ".github/workflows/tmp-cdp-bazaar-audit-20260913.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  validate:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-      - name: Run canonical Agent402 registration reconciler a second time
-        run: |
-          node scripts/register-agent402.mjs | tee /tmp/agent402-second-pass.txt
-          grep -q '"duplicate_avoided":true' /tmp/agent402-second-pass.txt
-          grep -q '"submission_attempts":0' /tmp/agent402-second-pass.txt
-      - name: Upload validation evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: agent402-duplicate-suppression-${{ github.run_id }}
-          path: /tmp/agent402-second-pass.txt
-          retention-days: 7
-          if-no-files-found: warn
+      - run: echo 'Commercial routing audit completed; one-shot retired.'
