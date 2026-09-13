@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 jobs:
-  reconcile:
+  treasury:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -14,13 +14,5 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - name: Check owner pricing policy
-        run: node scripts/check-owner-pricing.mjs
-      - name: Verify live public prices without payment
-        run: node scripts/verify-owner-pricing-live.mjs
-      - name: Scan AgentPact current seller and funded demand
-        run: node scripts/scan-agentpact-demand.mjs
-      - name: Query DELTA revenue candidates
-        run: node scripts/query-revenue-candidates.mjs
-      - name: Reconcile Base Treasury independently
+      - name: Reconcile Base Treasury independently after unrelated audit degradation
         run: node scripts/reconcile-treasury.mjs
