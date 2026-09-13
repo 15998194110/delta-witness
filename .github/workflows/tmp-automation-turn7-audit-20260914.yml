@@ -1,0 +1,36 @@
+name: TEMP DELTA automation turn7 audit 20260914
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-automation-turn7-audit-20260914.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Owner pricing source checks
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/check-owner-pricing-authority.mjs
+      - name: Live public pricing audit
+        env:
+          DELTA_PARTNER_GATEWAY_SECRET: ${{ secrets.DELTA_PARTNER_GATEWAY_SECRET }}
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Treasury reconciliation
+        run: node scripts/reconcile-treasury.mjs
+      - name: AgentPact demand scan
+        run: node scripts/scan-agentpact-demand.mjs
+      - name: Paid funnel candidates
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          DELTA_D1_DATABASE_ID: c9431b00-27c5-4609-9f3d-6af20cb162df
+        run: node scripts/query-revenue-candidates.mjs
