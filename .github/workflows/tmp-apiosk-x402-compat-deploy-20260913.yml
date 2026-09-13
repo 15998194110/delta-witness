@@ -1,3 +1,4 @@
+# Phase 2 marker: 2026-09-13T10:30+09:00
 name: ONE-SHOT - DELTA x402 discovery compatibility + Apiosk submit
 on:
   push:
@@ -34,122 +35,67 @@ jobs:
           node scripts/check-owner-pricing.mjs
           node scripts/verify-owner-pricing-live.mjs
 
-      - name: Patch provider-owned x402 discovery without changing settlement logic
-        shell: bash
+      - name: Add non-settling GET discovery probes for POST-only paid resources
         run: |
           python3 <<'PY'
           from pathlib import Path
           p = Path('src/index.ts')
           s = p.read_text()
-          old = '''app.get("/.well-known/x402", async (c) => c.json({
-            x402Version: 2,
-            service: "delta-witness",
-            version: c.env.APP_VERSION,
-            network: c.env.NETWORK,
-            payment_flow: "upfront",
-            resources: [
-              { method: "POST", path: "/v1/capture", product: "capture", inputSchema: CAPTURE_INPUT_SCHEMA },
-              { method: "POST", path: "/v1/preflight", product: "guard", inputSchema: PREFLIGHT_INPUT_SCHEMA },
-              { method: "POST", path: "/v1/guarded-action-pilot", product: "guarded_action_pilot", price_usd: 10, inputSchema: GUARDED_ACTION_PILOT_INPUT_SCHEMA },
-            ],
-            openapi: `${origin(c.env)}/openapi.json`,
-          }));'''
-          new = '''app.get("/.well-known/x402", async (c) => {
-            const [captureQuote, preflightQuote] = await Promise.all([
-              quoteProductWithOverride(c.env, "capture"),
-              quoteProductWithOverride(c.env, "preflight"),
-            ]);
-            const base = origin(c.env);
-            const lastUpdated = new Date().toISOString();
-            const canonicalBaseUsdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-            const rawUsdc = (usd: number) => String(Math.round(usd * 1_000_000));
-            const accepts = (amount: string) => [{
-              scheme: "exact",
-              network: c.env.NETWORK,
-              amount,
-              asset: canonicalBaseUsdc,
-              payTo: c.env.PAY_TO,
-              maxTimeoutSeconds: 300,
-              extra: { name: "USDC", version: "2", paymentFlow: "upfront" },
-            }];
-            return c.json({
-              x402Version: 2,
-              service: "delta-witness",
-              version: c.env.APP_VERSION,
-              network: c.env.NETWORK,
-              payment_flow: "upfront",
-              resources: [
-                {
-                  resource: `${base}/v1/capture`,
-                  type: "http",
-                  x402Version: 2,
-                  accepts: accepts(rawUsdc(captureQuote.grossPriceUsd)),
-                  lastUpdated,
-                  method: "POST",
-                  path: "/v1/capture",
-                  product: "capture",
-                  description: "Browser verification and page-state proof for one public URL.",
-                  mimeType: "application/json",
-                  serviceName: "delta-witness",
-                  tags: ["web-evidence", "capture", "verification", "browser-agent"],
-                  inputSchema: CAPTURE_INPUT_SCHEMA,
-                  extensions: discoveryFor("capture"),
-                },
-                {
-                  resource: `${base}/v1/preflight`,
-                  type: "http",
-                  x402Version: 2,
-                  accepts: accepts(rawUsdc(preflightQuote.grossPriceUsd)),
-                  lastUpdated,
-                  method: "POST",
-                  path: "/v1/preflight",
-                  product: "guard",
-                  description: "Deterministic preflight verification against fresh public page state.",
-                  mimeType: "application/json",
-                  serviceName: "delta-witness",
-                  tags: ["preflight", "verification", "agent-safety", "web-evidence"],
-                  inputSchema: PREFLIGHT_INPUT_SCHEMA,
-                  extensions: discoveryFor("preflight"),
-                },
-                {
-                  resource: `${base}/v1/guarded-action-pilot`,
-                  type: "http",
-                  x402Version: 2,
-                  accepts: accepts("10000000"),
-                  lastUpdated,
-                  method: "POST",
-                  path: "/v1/guarded-action-pilot",
-                  product: "guarded_action_pilot",
-                  price_usd: 10,
-                  description: "Guarded-action evidence pilot covering 1-3 public HTTPS pages and an optional deterministic preflight.",
-                  mimeType: "application/json",
-                  serviceName: "delta-witness",
-                  tags: ["guarded-action", "verification", "workflow-safety", "browser-agent"],
-                  inputSchema: GUARDED_ACTION_PILOT_INPUT_SCHEMA,
-                },
-              ],
-              openapi: `${base}/openapi.json`,
-            });
-          });'''
-          if old not in s:
-              raise SystemExit('expected discovery block not found; refusing stale patch')
-          s = s.replace(old, new, 1)
-          p.write_text(s)
+          anchor = '''app.use("/v1/capture", (c, next) => prevalidate("capture", c, next));'''
+          block = '''// Discovery/catalog health probes may issue GET even when the advertised paid
+// operation is POST. Never forward a caller payment header on this compatibility
+// path: each GET is converted into a fresh internal *unpaid* POST so it can only
+// receive the canonical 402 challenge and can never settle or execute work.
+async function unpaidDiscoveryProbe(c: AppContext, route: "/v1/capture" | "/v1/preflight" | "/v1/guarded-action-pilot"): Promise<Response> {
+  const headers = new Headers({
+    accept: "application/json",
+    "x-delta-channel": "discovery-probe",
+  });
+  const response = await app.fetch(new Request(`${origin(c.env)}${route}`, {
+    method: "POST",
+    headers,
+  }), c.env, c.executionCtx);
+  if (response.status !== 402) {
+    return c.json({ error: "discovery_probe_failed", route, upstream_status: response.status }, 502);
+  }
+  response.headers.set("cache-control", "private, no-store");
+  return response;
+}
+
+app.get("/v1/capture", (c) => unpaidDiscoveryProbe(c, "/v1/capture"));
+app.get("/v1/preflight", (c) => unpaidDiscoveryProbe(c, "/v1/preflight"));
+app.get("/v1/guarded-action-pilot", (c) => unpaidDiscoveryProbe(c, "/v1/guarded-action-pilot"));
+
+'''
+          if block in s:
+              print('probe compatibility already present; idempotent no-op')
+          else:
+              if anchor not in s:
+                  raise SystemExit('paid route anchor not found; refusing stale patch')
+              s = s.replace(anchor, block + anchor, 1)
+              p.write_text(s)
           PY
 
-      - name: Verify source and regression suite
+      - name: Run regression suite and static safety gate
         run: |
           npm ci
           npm run verify
-          node - <<'NODE'
-          const fs = require('fs');
+          node <<'NODE'
+          const fs = require('node:fs');
           const s = fs.readFileSync('src/index.ts','utf8');
-          for (const token of ['accepts(rawUsdc(captureQuote.grossPriceUsd))','accepts(rawUsdc(preflightQuote.grossPriceUsd))','accepts("10000000")','payTo: c.env.PAY_TO']) {
-            if (!s.includes(token)) throw new Error(`missing discovery compatibility token: ${token}`);
-          }
+          for (const token of [
+            'async function unpaidDiscoveryProbe',
+            'method: "POST"',
+            '"x-delta-channel": "discovery-probe"',
+            'app.get("/v1/capture"',
+            'app.get("/v1/preflight"',
+            'app.get("/v1/guarded-action-pilot"',
+          ]) if (!s.includes(token)) throw new Error(`missing safety token: ${token}`);
+          const fn = s.slice(s.indexOf('async function unpaidDiscoveryProbe'), s.indexOf('app.use("/v1/capture"'));
+          if (/getPaymentHeader|payment-signature|x-payment/i.test(fn)) throw new Error('GET probe must not forward or consume payment credentials');
           NODE
 
-      - name: Refuse stale deploy if another operator advanced master
+      - name: Refuse stale deployment on concurrent source changes
         run: |
           git fetch origin master
           test "$(git rev-parse origin/master)" = "$GITHUB_SHA" || {
@@ -157,112 +103,37 @@ jobs:
             exit 75
           }
 
-      - name: Commit compatibility patch to canonical master
+      - name: Commit probe compatibility to canonical master
         run: |
-          git config user.name 'DELTA Commercial Operator'
-          git config user.email 'actions@users.noreply.github.com'
-          git add src/index.ts
-          git commit -m 'feat: publish standard x402 payment requirements for discovery'
-          git push origin HEAD:master
+          if git diff --quiet -- src/index.ts; then
+            echo 'No source change required.'
+          else
+            git config user.name 'DELTA Commercial Operator'
+            git config user.email 'actions@users.noreply.github.com'
+            git add src/index.ts
+            git commit -m 'feat: expose non-settling x402 discovery probes on paid routes'
+            git push origin HEAD:master
+          fi
 
-      - name: Deploy current canonical source to Cloudflare
+      - name: Deploy canonical source to Cloudflare
         run: |
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           npx wrangler deploy
 
-      - name: Verify live prices and discovery payment requirements
+      - name: Verify POST prices and GET probes live
         run: |
           node scripts/verify-owner-pricing-live.mjs
           node <<'NODE'
-          const expected = new Map([
-            ['/v1/capture','1000000'],
-            ['/v1/preflight','5000000'],
-            ['/v1/guarded-action-pilot','10000000'],
-          ]);
-          const treasury = '0x1990e21bc219696ff7fbc26527dbaed335ac6367';
-          const asset = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
-          const base = 'https://delta-witness-api.ruphussten.workers.dev';
-          const res = await fetch(`${base}/.well-known/x402`, { signal: AbortSignal.timeout(20000) });
-          if (!res.ok) throw new Error(`discovery_http_${res.status}`);
-          const j = await res.json();
-          if (!Array.isArray(j.resources) || j.resources.length < 3) throw new Error('discovery resources missing');
-          for (const [path, amount] of expected) {
-            const r = j.resources.find(x => x.path === path || x.resource === `${base}${path}`);
-            if (!r) throw new Error(`missing ${path}`);
-            const a = r.accepts?.[0];
-            if (!a) throw new Error(`missing accepts for ${path}`);
-            if (a.amount !== amount) throw new Error(`${path} amount ${a.amount} != ${amount}`);
-            if (String(a.payTo).toLowerCase() !== treasury) throw new Error(`${path} treasury mismatch`);
-            if (String(a.asset).toLowerCase() !== asset) throw new Error(`${path} asset mismatch`);
-            if (a.network !== 'eip155:8453' || a.scheme !== 'exact') throw new Error(`${path} rail mismatch`);
-          }
-          console.log('LIVE_X402_DISCOVERY_COMPAT_OK');
-          NODE
-
-      - name: Submit canonical manifest to Apiosk federated review
-        continue-on-error: true
-        run: |
-          npm install --no-save playwright@1.55.0
-          npx playwright install chromium
-          node <<'NODE'
-          const { chromium } = require('playwright');
-          const url = 'https://gateway.apiosk.com/federated/new';
-          const manifest = 'https://delta-witness-api.ruphussten.workers.dev/.well-known/x402';
-          const treasury = '0x1990e21bc219696ff7fbc26527dbaed335ac6367';
-          const browser = await chromium.launch({ headless: true });
-          try {
-            for (let attempt = 1; attempt <= 3; attempt++) {
-              const page = await browser.newPage();
-              try {
-                await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
-                const initial = (await page.locator('body').innerText()).replace(/\s+/g,' ');
-                if (/turnstile|captcha|connect wallet|wallet signature|sign in|log in/i.test(initial)) {
-                  console.log('APISK_USER_ACTION_BLOCKER interactive verification/auth detected');
-                  process.exitCode = 79;
-                  break;
-                }
-                await page.locator('input[name="discovery_url"], input[type="url"]').first().fill(manifest);
-                await page.getByRole('button', { name: /read my x402 endpoint|preview|validate/i }).first().click();
-                await page.waitForLoadState('networkidle', { timeout: 60000 }).catch(()=>{});
-                await page.waitForTimeout(1500);
-                const preview = (await page.locator('body').innerText()).replace(/\s+/g,' ');
-                console.log('APISK_PREVIEW', preview.slice(0,8000));
-                if (/we couldn't read that|no valid x402 resources found/i.test(preview)) throw new Error('apiosk_manifest_rejected');
-                if (!preview.toLowerCase().includes(treasury)) throw new Error('apiosk_preview_missing_treasury');
-                for (const p of ['$1', '$5', '$10']) if (!preview.includes(p)) throw new Error(`apiosk_preview_missing_${p}`);
-                const requiredLegal = page.locator('input[type="checkbox"][required]');
-                if (await requiredLegal.count()) {
-                  console.log('APISK_USER_ACTION_BLOCKER required legal acknowledgement');
-                  process.exitCode = 79;
-                  break;
-                }
-                let submit = page.getByRole('button', { name: /submit.*review|send.*review|submit listing|publish/i }).first();
-                if (!(await submit.count())) {
-                  const submits = page.locator('button[type="submit"]');
-                  if ((await submits.count()) === 1) submit = submits.first();
-                }
-                if (!(await submit.count())) throw new Error('apiosk_submit_button_missing');
-                await submit.click();
-                await page.waitForLoadState('networkidle', { timeout: 60000 }).catch(()=>{});
-                await page.waitForTimeout(2000);
-                const finalText = (await page.locator('body').innerText()).replace(/\s+/g,' ');
-                console.log('APISK_FINAL', finalText.slice(0,8000));
-                if (/submitted|review|received|pending|success/i.test(finalText)) {
-                  console.log('APISK_SUBMISSION_ACCEPTED');
-                  process.exitCode = 0;
-                  break;
-                }
-                throw new Error('apiosk_acceptance_not_verified');
-              } catch (e) {
-                console.log(`APISK_ATTEMPT_${attempt}_DEGRADED`, e?.message || String(e));
-                if (attempt === 3) process.exitCode = 1;
-                await new Promise(r => setTimeout(r, attempt * 2000));
-              } finally {
-                await page.close();
-              }
-            }
-          } finally {
-            await browser.close();
+          const base='https://delta-witness-api.ruphussten.workers.dev';
+          const cases=[['/v1/capture',1],['/v1/preflight',5],['/v1/guarded-action-pilot',10]];
+          for (const [path,price] of cases) {
+            const r=await fetch(`${base}${path}`, {method:'GET',signal:AbortSignal.timeout(20000)});
+            const body=await r.json().catch(()=>({}));
+            if (r.status!==402) throw new Error(`${path} GET status ${r.status} != 402`);
+            if (!r.headers.get('payment-required')) throw new Error(`${path} GET missing payment-required header`);
+            if (Number(body.price_usd)!==price) throw new Error(`${path} GET price ${body.price_usd} != ${price}`);
+            if (body.payment_flow!=='upfront') throw new Error(`${path} GET payment flow mismatch`);
+            console.log('GET_DISCOVERY_PROBE_OK',path,price);
           }
           NODE
