@@ -1,0 +1,97 @@
+name: TMP - Agent Bazaar DELTA Capture submission 20260913
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-agent-bazaar-capture-submit-20260913.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Owner pricing gate before price-bearing listing write
+        run: |
+          test -s AGENTS.md
+          test -s docs/pricing-policy-2026-09-10.md
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Install browser runtime
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+      - name: Duplicate check and submit Capture listing
+        run: |
+          node <<'NODE'
+          const { chromium } = await import('playwright');
+          const browser=await chromium.launch({headless:true});
+          try {
+            const market=await browser.newPage();
+            await market.goto('https://www.agent-bazaar.com/marketplace',{waitUntil:'networkidle',timeout:60000});
+            await market.waitForTimeout(1500);
+            const marketText=(await market.locator('body').innerText()).replace(/\s+/g,' ');
+            if (/DELTA Witness|delta-witness-api\.ruphussten\.workers\.dev/i.test(marketText)) {
+              console.log('AGENT_BAZAAR_ALREADY_PRESENT: duplicate avoided');
+              process.exit(0);
+            }
+            await market.close();
+
+            const page=await browser.newPage();
+            await page.goto('https://www.agent-bazaar.com/dev',{waitUntil:'networkidle',timeout:60000});
+            const initial=(await page.locator('body').innerText()).replace(/\s+/g,' ');
+            if (/captcha|turnstile|connect wallet|wallet signature|sign in required|log in required/i.test(initial)) throw new Error('USER_ACTION_REQUIRED_INTERACTIVE_AUTH');
+            if (await page.locator('input[type="checkbox"][required]').count()) throw new Error('USER_ACTION_REQUIRED_LEGAL_ACK');
+
+            const controls=await page.locator('input,textarea,select,button').evaluateAll(ns=>ns.map(n=>({tag:n.tagName,name:n.getAttribute('name'),type:n.getAttribute('type'),placeholder:n.getAttribute('placeholder'),text:(n.textContent||'').trim(),required:n.hasAttribute('required')})));
+            console.log('AGENT_BAZAAR_CONTROLS',JSON.stringify(controls));
+
+            async function fillLabel(re,value){const x=page.getByLabel(re).first();if(await x.count()){await x.fill(value);return true;}return false;}
+            const nameOk=await fillLabel(/Skill Name|Name/i,'DELTA Witness Capture');
+            const descOk=await fillLabel(/Description/i,'Timestamped public-web evidence capture for autonomous agents. Preserves observed page state with verifiable proof metadata and hashes, paid per call through canonical x402 on Base USDC.');
+            const priceOk=await fillLabel(/Price per Call|Price/i,'1');
+            const endpointOk=await fillLabel(/x402 Endpoint URL|Endpoint/i,'https://delta-witness-api.ruphussten.workers.dev/v1/capture');
+            if(!nameOk||!descOk||!priceOk||!endpointOk) throw new Error('required_form_fields_not_resolved');
+
+            let type=page.getByLabel(/^Type/i).first();
+            if(await type.count()){
+              const opts=await type.locator('option').evaluateAll(os=>os.map(o=>({v:o.value,t:(o.textContent||'').trim()})));
+              const pick=opts.find(o=>/^API$/i.test(o.t))||opts.find(o=>/API/i.test(o.t));
+              if(!pick) throw new Error('api_type_option_missing');
+              await type.selectOption(pick.v);
+            }
+            let category=page.getByLabel(/Category/i).first();
+            if(await category.count()){
+              const opts=await category.locator('option').evaluateAll(os=>os.map(o=>({v:o.value,t:(o.textContent||'').trim()})));
+              const pick=opts.find(o=>/Developer|Tools/i.test(o.t))||opts.find(o=>/Web/i.test(o.t))||opts.find(o=>/Data/i.test(o.t));
+              if(!pick) throw new Error('suitable_category_missing');
+              console.log('AGENT_BAZAAR_CATEGORY',pick);
+              await category.selectOption(pick.v);
+            }
+
+            const required=page.locator('input[required],textarea[required],select[required]');
+            const missing=[];
+            for(let i=0;i<await required.count();i++){
+              const el=required.nth(i); const typ=await el.getAttribute('type'); if(typ==='checkbox') continue;
+              const val=await el.inputValue().catch(()=> ''); if(!val)missing.push((await el.getAttribute('name'))||`field_${i}`);
+            }
+            if(missing.length) throw new Error('missing_required:'+missing.join(','));
+
+            const submit=page.getByRole('button',{name:/Submit for Review/i}).first();
+            if(!(await submit.count())) throw new Error('submit_button_missing');
+            await submit.click();
+            await page.waitForTimeout(2500);
+            const final=(await page.locator('body').innerText()).replace(/\s+/g,' ');
+            console.log('AGENT_BAZAAR_FINAL',final.slice(0,10000));
+            if (/captcha|turnstile|connect wallet|sign in|log in/i.test(final) && !/submitted|review|thank|received|pending/i.test(final)) throw new Error('USER_ACTION_REQUIRED_AFTER_SUBMIT');
+            if (!/submitted|review|thank|received|pending|success/i.test(final)) throw new Error('submission_acceptance_not_verified');
+            console.log('AGENT_BAZAAR_SUBMISSION_ACCEPTED');
+            await page.close();
+          } finally {await browser.close();}
+          NODE
