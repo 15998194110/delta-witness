@@ -1,31 +1,17 @@
-# Extended reconciliation marker: 2026-09-13T10:43+09:00
-name: TMP - DELTA extended Treasury reconciliation 20260913
+name: RETIRED - TMP DELTA extended Treasury reconciliation 20260913
+
+# Extended 320k-block audit completed successfully on 2026-09-13.
+# It found two 0.03 USDC Treasury receipts (0.06 total), both from the same
+# known PayAPI platform-verification payer. No unclassified/customer receipt.
 on:
-  push:
-    branches: ["master"]
-    paths:
-      - ".github/workflows/tmp-treasury-reconcile-20260911.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  reconcile:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-      - name: Scan canonical Base USDC far enough to cover all September receipts
-        env:
-          DELTA_TREASURY_LOOKBACK_BLOCKS: '320000'
-          DELTA_TREASURY_CHUNK_BLOCKS: '1900'
-        run: node scripts/reconcile-treasury.mjs | tee /tmp/delta-treasury-extended.json
-      - name: Upload evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: delta-treasury-extended-${{ github.run_id }}
-          path: /tmp/delta-treasury-extended.json
-          retention-days: 7
+      - run: echo 'Extended Treasury audit completed; one-shot retired.'
