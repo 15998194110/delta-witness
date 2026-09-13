@@ -65,6 +65,35 @@ jobs:
             if grep -Fqi "$HOST" /tmp/atlas.html || grep -Fqi 'DELTA Witness' /tmp/atlas.html; then ATLAS=present; else ATLAS=absent_or_not_indexed; fi
           fi
           printf '{"circle":"%s","clawslist":"%s","atlas":"%s"}\n' "$CIRCLE" "$CLAWS" "$ATLAS" > /tmp/discovery.json
+      - name: Inspect AgentBets free listing API without creating a submission
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          SPEC_STATUS=$(curl -sS --connect-timeout 10 --max-time 25 --retry 3 --retry-all-errors -o /tmp/agentbets-openapi.yaml -w '%{http_code}' https://agentbets.ai/api/openapi.yaml)
+          LIST_STATUS=$(curl -sS --connect-timeout 10 --max-time 25 --retry 3 --retry-all-errors -o /tmp/agentbets-listings.json -w '%{http_code}' 'https://api.agentbets.ai/api/listings?url=https%3A%2F%2Fdelta-witness-api.ruphussten.workers.dev')
+          INVALID_STATUS=$(curl -sS --connect-timeout 10 --max-time 25 --retry 2 --retry-all-errors -o /tmp/agentbets-invalid.json -w '%{http_code}' -X POST https://api.agentbets.ai/api/listings -H 'content-type: application/json' --data '{}')
+          node <<'NODE'
+          const fs=require('fs');
+          const text=p=>{try{return fs.readFileSync(p,'utf8')}catch{return ''}};
+          const spec=text('/tmp/agentbets-openapi.yaml');
+          const start=spec.indexOf('/api/listings');
+          const excerpt=start>=0?spec.slice(start,start+9000):'';
+          const out={
+            spec_http: process.env.SPEC_STATUS || null,
+            list_http: process.env.LIST_STATUS || null,
+            invalid_post_http: process.env.INVALID_STATUS || null,
+            existing_lookup: text('/tmp/agentbets-listings.json').slice(0,12000),
+            invalid_post_response: text('/tmp/agentbets-invalid.json').slice(0,12000),
+            openapi_listing_excerpt: excerpt
+          };
+          fs.writeFileSync('/tmp/agentbets-inspect.json',JSON.stringify(out,null,2));
+          NODE
+        env:
+          SPEC_STATUS: ${{ env.SPEC_STATUS }}
+          LIST_STATUS: ${{ env.LIST_STATUS }}
+          INVALID_STATUS: ${{ env.INVALID_STATUS }}
       - name: Assemble one-shot evidence
         if: always()
         run: |
@@ -83,6 +112,7 @@ jobs:
             agentexchange: read('/tmp/agentexchange.json'),
             payan: read('/tmp/payan.json'),
             discovery: read('/tmp/discovery.json'),
+            agentbets_inspect: read('/tmp/agentbets-inspect.json'),
             financial_action_taken: false,
             listing_write_taken: false,
             outreach_sent: false
