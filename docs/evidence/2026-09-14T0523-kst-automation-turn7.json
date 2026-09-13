@@ -1,0 +1,91 @@
+{
+  "checked_at": "2026-09-13T20:23:00.250Z",
+  "run_kind": "automation_turn7_one_shot",
+  "pricing": {
+    "policy": "owner-2026-09-10-1-5-10",
+    "ok": true,
+    "public": {
+      "capture": {"quote_usdc": 1, "raw_usdc": "1000000", "http": 402, "status": "verified"},
+      "preflight": {"quote_usdc": 5, "raw_usdc": "5000000", "http": 402, "status": "verified"},
+      "guarded_action_pilot": {"quote_usdc": 10, "raw_usdc": "10000000", "http": 402, "status": "verified"}
+    },
+    "partner_floor_usdc": {"capture": 1, "preflight": 1, "watch": 1},
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_transactions_generated": 0,
+    "customer_revenue_generated": 0,
+    "evidence_quality": "A_direct_live_402_readback"
+  },
+  "treasury_reconciliation": {
+    "checked_at": "2026-09-13T20:21:13.253Z",
+    "start_block": 51220761,
+    "latest_block": 51270760,
+    "lookback_blocks": 50000,
+    "canonical_usdc_receipt_candidates": 0,
+    "total_usdc": 0,
+    "known_non_customer_usdc": 0,
+    "unclassified_usdc": 0,
+    "customer_revenue_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "paid_funnel": {
+    "window": "last_2_hours",
+    "candidate_rows": 0,
+    "customer_paid_settlements": 0,
+    "treasury_received": 0,
+    "revenue": 0,
+    "variable_cost": 0,
+    "contribution_margin": 0
+  },
+  "agentpact": {
+    "listing_status": "present",
+    "discovery_status": "present",
+    "seller_handle": "delta-witness",
+    "offer_count": 3,
+    "offers": [
+      {"product": "capture", "status": "active", "price_usdc": 1},
+      {"product": "public_preflight", "status": "active", "price_usdc": 5},
+      {"product": "guarded_action_pilot", "status": "active", "price_usdc": 10}
+    ],
+    "buyer_count": 0,
+    "external_requests": 17,
+    "funded_compatible_requests": 0,
+    "buyer_funded_deals": 0,
+    "paid_settlements": 0,
+    "treasury_received": 0,
+    "evidence_quality": "A_official_public_api"
+  },
+  "agent402": {
+    "channel": "agent402.tools",
+    "action": "register_existing_canonical_origin",
+    "origin": "https://delta-witness-api.ruphussten.workers.dev",
+    "listing_status": "listed",
+    "discovery_status": "routable",
+    "tool_count": 6,
+    "networks": ["eip155:8453"],
+    "health": 1,
+    "listing_fee_usdc": 0,
+    "seller_commission_pct": 0,
+    "custody": "non_custodial_direct_to_treasury_per_platform_policy",
+    "buyer_count_platform_30d_current_public": 132,
+    "settlement_count_platform_30d_current_public": 2366,
+    "duplicate_identity_created": false,
+    "evidence_quality": "A_official_registration_api_response_plus_B_public_market_metrics"
+  },
+  "outreach": {
+    "sent_this_run": 0,
+    "new_explicit_interest_reply": false,
+    "silence_chased": false
+  },
+  "operational": {
+    "pricing_treasury_agentpact_audit_run_id": 34780473883,
+    "agent402_submission_run_id": 34780586579,
+    "temporary_workflows_removed": true,
+    "active_duplicate_growth_loop_created": false,
+    "financial_action_taken": false,
+    "wallet_signature_taken": false,
+    "asset_moved": false,
+    "irreversible_high_risk_action_taken": false
+  }
+}
