@@ -1,18 +1,31 @@
-name: RETIRED - TMP DELTA treasury reconciliation 20260911
-
-# One-shot read-only reconciliation completed successfully on 2026-09-11.
-# Base canonical USDC logs were scanned through block 51143490 with zero
-# Treasury receipts in the 50,000-block window, and D1 paid-funnel telemetry
-# returned zero candidate rows in the prior two hours. No funds moved.
+# Extended reconciliation marker: 2026-09-13T10:43+09:00
+name: TMP - DELTA extended Treasury reconciliation 20260913
 on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-treasury-reconcile-20260911.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  retired:
-    if: ${{ false }}
+  reconcile:
     runs-on: ubuntu-latest
     steps:
-      - run: echo 'Treasury reconciliation completed; one-shot workflow retired.'
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Scan canonical Base USDC far enough to cover all September receipts
+        env:
+          DELTA_TREASURY_LOOKBACK_BLOCKS: '320000'
+          DELTA_TREASURY_CHUNK_BLOCKS: '1900'
+        run: node scripts/reconcile-treasury.mjs | tee /tmp/delta-treasury-extended.json
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-treasury-extended-${{ github.run_id }}
+          path: /tmp/delta-treasury-extended.json
+          retention-days: 7
