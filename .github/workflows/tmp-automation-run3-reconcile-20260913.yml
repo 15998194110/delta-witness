@@ -1,0 +1,40 @@
+name: TMP - DELTA reconcile 20260913
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-automation-run3-reconcile-20260913.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Check owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live public pricing
+        run: |
+          mkdir -p docs/evidence
+          PRICING_AUDIT_OUTPUT=docs/evidence/automation-run3-pricing-live-20260913.json node scripts/verify-owner-pricing-live.mjs
+      - name: Reconcile Treasury
+        if: always()
+        run: node scripts/reconcile-treasury.mjs > docs/evidence/automation-run3-treasury-20260913.json
+      - name: Scan AgentPact
+        if: always()
+        run: node scripts/scan-agentpact-demand.mjs > docs/evidence/automation-run3-agentpact-20260913.json
+      - name: Commit evidence
+        if: always()
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add docs/evidence/automation-run3-*-20260913.json || true
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'evidence: automation run3 reconcile'
+          git push
