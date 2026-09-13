@@ -716,19 +716,83 @@ app.get("/openapi.json", async (c) => c.json(openApi(
 )));
 app.get("/.well-known/openapi.json", (c) => app.fetch(new Request(`${origin(c.env)}/openapi.json`, c.req.raw), c.env, c.executionCtx));
 
-app.get("/.well-known/x402", async (c) => c.json({
-  x402Version: 2,
-  service: "delta-witness",
-  version: c.env.APP_VERSION,
-  network: c.env.NETWORK,
-  payment_flow: "upfront",
-  resources: [
-    { method: "POST", path: "/v1/capture", product: "capture", inputSchema: CAPTURE_INPUT_SCHEMA },
-    { method: "POST", path: "/v1/preflight", product: "guard", inputSchema: PREFLIGHT_INPUT_SCHEMA },
-    { method: "POST", path: "/v1/guarded-action-pilot", product: "guarded_action_pilot", price_usd: 10, inputSchema: GUARDED_ACTION_PILOT_INPUT_SCHEMA },
-  ],
-  openapi: `${origin(c.env)}/openapi.json`,
-}));
+app.get("/.well-known/x402", async (c) => {
+  const [captureQuote, preflightQuote] = await Promise.all([
+    quoteProductWithOverride(c.env, "capture"),
+    quoteProductWithOverride(c.env, "preflight"),
+  ]);
+  const base = origin(c.env);
+  const lastUpdated = new Date().toISOString();
+  const canonicalBaseUsdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+  const rawUsdc = (usd: number) => String(Math.round(usd * 1_000_000));
+  const accepts = (amount: string) => [{
+    scheme: "exact",
+    network: c.env.NETWORK,
+    amount,
+    asset: canonicalBaseUsdc,
+    payTo: c.env.PAY_TO,
+    maxTimeoutSeconds: 300,
+    extra: { name: "USDC", version: "2", paymentFlow: "upfront" },
+  }];
+  return c.json({
+    x402Version: 2,
+    service: "delta-witness",
+    version: c.env.APP_VERSION,
+    network: c.env.NETWORK,
+    payment_flow: "upfront",
+    resources: [
+      {
+        resource: `${base}/v1/capture`,
+        type: "http",
+        x402Version: 2,
+        accepts: accepts(rawUsdc(captureQuote.grossPriceUsd)),
+        lastUpdated,
+        method: "POST",
+        path: "/v1/capture",
+        product: "capture",
+        description: "Browser verification and page-state proof for one public URL.",
+        mimeType: "application/json",
+        serviceName: "delta-witness",
+        tags: ["web-evidence", "capture", "verification", "browser-agent"],
+        inputSchema: CAPTURE_INPUT_SCHEMA,
+        extensions: discoveryFor("capture"),
+      },
+      {
+        resource: `${base}/v1/preflight`,
+        type: "http",
+        x402Version: 2,
+        accepts: accepts(rawUsdc(preflightQuote.grossPriceUsd)),
+        lastUpdated,
+        method: "POST",
+        path: "/v1/preflight",
+        product: "guard",
+        description: "Deterministic preflight verification against fresh public page state.",
+        mimeType: "application/json",
+        serviceName: "delta-witness",
+        tags: ["preflight", "verification", "agent-safety", "web-evidence"],
+        inputSchema: PREFLIGHT_INPUT_SCHEMA,
+        extensions: discoveryFor("preflight"),
+      },
+      {
+        resource: `${base}/v1/guarded-action-pilot`,
+        type: "http",
+        x402Version: 2,
+        accepts: accepts("10000000"),
+        lastUpdated,
+        method: "POST",
+        path: "/v1/guarded-action-pilot",
+        product: "guarded_action_pilot",
+        price_usd: 10,
+        description: "Guarded-action evidence pilot covering 1-3 public HTTPS pages and an optional deterministic preflight.",
+        mimeType: "application/json",
+        serviceName: "delta-witness",
+        tags: ["guarded-action", "verification", "workflow-safety", "browser-agent"],
+        inputSchema: GUARDED_ACTION_PILOT_INPUT_SCHEMA,
+      },
+    ],
+    openapi: `${base}/openapi.json`,
+  });
+});
 for (const alias of ["/.well-known/x402.json", "/x402.json", "/.well-known/x402/resource-server.json"]) {
   app.get(alias, (c) => app.fetch(new Request(`${origin(c.env)}/.well-known/x402`, c.req.raw), c.env, c.executionCtx));
 }
