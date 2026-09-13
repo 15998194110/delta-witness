@@ -1,18 +1,30 @@
-name: RETIRED - DELTA one-shot growth gate 20260911-1156
-
-# Completed 2026-09-11. Fresh owner-pricing, live 402, paid-funnel,
-# Base Treasury, npm distribution, and Circle x402 discovery audits were run.
-# Evidence is retained in distribution/evidence/growth-run-20260911-1210.json.
-# This one-shot is intentionally retired to avoid a duplicate growth loop.
+# One-shot commercial-signal validation marker: 2026-09-13T10:48+09:00
+name: TMP - DELTA commercial signal validation 20260913
 on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-growth-gate-20260911-1156.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  retired:
-    if: ${{ false }}
+  validate:
     runs-on: ubuntu-latest
     steps:
-      - run: echo 'One-shot growth gate complete; retired.'
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate folded commercial-signal monitor
+        env:
+          BAZAAR_MAX_PAGES: '400'
+        run: node scripts/check-bazaar.mjs | tee /tmp/delta-commercial-signals.txt
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-commercial-signals-${{ github.run_id }}
+          path: /tmp/delta-commercial-signals.txt
+          retention-days: 7
