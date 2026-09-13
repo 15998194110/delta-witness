@@ -1,61 +1,29 @@
-name: TMP - DELTA read-only commercial pulse 20260913
+name: RETIRED - DELTA read-only commercial pulse 20260913
+
+# Completed successfully on 2026-09-13. Evidence retained in Actions run
+# 34733438019 and artifact delta-readonly-commercial-pulse-34733438019.
+# No recurring loop was created.
+#
+# Snapshot findings:
+# - owner pricing 1/5/10 verified live
+# - PayanAgent demand endpoint degraded with recoverable HTTP 500
+# - Agent Exchange: 2 external requests, 1 buyer, 0 compatible/funded requests
+# - AgentPact: 17 external needs and 3 active DELTA offers at 1/5/10, but 0
+#   funded compatible requests / buyer-funded deals
+# - paid funnel candidates: 0
+# - canonical Base USDC Treasury scan: 0 new receipts in latest 50,000 blocks
+# - 402radar unchanged at two known PayAPI verification payments totaling 0.06
+# - Agent Bazaar Capture remains review-pending / not public
+
 on:
-  push:
-    branches: ["master"]
-    paths:
-      - ".github/workflows/tmp-growth-gate-20260911-1156.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  snapshot:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-      - name: Verify current canonical price gate
-        run: |
-          node scripts/check-owner-pricing.mjs
-          node scripts/verify-owner-pricing-live.mjs
-      - name: Scan PayanAgent funded demand
-        continue-on-error: true
-        run: node scripts/scan-payan-demand.mjs | tee /tmp/payan.json
-      - name: Scan Agent Exchange funded demand
-        continue-on-error: true
-        run: node scripts/scan-agentexchange-demand.mjs | tee /tmp/agentexchange.json
-      - name: Scan AgentPact funded demand
-        continue-on-error: true
-        run: node scripts/scan-agentpact-demand.mjs | tee /tmp/agentpact.json
-      - name: Audit paid funnel candidates
-        continue-on-error: true
-        run: node scripts/query-revenue-candidates.mjs | tee /tmp/funnel.json
-      - name: Reconcile Base Treasury
-        continue-on-error: true
-        run: node scripts/reconcile-treasury.mjs | tee /tmp/treasury.json
-      - name: Read commercial discovery signals
-        continue-on-error: true
-        env:
-          BAZAAR_MAX_PAGES: '400'
-        run: node scripts/check-bazaar.mjs | tee /tmp/commercial-signals.txt
-      - name: Upload snapshot evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: delta-readonly-commercial-pulse-${{ github.run_id }}
-          path: |
-            /tmp/payan.json
-            /tmp/agentexchange.json
-            /tmp/agentpact.json
-            /tmp/funnel.json
-            /tmp/treasury.json
-            /tmp/commercial-signals.txt
-          retention-days: 7
-          if-no-files-found: warn
+      - run: echo 'Read-only commercial pulse completed; one-shot retired.'
