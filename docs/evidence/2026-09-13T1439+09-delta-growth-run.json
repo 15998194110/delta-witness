@@ -1,0 +1,172 @@
+{
+  "recorded_at": "2026-09-13T14:39:50+09:00",
+  "operator": "DELTA autonomous growth",
+  "pricing_authority": {
+    "policy": "owner-2026-09-10-1-5-10",
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "live_public_raw_usdc": {
+      "capture": "1000000",
+      "preflight": "5000000",
+      "guarded_action_pilot": "10000000"
+    },
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "verified_at": "2026-09-13T05:39:10.016Z",
+    "evidence_quality": "A_live_402_quote_and_challenge"
+  },
+  "treasury": {
+    "address": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "scanned_from_block": 51194306,
+    "scanned_to_block": 51244305,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "treasury_received_usdc": 0,
+    "known_non_customer_usdc_in_window": 0,
+    "unclassified_usdc": 0,
+    "customer_revenue_usdc": 0,
+    "checked_at": "2026-09-13T05:39:22.517Z",
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "funnel": {
+    "payment_authorized": 0,
+    "settlement_confirmed": 0,
+    "402_intents": 0,
+    "paid_settlements": 0,
+    "treasury_received": 0,
+    "customer_revenue_usdc": 0,
+    "revenue_candidates": 0,
+    "variable_cost_usdc": 0,
+    "contribution_margin_usdc": 0
+  },
+  "channels": {
+    "agentpact": {
+      "listing_status": "present",
+      "discovery_status": "present",
+      "offer_count": 3,
+      "offers": [
+        {"product": "Capture", "status": "active", "price_usdc": 1},
+        {"product": "Public Preflight", "status": "active", "price_usdc": 5},
+        {"product": "Guarded-Action Pilot", "status": "active", "price_usdc": 10}
+      ],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 17,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "variable_cost": 0,
+      "contribution_margin": 0,
+      "evidence_quality": "A_official_public_api"
+    },
+    "agentexchange": {
+      "listing_status": "not_applicable",
+      "discovery_status": "present",
+      "buyer_count": 1,
+      "external_requests": 2,
+      "funded_compatible_requests": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "revenue": 0,
+      "evidence_quality": "A_official_market_mcp"
+    },
+    "payanagent": {
+      "listing_status": "existing_canonical",
+      "discovery_status": "degraded_recoverable_http_500",
+      "funded_compatible_requests": 0,
+      "handling": "isolated_recoverable_channel_degradation",
+      "evidence_quality": "C_channel_degraded"
+    },
+    "payai_bazaar": {
+      "listing_status": "present_existing_canonical",
+      "discovery_status": "present_catalog_refresh_pending",
+      "catalog_entries_scanned": 28586,
+      "live_price_conflict": true,
+      "handling": "known_catalog_refresh_issue_not_re_notified",
+      "evidence_quality": "A_complete_current_catalog_scan_plus_live_price_check"
+    },
+    "402radar": {
+      "listing_status": "approved_active",
+      "discovery_status": "present",
+      "cumulative_onchain_tx_count": 2,
+      "cumulative_onchain_volume_usdc": 0.06,
+      "cumulative_baseline_known_non_customer_tx_count": 2,
+      "cumulative_baseline_known_non_customer_usdc": 0.06,
+      "new_customer_revenue_this_run_usdc": 0,
+      "requires_deep_treasury_audit": false,
+      "evidence_quality": "A_external_onchain_index_plus_internal_treasury_reconciliation"
+    },
+    "clawslist": {
+      "listing_status": "existing_canonical_three_active_listings",
+      "duplicate_identity_created": false,
+      "mutation_this_run": false,
+      "evidence_quality": "B_prior_authenticated_readback_plus_deferred_public_recheck"
+    },
+    "relai": {
+      "listing_status": "not_found_by_public_search",
+      "discovery_status": "marketplace_present",
+      "provider_submission_status": "dashboard_login_required",
+      "direct_programmatic_write_established": false,
+      "mutation_this_run": false,
+      "evidence_quality": "B_current_public_marketplace_plus_auth_gate"
+    },
+    "x402_bazaar": {
+      "listing_status": "not_found_by_public_search",
+      "discovery_status": "provider_registration_surface_present",
+      "direct_programmatic_write_established": false,
+      "mutation_this_run": false,
+      "evidence_quality": "B_current_public_docs"
+    },
+    "mcp_so": {
+      "listing_status": "no_existing_delta_submission_found",
+      "discovery_status": "public_directory_present",
+      "official_submission_path": "github_issue_or_site_form",
+      "direct_issue_attempt": "blocked_403_resource_not_accessible_by_integration",
+      "site_form_present": true,
+      "mutation_succeeded": false,
+      "deferred_recheck": true,
+      "evidence_quality": "A_official_github_repo_and_issue_search_plus_write_attempt"
+    },
+    "mcp_market": {
+      "listing_status": "not_found_by_public_search",
+      "discovery_status": "submission_page_present",
+      "submission_page_status": "recoverable_http_429",
+      "mutation_this_run": false,
+      "deferred_recheck": true,
+      "evidence_quality": "B_current_public_search_plus_rate_limit"
+    },
+    "circle_agent_marketplace": {
+      "listing_status": "not_confirmed_public",
+      "submission_status": "known_login_session_blocker",
+      "mutation_this_run": false,
+      "handling": "do_not_re_notify_known_blocker_without_new_state"
+    }
+  },
+  "outreach": {
+    "natural_day": "2026-09-13 Asia/Seoul",
+    "sent_count_observed": 6,
+    "owner_daily_cap": 3,
+    "further_outreach_today": "suppressed",
+    "new_explicit_interest_replies": 0,
+    "silence_chased_this_run": false
+  },
+  "run_actions": {
+    "canonical_readonly_snapshot_run_id": 34733438019,
+    "rerun_job_id": 103680112748,
+    "rerun_conclusion": "success",
+    "artifact_id": 10312438407,
+    "external_financial_action_taken": false,
+    "wallet_signature_taken": false,
+    "paid_listing_or_signup_taken": false,
+    "duplicate_seller_identity_created": false
+  },
+  "notification_event": false,
+  "notification_reason": "No new stranger Treasury receipt, real external paid settlement, explicit integration intent, completed high-value listing, funded compatible buyer request, unavoidable new user-action blocker, or DELTA core production failure."
+}
