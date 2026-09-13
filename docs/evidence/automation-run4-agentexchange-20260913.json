@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "channel": "agentexchange_clearing_house",
+  "listing_status": "not_applicable",
+  "discovery_status": "present",
+  "buyer_count": 1,
+  "settlement_count": null,
+  "verified_neighbor_demand": true,
+  "external_requests": 2,
+  "intents_402": 0,
+  "paid_settlements": 0,
+  "treasury_received": 0,
+  "revenue": 0,
+  "variable_cost": 0,
+  "contribution_margin": 0,
+  "evidence_quality": "A_official_market_mcp",
+  "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+  "compatible_requests": [],
+  "funded_compatible_requests": []
+}

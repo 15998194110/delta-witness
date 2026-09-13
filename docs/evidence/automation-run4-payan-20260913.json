@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "channel": "payanagent_requests",
+  "discovery_status": "degraded_recoverable",
+  "error": "http_500:{\"error\":\"Internal server error\"}",
+  "external_requests": null,
+  "funded_compatible_requests": 0,
+  "evidence_quality": "C_channel_degraded",
+  "mutation": false
+}
