@@ -1,0 +1,114 @@
+name: TMP - 402radar DELTA submission 20260913
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-402radar-submit-20260913.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Owner pricing gate before external listing write
+        run: |
+          test -s AGENTS.md
+          test -s docs/pricing-policy-2026-09-10.md
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Check 402radar for existing canonical host
+        run: |
+          node <<'NODE'
+          const host='delta-witness-api.ruphussten.workers.dev';
+          const r=await fetch(`https://api.402radar.io/v1/radar/services/${host}`,{signal:AbortSignal.timeout(20000)});
+          if(r.status===200){
+            const j=await r.json();
+            console.log('RADAR_ALREADY_PRESENT',JSON.stringify(j).slice(0,4000));
+            process.exit(78);
+          }
+          if(r.status!==404) console.log('RADAR_DIRECT_LOOKUP_STATUS',r.status,(await r.text()).slice(0,1000));
+          const list=await fetch('https://api.402radar.io/v1/radar/services?limit=100&offset=0',{signal:AbortSignal.timeout(20000)});
+          if(list.ok){const j=await list.json();if(JSON.stringify(j).toLowerCase().includes(host)){console.log('RADAR_ALREADY_PRESENT_IN_LIST');process.exit(78);}}
+          console.log('RADAR_DUPLICATE_GUARD: canonical host not found');
+          NODE
+      - name: Install browser runtime
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+      - name: Submit DELTA canonical x402 service to 402radar
+        run: |
+          node <<'NODE'
+          const { chromium } = await import('playwright');
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage();
+          try {
+            await page.goto('https://402radar.io/submit',{waitUntil:'networkidle',timeout:60000});
+            const initial=(await page.locator('body').innerText()).replace(/\s+/g,' ');
+            console.log('RADAR_PAGE',initial.slice(0,12000));
+            if(/captcha|turnstile|connect wallet|wallet signature|sign in required|log in required/i.test(initial)) throw new Error('USER_ACTION_REQUIRED_INTERACTIVE_AUTH');
+            if(await page.locator('input[type="checkbox"][required]').count()) throw new Error('USER_ACTION_REQUIRED_LEGAL_ACK');
+            const controls=await page.locator('input,textarea,select,button').evaluateAll(ns=>ns.map((n,i)=>({i,tag:n.tagName,type:n.getAttribute('type'),name:n.getAttribute('name'),id:n.id,placeholder:n.getAttribute('placeholder'),text:(n.textContent||'').trim(),required:n.hasAttribute('required')})));
+            console.log('RADAR_CONTROLS',JSON.stringify(controls));
+
+            async function fillBy(pattern,value){
+              const candidates=[page.getByLabel(pattern).first(),page.locator(`input[placeholder*="${pattern.source.replace(/[^a-zA-Z0-9 ]/g,'').split(' ')[0]}" i]`).first()];
+              for(const c of candidates){if(await c.count()){await c.fill(value);return true;}}
+              return false;
+            }
+            const urlInput=page.locator('input[type="url"]').first();
+            if(await urlInput.count()) await urlInput.fill('https://delta-witness-api.ruphussten.workers.dev');
+            else {
+              const u=page.locator('input').filter({has:undefined});
+              const arr=page.locator('input'); let found=false;
+              for(let i=0;i<await arr.count();i++){const el=arr.nth(i);const ph=(await el.getAttribute('placeholder'))||'';const nm=(await el.getAttribute('name'))||'';if(/url|endpoint|api/i.test(ph+' '+nm)){await el.fill('https://delta-witness-api.ruphussten.workers.dev');found=true;break;}}
+              if(!found) throw new Error('service_url_field_missing');
+            }
+            const inputs=page.locator('input');
+            for(let i=0;i<await inputs.count();i++){
+              const el=inputs.nth(i); const type=(await el.getAttribute('type'))||'text'; if(['url','checkbox','radio','submit'].includes(type)) continue;
+              const ph=((await el.getAttribute('placeholder'))||'')+' '+((await el.getAttribute('name'))||'');
+              const val=await el.inputValue().catch(()=> ''); if(val) continue;
+              if(/name|service|api/i.test(ph)) await el.fill('DELTA Witness');
+              else if(/email|contact/i.test(ph)) await el.fill('ruphussten@163.com');
+              else if(/website|homepage/i.test(ph)) await el.fill('https://delta-witness-app.pages.dev/');
+            }
+            const textareas=page.locator('textarea');
+            for(let i=0;i<await textareas.count();i++){
+              const el=textareas.nth(i); if(await el.inputValue()) continue;
+              await el.fill('DELTA Witness provides machine-verifiable public-web evidence capture, deterministic preflight verification, and guarded-action proof bundles. Canonical x402 settlement uses Base USDC and pays directly to the DELTA Treasury.');
+            }
+            const selects=page.locator('select');
+            for(let i=0;i<await selects.count();i++){
+              const el=selects.nth(i); const opts=await el.locator('option').evaluateAll(os=>os.map(o=>({v:o.value,t:(o.textContent||'').trim()})));
+              const current=await el.inputValue().catch(()=> ''); if(current) continue;
+              const pick=opts.find(o=>/web|browser|data|verification|other/i.test(o.t)&&o.v)||opts.find(o=>o.v);
+              if(pick) await el.selectOption(pick.v);
+            }
+            const req=page.locator('input[required],textarea[required],select[required]');
+            const missing=[];
+            for(let i=0;i<await req.count();i++){
+              const el=req.nth(i);const typ=await el.getAttribute('type');if(typ==='checkbox')continue;const v=await el.inputValue().catch(()=> '');if(!v)missing.push((await el.getAttribute('name'))||(await el.getAttribute('id'))||`required_${i}`);
+            }
+            if(missing.length) throw new Error('required_fields_missing:'+missing.join(','));
+            let submit=page.getByRole('button',{name:/submit|list.*api|send.*review|add.*api/i}).first();
+            if(!(await submit.count())) submit=page.locator('button[type="submit"]').first();
+            if(!(await submit.count())) throw new Error('submit_button_missing');
+            const responsePromise=page.waitForResponse(r=>r.request().method()==='POST'&&/402radar/.test(r.url()),{timeout:20000}).catch(()=>null);
+            await submit.click();
+            const post=await responsePromise;
+            await page.waitForTimeout(2500);
+            const final=(await page.locator('body').innerText()).replace(/\s+/g,' ');
+            console.log('RADAR_FINAL',final.slice(0,12000));
+            if(post){const body=(await post.text().catch(()=>'' )).slice(0,4000);console.log('RADAR_POST',post.status(),post.url(),body);if(post.status()>=400)throw new Error(`submit_http_${post.status}`);}
+            if(/captcha|turnstile|connect wallet|sign in|log in/i.test(final)&&!/submitted|received|review|success|thank/i.test(final))throw new Error('USER_ACTION_REQUIRED_AFTER_SUBMIT');
+            if(!/submitted|received|review|success|thank|added/i.test(final)&&!post)throw new Error('submission_acceptance_unverified');
+            console.log('RADAR_SUBMISSION_ACCEPTED');
+          } finally {await browser.close();}
+          NODE
