@@ -1,0 +1,87 @@
+name: TMP - DELTA autonomous growth reconcile 20260913 1826 KST
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-autonomous-growth-20260913-1826.yml"
+permissions:
+  contents: write
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Check current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live public pricing
+        run: |
+          mkdir -p docs/evidence
+          PRICING_AUDIT_OUTPUT=docs/evidence/automation-1826-pricing-live-20260913.json node scripts/verify-owner-pricing-live.mjs
+      - name: Reconcile Base Treasury independently
+        if: always()
+        run: node scripts/reconcile-treasury.mjs > docs/evidence/automation-1826-treasury-20260913.json
+      - name: Reconcile revenue candidates and funnel
+        if: always()
+        continue-on-error: true
+        run: |
+          node scripts/query-revenue-candidates.mjs > docs/evidence/automation-1826-revenue-candidates-20260913.json
+          node scripts/query-funnel.mjs 1 > docs/evidence/automation-1826-funnel-20260913.txt || true
+      - name: Scan AgentPact seller and funded demand
+        if: always()
+        continue-on-error: true
+        run: node scripts/scan-agentpact-demand.mjs > docs/evidence/automation-1826-agentpact-20260913.json
+      - name: Scan Payan funded demand
+        if: always()
+        continue-on-error: true
+        run: node scripts/scan-payan-demand.mjs > docs/evidence/automation-1826-payan-20260913.json
+      - name: Scan Agent Exchange funded demand
+        if: always()
+        continue-on-error: true
+        run: node scripts/scan-agentexchange-demand.mjs > docs/evidence/automation-1826-agentexchange-20260913.json
+      - name: Check Circle, x402 List, Clawslist and 402 Atlas public surfaces
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          HOST='delta-witness-api.ruphussten.workers.dev'
+          fetch_bounded() {
+            local url="$1" out="$2"
+            curl -fsS --connect-timeout 10 --max-time 25 --retry 3 --retry-delay 2 --retry-all-errors "$url" -o "$out"
+          }
+          CIRCLE=degraded
+          if fetch_bounded "https://api.circle.com/v2/x402/discovery/resources?query=${HOST}" /tmp/circle.json; then
+            if grep -Fqi "$HOST" /tmp/circle.json; then CIRCLE=present; else CIRCLE=absent; fi
+          fi
+          X402_LIST=degraded
+          if fetch_bounded "https://x402-list.com/api/v1/services?q=${HOST}&per_page=10" /tmp/x402-list.json; then
+            if grep -Fqi "$HOST" /tmp/x402-list.json; then X402_LIST=present; else X402_LIST=absent; fi
+          fi
+          CLAWSLIST=degraded
+          if fetch_bounded "https://clawslist.com" /tmp/clawslist.html; then CLAWSLIST=reachable; fi
+          ATLAS=degraded
+          if fetch_bounded "https://402atlas.com" /tmp/atlas.html; then
+            if grep -Fqi 'DELTA Witness' /tmp/atlas.html || grep -Fqi "$HOST" /tmp/atlas.html; then ATLAS=present; else ATLAS=not_visible; fi
+          fi
+          node - <<'NODE'
+const fs=require('fs');
+fs.writeFileSync('docs/evidence/automation-1826-discovery-20260913.json',JSON.stringify({checked_at:new Date().toISOString(),circle:process.env.CIRCLE||'unknown'},null,2));
+NODE
+          node -e "const fs=require('fs'); fs.writeFileSync('docs/evidence/automation-1826-discovery-20260913.json', JSON.stringify({checked_at:new Date().toISOString(),circle:'$CIRCLE',x402_list:'$X402_LIST',clawslist:'$CLAWSLIST',atlas:'$ATLAS'},null,2)+'\n')"
+      - name: Commit evidence and self-clean workflow
+        if: always()
+        shell: bash
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git rm .github/workflows/tmp-autonomous-growth-20260913-1826.yml
+          git add docs/evidence/automation-1826-*-20260913.* || true
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'evidence: autonomous growth reconcile 2026-09-13 1826 KST'
+          git push
