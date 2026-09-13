@@ -44,3 +44,4 @@ jobs:
           echo "MARKETCLAW_HTTP=$CODE"
           cat /tmp/register.json
           test "$CODE" -ge 200 -a "$CODE" -lt 300
+# trigger registration audit
