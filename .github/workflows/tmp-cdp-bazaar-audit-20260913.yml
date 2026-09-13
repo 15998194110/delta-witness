@@ -1,4 +1,4 @@
-name: TMP - Agent402 DELTA routing recovery 20260913
+name: TMP - Agent402 duplicate suppression validation 20260913
 on:
   push:
     branches: ["master"]
@@ -10,96 +10,23 @@ permissions:
   contents: read
 
 jobs:
-  recover:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - name: Verify canonical 1/5/10 prices before registry mutation
+      - name: Run canonical Agent402 registration reconciler a second time
         run: |
-          node scripts/check-owner-pricing.mjs
-          node scripts/verify-owner-pricing-live.mjs
-      - name: Recover Agent402 canonical seller origin without duplication
-        run: node scripts/register-agent402.mjs | tee /tmp/agent402-register.json
-      - name: Verify Agent402 index readback and free seller trust
-        run: |
-          node <<'NODE' | tee /tmp/agent402-trust.json
-          import { createHash } from 'node:crypto';
-          const origin='https://delta-witness-api.ruphussten.workers.dev';
-          const host='delta-witness-api.ruphussten.workers.dev';
-          const treasury='0x1990e21bc219696ff7fbc26527dbaed335ac6367';
-          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-
-          async function fetchText(url, options={}){
-            const r=await fetch(url,{...options,signal:AbortSignal.timeout(30000)});
-            const text=await r.text();
-            return {r,text};
-          }
-          let present=false;
-          let indexSample=null;
-          for(let attempt=1;attempt<=4;attempt++){
-            const {r,text}=await fetchText('https://agent402.tools/api/index',{headers:{accept:'application/json'}});
-            if(!r.ok) throw new Error(`agent402_index_http_${r.status}`);
-            const data=JSON.parse(text);
-            const matches=[];
-            function walk(v){
-              if(!v||typeof v!=='object')return;
-              if(Array.isArray(v)){for(const x of v)walk(x);return;}
-              const s=JSON.stringify(v).toLowerCase();
-              if((s.includes(host)||s.includes('delta witness')||s.includes(treasury)) && Object.values(v).some(x=>typeof x==='string'&&(x.toLowerCase().includes(host)||x.toLowerCase().includes('delta witness')||x.toLowerCase()===treasury))) matches.push(v);
-              for(const x of Object.values(v)) if(x&&typeof x==='object')walk(x);
-            }
-            walk(data);
-            present=matches.length>0;
-            indexSample=matches.slice(0,8);
-            console.log('AGENT402_READBACK',JSON.stringify({attempt,present,match_count:matches.length}));
-            if(present)break;
-            await sleep(3000*attempt);
-          }
-          console.log('AGENT402_INDEX_SAMPLE',JSON.stringify(indexSample,null,2).slice(0,16000));
-
-          const challengeRes=await fetch('https://agent402.tools/api/pow/challenge?slug=seller-trust',{headers:{accept:'application/json'},signal:AbortSignal.timeout(30000)});
-          const challengeText=await challengeRes.text();
-          console.log('SELLER_TRUST_CHALLENGE_HTTP',challengeRes.status,challengeText.slice(0,3000));
-          if(!challengeRes.ok) throw new Error(`pow_challenge_http_${challengeRes.status}`);
-          const c=JSON.parse(challengeText);
-          const challenge=c.challenge ?? c.data?.challenge;
-          const token=c.token ?? c.data?.token;
-          const difficulty=Number(c.difficulty ?? c.data?.difficulty);
-          if(!challenge||!token||!Number.isFinite(difficulty)) throw new Error('pow_challenge_shape_changed');
-          function leadingZeroBits(buf){
-            let total=0;
-            for(const byte of buf){
-              if(byte===0){total+=8;continue;}
-              total+=Math.clz32(byte)-24;
-              break;
-            }
-            return total;
-          }
-          let nonce=0;
-          for(;;nonce++){
-            const digest=createHash('sha256').update(`${challenge}:${nonce}`).digest();
-            if(leadingZeroBits(digest)>=difficulty)break;
-            if(nonce>50_000_000)throw new Error('pow_nonce_safety_cap');
-          }
-          console.log('SELLER_TRUST_POW_SOLVED',JSON.stringify({difficulty,nonce}));
-          const trustUrl=`https://agent402.tools/api/x402/seller-trust?origin=${encodeURIComponent(host)}`;
-          const trustRes=await fetch(trustUrl,{headers:{accept:'application/json','X-Pow-Solution':`${token}:${nonce}`},signal:AbortSignal.timeout(30000)});
-          const trustText=await trustRes.text();
-          console.log('SELLER_TRUST_HTTP',trustRes.status,trustText.slice(0,16000));
-          if(!trustRes.ok) throw new Error(`seller_trust_http_${trustRes.status}`);
-          let trust=null;try{trust=JSON.parse(trustText)}catch{}
-          console.log('AGENT402_ROUTING_RECOVERY_SUMMARY',JSON.stringify({index_present:present,seller_trust:trust},null,2));
-          NODE
-      - name: Upload recovery evidence
+          node scripts/register-agent402.mjs | tee /tmp/agent402-second-pass.txt
+          grep -q '"duplicate_avoided":true' /tmp/agent402-second-pass.txt
+          grep -q '"submission_attempts":0' /tmp/agent402-second-pass.txt
+      - name: Upload validation evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: agent402-routing-recovery-${{ github.run_id }}
-          path: |
-            /tmp/agent402-register.json
-            /tmp/agent402-trust.json
+          name: agent402-duplicate-suppression-${{ github.run_id }}
+          path: /tmp/agent402-second-pass.txt
           retention-days: 7
           if-no-files-found: warn
