@@ -27,7 +27,7 @@ const result = {
   settlement_count: null,
   verified_neighbor_demand: true,
   external_requests: null,
-  402_intents: 0,
+  '402_intents': 0,
   paid_settlements: 0,
   treasury_received: 0,
   revenue: 0,
