@@ -1,0 +1,95 @@
+{
+  "recorded_at": "2026-09-13T12:33:08+09:00",
+  "operator": "DELTA autonomous growth",
+  "pricing_authority": {
+    "capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "live_raw_amounts_verified": {
+      "capture": 1000000,
+      "public_preflight": 5000000,
+      "guarded_action_pilot": 10000000,
+      "network": "eip155:8453",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+      "verified_at": "2026-09-13T02:51:07Z"
+    }
+  },
+  "treasury_reconciliation": {
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "verified_at": "2026-09-13T02:51:21.077Z",
+    "block_range": "51189265-51239264",
+    "candidate_receipts": 0,
+    "customer_treasury_received": 0,
+    "customer_revenue_usdc": 0,
+    "known_non_customer_baseline": {
+      "transactions": 2,
+      "volume_usdc": 0.06,
+      "classification": "historical self/platform baseline; excluded from customer revenue"
+    }
+  },
+  "buyer_and_settlement_state": {
+    "agentpact": {
+      "seller_identity": "existing canonical identity",
+      "offers": [
+        {"name": "Capture", "price_usdc": 1},
+        {"name": "Public Preflight", "price_usdc": 5},
+        {"name": "Guarded-Action Pilot", "price_usdc": 10}
+      ],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 17,
+      "funded_compatible_deals": 0,
+      "evidence_quality": "B"
+    },
+    "agent_exchange": {
+      "buyer_count": 1,
+      "external_requests": 2,
+      "funded_compatible_deals": 0,
+      "settlement_count": 0,
+      "evidence_quality": "B"
+    },
+    "payanagent": {
+      "status": "degraded_external_api",
+      "funded_compatible_deals": 0,
+      "handling": "recoverable deferred recheck; does not block treasury or other channels"
+    }
+  },
+  "distribution_state": {
+    "allmcps": "active",
+    "agent402": "listed_routable_crawl_pending",
+    "true402": "already_listed_no_duplicate",
+    "payapi_market": "present",
+    "aiprox": "present",
+    "a2a_registry": "present",
+    "circle": "absent; existing user-action/login blocker unchanged",
+    "x402_discovery": "degraded_503_service_suspended_recoverable",
+    "open402": "absent; live /.well-known/agent.json already compatible, but no free direct programmatic submission endpoint verified",
+    "x402_list": "blocked_by_1_usdc_workers.dev_listing_fee",
+    "agora402": "blocked_by_3_usdc_submission_fee",
+    "clawjobs": "excluded_pay_to_work_10_percent_stake"
+  },
+  "outreach_state": {
+    "natural_day": "2026-09-13 Asia/Seoul",
+    "sent_count_observed": 5,
+    "owner_daily_cap": 3,
+    "further_outreach_today": "suppressed",
+    "new_replies_with_explicit_interest": 0,
+    "note": "Observed sent-mail count already exceeds owner cap; no additional outbound communication is permitted this natural day."
+  },
+  "funnel": {
+    "external_paid_settlements": 0,
+    "customer_treasury_received": 0,
+    "revenue_usdc": 0,
+    "revenue_candidates": 0,
+    "variable_cost_usdc": 0,
+    "contribution_margin_usdc": 0
+  },
+  "source_runs": {
+    "discovery_pulse_run_id": 34729626658,
+    "commercial_snapshot_run_id": 34733438019
+  }
+}
