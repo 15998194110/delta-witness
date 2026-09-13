@@ -1,30 +1,17 @@
-# One-shot commercial-signal validation marker: 2026-09-13T10:48+09:00
-name: TMP - DELTA commercial signal validation 20260913
+name: RETIRED - DELTA commercial signal validation 20260913
+
+# One-shot validation completed successfully. 402radar cumulative settlement
+# telemetry and Agent Bazaar public-listing detection now run through the
+# existing canonical check-bazaar step; no duplicate monitoring loop remains.
 on:
-  push:
-    branches: ["master"]
-    paths:
-      - ".github/workflows/tmp-growth-gate-20260911-1156.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  validate:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-      - name: Validate folded commercial-signal monitor
-        env:
-          BAZAAR_MAX_PAGES: '400'
-        run: node scripts/check-bazaar.mjs | tee /tmp/delta-commercial-signals.txt
-      - name: Upload evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: delta-commercial-signals-${{ github.run_id }}
-          path: /tmp/delta-commercial-signals.txt
-          retention-days: 7
+      - run: echo 'Commercial-signal validation completed; one-shot retired.'
