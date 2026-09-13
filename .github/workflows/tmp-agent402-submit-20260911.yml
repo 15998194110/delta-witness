@@ -1,8 +1,13 @@
 name: RETIRED - TMP Agent402 DELTA listing refresh 20260911
 
 # One-shot free registration/refresh completed successfully on 2026-09-11.
-# Agent402 returned listed=true for the canonical DELTA origin with
-# toolCount=6, network eip155:8453, routable=true and health=1.
+# Agent402 lists the canonical DELTA origin with toolCount=6, network
+# eip155:8453 and health=1. A fresh official seller-trust readback on
+# 2026-09-13 reports routableByOurRouter=false: DELTA has fewer than 50
+# observed settled calls and no paid resource at or below the router's
+# $0.005 underlying cap. Do not describe this listing as router-routable
+# unless a newer official readback explicitly says so. Do not lower DELTA's
+# owner-authorized prices merely to satisfy that router cap.
 # No fee, signup, wallet signature or duplicate seller identity was created.
 # Current owner pricing remains Capture=1, Public Preflight=5, Pilot=10 USDC.
 on:
@@ -16,4 +21,4 @@ jobs:
     if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - run: echo 'Agent402 canonical listing is live/routable; one-shot workflow retired.'
+      - run: echo 'Agent402 canonical listing is live and healthy; router eligibility must be read from the current seller-trust API.'
