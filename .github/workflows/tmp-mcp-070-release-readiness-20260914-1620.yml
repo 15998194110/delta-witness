@@ -1,0 +1,40 @@
+name: TEMP DELTA MCP 0.7.0 release readiness 20260914-1620
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/tmp-mcp-070-release-readiness-20260914-1620.yml'
+permissions:
+  contents: read
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+      - name: Current owner pricing policy gate
+        run: node scripts/check-owner-pricing.mjs
+      - name: Live production 1/5/10 verification
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Verify MCP 0.7.0 package
+        working-directory: packages/mcp-server
+        run: |
+          npm ci
+          npm run prepack
+          VERSION=$(node -p "require('./package.json').version")
+          echo "MCP_REPO_VERSION=$VERSION"
+          if npm view "delta-witness-mcp@$VERSION" version >/tmp/mcp-published.txt 2>/tmp/mcp-published.err; then
+            echo "MCP_PUBLIC_VERSION_PRESENT=true"
+            cat /tmp/mcp-published.txt
+          else
+            echo "MCP_PUBLIC_VERSION_PRESENT=false"
+            cat /tmp/mcp-published.err || true
+          fi
+          npm pack --dry-run
+          grep -q 'DELTA_MAX_USD_PER_CALL.*1.00' README.md
+          grep -q 'current public Capture price' README.md
+          echo 'MCP_README_CAPTURE_CAP_READY=true'
