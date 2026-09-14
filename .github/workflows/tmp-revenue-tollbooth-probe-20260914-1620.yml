@@ -1,0 +1,30 @@
+name: TEMP DELTA revenue Tollbooth probe 20260914-1620
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/tmp-revenue-tollbooth-probe-20260914-1620.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query Tollbooth for existing DELTA listings and API shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, urllib.parse, urllib.request, urllib.error
+          base='https://www.trytollbooth.com'
+          for q in ['DELTA Witness','delta-witness-api.ruphussten.workers.dev']:
+              url=base+'/api/services?'+urllib.parse.urlencode({'q':q})
+              try:
+                  with urllib.request.urlopen(url,timeout=20) as r:
+                      body=r.read().decode('utf-8','replace')
+                      print('QUERY',q,'HTTP',r.status)
+                      print(body[:12000])
+              except Exception as e:
+                  print('QUERY',q,'ERROR',repr(e))
+          PY
