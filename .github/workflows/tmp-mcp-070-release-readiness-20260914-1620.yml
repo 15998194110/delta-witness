@@ -20,21 +20,18 @@ jobs:
         run: node scripts/check-owner-pricing.mjs
       - name: Live production 1/5/10 verification
         run: node scripts/verify-owner-pricing-live.mjs
-      - name: Verify MCP 0.7.0 package
+      - name: Verify MCP public buyer path
         working-directory: packages/mcp-server
         run: |
           npm ci
           npm run prepack
           VERSION=$(node -p "require('./package.json').version")
           echo "MCP_REPO_VERSION=$VERSION"
-          if npm view "delta-witness-mcp@$VERSION" version >/tmp/mcp-published.txt 2>/tmp/mcp-published.err; then
-            echo "MCP_PUBLIC_VERSION_PRESENT=true"
-            cat /tmp/mcp-published.txt
-          else
-            echo "MCP_PUBLIC_VERSION_PRESENT=false"
-            cat /tmp/mcp-published.err || true
-          fi
+          echo "MCP_NPM_LATEST=$(npm view delta-witness-mcp version)"
+          echo "MCP_NPM_DIST_TAGS=$(npm view delta-witness-mcp dist-tags --json)"
+          echo '--- PUBLIC README RELEVANT LINES ---'
+          npm view delta-witness-mcp@0.7.0 readme | grep -E 'DELTA_MAX_USD_PER_CALL|current public Capture price|Current public list prices' || true
           npm pack --dry-run
           grep -q 'DELTA_MAX_USD_PER_CALL.*1.00' README.md
           grep -q 'current public Capture price' README.md
-          echo 'MCP_README_CAPTURE_CAP_READY=true'
+          echo 'MCP_REPO_README_CAPTURE_CAP_READY=true'
