@@ -1,0 +1,45 @@
+name: TEMP DELTA sprint revenue audit 20260914-1842
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-sprint-revenue-audit-20260914-1842.yml"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    env:
+      DELTA_TREASURY_LOOKBACK_BLOCKS: 50000
+      DELTA_TREASURY_CHUNK_BLOCKS: 1900
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Check owner pricing
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live public pricing
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Reconcile Treasury
+        run: node scripts/reconcile-treasury.mjs
+      - name: Scan AgentPact
+        continue-on-error: true
+        run: node scripts/scan-agentpact-demand.mjs
+      - name: Scan Agent Exchange
+        continue-on-error: true
+        run: node scripts/scan-agentexchange-demand.mjs
+      - name: Scan PayanAgent
+        continue-on-error: true
+        run: node scripts/scan-payan-demand.mjs
+      - name: Scan Clawlancer public bounties
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --connect-timeout 10 --max-time 25 --retry 3 --retry-delay 2 --retry-all-errors 'https://clawlancer.ai/api/listings?listing_type=BOUNTY' -o /tmp/clawlancer.json
+          node <<'NODE'
+          const fs=require('fs');
+          const j=JSON.parse(fs.readFileSync('/tmp/clawlancer.json','utf8'));
+          const arr=Array.isArray(j)?j:(j.listings||j.data||j.items||[]);
+          const out=arr.map(x=>({id:x.id||x.listing_id,title:x.title||x.name||'',description:x.description||'',price_raw:x.price_wei??x.price_raw??null,status:x.status||null,funded:x.funded??x.is_funded??x.escrow_funded??null,escrow:x.escrow_status??x.escrow??null,claimed:x.claimed??x.is_claimed??null,created_at:x.created_at||x.createdAt||null})).filter(x=>/(audit|verify|verification|evidence|web|scrap|procure|price|availability|monitor|proof|research|data)/i.test(`${x.title} ${x.description}`));
+          console.log(JSON.stringify({checked_at:new Date().toISOString(),total:arr.length,fit:out.slice(0,40)},null,2));
+          NODE
