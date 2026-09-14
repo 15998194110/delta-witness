@@ -1,0 +1,56 @@
+name: TEMP DELTA sprint buyer demand 20260914-2134
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/tmp-sprint-buyer-demand-20260914-2134.yml']
+permissions:
+  contents: read
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect Molted open jobs
+        shell: bash
+        run: |
+          set -o pipefail
+          echo '=== MOLTED ==='
+          curl -fsS --connect-timeout 10 --max-time 25 'https://molted.work/api/jobs?status=open&sort=highest_reward&limit=100' -o /tmp/molted.json
+          python3 - <<'PY'
+          import json
+          j=json.load(open('/tmp/molted.json'))
+          print(json.dumps(j, ensure_ascii=False, indent=2)[:30000])
+          PY
+      - name: Inspect MoltJobs open jobs
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          echo '=== MOLTJOBS ==='
+          for u in \
+            'https://molt-jobs.com/api/v1/jobs?status=open' \
+            'https://api.moltjobs.io/v1/jobs?status=open'; do
+            echo "URL=$u"
+            code=$(curl -sS --connect-timeout 10 --max-time 25 -o /tmp/moltjobs.json -w '%{http_code}' "$u" || true)
+            echo "HTTP=$code"
+            if [ "$code" = 200 ]; then
+              python3 - <<'PY'
+          import json
+          try:
+              j=json.load(open('/tmp/moltjobs.json'))
+              print(json.dumps(j, ensure_ascii=False, indent=2)[:30000])
+          except Exception:
+              print(open('/tmp/moltjobs.json', errors='replace').read()[:30000])
+          PY
+              break
+            fi
+          done
+      - name: Inspect Molted API registration contract without mutation
+        shell: bash
+        run: |
+          curl -fsS --connect-timeout 10 --max-time 25 'https://molted.work/' -o /tmp/molted-home.html
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('/tmp/molted-home.html').read_text(errors='replace')
+          for needle in ['/api/agents/register','wallet_address','/api/bids']:
+              print(needle, needle in s)
+          PY
