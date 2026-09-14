@@ -1,0 +1,54 @@
+name: TEMP 402bazaar seller preflight 20260915
+on:
+  push:
+    branches: ["master"]
+    paths: [".github/workflows/tmp-402bazaar-preflight-20260915.yml"]
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Verify current owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live public pricing
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Check existing 402bazaar discovery
+        shell: bash
+        run: |
+          set -u
+          for q in 'DELTA%20Witness' 'delta-witness-api.ruphussten.workers.dev'; do
+            echo "=== DISCOVER $q ==="
+            curl -sS --connect-timeout 10 --max-time 30 --retry 2 --retry-delay 2 \
+              "https://402bazaar.com/api/v1/discover?q=$q" || true
+            echo
+          done
+      - name: Probe seller registration boundary without payment
+        shell: bash
+        run: |
+          set -u
+          cat > /tmp/payload.json <<'JSON'
+          {
+            "name":"DELTA Witness Capture",
+            "description":"Independent public-page evidence checkpoint for consequential agent actions. Canonical DELTA Capture is 1 USDC on Base.",
+            "category":"verify",
+            "endpoint":"https://delta-witness-api.ruphussten.workers.dev/v1/capture",
+            "method":"POST",
+            "pricing":{"model":"per-request","amount":"1.00","currency":"USDC"},
+            "schema":{"type":"object","properties":{"url":{"type":"string","format":"uri"}},"required":["url"]}
+          }
+          JSON
+          status=$(curl -sS -o /tmp/body.txt -D /tmp/headers.txt -w '%{http_code}' \
+            --connect-timeout 10 --max-time 30 --retry 2 --retry-delay 2 \
+            -X POST 'https://402bazaar.com/api/v1/register/seller' \
+            -H 'content-type: application/json' \
+            --data-binary @/tmp/payload.json || true)
+          echo "HTTP_STATUS=$status"
+          echo '=== HEADERS ==='
+          sed -E 's/(authorization|cookie|set-cookie):.*/\1: [redacted]/I' /tmp/headers.txt || true
+          echo '=== BODY ==='
+          cat /tmp/body.txt || true
+          echo
+          echo 'No payment header, wallet signature, private key, or asset movement was supplied by this probe.'
