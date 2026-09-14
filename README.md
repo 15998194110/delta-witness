@@ -25,6 +25,7 @@ The current owner-authorized public pricing is **$1 Capture / $5 Public Prefligh
 
 ## Buyer quickstarts
 
+- [Browser automation → DELTA paid evidence checkpoint](docs/browser-automation-paid-evidence-checkpoint.md) — platform-neutral **1 USDC Capture** pattern for browser scrapers, monitors, form flows, and multi-step agents; buy a checkpoint only when a public source state becomes consequential.
 - [Amazon Bedrock AgentCore payments → DELTA x402](docs/agentcore-x402-buyer-quickstart.md) — use the existing **1 USDC Capture** as the narrowest paid checkpoint for procurement terms, price/availability, monitoring evidence, or audit records; raise the buyer-side payment limit only when explicitly choosing a higher-priced DELTA product.
 - [BrowserAct monitoring → DELTA evidence](docs/browseract-monitoring-evidence-quickstart.md) — keep BrowserAct as the collection layer, then buy **1 USDC Capture** only when a public price, availability, supplier term, article, or other source state becomes materially consequential.
 
