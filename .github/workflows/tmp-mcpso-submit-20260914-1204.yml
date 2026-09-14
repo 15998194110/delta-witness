@@ -1,0 +1,50 @@
+name: TEMP mcp.so canonical DELTA submission 20260914-1204
+
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-mcpso-submit-20260914-1204.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Submit canonical repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint='https://mcp.so/api/submit-project'
+          payload='{"url":"https://github.com/15998194110/delta-witness","avatar_url":""}'
+          code=$(curl --silent --show-error --location \
+            --connect-timeout 10 --max-time 30 \
+            --retry 2 --retry-delay 2 --retry-all-errors \
+            -H 'Content-Type: application/json' \
+            -d "$payload" \
+            -o /tmp/mcpso-response.json \
+            -w '%{http_code}' \
+            "$endpoint")
+          echo "mcpso_http=$code"
+          python - <<'PY'
+          import json
+          p='/tmp/mcpso-response.json'
+          try:
+              obj=json.load(open(p, encoding='utf-8'))
+          except Exception:
+              text=open(p, encoding='utf-8', errors='replace').read()[:1200]
+              print('mcpso_response_text='+text.replace('\n',' '))
+          else:
+              # No credentials are sent; retain only operational response fields.
+              if isinstance(obj, dict):
+                  safe={k:v for k,v in obj.items() if k.lower() in {'success','ok','message','id','slug','status','url','project','error','code'}}
+                  print('mcpso_response='+json.dumps(safe, ensure_ascii=False)[:2000])
+              else:
+                  print('mcpso_response='+json.dumps(obj, ensure_ascii=False)[:2000])
+          PY
+          case "$code" in
+            200|201|202) exit 0 ;;
+            409) echo 'mcpso_duplicate_or_existing=true'; exit 0 ;;
+            *) exit 1 ;;
+          esac
