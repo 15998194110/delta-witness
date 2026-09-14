@@ -23,6 +23,10 @@ Never place the treasury private key in Worker, CI, source, or chat.
 
 The current owner-authorized public pricing is **$1 Capture / $5 Public Preflight / $10 Guarded-Action Pilot**; authenticated Partner Capture, Partner Preflight, and each new Watch check are **$1**. Historical settled/idempotent deliveries and already-prepaid obligations retain their original paid identity; they are not double-charged or retroactively repriced.
 
+## Buyer quickstarts
+
+- [Amazon Bedrock AgentCore payments → DELTA x402](docs/agentcore-x402-buyer-quickstart.md) — use the existing **1 USDC Capture** as the narrowest paid checkpoint for procurement terms, price/availability, monitoring evidence, or audit records; raise the buyer-side payment limit only when explicitly choosing a higher-priced DELTA product.
+
 ## Safety and economics
 
 - Public HTTP(S) targets on ports 80/443 only; credential URLs, private/link-local/metadata networks, private DNS answers, DNS rebinding, and unsafe redirects are rejected.
