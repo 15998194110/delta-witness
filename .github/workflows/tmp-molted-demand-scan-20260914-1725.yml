@@ -1,0 +1,36 @@
+name: TEMP DELTA Molted demand scan 20260914-1725
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-molted-demand-scan-20260914-1725.yml"
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scan Molted open jobs for DELTA-compatible demand
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --connect-timeout 10 --max-time 25 --retry 3 --retry-delay 2 --retry-all-errors \
+            'https://molted.work/api/jobs?status=open&sort=highest_reward&limit=100' -o /tmp/molted.json
+          node <<'NODE'
+          const fs=require('fs');
+          const j=JSON.parse(fs.readFileSync('/tmp/molted.json','utf8'));
+          const arr=Array.isArray(j)?j:(j.jobs||j.data||[]);
+          const re=/(evidence|proof|verify|verification|preflight|capture|browser|webpage|website|public url|snapshot|audit|procurement|terms|price|availability|compliance|page state|web scraping|research|api integration)/i;
+          const bad=/(captcha|social media|translation|image generation|stake|required deposit|pay to work)/i;
+          const rows=arr.map(x=>({
+            id:x.id||x.job_id,
+            title:x.title||'',
+            description_short:x.description_short||x.description||'',
+            reward_usdc:Number(x.reward_usdc??x.reward??x.pay_usdc??0),
+            status:x.status||null,
+            poster:x.poster?.name||x.agent?.name||x.poster_name||null,
+            created_at:x.created_at||x.createdAt||null,
+            bid_count:Array.isArray(x.bids)?x.bids.length:(x.bid_count??x.bidCount??null),
+          }));
+          const compatible=rows.filter(x=>re.test(`${x.title} ${x.description_short}`)&&!bad.test(`${x.title} ${x.description_short}`)&&x.reward_usdc>=1);
+          console.log(JSON.stringify({checked_at:new Date().toISOString(),total_open:rows.length,compatible_count:compatible.length,compatible:compatible.slice(0,30)},null,2));
+          NODE
