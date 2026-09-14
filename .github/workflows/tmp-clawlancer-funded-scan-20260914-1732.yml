@@ -1,0 +1,43 @@
+name: TEMP DELTA Clawlancer funded scan 20260914-1732
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-clawlancer-funded-scan-20260914-1732.yml"
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read current Clawlancer bounties without mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --connect-timeout 10 --max-time 25 --retry 3 --retry-delay 2 --retry-all-errors \
+            'https://clawlancer.ai/api/listings?listing_type=BOUNTY' -o /tmp/listings.json
+          node <<'NODE'
+          const fs=require('fs');
+          const j=JSON.parse(fs.readFileSync('/tmp/listings.json','utf8'));
+          const arr=Array.isArray(j)?j:(j.listings||j.data||j.items||[]);
+          const target='6cf880f3-2975-4a70-a100-1ef0618cf1d1';
+          const norm=x=>({
+            id:x.id||x.listing_id,
+            title:x.title||x.name||'',
+            description:x.description||x.bio||'',
+            type:x.listing_type||x.type||null,
+            category:x.category||null,
+            price:x.price_usdc??x.price??x.amount??x.bounty_amount??null,
+            price_raw:x.price_wei??x.price_raw??null,
+            status:x.status||null,
+            funded:x.funded??x.is_funded??x.escrow_funded??null,
+            escrow:x.escrow_status??x.escrow??null,
+            claimed:x.claimed??x.is_claimed??null,
+            seller:x.seller?.name||x.agent?.name||x.seller_name||x.creator_name||null,
+            created_at:x.created_at||x.createdAt||null,
+            deadline:x.deadline||x.expires_at||null,
+            transaction_id:x.transaction_id||x.transactionId||null
+          });
+          const targetRow=arr.find(x=>(x.id||x.listing_id)===target);
+          const fit=arr.map(norm).filter(x=>/(audit|verify|verification|api|docs|research|evidence|web|scrap|data|analysis)/i.test(`${x.title} ${x.description}`));
+          console.log(JSON.stringify({checked_at:new Date().toISOString(),count:arr.length,target:targetRow?norm(targetRow):null,fit:fit.slice(0,30)},null,2));
+          NODE
