@@ -8,6 +8,9 @@ on:
 jobs:
   audit:
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
@@ -18,15 +21,20 @@ jobs:
       - name: Live public pricing verification
         run: node scripts/verify-owner-pricing-live.mjs
       - name: Revenue candidates
+        continue-on-error: true
         run: node scripts/query-revenue-candidates.mjs
       - name: Treasury reconciliation
+        if: always()
         env:
           DELTA_TREASURY_LOOKBACK_BLOCKS: 50000
           DELTA_TREASURY_CHUNK_BLOCKS: 1900
         run: node scripts/reconcile-treasury.mjs
       - name: AgentPact buyer demand
+        if: always()
         run: node scripts/scan-agentpact-demand.mjs
       - name: PayanAgent funded demand
+        if: always()
         run: node scripts/scan-payan-demand.mjs
       - name: AgentExchange funded demand
+        if: always()
         run: node scripts/scan-agentexchange-demand.mjs
