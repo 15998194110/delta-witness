@@ -1,0 +1,52 @@
+name: TEMP DELTA BaseBounty read-only demand scan 20260915
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-basebounty-readonly-scan-20260915.yml"
+permissions:
+  contents: read
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Read-only BaseBounty open bounty scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/basebounty-scan
+          cd /tmp/basebounty-scan
+          npm init -y >/dev/null 2>&1
+          npm install --silent @modelcontextprotocol/sdk basebounty-mcp
+          cat > scan.mjs <<'EOF'
+          import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+          import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+
+          const transport = new StdioClientTransport({
+            command: 'npx',
+            args: ['-y', 'basebounty-mcp'],
+            env: { ...process.env, ARC_NETWORK: 'base-mainnet' },
+            stderr: 'inherit',
+          });
+          const client = new Client({ name: 'delta-readonly-basebounty-scan', version: '1.0.0' });
+          await client.connect(transport);
+          const list = await client.callTool({ name: 'list_open_bounties', arguments: { limit: 100 } });
+          const txt = list?.content?.find?.(x => x.type === 'text')?.text ?? '[]';
+          let rows = [];
+          try { rows = JSON.parse(txt); } catch {}
+          console.log('BASEBOUNTY_OPEN_COUNT=' + (Array.isArray(rows) ? rows.length : 0));
+          console.log('BASEBOUNTY_OPEN=' + JSON.stringify(rows));
+          if (Array.isArray(rows)) {
+            for (const r of rows) {
+              const d = await client.callTool({ name: 'get_bounty', arguments: { jobId: String(r.jobId) } });
+              const dt = d?.content?.find?.(x => x.type === 'text')?.text ?? '{}';
+              console.log('BASEBOUNTY_DETAIL=' + dt.replace(/\n/g,' '));
+            }
+          }
+          await client.close();
+          EOF
+          node scan.mjs
