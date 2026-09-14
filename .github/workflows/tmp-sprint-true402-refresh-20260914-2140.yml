@@ -1,0 +1,16 @@
+name: TEMP DELTA sprint true402 refresh 20260914-2140
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/tmp-sprint-true402-refresh-20260914-2140.yml']
+permissions:
+  contents: read
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Refresh existing/free true402 discovery without duplication
+        run: node scripts/register-true402.mjs
