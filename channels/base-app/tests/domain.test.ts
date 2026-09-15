@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { BASE_NETWORK, TREASURY, paymentPolicy, requestBody, validateQuote } from "../src/domain";
+import { BASE_NETWORK, TREASURY, maxPaymentUsd, paymentPolicy, requestBody, validateQuote } from "../src/domain";
 
-const quote = {
-  price: "$0.03",
+const preflightQuote = {
+  price: "$5.00",
   network: BASE_NETWORK,
   asset: "USDC",
   pay_to: TREASURY,
   payment_flow: "upfront",
-  economics: { estimatedContributionMarginUsd: 0.027 },
+  economics: { estimatedContributionMarginUsd: 4.9 },
+};
+
+const captureQuote = {
+  ...preflightQuote,
+  price: "$1.00",
+  economics: { estimatedContributionMarginUsd: 0.9 },
 };
 
 describe("Base app payment gates", () => {
@@ -20,11 +26,18 @@ describe("Base app payment gates", () => {
     expect(selected).toHaveLength(1);
   });
 
-  it("rejects destination, flow, or price drift", () => {
-    expect(() => validateQuote(quote, "preflight")).not.toThrow();
-    expect(() => validateQuote({ ...quote, pay_to: "0x0000000000000000000000000000000000000000" }, "preflight")).toThrow();
-    expect(() => validateQuote({ ...quote, payment_flow: "deferred" }, "preflight")).toThrow();
-    expect(() => validateQuote({ ...quote, price: "$0.11" }, "preflight")).toThrow();
+  it("pins each product to the current owner-authorized amount", () => {
+    expect(maxPaymentUsd("capture")).toBe(1);
+    expect(maxPaymentUsd("preflight")).toBe(5);
+    expect(() => validateQuote(captureQuote, "capture")).not.toThrow();
+    expect(() => validateQuote(preflightQuote, "preflight")).not.toThrow();
+    expect(() => validateQuote({ ...captureQuote, price: "$5.00" }, "capture")).toThrow();
+    expect(() => validateQuote({ ...preflightQuote, price: "$1.00" }, "preflight")).toThrow();
+  });
+
+  it("rejects destination or flow drift", () => {
+    expect(() => validateQuote({ ...preflightQuote, pay_to: "0x0000000000000000000000000000000000000000" }, "preflight")).toThrow();
+    expect(() => validateQuote({ ...preflightQuote, payment_flow: "deferred" }, "preflight")).toThrow();
   });
 
   it("creates the smallest deterministic Guard request", () => {
