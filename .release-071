@@ -1,0 +1,3 @@
+DELTA 0.7.1 patch release marker.
+Purpose: publish the already-tested buyer-side MCP/SDK pricing fixes through the canonical trusted-publisher release workflow.
+No pricing change. No customer payment. Remove after release readback.
