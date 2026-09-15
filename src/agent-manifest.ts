@@ -1,6 +1,6 @@
 import type { PricingQuote } from "./pricing";
 
-const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32d4f71b54bdA02913";
 
 export function agentJsonManifest(
   publicOrigin: string,
