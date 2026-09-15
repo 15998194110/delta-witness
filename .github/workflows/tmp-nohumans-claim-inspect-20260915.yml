@@ -1,0 +1,34 @@
+name: TEMP nohumans claim inspect 20260915
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-nohumans-claim-inspect-20260915.yml"
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Check owner pricing policy
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live public owner pricing
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Inspect free nohumans claim endpoints without mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          for ID in 9acc2efd-b71 97b7e8b8-b62 50ce8a12-faa; do
+            echo "=== CLAIM $ID ==="
+            curl -fsS --connect-timeout 10 --max-time 25 \
+              --retry 3 --retry-delay 2 --retry-all-errors \
+              -D "/tmp/${ID}.headers" \
+              "https://nohumans.directory/v1/listings/${ID}/claim" \
+              -o "/tmp/${ID}.json"
+            cat "/tmp/${ID}.headers"
+            cat "/tmp/${ID}.json"
+            echo
+          done
