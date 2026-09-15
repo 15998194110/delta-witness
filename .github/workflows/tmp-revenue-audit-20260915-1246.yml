@@ -1,0 +1,34 @@
+name: TEMP DELTA revenue audit 20260915-1246
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-revenue-audit-20260915-1246.yml"
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static owner pricing policy check
+        run: node scripts/check-owner-pricing.mjs
+      - name: Live public pricing verification
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Paid funnel candidates
+        run: node scripts/query-revenue-candidates.mjs
+      - name: Treasury reconciliation
+        env:
+          DELTA_TREASURY_LOOKBACK_BLOCKS: 50000
+          DELTA_TREASURY_CHUNK_BLOCKS: 1900
+        run: node scripts/reconcile-treasury.mjs
+      - name: AgentPact demand
+        continue-on-error: true
+        run: node scripts/scan-agentpact-demand.mjs
+      - name: AgentExchange demand
+        continue-on-error: true
+        run: node scripts/scan-agentexchange-demand.mjs
+      - name: Payan demand
+        continue-on-error: true
+        run: node scripts/scan-payan-demand.mjs
