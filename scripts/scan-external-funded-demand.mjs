@@ -1,7 +1,15 @@
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const USER_AGENT = 'DELTA-Revenue-Demand-Scanner/1.0';
-const FIT = /\b(evidence|verify|verification|preflight|proof|audit|web\s*page|website|browser|scrap|monitor|price|availability|terms|policy|procurement|vendor|public\s+source|public\s+url|change\s+detection|snapshot)\b/i;
+const USER_AGENT = 'DELTA-Revenue-Demand-Scanner/1.1';
+
+// Broad terms discover adjacent paid inventory. They are NOT enough to call a task DELTA-compatible.
+const ADJACENT = /\b(evidence|verify|verification|preflight|proof|audit|web\s*page|website|browser|scrap|monitor|price|availability|terms|policy|procurement|vendor|public\s+source|public\s+url|change\s+detection|snapshot|crawl|product)\b/i;
+
+// A DELTA-native request must ask for an observation/verification result that the existing product can fulfill,
+// not for custom software, generic research, scraping code, or a new system to be built.
+const NATIVE_SIGNAL = /\b(page[- ]state|webpage\s+(?:state|snapshot|evidence|proof)|public\s+(?:page|url|source).{0,80}(?:verify|verification|evidence|proof|snapshot|observe|observation|capture|check)|(?:verify|verification|evidence|proof|snapshot|observe|observation|capture|check).{0,80}public\s+(?:page|url|source)|(?:price|availability|inventory|terms|policy|vendor|procurement).{0,80}(?:verify|verification|evidence|proof|snapshot|observe|observation|capture|check)|(?:verify|verification|evidence|proof|snapshot|observe|observation|capture|check).{0,80}(?:price|availability|inventory|terms|policy|vendor|procurement)|change\s+detection.{0,80}(?:page|website|url)|preflight.{0,80}(?:page|website|url|public))\b/i;
+const BUILD_DELIVERABLE = /\b(build|implement|write\s+(?:a|an|the)?\s*(?:script|module|library|api|app|crawler|parser)|develop|code|repository|pull\s+request|commit|test\s+suite|package|cli|sdk)\b/i;
+const GENERIC_RESEARCH = /\b(research|compile|comparison|compare|survey|list\s+\d+|find\s+\d+)\b/i;
 
 async function fetchJson(url) {
   let lastError = null;
@@ -52,45 +60,61 @@ function normalizeMoney(value) {
   if (value === undefined || value === null || value === '') return null;
   const n = Number(value);
   if (!Number.isFinite(n)) return value;
-  // Some canonical feeds expose USDC base units, others decimal USDC.
   return n > 100000 ? n / 1_000_000 : n;
 }
 
-function bountyBookCandidates(body) {
-  const objs = deepObjects(body);
-  const rows = objs.filter((o) => o && first(o.id, o.job_id) && first(o.title, o.description) && FIT.test(textOf(o))).map((o) => ({
-    id: first(o.id, o.job_id),
+function classifyNative(o) {
+  const text = textOf(o);
+  const category = String(first(o.category, o.category_slug, o.job_type) || '').toLowerCase();
+  const codeLike = category === 'code' || category === 'development' || BUILD_DELIVERABLE.test(text);
+  const genericResearch = GENERIC_RESEARCH.test(text) && !NATIVE_SIGNAL.test(text);
+  return {
+    adjacent: ADJACENT.test(text),
+    native: NATIVE_SIGNAL.test(text) && !codeLike && !genericResearch,
+    reason: codeLike ? 'custom_build_not_existing_delta_product' : genericResearch ? 'generic_research_not_delta_fulfillment' : NATIVE_SIGNAL.test(text) ? 'existing_delta_observation_or_verification_fit' : 'adjacent_terms_only',
+  };
+}
+
+function makeRow(o, extras = {}) {
+  const classification = classifyNative(o);
+  return {
+    id: first(o.id, o.job_id, o.task_id, o.opportunity_id, o.bounty_id),
     title: first(o.title, o.name, o.description),
+    description: first(o.description, o.summary, o.goal, o.task),
+    requirements: first(o.requirements, o.acceptance_criteria, o.acceptanceCriteria),
+    category: first(o.category, o.category_slug, o.job_type),
+    delta_native: classification.native,
+    fit_reason: classification.reason,
+    ...extras,
+  };
+}
+
+function bountyBookInventory(body) {
+  const objs = deepObjects(body);
+  const rows = objs.filter((o) => o && first(o.id, o.job_id) && first(o.title, o.description) && ADJACENT.test(textOf(o))).map((o) => makeRow(o, {
     status: first(o.status, o.state),
     budget_usdc: normalizeMoney(first(o.budget_usdc, o.budget, o.reward_usdc, o.reward)),
     funded: first(o.funded, o.is_funded, o.escrowed),
     funding_status: first(o.funding_status, o.fundingStatus, o.payment_status),
     deadline: first(o.deadline, o.expires_at, o.expiresAt),
-    category: first(o.category, o.job_type),
   }));
   return dedupe(rows).filter((x) => ['open', 'published', 'claimable', 'ready'].includes(String(x.status || '').toLowerCase()) || x.status == null);
 }
 
-function rinerCandidates(body) {
+function rinerInventory(body) {
   const objs = deepObjects(body);
-  const rows = objs.filter((o) => o && first(o.id, o.task_id) && first(o.title, o.description) && FIT.test(textOf(o))).map((o) => ({
-    id: first(o.id, o.task_id),
-    title: first(o.title, o.name, o.description),
+  const rows = objs.filter((o) => o && first(o.id, o.task_id) && first(o.title, o.description) && ADJACENT.test(textOf(o))).map((o) => makeRow(o, {
     status: first(o.status, o.state),
     budget_usdc: normalizeMoney(first(o.budget_amount, o.budget_usdc, o.budget, o.reward)),
     selection_mode: first(o.selection_mode, o.selectionMode),
     deadline: first(o.deadline, o.expires_at, o.expiresAt),
-    category: first(o.category, o.category_slug),
   }));
-  // Riner documentation states publishing locks USDC in escrow; only published tasks are buyer-funded inventory.
   return dedupe(rows).filter((x) => String(x.status || '').toLowerCase() === 'published');
 }
 
-function agentBountiesCandidates(body) {
+function agentBountiesInventory(body) {
   const objs = deepObjects(body);
-  const rows = objs.filter((o) => o && first(o.id, o.opportunity_id, o.bounty_id) && first(o.title, o.name, o.description) && FIT.test(textOf(o))).map((o) => ({
-    id: first(o.id, o.opportunity_id, o.bounty_id),
-    title: first(o.title, o.name, o.description),
+  const rows = objs.filter((o) => o && first(o.id, o.opportunity_id, o.bounty_id) && first(o.title, o.name, o.description) && ADJACENT.test(textOf(o))).map((o) => makeRow(o, {
     status: first(o.status, o.work_status, o.state),
     payment_status: first(o.payment_status, o.paymentStatus, o.funding_status, o.fundingStatus),
     claimable: first(o.claimable, o.is_claimable),
@@ -106,21 +130,21 @@ const sources = [
   {
     channel: 'bountybook',
     url: 'https://api.bountybook.ai/jobs?status=open&limit=100',
-    parse: bountyBookCandidates,
-    funded_semantics: 'Open jobs are expected to be escrow-backed by platform design; recheck exact job state before any claim.',
+    parse: bountyBookInventory,
+    funded_semantics: 'Open jobs are escrow-backed by platform design; exact job state still requires readback before claim.',
     action_boundary: 'claim/auth requires wallet identity/signature; never claim without separate exact-action authorization',
   },
   {
     channel: 'riner',
     url: 'https://api.riner.io/api/v1/tasks?limit=100&sort_by=created_at_desc',
-    parse: rinerCandidates,
-    funded_semantics: 'Riner documents that published tasks have USDC locked in Base escrow.',
+    parse: rinerInventory,
+    funded_semantics: 'Published tasks have USDC locked in Base escrow according to Riner documentation.',
     action_boundary: 'autonomous agent registration requires EIP-191 wallet signature; never register/apply without separate exact-action authorization',
   },
   {
     channel: 'agent_bounties',
     url: 'https://api.agentbounties.app/v1/base/autonomous-bounties/feed?network=base-mainnet&claimable_only=true',
-    parse: agentBountiesCandidates,
+    parse: agentBountiesInventory,
     funded_semantics: 'Use only canonical funded/claimable state; settlement requires canonical BountySettled/CompetitionSettledV2 evidence.',
     action_boundary: 'claim requires wallet-owner signature; never sign or claim without separate exact-action authorization',
   },
@@ -135,30 +159,37 @@ const results = sources.map((source, i) => {
       discovery_status: 'degraded_recoverable',
       http: response.status,
       error: response.error || `http_${response.status}`,
-      funded_compatible_requests: [],
+      adjacent_funded_requests: [],
+      delta_native_funded_requests: [],
+      delta_native_funded_count: 0,
       evidence_quality: response.status ? 'B_official_public_api_error' : 'C_channel_degraded',
       mutation: false,
     };
   }
-  let candidates = [];
-  try { candidates = source.parse(response.body); } catch (error) {
+  let inventory = [];
+  try { inventory = source.parse(response.body); } catch (error) {
     return {
       channel: source.channel,
       discovery_status: 'degraded_recoverable',
       http: response.status,
       error: `parse_error:${error instanceof Error ? error.message : String(error)}`,
-      funded_compatible_requests: [],
+      adjacent_funded_requests: [],
+      delta_native_funded_requests: [],
+      delta_native_funded_count: 0,
       evidence_quality: 'C_parse_unknown',
       mutation: false,
     };
   }
+  const native = inventory.filter((x) => x.delta_native === true);
   return {
     channel: source.channel,
     discovery_status: 'present',
     http: response.status,
     buyer_count: null,
-    funded_compatible_count: candidates.length,
-    funded_compatible_requests: candidates.slice(0, 20),
+    adjacent_funded_count: inventory.length,
+    adjacent_funded_requests: inventory.slice(0, 20),
+    delta_native_funded_count: native.length,
+    delta_native_funded_requests: native.slice(0, 20),
     funded_semantics: source.funded_semantics,
     action_boundary: source.action_boundary,
     evidence_quality: 'A_official_public_api_current',
@@ -170,7 +201,9 @@ console.log(JSON.stringify({
   ok: true,
   checked_at: new Date().toISOString(),
   purpose: 'revenue_first_funded_buyer_demand',
+  compatibility_rule: 'delta_native means existing DELTA Capture/Preflight/Watch/Pilot can directly fulfill the buyer request; generic code/research is adjacent only',
   results,
-  total_funded_compatible_requests: results.reduce((sum, r) => sum + (r.funded_compatible_count || 0), 0),
+  total_delta_native_funded_requests: results.reduce((sum, r) => sum + (r.delta_native_funded_count || 0), 0),
+  total_adjacent_funded_requests: results.reduce((sum, r) => sum + (r.adjacent_funded_count || 0), 0),
   financial_or_signature_action_taken: false,
 }, null, 2));
