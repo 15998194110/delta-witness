@@ -1,4 +1,4 @@
-# Manual canonical pulse marker: 2026-09-15T14:17+09:00
+# Canonical revenue-first pulse. Buyer/settlement checks run every pulse; directory maintenance is throttled to once daily.
 name: DELTA Discovery Pulse
 on:
   schedule:
@@ -21,22 +21,27 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with: { node-version: '22' }
+
+      # Core integrity and settlement evidence always run. These are not distribution work.
       - name: Check current owner pricing policy
         run: node scripts/check-owner-pricing.mjs
       - name: Verify current owner live prices without payment
         run: node scripts/verify-owner-pricing-live.mjs
-      - name: Register x402 Discovery service without duplication
-        continue-on-error: true
-        run: node scripts/register-x402-discovery.mjs
-      - name: Register Agent402 seller origin without duplication
-        continue-on-error: true
-        run: node scripts/register-agent402.mjs
-      - name: Reconcile existing PayanAgent relay listings without duplication
-        continue-on-error: true
-        run: node scripts/reconcile-payan-listings.mjs
-      - name: Reconcile AllMCPs listing without duplication
-        continue-on-error: true
-        run: node scripts/reconcile-allmcps-listing.mjs
+      - name: Verify live purchase path without payment
+        run: |
+          set -e
+          BASE=https://delta-witness-api.ruphussten.workers.dev
+          curl -fsS "$BASE/health"
+          curl -fsS "$BASE/.well-known/x402" >/dev/null
+          curl -fsS "$BASE/openapi.json" >/dev/null
+          curl -fsS "$BASE/SKILL.md" >/dev/null
+          curl -fsS "$BASE/.well-known/mcp/server.json" >/dev/null
+          curl -fsS https://delta-witness-app.pages.dev/ >/dev/null
+          STATUS=$(curl -sS -o /tmp/delta-preflight.json -D /tmp/delta-preflight.headers -w '%{http_code}' -X POST "$BASE/v1/preflight" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
+          test "$STATUS" = "402"
+          grep -qi '^payment-required:' /tmp/delta-preflight.headers
+
+      # Revenue-first: inspect funded/compatible demand before any directory maintenance.
       - name: Scan PayanAgent funded buyer demand
         if: always()
         continue-on-error: true
@@ -49,149 +54,120 @@ jobs:
         if: always()
         continue-on-error: true
         run: node scripts/scan-agentpact-demand.mjs | tee /tmp/delta-agentpact-demand.json
-      - name: Verify machine discovery surfaces
-        run: |
-          set -e
-          BASE=https://delta-witness-api.ruphussten.workers.dev
-          curl -fsS "$BASE/health"
-          curl -fsS "$BASE/.well-known/x402" >/dev/null
-          curl -fsS "$BASE/openapi.json" >/dev/null
-          curl -fsS "$BASE/llms.txt" >/dev/null
-          curl -fsS "$BASE/sitemap.xml" >/dev/null
-          curl -fsS "$BASE/SKILL.md" >/dev/null
-          curl -fsS "$BASE/distribution.json" >/dev/null
-          curl -fsS "$BASE/.well-known/mcp/server.json" >/dev/null
-          curl -fsS "$BASE/v1/proofs/56347db8-1aa5-447f-a0e4-3bb052d7aa89" >/dev/null
-          curl -fsS https://delta-witness-app.pages.dev/ >/dev/null
-          curl -fsS https://delta-witness-app.pages.dev/delta-witness-2026-8f0c5a3d6e7b91ac.txt >/dev/null
-          STATUS=$(curl -sS -o /tmp/delta-preflight.json -D /tmp/delta-preflight.headers -w '%{http_code}' -X POST "$BASE/v1/preflight" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
-          test "$STATUS" = "402"
-          grep -qi '^payment-required:' /tmp/delta-preflight.headers
       - name: Audit paid funnel candidates
+        if: always()
         run: node scripts/query-revenue-candidates.mjs | tee /tmp/delta-revenue-candidates.json
       - name: Reconcile Base Treasury
         if: always()
         id: treasury
         continue-on-error: true
         run: node scripts/reconcile-treasury.mjs | tee /tmp/delta-treasury.json
+
+      # Distribution is capped to one maintenance window per day (03:xx UTC / 12:xx JST),
+      # or an explicit manual workflow_dispatch. This keeps hourly operator effort revenue-first
+      # and prevents known degraded registries from being hammered.
+      - name: Decide distribution maintenance window
+        if: always()
+        id: maintenance
+        shell: bash
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] || [ "$(date -u +%H)" = "03" ]; then
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+            echo 'DISTRIBUTION_MAINTENANCE run=true'
+          else
+            echo 'run=false' >> "$GITHUB_OUTPUT"
+            echo 'DISTRIBUTION_MAINTENANCE run=false revenue_first=true'
+          fi
+
+      - name: Register x402 Discovery service without duplication
+        if: steps.maintenance.outputs.run == 'true'
+        continue-on-error: true
+        run: node scripts/register-x402-discovery.mjs
+      - name: Register Agent402 seller origin without duplication
+        if: steps.maintenance.outputs.run == 'true'
+        continue-on-error: true
+        run: node scripts/register-agent402.mjs
+      - name: Reconcile existing PayanAgent relay listings without duplication
+        if: steps.maintenance.outputs.run == 'true'
+        continue-on-error: true
+        run: node scripts/reconcile-payan-listings.mjs
+      - name: Reconcile AllMCPs listing without duplication
+        if: steps.maintenance.outputs.run == 'true'
+        continue-on-error: true
+        run: node scripts/reconcile-allmcps-listing.mjs
       - name: Push core IndexNow
+        if: steps.maintenance.outputs.run == 'true'
         id: indexnow-core
         continue-on-error: true
         run: node scripts/indexnow-pulse.mjs core
       - name: Push Base app IndexNow
+        if: steps.maintenance.outputs.run == 'true'
         id: indexnow-base-app
         continue-on-error: true
         run: node scripts/indexnow-pulse.mjs base-app
-      - name: Record external-channel diagnostics
-        if: always()
-        env:
-          TREASURY_OUTCOME: ${{ steps.treasury.outcome }}
-          CORE_OUTCOME: ${{ steps.indexnow-core.outcome }}
-          BASE_APP_OUTCOME: ${{ steps.indexnow-base-app.outcome }}
-        run: |
-          {
-            echo '### External-channel diagnostics'
-            echo "- Treasury RPC reconciliation: \`$TREASURY_OUTCOME\`"
-            echo "- IndexNow core: \`$CORE_OUTCOME\`"
-            echo "- IndexNow Base app: \`$BASE_APP_OUTCOME\`"
-            echo ''
-            echo 'Treasury uses bounded retries plus multiple Base RPC fallbacks. External provider outages are isolated and never block the remaining discovery checks.'
-          } >> "$GITHUB_STEP_SUMMARY"
       - name: Check PayAI Bazaar visibility
-        if: always()
+        if: steps.maintenance.outputs.run == 'true'
+        continue-on-error: true
         run: node scripts/check-bazaar.mjs
-      - name: Check new external discovery channels without mutation
-        if: always()
+      - name: Check external discovery channels without mutation
+        if: steps.maintenance.outputs.run == 'true'
         continue-on-error: true
         shell: bash
         run: |
           set +e
           HOST='delta-witness-api.ruphussten.workers.dev'
-
           fetch_bounded() {
             local url="$1" out="$2"
-            curl -fsS --connect-timeout 10 --max-time 25 \
-              --retry 3 --retry-delay 2 --retry-all-errors \
-              "$url" -o "$out"
+            curl -fsS --connect-timeout 10 --max-time 25 --retry 3 --retry-delay 2 --retry-all-errors "$url" -o "$out"
           }
-
           X402_LIST=degraded
           if fetch_bounded "https://x402-list.com/api/v1/services?q=${HOST}&per_page=10" /tmp/x402-list.json; then
-            if node -e "const j=require('/tmp/x402-list.json'); const a=Array.isArray(j.data)?j.data:[]; process.exit(a.some(x=>JSON.stringify(x).toLowerCase().includes('${HOST}'))?0:1)"; then
-              X402_LIST=present
-            else
-              X402_LIST=absent
-            fi
+            if node -e "const j=require('/tmp/x402-list.json'); const a=Array.isArray(j.data)?j.data:[]; process.exit(a.some(x=>JSON.stringify(x).toLowerCase().includes('${HOST}'))?0:1)"; then X402_LIST=present; else X402_LIST=absent; fi
           fi
-
           CIRCLE=degraded
           if fetch_bounded "https://api.circle.com/v2/x402/discovery/resources?query=${HOST}" /tmp/circle.json; then
-            if node -e "const j=require('/tmp/circle.json'); process.exit(JSON.stringify(j).toLowerCase().includes('${HOST}')?0:1)"; then
-              CIRCLE=present
-            else
-              CIRCLE=absent
-            fi
+            if node -e "const j=require('/tmp/circle.json'); process.exit(JSON.stringify(j).toLowerCase().includes('${HOST}')?0:1)"; then CIRCLE=present; else CIRCLE=absent; fi
           fi
-
           PAYAPI=degraded
           if fetch_bounded "https://payapi.market/marketplace?verified=0" /tmp/payapi.html; then
             if grep -qi 'DELTA Witness' /tmp/payapi.html; then PAYAPI=present; else PAYAPI=absent; fi
           fi
-
-          echo "DISCOVERY_CHANNEL x402_list=$X402_LIST circle=$CIRCLE payapi=$PAYAPI"
-          {
-            echo '### Additional discovery channels'
-            echo "- x402 List: \`$X402_LIST\`"
-            echo "- Circle x402 Discovery: \`$CIRCLE\`"
-            echo "- PayAPI Market: \`$PAYAPI\`"
-            echo ''
-            echo 'These are read-only discovery checks. Channel degradation is isolated and never blocks Treasury reconciliation or other checks.'
-          } >> "$GITHUB_STEP_SUMMARY"
-      - name: Check extended registries without mutation
-        if: always()
-        continue-on-error: true
-        shell: bash
-        run: |
-          set +e
-          HOST='delta-witness-api.ruphussten.workers.dev'
-
-          fetch_bounded() {
-            local url="$1" out="$2"
-            curl -fsS --connect-timeout 10 --max-time 25 \
-              --retry 3 --retry-delay 2 --retry-all-errors \
-              "$url" -o "$out"
-          }
-
           AIPROX=degraded
           if fetch_bounded 'https://aiprox.dev/api/agents' /tmp/aiprox-agents.json; then
             if grep -qi 'delta-witness' /tmp/aiprox-agents.json; then AIPROX=present; else AIPROX=absent; fi
           fi
-
           A2A=degraded
           if fetch_bounded 'https://www.a2a-registry.org/agent/dev.workers.delta_witness' /tmp/a2a-delta.html; then
             if grep -qi 'DELTA Witness' /tmp/a2a-delta.html; then A2A=present; else A2A=absent; fi
           fi
-
           OPEN402=degraded
           if fetch_bounded 'https://raw.githubusercontent.com/ArcedeDev/open-402/main/registry/domains.txt' /tmp/open402-domains.txt; then
             if grep -Fqi "$HOST" /tmp/open402-domains.txt; then OPEN402=present; else OPEN402=absent; fi
           fi
-
-          echo "EXTENDED_REGISTRY aiprox=$AIPROX a2a=$A2A open402=$OPEN402"
-          {
-            echo '### Extended registry checks'
-            echo "- AIProx: \`$AIPROX\`"
-            echo "- A2A Global Registry: \`$A2A\`"
-            echo "- Open 402 Directory: \`$OPEN402\`"
-            echo ''
-            echo 'These are read-only checks of existing canonical DELTA identities/listings. No duplicate registration is attempted.'
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "DISCOVERY_CHANNEL x402_list=$X402_LIST circle=$CIRCLE payapi=$PAYAPI aiprox=$AIPROX a2a=$A2A open402=$OPEN402"
       - name: Refresh true402 discovery without duplication
+        if: steps.maintenance.outputs.run == 'true'
         continue-on-error: true
         run: node scripts/register-true402.mjs
       - name: Register nohumans.directory without duplication
+        if: steps.maintenance.outputs.run == 'true'
         continue-on-error: true
         run: node scripts/register-nohumans.mjs
+
+      - name: Record pulse diagnostics
+        if: always()
+        env:
+          TREASURY_OUTCOME: ${{ steps.treasury.outcome }}
+          MAINTENANCE_RUN: ${{ steps.maintenance.outputs.run }}
+        run: |
+          {
+            echo '### DELTA revenue-first pulse'
+            echo "- Treasury RPC reconciliation: \`$TREASURY_OUTCOME\`"
+            echo "- Distribution maintenance this pulse: \`${MAINTENANCE_RUN:-false}\`"
+            echo ''
+            echo 'Buyer-demand, paid-funnel and Treasury checks run every pulse. Directory/index maintenance is throttled to one daily window so external outages and catalog work do not consume the revenue program.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload canonical pulse evidence
         if: always()
         uses: actions/upload-artifact@v4
