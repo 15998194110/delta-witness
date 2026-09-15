@@ -17,6 +17,14 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
+      - name: Verify current owner pricing without payment
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Reconcile current paid funnel and Base Treasury
+        run: |
+          node scripts/query-revenue-candidates.mjs
+          node scripts/reconcile-treasury.mjs
       - name: Install browser runtime
         run: |
           npm install --no-save playwright@1.55.0
@@ -37,14 +45,14 @@ jobs:
             if (!ct.includes('json')) return;
             try {
               const text=await r.text();
-              if (/job|escrow|budget|funded|marketplace/i.test(text)) candidates.push({status:r.status(),url:u,body:text.slice(0,30000)});
+              if (/job|escrow|budget|funded|marketplace|bounty|reward|usdc/i.test(text)) candidates.push({status:r.status(),url:u,body:text.slice(0,30000)});
             } catch {}
           });
           try {
             await page.goto('https://app.hober.dev/marketplace/jobs',{waitUntil:'networkidle',timeout:60000});
             await page.waitForTimeout(5000);
             const body=(await page.locator('body').innerText()).replace(/\s+/g,' ');
-            console.log('HOBER_PAGE',body.slice(0,16000));
+            console.log('HOBER_PAGE',body.slice(0,20000));
             console.log('HOBER_JSON',JSON.stringify(candidates));
           } finally { await browser.close(); }
           NODE
