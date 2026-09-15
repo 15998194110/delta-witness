@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   push:
     tags: ["v*"]
+    branches: ["master"]
+    paths: [".release-071"]
 
 permissions:
   contents: read
@@ -21,6 +23,8 @@ jobs:
         with: { node-version: "22" }
       - name: Check current owner pricing policy
         run: node scripts/check-owner-pricing.mjs
+      - name: Verify live owner pricing before release
+        run: node scripts/verify-owner-pricing-live.mjs
       - run: node scripts/check-release-version.mjs
       - run: npm ci
       - run: npm run verify
@@ -60,6 +64,8 @@ jobs:
       - name: Require Cloudflare bootstrap
         run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID" && test -n "$DELTA_PARTNER_GATEWAY_SECRET" && test -n "$DELTA_INDEXNOW_ADMIN_SECRET"
       - run: node scripts/check-owner-pricing.mjs
+      - name: Re-verify live owner pricing immediately before deployment
+        run: node scripts/verify-owner-pricing-live.mjs
       - run: npm ci
       - name: Apply D1 telemetry migrations
         run: npx wrangler d1 migrations apply delta-witness-analytics --remote
@@ -76,6 +82,8 @@ jobs:
           curl --fail https://delta-witness-api.ruphussten.workers.dev/.well-known/x402
           curl --fail https://delta-witness-api.ruphussten.workers.dev/openapi.json
           curl --fail https://delta-witness-api.ruphussten.workers.dev/v1/proofs/56347db8-1aa5-447f-a0e4-3bb052d7aa89
+      - name: Verify owner pricing after deployment
+        run: node scripts/verify-owner-pricing-live.mjs
       - name: Verify Watch prepaid floor without registration
         run: |
           status="$(curl --silent --show-error --output /tmp/delta-watch-floor.json --write-out '%{http_code}' \
