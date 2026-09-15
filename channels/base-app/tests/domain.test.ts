@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { BASE_NETWORK, TREASURY, maxPaymentUsd, paymentPolicy, requestBody, validateQuote } from "../src/domain";
+import {
+  BASE_NETWORK,
+  CANONICAL_USDC,
+  TREASURY,
+  maxPaymentUsd,
+  parsePurchaseParams,
+  paymentPolicy,
+  rawPaymentAmount,
+  requestBody,
+  updatePurchaseSearch,
+  validateQuote,
+} from "../src/domain";
 
 const preflightQuote = {
   price: "$5.00",
@@ -17,13 +28,30 @@ const captureQuote = {
 };
 
 describe("Base app payment gates", () => {
-  it("selects only exact Base mainnet payments to the configured treasury", () => {
-    const selected = paymentPolicy()(2, [
-      { scheme: "exact", network: BASE_NETWORK, payTo: TREASURY } as never,
-      { scheme: "exact", network: "eip155:1", payTo: TREASURY } as never,
-      { scheme: "exact", network: BASE_NETWORK, payTo: "0x0000000000000000000000000000000000000000" } as never,
-    ]);
-    expect(selected).toHaveLength(1);
+  it.each([[
+    "capture",
+    "1000000",
+  ], [
+    "preflight",
+    "5000000",
+  ]] as const)("selects only the exact canonical-USDC %s payment", (product, amount) => {
+    const valid = {
+      scheme: "exact",
+      network: BASE_NETWORK,
+      payTo: TREASURY,
+      asset: CANONICAL_USDC,
+      amount,
+    };
+    const selected = paymentPolicy(product)(2, [
+      valid,
+      { ...valid, network: "eip155:1" },
+      { ...valid, payTo: "0x0000000000000000000000000000000000000000" },
+      { ...valid, asset: "0x0000000000000000000000000000000000000000" },
+      { ...valid, amount: product === "capture" ? "5000000" : "1000000" },
+      { ...valid, scheme: "upto" },
+    ] as never);
+    expect(selected).toEqual([valid]);
+    expect(rawPaymentAmount(product)).toBe(amount);
   });
 
   it("pins each product to the current owner-authorized amount", () => {
@@ -46,5 +74,37 @@ describe("Base app payment gates", () => {
       expected: { contains: ["Refund window"] },
     });
     expect(requestBody("capture", "https://example.com", "ignored")).toEqual({ url: "https://example.com" });
+  });
+});
+
+describe("shareable purchase links", () => {
+  it("prefills a buyer-facing Capture request from a link without executing it", () => {
+    expect(parsePurchaseParams("?product=capture&url=https%3A%2F%2Fexample.org%2Fpricing")).toEqual({
+      product: "capture",
+      url: "https://example.org/pricing",
+      mustContain: "30-day refund",
+    });
+  });
+
+  it("prefills Public Preflight expectations and keeps unrelated attribution params", () => {
+    const search = updatePurchaseSearch("?utm_source=partner", {
+      product: "preflight",
+      url: "https://example.org/terms",
+      mustContain: "Refund window",
+    });
+    expect(search).toContain("utm_source=partner");
+    expect(parsePurchaseParams(search)).toEqual({
+      product: "preflight",
+      url: "https://example.org/terms",
+      mustContain: "Refund window",
+    });
+  });
+
+  it("falls back safely for an invalid target and never turns parsing into a request", () => {
+    expect(parsePurchaseParams("?product=preflight&url=javascript%3Aalert(1)&contains=Policy")).toEqual({
+      product: "preflight",
+      url: "https://example.com/terms",
+      mustContain: "Policy",
+    });
   });
 });
