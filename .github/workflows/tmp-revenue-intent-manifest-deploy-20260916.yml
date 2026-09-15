@@ -1,5 +1,5 @@
-# Retry after preserving canonical agent-manifest USDC casing expected by regression tests.
-name: TEMP DELTA revenue-intent manifest deploy 20260916
+# Readback-only pass after production deploy succeeded; tolerate normal edge propagation.
+name: TEMP DELTA revenue-intent manifest readback 20260916
 
 on:
   push:
@@ -10,56 +10,49 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: delta-production-release
-  cancel-in-progress: false
-
 jobs:
-  deploy:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      DELTA_PARTNER_GATEWAY_SECRET: ${{ secrets.DELTA_PARTNER_GATEWAY_SECRET }}
-      DELTA_INDEXNOW_ADMIN_SECRET: ${{ secrets.DELTA_INDEXNOW_ADMIN_SECRET }}
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
-      - name: Require existing production bootstrap
-        run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID" && test -n "$DELTA_PARTNER_GATEWAY_SECRET" && test -n "$DELTA_INDEXNOW_ADMIN_SECRET"
-      - name: Verify current owner pricing before deployment
+      - name: Verify current owner prices remain unchanged
         run: |
           node scripts/check-owner-pricing.mjs
           node scripts/verify-owner-pricing-live.mjs
-      - name: Verify repository and build
-        run: |
-          npm ci
-          npm run verify
-      - name: Deploy current master only
-        run: |
-          printf '%s' "$DELTA_PARTNER_GATEWAY_SECRET" | npx wrangler secret put PARTNER_GATEWAY_SECRET
-          printf '%s' "$DELTA_INDEXNOW_ADMIN_SECRET" | npx wrangler secret put INDEXNOW_ADMIN_SECRET
-          npx wrangler deploy
-      - name: Read back buyer-intent manifest and live prices
+      - name: Wait for canonical manifest propagation and verify buyer intents
         run: |
           set -e
           BASE='https://delta-witness-api.ruphussten.workers.dev'
-          curl -fsS --retry 5 --retry-delay 3 "$BASE/.well-known/agent.json" -o /tmp/agent.json
-          grep -qi 'procurement' /tmp/agent.json
-          grep -qi 'checkout' /tmp/agent.json
-          grep -qi 'vendor' /tmp/agent.json
-          grep -qi 'availability' /tmp/agent.json
-          node scripts/verify-owner-pricing-live.mjs
+          ok=0
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            curl -fsS "$BASE/.well-known/agent.json" -o /tmp/agent.json
+            if grep -qi 'procurement' /tmp/agent.json \
+              && grep -qi 'checkout' /tmp/agent.json \
+              && grep -qi 'vendor' /tmp/agent.json \
+              && grep -qi 'availability' /tmp/agent.json \
+              && grep -qi 'repeatable audit checkpoints' /tmp/agent.json; then
+              ok=1
+              break
+            fi
+            sleep 3
+          done
+          test "$ok" = "1"
+          node - <<'NODE'
+          const fs = require('fs');
+          const j = JSON.parse(fs.readFileSync('/tmp/agent.json','utf8'));
+          console.log(JSON.stringify({
+            display_name: j.display_name,
+            description: j.description,
+            pricing: j.pricing,
+            skills: (j.skills || []).map(x => ({id:x.id,description:x.description,examples:x.examples})),
+            intents: (j.intents || []).map(x => ({name:x.name,description:x.description,price:x.price})),
+          }, null, 2));
+          NODE
           curl -fsS "$BASE/health"
       - name: Reconcile Treasury independently
         if: always()
         run: node scripts/reconcile-treasury.mjs
-      - name: Scope statement
-        if: always()
-        run: |
-          echo 'This run changes only buyer-facing discovery copy in the canonical agent manifest. It does not alter owner prices, create a seller identity, sign a wallet message, move assets, or generate a paid transaction.' >> "$GITHUB_STEP_SUMMARY"
