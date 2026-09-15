@@ -7,6 +7,10 @@ on:
     paths:
       - "channels/base-app/**"
       - ".github/workflows/deploy-base-app.yml"
+      - "scripts/check-owner-pricing.mjs"
+      - "scripts/verify-owner-pricing-live.mjs"
+      - "docs/pricing-policy-2026-09-10.md"
+      - "AGENTS.md"
 
 permissions:
   contents: read
@@ -31,12 +35,19 @@ jobs:
           node-version: "22"
       - name: Require Cloudflare credentials
         run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Gate deploy on current owner pricing and buyer purchase-path source guards
+        run: node ../../scripts/check-owner-pricing.mjs
+      - name: Verify live public 402 prices before deploy without payment
+        run: node ../../scripts/verify-owner-pricing-live.mjs
       - run: npm ci
-      - run: npm run build
+      - name: Verify Base app tests and production build
+        run: npm run verify
       - name: Deploy Cloudflare Pages
         run: npx wrangler pages deploy dist --project-name delta-witness-app --branch master
-      - name: Verify manifest account association
+      - name: Verify deployed page and manifest account association
         run: |
+          curl --fail --retry 8 --retry-delay 5 'https://delta-witness-app.pages.dev/?product=capture&url=https%3A%2F%2Fexample.com%2Fpricing' -o /tmp/base-app.html
+          grep -q '<div id="root"></div>' /tmp/base-app.html
           curl --fail --retry 8 --retry-delay 5 https://delta-witness-app.pages.dev/.well-known/farcaster.json -o /tmp/farcaster.json
           node - <<'NODE'
           const fs = require('node:fs');
@@ -45,5 +56,7 @@ jobs:
           if (!a.header || !a.payload || !a.signature) {
             throw new Error(`Account association still empty: ${JSON.stringify(a)}`);
           }
-          console.log('Farcaster account association deployed.');
+          console.log('Base app and Farcaster account association are reachable after deployment.');
           NODE
+      - name: Re-verify live public 402 prices after deploy without payment
+        run: node ../../scripts/verify-owner-pricing-live.mjs
