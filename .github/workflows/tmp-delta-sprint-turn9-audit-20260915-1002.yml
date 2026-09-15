@@ -1,0 +1,43 @@
+name: TEMP DELTA sprint turn9 audit 20260915-1002
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-delta-sprint-turn9-audit-20260915-1002.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Static owner pricing policy check
+        run: node scripts/check-owner-pricing.mjs
+      - name: Live public pricing verification
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Treasury reconciliation
+        if: always()
+        env:
+          DELTA_TREASURY_LOOKBACK_BLOCKS: 50000
+          DELTA_TREASURY_CHUNK_BLOCKS: 1900
+        run: node scripts/reconcile-treasury.mjs
+      - name: AgentPact demand scan
+        if: always()
+        continue-on-error: true
+        run: node scripts/scan-agentpact-demand.mjs
+      - name: AgentExchange demand scan
+        if: always()
+        continue-on-error: true
+        run: node scripts/scan-agentexchange-demand.mjs
+      - name: PayanAgent demand scan
+        if: always()
+        continue-on-error: true
+        run: node scripts/scan-payan-demand.mjs
+      - name: Paid funnel candidate audit
+        if: always()
+        continue-on-error: true
+        run: node scripts/query-revenue-candidates.mjs
