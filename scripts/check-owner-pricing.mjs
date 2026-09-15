@@ -33,6 +33,28 @@ export function checkOwnerPricing() {
   assert(text('tests/current-pricing-policy.test.ts').includes('CAPTURE_BASE_PRICE_USD).toBe("1")'), 'Owner regression changed away from Capture 1');
   const matrix = text('tests/payment-gate.test.ts');
   assert(matrix.includes('[["capture", "1000000"], ["preflight", "5000000"], ["guarded-action-pilot", "10000000"]]'), 'Public x402 price regression matrix drifted');
+
+  // A correct seller quote alone does not establish a usable purchase path.
+  // These are source guards; package tests and deployed artifact readback remain required.
+  const mcp = text('packages/mcp-server/src/index.ts');
+  const mcpConfig = text('packages/mcp-server/src/payment-config.ts');
+  const mcpReadme = text('packages/mcp-server/README.md');
+  const sdkReadme = text('packages/js-client/README.md');
+  const app = text('channels/base-app/src/App.tsx');
+  const appDomain = text('channels/base-app/src/domain.ts');
+  const appTests = text('channels/base-app/tests/domain.test.ts');
+  assert(mcp.includes('approvedPaymentUsd(product, process.env.DELTA_MAX_USD_PER_CALL)'), 'MCP bypasses explicit product-priced buyer approval');
+  assert(!/DELTA_MAX_USD_PER_CALL\s*(?:\|\||\?\?)/.test(mcp), 'MCP contains an implicit numerical spending fallback');
+  assert(mcpConfig.includes('Object.freeze({ capture: 1, preflight: 5 } as const)'), 'MCP product-price map drifted');
+  assert(mcpConfig.includes('Explicit buyer approval required') && mcpConfig.includes('approved < price') && mcpConfig.includes('return price;'), 'MCP must require buyer approval, preserve smaller budgets and cap each call to its exact product price');
+  assert(mcp.includes('paidFetch("capture")') && mcp.includes('paidFetch("preflight")'), 'MCP paid tools are not bound to their chosen product');
+  assert(mcp.includes('requirement.amount === rawAmount') && mcp.includes('requirement.asset.toLowerCase() === USDC'), 'MCP payment policy must validate exact amount and canonical USDC');
+  assert(mcpReadme.includes('"DELTA_MAX_USD_PER_CALL": "1.00"') && mcpReadme.includes('"DELTA_MAX_USD_PER_CALL": "5.00"'), 'MCP installation examples must explicitly approve current Capture/Preflight amounts');
+  assert(sdkReadme.includes('Capture **1 USDC**') && sdkReadme.includes('Public Preflight **5 USDC**'), 'JS SDK current purchase examples drifted');
+  assert(app.includes('maxPaymentUsd(product)') && app.includes('validateQuote(quote, product)'), 'Base app must bind live quote and spending controls to the same chosen product');
+  assert(/return product === "capture" \? 1 : 5;/.test(appDomain), 'Base app product payment limits drifted from current prices');
+  assert(appTests.includes('maxPaymentUsd("capture")).toBe(1)') && appTests.includes('maxPaymentUsd("preflight")).toBe(5)'), 'Base app purchase-price regression tests are missing');
+
   const workflows = readdirSync(resolve(root, '.github/workflows')).filter((name) => /\.ya?ml$/.test(name));
   for (const name of workflows) {
     const contents = text(`.github/workflows/${name}`);
@@ -45,7 +67,16 @@ export function checkOwnerPricing() {
       }
     }
   }
-  const report = { ok: errors.length === 0, policy: 'owner-2026-09-10-1-5-10', expected: OWNER_PRICING, workflows_checked: workflows, errors, historical_receipts_and_replay_fixtures: 'preserved; not current-price instructions' };
+  const report = {
+    ok: errors.length === 0,
+    policy: 'owner-2026-09-10-1-5-10',
+    expected: OWNER_PRICING,
+    purchase_path_source_guards: ['MCP explicit buyer approval', 'MCP exact product/asset policy', 'MCP install examples', 'JS SDK purchase examples', 'Base app product-priced controls'],
+    verification_scope: 'repository source only; deployed browser behavior, published package contents and real customer settlement require separate evidence',
+    workflows_checked: workflows,
+    errors,
+    historical_receipts_and_replay_fixtures: 'preserved; not current-price instructions'
+  };
   return report;
 }
 
