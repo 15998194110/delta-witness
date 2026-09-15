@@ -1,0 +1,31 @@
+name: TEMP APIHub login discovery 20260915
+on:
+  push:
+    branches: ["master"]
+    paths: [".github/workflows/tmp-apihub-login-discovery-20260915.yml"]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Inspect public login frontend without mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --connect-timeout 10 --max-time 30 https://apihub.io/login -o /tmp/login.html
+          echo '=== login form/action hints ==='
+          grep -Eoi '(<form[^>]*>|action="[^"]+"|method="[^"]+"|https?://[^" ]+|/api/[A-Za-z0-9_./?=-]+|magic[^" <]{0,80}|provider[^" <]{0,80})' /tmp/login.html | head -n 200 || true
+          echo '=== script sources ==='
+          grep -Eo '<script[^>]+src="[^"]+"' /tmp/login.html | sed -E 's/.*src="([^"]+)"/\1/' | tee /tmp/scripts.txt || true
+          while IFS= read -r src; do
+            [ -z "$src" ] && continue
+            case "$src" in
+              http*) url="$src" ;;
+              /*) url="https://apihub.io$src" ;;
+              *) url="https://apihub.io/$src" ;;
+            esac
+            echo "=== asset $url ==="
+            curl -fsSL --connect-timeout 10 --max-time 30 "$url" | grep -Eo '.{0,180}(magic|login|provider|email|auth|send-link|otp).{0,260}' | head -n 80 || true
+          done < /tmp/scripts.txt
