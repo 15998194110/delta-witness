@@ -56,12 +56,21 @@ jobs:
           npm pack delta-witness-mcp@0.7.1 --ignore-scripts >/tmp/mcp-pack-name.txt
           tar -xzf "$(cat /tmp/mcp-pack-name.txt)"
           test "$(node -p "require('./package/package.json').version")" = '0.7.1'
-          grep -q 'capture: 1' package/dist/payment-config.js
-          grep -q 'preflight: 5' package/dist/payment-config.js
+          node --input-type=module - <<'NODE'
+          const cfg = await import(`file://${process.cwd()}/package/dist/payment-config.js`);
+          if (cfg.PUBLIC_PAYMENT_USD.capture !== 1) throw new Error('published MCP Capture price is not 1');
+          if (cfg.PUBLIC_PAYMENT_USD.preflight !== 5) throw new Error('published MCP Preflight price is not 5');
+          if (cfg.approvedPaymentUsd('capture', '1.00') !== 1) throw new Error('published Capture buyer approval is wrong');
+          if (cfg.approvedPaymentUsd('preflight', '5.00') !== 5) throw new Error('published Preflight buyer approval is wrong');
+          let rejected = false;
+          try { cfg.approvedPaymentUsd('preflight', '1.00'); } catch { rejected = true; }
+          if (!rejected) throw new Error('published MCP silently accepts insufficient Preflight approval');
+          NODE
+          grep -q 'requirement.amount === rawAmount' package/dist/index.js
+          grep -q 'requirement.asset.toLowerCase() === USDC' package/dist/index.js
+          grep -q 'PUBLIC_PAYMENT_USD\[product\].*1_000_000' package/dist/index.js
           grep -q 'Explicit buyer approval required' package/dist/payment-config.js
           ! grep -q '0\.10' package/dist/index.js package/dist/payment-config.js package/README.md
-          grep -q '1000000' package/dist/index.js
-          grep -q '5000000' package/dist/index.js
           cd /tmp/delta-published/js
           npm pack delta-witness-ruphussten@0.7.1 --ignore-scripts >/tmp/js-pack-name.txt
           tar -xzf "$(cat /tmp/js-pack-name.txt)"
