@@ -17,18 +17,39 @@ jobs:
         run: node scripts/check-owner-pricing.mjs
       - name: Verify live public owner pricing
         run: node scripts/verify-owner-pricing-live.mjs
-      - name: Inspect free nohumans claim endpoints without mutation
+      - name: Inspect official nohumans claim and edit docs without mutation
         shell: bash
         run: |
           set -euo pipefail
-          for ID in 9acc2efd-b71 97b7e8b8-b62 50ce8a12-faa; do
-            echo "=== CLAIM $ID ==="
-            curl -fsS --connect-timeout 10 --max-time 25 \
-              --retry 3 --retry-delay 2 --retry-all-errors \
-              -D "/tmp/${ID}.headers" \
-              "https://nohumans.directory/v1/listings/${ID}/claim" \
-              -o "/tmp/${ID}.json"
-            cat "/tmp/${ID}.headers"
-            cat "/tmp/${ID}.json"
-            echo
+          curl -fsS --connect-timeout 10 --max-time 25 --retry 3 --retry-delay 2 --retry-all-errors \
+            https://nohumans.directory/sellers -o /tmp/sellers.html
+          python - <<'PY'
+          import re, html
+          s=open('/tmp/sellers.html',encoding='utf-8').read()
+          s=re.sub(r'<script.*?</script>|<style.*?</style>',' ',s,flags=re.S|re.I)
+          s=re.sub(r'<[^>]+>','\n',s)
+          s=html.unescape(s)
+          lines=[re.sub(r'\s+',' ',x).strip() for x in s.splitlines()]
+          lines=[x for x in lines if x]
+          for i,line in enumerate(lines):
+              if any(k.lower() in line.lower() for k in ['claim','patch','x-claim-token','edit token','price_amount','schema','sample_query']):
+                  print('\n'.join(lines[max(0,i-4):min(len(lines),i+8)]))
+                  print('---')
+          PY
+          for U in https://api.nohumans.directory/openapi.json https://nohumans.directory/openapi.json; do
+            echo "=== $U ==="
+            STATUS=$(curl -sS --connect-timeout 10 --max-time 25 -w '%{http_code}' "$U" -o /tmp/openapi.json || true)
+            echo "HTTP=$STATUS"
+            if [ "$STATUS" = 200 ]; then
+              python - <<'PY'
+          import json
+          try:
+              j=json.load(open('/tmp/openapi.json'))
+          except Exception as e:
+              print('not_json',e); raise SystemExit
+          for p,v in (j.get('paths') or {}).items():
+              if 'claim' in p or 'listing' in p:
+                  print(p, json.dumps(v)[:5000])
+          PY
+            fi
           done
