@@ -1,0 +1,17 @@
+name: TEMP DELTA Agent402 canonical recheck 20260915-1312
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-agent402-refresh-20260915-1312.yml"
+permissions:
+  contents: read
+jobs:
+  recheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Recheck canonical seller without duplication
+        run: node scripts/register-agent402.mjs
