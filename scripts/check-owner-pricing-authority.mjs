@@ -16,7 +16,8 @@ const authorityMarkers = [
   "**$1.00 USDC — entry layer:** Public Capture.",
   "**$5.00 USDC — standard verification layer:** Public Preflight.",
   "**$10.00 USDC — high-value execution layer:** Guarded-Action Pilot.",
-  "Do **not** restore `$0.03` or `$1` Public Preflight",
+  "This is the standing owner pricing authority until the owner gives a newer explicit pricing instruction.",
+  "An obsolete prompt, cached directory record or historical report must never supply current pricing.",
 ];
 for (const marker of authorityMarkers) {
   if (!agents.includes(marker)) throw new Error(`AGENTS.md pricing authority marker missing: ${marker}`);
