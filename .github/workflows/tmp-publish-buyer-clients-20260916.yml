@@ -1,0 +1,113 @@
+name: TEMP DELTA publish corrected buyer clients 20260916
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-publish-buyer-clients-20260916.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: delta-temp-buyer-client-publish-20260916
+  cancel-in-progress: false
+
+jobs:
+  verify-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Verify owner pricing source and live 402 before external publish
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+
+      - name: Build and publish MCP 0.7.1 if absent
+        working-directory: packages/mcp-server
+        run: |
+          set -euo pipefail
+          npm ci
+          npm version 0.7.1 --no-git-tag-version
+          sed -i 's/version: "0.7.0"/version: "0.7.1"/' src/index.ts
+          npm run prepack
+          if npm view delta-witness-mcp@0.7.1 version >/dev/null 2>&1; then
+            echo 'delta-witness-mcp@0.7.1 already exists; will verify it rather than republish'
+          else
+            npm publish --access public --provenance
+          fi
+
+      - name: Build and publish JS client 0.7.1 if absent
+        working-directory: packages/js-client
+        run: |
+          set -euo pipefail
+          npm version 0.7.1 --no-git-tag-version
+          npm run check
+          npm test
+          if npm view delta-witness-ruphussten@0.7.1 version >/dev/null 2>&1; then
+            echo 'delta-witness-ruphussten@0.7.1 already exists; will verify it rather than republish'
+          else
+            npm publish --access public --provenance
+          fi
+
+      - name: Verify published buyer artifacts contain current purchase semantics
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/delta-published && mkdir -p /tmp/delta-published/mcp /tmp/delta-published/js
+          cd /tmp/delta-published/mcp
+          npm pack delta-witness-mcp@0.7.1 --ignore-scripts >/tmp/mcp-pack-name.txt
+          tar -xzf "$(cat /tmp/mcp-pack-name.txt)"
+          test "$(node -p "require('./package/package.json').version")" = '0.7.1'
+          grep -q 'capture: 1' package/dist/payment-config.js
+          grep -q 'preflight: 5' package/dist/payment-config.js
+          grep -q 'Explicit buyer approval required' package/dist/payment-config.js
+          ! grep -q '0\.10' package/dist/index.js package/dist/payment-config.js package/README.md
+          grep -q '1000000' package/dist/index.js
+          grep -q '5000000' package/dist/index.js
+          cd /tmp/delta-published/js
+          npm pack delta-witness-ruphussten@0.7.1 --ignore-scripts >/tmp/js-pack-name.txt
+          tar -xzf "$(cat /tmp/js-pack-name.txt)"
+          test "$(node -p "require('./package/package.json').version")" = '0.7.1'
+          grep -q 'Capture \*\*1 USDC\*\*' package/README.md
+          grep -q 'Public Preflight \*\*5 USDC\*\*' package/README.md
+
+      - name: Publish MCP registry 0.7.1 if not already active
+        run: |
+          set -euo pipefail
+          node scripts/render-mcp-server.mjs
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const p = 'server.json';
+          const j = JSON.parse(fs.readFileSync(p, 'utf8'));
+          j.version = '0.7.1';
+          for (const pkg of j.packages || []) if (pkg.identifier === 'delta-witness-mcp') pkg.version = '0.7.1';
+          fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
+          NODE
+          PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+          URL="https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${PLATFORM}.tar.gz"
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 3 "$URL" | tar xz mcp-publisher
+          ./mcp-publisher validate server.json
+          if node scripts/check-mcp-registry.mjs server.json; then
+            echo 'MCP Registry 0.7.1 already active; skipping publish'
+          else
+            ./mcp-publisher login github-oidc
+            ./mcp-publisher publish server.json
+          fi
+
+      - name: Final readback
+        run: |
+          set -euo pipefail
+          test "$(npm view delta-witness-mcp@0.7.1 version)" = '0.7.1'
+          test "$(npm view delta-witness-ruphussten@0.7.1 version)" = '0.7.1'
+          node scripts/verify-owner-pricing-live.mjs
+          echo 'Published corrected buyer clients with no wallet, payment, KYC, listing fee, asset movement or customer-revenue claim.' >> "$GITHUB_STEP_SUMMARY"
