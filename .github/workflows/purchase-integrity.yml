@@ -1,0 +1,80 @@
+name: DELTA Purchase Integrity
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/purchase-integrity.yml"
+      - "AGENTS.md"
+      - "docs/pricing-policy-2026-09-10.md"
+      - "scripts/check-owner-pricing.mjs"
+      - "scripts/verify-owner-pricing-live.mjs"
+      - "packages/mcp-server/**"
+      - "packages/js-client/**"
+      - "channels/base-app/**"
+      - "src/pricing.ts"
+      - "wrangler.jsonc"
+      - "channels/partner-gateway/wrangler.jsonc"
+  pull_request:
+    paths:
+      - ".github/workflows/purchase-integrity.yml"
+      - "scripts/check-owner-pricing.mjs"
+      - "packages/mcp-server/**"
+      - "packages/js-client/**"
+      - "channels/base-app/**"
+      - "src/pricing.ts"
+      - "wrangler.jsonc"
+      - "channels/partner-gateway/wrangler.jsonc"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: delta-purchase-integrity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-and-client-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify source prices, buyer approval and purchase examples
+        run: node scripts/check-owner-pricing.mjs
+      - name: MCP typecheck, payment-policy tests and package build
+        working-directory: packages/mcp-server
+        run: |
+          npm ci --fetch-retries=2 --fetch-retry-mintimeout=1000 --fetch-retry-maxtimeout=5000
+          npm run prepack
+          npm pack --dry-run --ignore-scripts
+      - name: Base app quote and product-budget tests plus build
+        working-directory: channels/base-app
+        run: |
+          npm ci --fetch-retries=2 --fetch-retry-mintimeout=1000 --fetch-retry-maxtimeout=5000
+          npm run verify
+      - name: JS client no-payment API behavior tests
+        working-directory: packages/js-client
+        run: npm run check && npm test
+      - name: State exact verification boundary
+        if: always()
+        run: |
+          echo 'Source checks, mocked payment-policy tests and builds only. No wallet, secret, signature, real payment, production deployment or package publication occurs in this workflow. These checks do not prove customer settlement or that an existing published npm artifact has changed.' >> "$GITHUB_STEP_SUMMARY"
+
+  live-public-price-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify current live public quote and 402 amounts without payment
+        run: node scripts/verify-owner-pricing-live.mjs
