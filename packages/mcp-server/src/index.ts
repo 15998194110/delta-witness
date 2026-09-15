@@ -6,10 +6,12 @@ import { x402Client, wrapFetchWithPayment, type PaymentPolicy } from "@x402/fetc
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 import { z } from "zod";
+import { approvedPaymentUsd, PUBLIC_PAYMENT_USD, type PaidProduct } from "./payment-config.js";
 
 const DEFAULT_BASE_URL = "https://delta-witness-api.ruphussten.workers.dev";
 const NETWORK = "eip155:8453";
 const TREASURY = "0x1990e21bc219696ff7fbc26527dbaed335ac6367";
+const USDC = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
 
 type Json = Record<string, unknown>;
 
@@ -36,11 +38,14 @@ export function buildPreflightBody(input: {
   };
 }
 
-export function deltaPaymentPolicy(): PaymentPolicy {
+export function deltaPaymentPolicy(product: PaidProduct): PaymentPolicy {
+  const rawAmount = String(PUBLIC_PAYMENT_USD[product] * 1_000_000);
   return (_version, requirements) => requirements.filter((requirement) =>
     requirement.network === NETWORK &&
     requirement.scheme === "exact" &&
-    requirement.payTo.toLowerCase() === TREASURY,
+    requirement.payTo.toLowerCase() === TREASURY &&
+    requirement.asset.toLowerCase() === USDC &&
+    requirement.amount === rawAmount,
   );
 }
 
@@ -66,16 +71,16 @@ async function jsonResponse(response: Response, operation: string): Promise<Json
   return body as Json;
 }
 
-function paidFetch(): typeof fetch {
+function paidFetch(product: PaidProduct): typeof fetch {
+  // Missing approval is reported explicitly; no hidden legacy fallback or automatic budget increase.
+  const maxUsd = approvedPaymentUsd(product, process.env.DELTA_MAX_USD_PER_CALL);
   const privateKey = process.env.EVM_PRIVATE_KEY;
   if (!privateKey || !/^0x[0-9a-fA-F]{64}$/.test(privateKey)) {
     throw new Error("Paid DELTA tools require EVM_PRIVATE_KEY in the local MCP process environment");
   }
-  const maxUsd = Number(process.env.DELTA_MAX_USD_PER_CALL || "0.10");
-  if (!Number.isFinite(maxUsd) || maxUsd <= 0 || maxUsd > 10) throw new Error("DELTA_MAX_USD_PER_CALL must be between 0 and 10");
   const client = new x402Client();
-  client.setSpendControls({ maxAmountPerPayment: `$${maxUsd}` });
-  client.registerPolicy(deltaPaymentPolicy());
+  client.setSpendControls({ maxAmountPerPayment: `$${maxUsd.toFixed(2)}` });
+  client.registerPolicy(deltaPaymentPolicy(product));
   registerExactEvmScheme(client, {
     signer: privateKeyToAccount(privateKey as `0x${string}`),
     networks: [NETWORK],
@@ -95,8 +100,8 @@ export function createServer(): McpServer {
 
   server.registerTool("delta_quote", {
     title: "Quote DELTA observation",
-    description: "Get the current contribution-margin-aware price before any payment is signed.",
-    inputSchema: { product: z.enum(["capture", "preflight"]).default("preflight") },
+    description: "Get the current owner-authorized price before any payment is signed.",
+    inputSchema: { product: z.enum(["capture", "preflight"]).default("capture") },
   }, async ({ product }) => {
     const response = await fetch(`${baseUrl()}/v1/quote?product=${product}`, { headers: { "x-delta-channel": "mcp" } });
     return result(await jsonResponse(response, "DELTA quote"));
@@ -104,10 +109,10 @@ export function createServer(): McpServer {
 
   server.registerTool("delta_capture", {
     title: "Capture public source",
-    description: "Pay via x402 and preserve what a public webpage says now. Returns proof metadata and hashes; raw artifacts remain private.",
+    description: "Capture costs 1 USDC. Requires the buyer's explicit DELTA_MAX_USD_PER_CALL approval of at least 1.00; pays exactly 1 USDC via x402. Preserves a public webpage and returns proof metadata and hashes; raw artifacts remain private.",
     inputSchema: { url: z.string().url() },
   }, async ({ url }) => {
-    const response = await paidFetch()(`${baseUrl()}/v1/capture`, {
+    const response = await paidFetch("capture")(`${baseUrl()}/v1/capture`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-delta-channel": "mcp" },
       body: JSON.stringify({ url }),
@@ -116,8 +121,8 @@ export function createServer(): McpServer {
   });
 
   server.registerTool("delta_preflight", {
-    title: "Guard autonomous action",
-    description: "Pay via x402, observe a public source, and compare deterministic hashes/text before a consequential action. Safe means expectations matched, not that the source is true.",
+    title: "Public Preflight",
+    description: "Public Preflight costs 5 USDC. Requires the buyer's explicit DELTA_MAX_USD_PER_CALL approval of at least 5.00; pays exactly 5 USDC via x402. Compares public-source hashes/text before a consequential action. Safe means expectations matched, not that the source is true. This is not the 10 USDC Guarded-Action Pilot.",
     inputSchema: {
       url: z.string().url(),
       prior_proof_id: z.string().uuid().optional(),
@@ -128,7 +133,7 @@ export function createServer(): McpServer {
       freshness_seconds: z.number().int().min(0).max(2_592_000).optional(),
     },
   }, async (input) => {
-    const response = await paidFetch()(`${baseUrl()}/v1/preflight`, {
+    const response = await paidFetch("preflight")(`${baseUrl()}/v1/preflight`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-delta-channel": "mcp" },
       body: JSON.stringify(buildPreflightBody(input)),
