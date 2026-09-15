@@ -1,3 +1,4 @@
+# Retry after preserving canonical agent-manifest USDC casing expected by regression tests.
 name: TEMP DELTA revenue-intent manifest deploy 20260916
 
 on:
