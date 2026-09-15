@@ -5,8 +5,10 @@ import {
   BASE_NETWORK,
   compactProof,
   maxPaymentUsd,
+  parsePurchaseParams,
   paymentPolicy,
   requestBody,
+  updatePurchaseSearch,
   validateQuote,
   type Delivery,
   type Product,
@@ -37,9 +39,10 @@ function friendlyError(error: unknown): string {
 }
 
 export default function App() {
-  const [product, setProduct] = useState<Product>("capture");
-  const [url, setUrl] = useState("https://example.com/terms");
-  const [mustContain, setMustContain] = useState("30-day refund");
+  const initialPurchase = useMemo(() => parsePurchaseParams(window.location.search), []);
+  const [product, setProduct] = useState<Product>(initialPurchase.product);
+  const [url, setUrl] = useState(initialPurchase.url);
+  const [mustContain, setMustContain] = useState(initialPurchase.mustContain);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteError, setQuoteError] = useState("");
   const [runState, setRunState] = useState<RunState>("idle");
@@ -68,6 +71,12 @@ export default function App() {
   useEffect(() => {
     void loadQuote();
   }, [loadQuote]);
+
+  useEffect(() => {
+    const search = updatePurchaseSearch(window.location.search, { product, url, mustContain });
+    const next = `${window.location.pathname}${search}${window.location.hash}`;
+    window.history.replaceState(null, "", next);
+  }, [product, url, mustContain]);
 
   const run = async () => {
     setError("");
@@ -109,7 +118,7 @@ export default function App() {
       };
       const client = new x402Client();
       client.setSpendControls({ maxAmountPerPayment: `$${maxPaymentUsd(product).toFixed(2)}` });
-      client.registerPolicy(paymentPolicy());
+      client.registerPolicy(paymentPolicy(product));
       registerExactEvmScheme(client, { signer, networks: [BASE_NETWORK] });
 
       setRunState("paying");
@@ -204,6 +213,7 @@ export default function App() {
             <button className="primary-action" onClick={() => void run()} disabled={busy || !quote}>
               {actionLabel}
             </button>
+            <p className="wallet-address">The current product and target stay in this page URL, so an integration can link directly to a ready-to-pay request.</p>
             {walletAddress && <p className="wallet-address">Connected: {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}</p>}
           </section>
 
