@@ -48,14 +48,16 @@ For an existing x402 integration, pass its approved fetch directly to `preflight
 
 ## Current public payment terms
 
-Owner-approved reference prices as of 2026-09-08: Capture **0.03 USDC** and public Preflight **1 USDC**. The existing HTTP Guarded Action Pilot is **10 USDC**, but this JavaScript class does not expose a Pilot method. Existing authenticated partner and Watch terms are separate; do not infer those prices from the public quote API.
+Current owner-authorized prices: Capture **1 USDC**, Public Preflight **5 USDC**, and Guarded-Action Pilot **10 USDC**. This JavaScript class does not expose a Pilot method. Authenticated Partner Capture, Partner Preflight and each new Watch check are **1 USDC** under the separate authenticated partner flow.
 
 - Network: Base mainnet, `eip155:8453`.
 - Canonical USDC: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`.
 - DELTA Treasury: `0x1990e21bc219696ff7fbc26527dbaed335ac6367`.
-- A buyer-approved 1 USDC public Preflight cap corresponds to `1000000` raw USDC units. It is a buyer-side policy, not a cap enforced by this SDK.
+- A buyer-approved Capture allowance of **1 USDC** corresponds to `1000000` raw USDC units.
+- A buyer-approved Public Preflight allowance of **5 USDC** corresponds to `5000000` raw USDC units.
+- These are explicit buyer-side approvals, not spending limits enforced by this SDK. A Capture-only allowance does not authorize Public Preflight; do not silently increase a buyer's existing budget.
 
-Always obtain the live quote/challenge. Never send USDC directly to the Treasury as a substitute for the x402 request: an unrelated transfer does not identify the request or establish delivery. Do not create a fresh payment blindly after a timeout; retain the payment client's receipt/request context and resolve whether settlement or delivery already occurred before another authorization.
+Always obtain the live quote/challenge and check that the chosen product, displayed amount, approved spending allowance and payment requirement agree before signing. Never send USDC directly to the Treasury as a substitute for the x402 request: an unrelated transfer does not identify the request or establish delivery. Do not create a fresh payment blindly after a timeout; retain the payment client's receipt/request context and resolve whether settlement or delivery already occurred before another authorization.
 
 ## Put the observation before your agent's action
 
@@ -63,6 +65,6 @@ Observe an authorized, publicly accessible page; inspect the returned comparison
 
 The SDK also exposes `proof(id)` for returned proof identifiers. A proof or HTTP success alone is not independent chain-receipt verification; retain the payment client's settlement evidence separately. SDK calls carry `x-delta-channel: npm`, a client-reported attribution hint, not evidence of a unique customer or originating marketplace.
 
-## Scope of this update
+## Publication and validation scope
 
-This is a repository documentation improvement using existing SDK methods. It does not change runtime code, deploy production, republish the npm package, generate a paid canary, or establish customer adoption. The examples' existing-client method/response behavior was checked with four offline mock tests; no live wallet authorization, settlement or paid delivery was exercised.
+Repository documentation and published npm artifacts are separate surfaces. A repository correction is not a claim that an already-published npm version changed. Published package contents and the actual buyer-facing purchase path require separate readback. Offline mock tests do not establish a live wallet authorization, settlement or paid delivery.
