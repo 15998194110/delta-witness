@@ -9,6 +9,7 @@ on:
     branches: ["master"]
     paths:
       - ".github/workflows/discovery-pulse.yml"
+      - "scripts/scan-external-funded-demand.mjs"
 
 jobs:
   ping:
