@@ -1,6 +1,6 @@
 import type { PricingQuote } from "./pricing";
 
-const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32d4f71b54bdA02913";
+const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
 export function agentJsonManifest(
   publicOrigin: string,
@@ -44,31 +44,37 @@ export function agentJsonManifest(
       {
         id: "capture",
         name: "Capture public page state",
-        description: "Observe a public webpage independently and return timestamped cryptographic proof metadata and hashes.",
-        examples: ["Capture the current public page state for https://example.com"],
+        description: "Preserve timestamped public page-state evidence before procurement, checkout, vendor review, price or availability decisions, and other browser-agent side effects.",
+        examples: [
+          "Capture the public vendor terms immediately before a procurement action",
+          "Preserve the displayed price or availability page before an automated checkout",
+        ],
       },
       {
         id: "preflight",
         name: "Preflight verification",
-        description: "Observe a public source and deterministically compare it with supplied expectations or a prior DELTA proof before an autonomous action.",
-        examples: ["Verify that https://example.com still contains the expected public statement before acting"],
+        description: "Observe a public source immediately before an action and deterministically compare expected text or hashes, useful for checkout, procurement, publishing and workflow audit checkpoints.",
+        examples: [
+          "Verify that the public refund terms still match expectations before buying",
+          "Confirm a vendor or policy page has not changed before an autonomous submission",
+        ],
       },
       {
         id: "guarded-action-pilot",
         name: "Guarded Action Pilot",
-        description: "Produce a bounded 1-3 URL evidence package with optional deterministic preflight for higher-value autonomous actions.",
-        examples: ["Witness up to three public URLs and run one deterministic preflight condition"],
+        description: "Produce a bounded 1-3 URL evidence package with optional deterministic preflight for higher-value shopping, procurement, browser automation and approval workflows.",
+        examples: ["Witness the price, vendor terms and policy pages before a consequential purchase or procurement action"],
       },
     ],
     origin: hostname,
     payout_address: payoutAddress,
     display_name: "DELTA Witness",
-    description: "Independent public page-state evidence and deterministic preflight verification for consequential agent actions.",
+    description: "Independent public page-state evidence and deterministic preflight verification before procurement, checkout, vendor review, publishing and other consequential agent actions. Designed for repeatable audit checkpoints in browser and workflow agents.",
     payments: { x402: payment },
     intents: [
       {
         name: "capture_page_state",
-        description: "Observe a public webpage independently and return timestamped cryptographic proof metadata and hashes.",
+        description: "Preserve timestamped public page-state evidence immediately before procurement, checkout, vendor review, price/availability decisions, publishing or another consequential browser-agent action.",
         endpoint: "/v1/capture",
         method: "POST",
         parameters: {
@@ -79,7 +85,7 @@ export function agentJsonManifest(
       },
       {
         name: "preflight_verification",
-        description: "Independently observe a public source and deterministically compare it with supplied expected content or prior proof state before an agent acts.",
+        description: "Independently observe a public source and compare it with expected content or prior proof state before procurement, checkout, vendor approval, publishing or another autonomous action.",
         endpoint: "/v1/preflight",
         method: "POST",
         parameters: {
@@ -92,7 +98,7 @@ export function agentJsonManifest(
       },
       {
         name: "guarded_action_pilot",
-        description: "Produce 1-3 independent public page-state witness receipts and optionally one deterministic preflight verdict as a bounded guarded-action evidence package.",
+        description: "Produce 1-3 independent public page-state witness receipts and optionally one deterministic preflight verdict as a bounded evidence package for shopping, procurement, browser automation or approval workflows.",
         endpoint: "/v1/guarded-action-pilot",
         method: "POST",
         parameters: {
