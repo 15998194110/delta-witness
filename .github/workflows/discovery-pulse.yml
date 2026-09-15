@@ -55,6 +55,10 @@ jobs:
         if: always()
         continue-on-error: true
         run: node scripts/scan-agentpact-demand.mjs | tee /tmp/delta-agentpact-demand.json
+      - name: Scan additional escrow-backed buyer demand
+        if: always()
+        continue-on-error: true
+        run: node scripts/scan-external-funded-demand.mjs | tee /tmp/delta-external-funded-demand.json
       - name: Audit paid funnel candidates
         if: always()
         run: node scripts/query-revenue-candidates.mjs | tee /tmp/delta-revenue-candidates.json
@@ -178,6 +182,7 @@ jobs:
             /tmp/delta-payan-demand.json
             /tmp/delta-agentexchange-demand.json
             /tmp/delta-agentpact-demand.json
+            /tmp/delta-external-funded-demand.json
             /tmp/delta-revenue-candidates.json
             /tmp/delta-treasury.json
           if-no-files-found: warn
