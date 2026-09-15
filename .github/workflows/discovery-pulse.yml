@@ -10,6 +10,7 @@ on:
     paths:
       - ".github/workflows/discovery-pulse.yml"
       - "scripts/scan-external-funded-demand.mjs"
+      - "scripts/scan-agentpact-demand.mjs"
 
 jobs:
   ping:
@@ -43,37 +44,29 @@ jobs:
           test "$STATUS" = "402"
           grep -qi '^payment-required:' /tmp/delta-preflight.headers
 
-      # Revenue-first: inspect funded/compatible demand before any directory maintenance.
+      # Revenue-first: buyer demand and settlement run on every pulse.
       - name: Scan PayanAgent funded buyer demand
-        if: always()
         continue-on-error: true
         run: node scripts/scan-payan-demand.mjs | tee /tmp/delta-payan-demand.json
       - name: Scan Agent Exchange funded buyer demand
-        if: always()
         continue-on-error: true
         run: node scripts/scan-agentexchange-demand.mjs | tee /tmp/delta-agentexchange-demand.json
       - name: Scan AgentPact seller and funded buyer demand
-        if: always()
         continue-on-error: true
         run: node scripts/scan-agentpact-demand.mjs | tee /tmp/delta-agentpact-demand.json
       - name: Scan additional escrow-backed buyer demand
-        if: always()
         continue-on-error: true
         run: node scripts/scan-external-funded-demand.mjs | tee /tmp/delta-external-funded-demand.json
       - name: Audit paid funnel candidates
-        if: always()
         run: node scripts/query-revenue-candidates.mjs | tee /tmp/delta-revenue-candidates.json
       - name: Reconcile Base Treasury
-        if: always()
         id: treasury
         continue-on-error: true
         run: node scripts/reconcile-treasury.mjs | tee /tmp/delta-treasury.json
 
-      # Distribution is capped to one maintenance window per day (03:xx UTC / 12:xx JST),
-      # or an explicit manual workflow_dispatch. This keeps hourly operator effort revenue-first
-      # and prevents known degraded registries from being hammered.
+      # Maintenance/distribution is deliberately throttled. This prevents hourly catalog churn from
+      # competing with buyer conversion while retaining one bounded refresh window per UTC day.
       - name: Decide distribution maintenance window
-        if: always()
         id: maintenance
         shell: bash
         run: |
@@ -84,7 +77,6 @@ jobs:
             echo 'run=false' >> "$GITHUB_OUTPUT"
             echo 'DISTRIBUTION_MAINTENANCE run=false revenue_first=true'
           fi
-
       - name: Register x402 Discovery service without duplication
         if: steps.maintenance.outputs.run == 'true'
         continue-on-error: true
@@ -138,19 +130,7 @@ jobs:
           if fetch_bounded "https://payapi.market/marketplace?verified=0" /tmp/payapi.html; then
             if grep -qi 'DELTA Witness' /tmp/payapi.html; then PAYAPI=present; else PAYAPI=absent; fi
           fi
-          AIPROX=degraded
-          if fetch_bounded 'https://aiprox.dev/api/agents' /tmp/aiprox-agents.json; then
-            if grep -qi 'delta-witness' /tmp/aiprox-agents.json; then AIPROX=present; else AIPROX=absent; fi
-          fi
-          A2A=degraded
-          if fetch_bounded 'https://www.a2a-registry.org/agent/dev.workers.delta_witness' /tmp/a2a-delta.html; then
-            if grep -qi 'DELTA Witness' /tmp/a2a-delta.html; then A2A=present; else A2A=absent; fi
-          fi
-          OPEN402=degraded
-          if fetch_bounded 'https://raw.githubusercontent.com/ArcedeDev/open-402/main/registry/domains.txt' /tmp/open402-domains.txt; then
-            if grep -Fqi "$HOST" /tmp/open402-domains.txt; then OPEN402=present; else OPEN402=absent; fi
-          fi
-          echo "DISCOVERY_CHANNEL x402_list=$X402_LIST circle=$CIRCLE payapi=$PAYAPI aiprox=$AIPROX a2a=$A2A open402=$OPEN402"
+          echo "DISCOVERY_CHANNEL x402_list=$X402_LIST circle=$CIRCLE payapi=$PAYAPI"
       - name: Refresh true402 discovery without duplication
         if: steps.maintenance.outputs.run == 'true'
         continue-on-error: true
@@ -173,7 +153,6 @@ jobs:
             echo ''
             echo 'Buyer-demand, paid-funnel and Treasury checks run every pulse. Directory/index maintenance is throttled to one daily window so external outages and catalog work do not consume the revenue program.'
           } >> "$GITHUB_STEP_SUMMARY"
-
       - name: Upload canonical pulse evidence
         if: always()
         uses: actions/upload-artifact@v4
