@@ -3,9 +3,14 @@ import type { PaymentPolicy } from "@x402/fetch";
 export const API_ORIGIN = "https://delta-witness-api.ruphussten.workers.dev";
 export const BASE_NETWORK = "eip155:8453";
 export const TREASURY = "0x1990e21bc219696ff7fbc26527dbaed335ac6367";
-export const MAX_PAYMENT_USD = 0.10;
 
 export type Product = "preflight" | "capture";
+
+export const MAX_PAYMENT_USD = 5;
+
+export function maxPaymentUsd(product: Product): number {
+  return product === "capture" ? 1 : 5;
+}
 
 export type Quote = {
   price: string;
@@ -54,8 +59,9 @@ export function validateQuote(quote: Quote, product: Product): void {
   }
   if (quote.payment_flow !== "upfront") throw new Error("DELTA payment must settle before capture");
   const price = Number(quote.price.replace("$", ""));
-  if (!Number.isFinite(price) || price <= 0 || price > MAX_PAYMENT_USD) {
-    throw new Error(`${product === "preflight" ? "Guard" : "Capture"} quote exceeds the $${MAX_PAYMENT_USD.toFixed(2)} app limit`);
+  const expected = maxPaymentUsd(product);
+  if (!Number.isFinite(price) || price !== expected) {
+    throw new Error(`${product === "preflight" ? "Guard" : "Capture"} quote must match the current ${expected.toFixed(2)} USDC owner price`);
   }
 }
 
