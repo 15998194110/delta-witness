@@ -10,12 +10,12 @@
     "gross_customer_receipts_usdc": 0,
     "recognized_customer_revenue_usdc": 0,
     "fulfilled_paid_uses": 0,
-    "checkpoint_status": "day_1_in_progress",
+    "checkpoint_status": "day_1_in_progress_pre_24h_pivot",
     "day_1_target": 1,
     "twenty_four_hour_pivot_due_at": "2026-09-15T13:43:28+09:00",
     "material_risk_alerted": false
   },
-  "checked_at": "2026-09-14T23:49:13+09:00",
+  "checked_at": "2026-09-15T13:26:19+09:00",
   "pricing": {
     "policy": "owner-2026-09-10-1-5-10",
     "public_capture_usdc": 1,
@@ -24,29 +24,30 @@
     "partner_capture_usdc": 1,
     "partner_preflight_usdc": 1,
     "watch_check_usdc": 1,
-    "live_public_readback_checked_at": "2026-09-14T23:10:11+09:00",
+    "live_public_readback_checked_at": "2026-09-15T13:26:14+09:00",
     "public_raw_usdc": ["1000000", "5000000", "10000000"],
     "network": "eip155:8453",
     "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
     "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
-    "evidence": "GitHub Actions canonical Discovery Pulse run 34853831054 plus first-party policy/readback"
+    "evidence_quality": "A_direct_live_402_readback"
   },
   "treasury": {
-    "canonical_reconciliation_checked_at": "2026-09-14T23:10:53+09:00",
-    "audited_block_start": 51252851,
-    "audited_block_end": 51302850,
+    "canonical_reconciliation_checked_at": "2026-09-15T13:16:40+09:00",
+    "audited_block_start": 51278225,
+    "audited_block_end": 51328224,
     "audited_lookback_blocks": 50000,
     "canonical_usdc_receipt_candidates_in_range": 0,
     "unclassified_usdc_in_range": 0,
     "sprint_customer_receipts_confirmed": 0,
     "paid_funnel_candidate_rows": 0,
-    "coverage_note": "This is the latest direct canonical-USDC 50,000-block reconciliation range; an empty range is not represented as proof of all-time zero receipts.",
+    "coverage_note": "Latest direct canonical-USDC 50,000-block reconciliation range. An empty bounded range is not represented as proof of all-time zero receipts.",
     "evidence_quality": "A_direct_canonical_USDC_log"
   },
   "funded_demand": {
     "agentpact": {
-      "checked_at": "2026-09-14T23:10:45+09:00",
+      "checked_at": "2026-09-15T13:16:40+09:00",
       "active_offers": 3,
+      "offer_prices_usdc": [1, 5, 10],
       "external_requests": 17,
       "funded_compatible_requests": 0,
       "buyer_funded_deals": 0,
@@ -55,17 +56,27 @@
       "next_action": "continue read-only monitoring; do not bid on null funding state"
     },
     "agentexchange": {
-      "checked_at": "2026-09-14T23:10:44+09:00",
+      "checked_at": "2026-09-15T13:16:40+09:00",
       "buyer_count": 1,
       "external_requests": 2,
       "funded_compatible_requests": 0,
       "next_action": "monitor for a genuinely compatible funded request"
     },
     "payanagent": {
-      "checked_at": "2026-09-14T23:10:43+09:00",
+      "checked_at": "2026-09-15T13:16:40+09:00",
       "status": "degraded_recoverable_http_500",
       "funded_compatible_requests": 0,
       "next_action": "deferred bounded recheck; do not hammer"
+    },
+    "moltjobs": {
+      "checked_at": "2026-09-15T13:20:00+09:00",
+      "independently_posted_open_jobs": 0,
+      "marketplace_historical_jobs": 50,
+      "marketplace_historical_completed": 13,
+      "marketplace_historical_settled_volume_usdc": 41.5,
+      "marketplace_funded_employers": 1,
+      "commercial_status": "real historical escrowed demand but no independent open job to bid now",
+      "next_action": "do not spend registration effort while the independent board is empty; recheck later"
     },
     "clawlancer": {
       "checked_at": "2026-09-14T18:44:22+09:00",
@@ -76,82 +87,88 @@
   },
   "buyer_connections": [
     {
+      "surface": "NoHumans",
+      "use_case": "buyer-facing 1 USDC public page-state evidence for procurement terms, price/availability and browser-agent checkpoints",
+      "commercial_evidence": "existing canonical listing is verified and carries request/response schema plus concrete purchase examples",
+      "demand_grade": "B_buyer_facing_route_not_yet_paid",
+      "price_fit": "1 USDC Capture",
+      "action_taken": "existing canonical listing optimized without duplicate identity or fee",
+      "next_action": "measure independent invocation/settlement rather than add duplicate listings"
+    },
+    {
       "surface": "BrowserAct",
       "use_case": "post-monitoring evidence for public product price/availability, supplier terms and source articles",
       "commercial_evidence": "BrowserAct operates paid production Data API and reusable ecommerce/news monitoring workflows; no explicit DELTA purchase intent yet",
       "demand_grade": "B_targeted_integration_fit_not_buyer_intent",
       "price_fit": "selective 1 USDC Capture only for materially consequential checkpoints",
-      "action_taken": "one official support outreach sent within daily cap; buyer quickstart published in DELTA repo and linked from README",
+      "action_taken": "one official support outreach sent previously; buyer quickstart published in DELTA repo and linked from README",
       "quickstart": "docs/browseract-monitoring-evidence-quickstart.md",
       "next_action": "wait for an explicit reply; no silence-chasing"
     },
     {
-      "surface": "req402",
-      "use_case": "buyer-facing pay-per-request API marketplace",
-      "commercial_evidence": "current public site presents non-custodial Base-USDC settlement, agent-native x402 discovery, no setup/monthly fee and 5% facilitator fee; displayed per-API request counts are platform claims and are not independently reconciled",
-      "demand_grade": "B_or_C_until_receipts_or_buyer_evidence_are_verified",
-      "price_fit": "supports provider-set per-request price; current DELTA 1/5/10 ladder must remain unchanged",
-      "action_taken": "public seller onboarding researched; auth UI could not be safely completed with available free non-metered tooling",
-      "next_action": "attempt only a free reversible registration path when accessible; no paid browser credits, fees, wallet signing or legal/KYC boundary"
-    },
-    {
-      "surface": "Bounty API",
-      "use_case": "decision-grade sourced API marketplace with x402 discovery and settlement",
-      "commercial_evidence": "current provider page states x402 per-request USDC, MCP discovery, revenue dashboard and 97% provider revenue share; application is by official business email",
-      "demand_grade": "B_provider_fit_not_explicit_buyer_intent",
-      "price_fit": "DELTA provenance/evidence output matches stated provider criteria; economics require preserving native current prices and avoiding double payment",
-      "action_taken": "researched only; no outreach because the Tokyo-day DELTA email cap is already reached",
-      "next_action": "after the daily outreach cap resets, contact only if no higher-grade funded/explicit-interest lead supersedes it"
-    },
-    {
       "surface": "Vertical Marketplace",
       "use_case": "native x402 provider listing where buyers settle directly to DELTA Treasury",
-      "commercial_evidence": "platform explicitly logged DELTA as the first candidate for a native-passthrough provider feature and said the request was in front of the founder; this is integration intent, not buyer purchase intent",
+      "commercial_evidence": "platform explicitly logged DELTA as the first candidate for a native-passthrough provider feature and said the request was in front of the founder; integration intent, not buyer purchase intent",
       "demand_grade": "B_actionable_platform_integration_interest_not_buyer_demand",
-      "price_fit": "Capture 1 USDC first candidate and Public Preflight second; wrapper flow is rejected because it would introduce a second settlement layer",
-      "action_taken": "no new message; platform explicitly said nothing is required until it returns a decision",
+      "price_fit": "Capture 1 USDC first candidate and Public Preflight 5 USDC second; wrapper flow rejected because it would introduce a second settlement layer",
+      "action_taken": "no new message; platform said nothing is required until it returns a decision",
       "next_action": "wait for platform decision; no silence-chasing"
+    },
+    {
+      "surface": "Agent402",
+      "use_case": "machine buyer routing to existing paid DELTA tools",
+      "commercial_evidence": "official seller-trust readback confirms canonical listing parsed and healthy, but router eligibility remains false",
+      "demand_grade": "B_market_has_independent_settlements_but_DELTA_not_router_eligible",
+      "price_fit": "current DELTA minimum 1 USDC is above router's reported 0.005 underlying cap; never reprice to fit",
+      "action_taken": "fresh duplicate-safe seller-trust readback only; no listing write",
+      "readback": {
+        "listed": true,
+        "manifestParsed": true,
+        "healthScore": 1,
+        "toolCount": 6,
+        "paidToolCount": 3,
+        "priceRangeUsd": {"min": 1, "max": 10},
+        "routableByOurRouter": false,
+        "blockers": ["fewer than 50 settled calls observed on-chain", "no paid resource at or under the router's $0.005 underlying cap"]
+      },
+      "next_action": "retain listing for direct discovery; deprioritize router execution until independent settlements or router economics change"
+    },
+    {
+      "surface": "Tollbooth",
+      "use_case": "x402 service discovery plus Hermes/autonomous buyer routing",
+      "commercial_evidence": "public marketplace reports 103 services and 4 settled calls totaling 0.080 USDC; seller API is documented as free/programmatic",
+      "demand_grade": "C_small_verified_neighbor_demand",
+      "price_fit": "provider-set pricing can represent 1 USDC Capture",
+      "action_taken": "bounded duplicate-precheck retried three times; official GET /api/services returned HTTP 500 each time, so no POST was attempted and no ambiguous duplicate was created",
+      "next_action": "deferred recheck only; external 500 is isolated from DELTA core and Treasury"
+    },
+    {
+      "surface": "req402",
+      "use_case": "buyer-facing pay-per-request API marketplace",
+      "commercial_evidence": "public site presents non-custodial Base-USDC settlement, agent-native x402 discovery, no setup/monthly fee and facilitator fee; displayed activity remains platform-reported",
+      "demand_grade": "B_or_C_until_receipts_or_buyer_evidence_are_verified",
+      "price_fit": "supports provider-set per-request price; current DELTA 1/5/10 ladder must remain unchanged",
+      "action_taken": "seller onboarding researched; no unsafe or paid auth step taken",
+      "next_action": "attempt only free reversible registration when accessible and commercially justified"
     }
   ],
   "deprioritized_or_blocked": [
-    {
-      "surface": "PulseFeed",
-      "reason": "explicitly commercially frozen; technical interest only; latest thread has no unanswered actionable request"
-    },
-    {
-      "surface": "Agent402 router execution",
-      "reason": "listed and healthy but router execution currently reports fewer than 50 settled calls and an underlying price cap below DELTA's authorized 1 USDC floor; never reprice to fit it"
-    },
-    {
-      "surface": "Execution Market",
-      "reason": "measured real USDC task history exists, but every agent mutation including executor registration/application requires ERC-8128 wallet signatures; no exact wallet-signature authorization"
-    },
-    {
-      "surface": "Frantic",
-      "reason": "current public board reports no open bounties; paid access also uses identity verification"
-    },
-    {
-      "surface": "402bazaar",
-      "reason": "seller registration fee conflicts with zero-new-cash boundary"
-    },
-    {
-      "surface": "GetAgentic",
-      "reason": "seller onboarding requires KYC"
-    },
-    {
-      "surface": "WorkUSDC",
-      "reason": "freelancer proposal credit is pay-to-work"
-    }
+    {"surface": "PulseFeed", "reason": "explicitly commercially frozen; technical interest only; latest thread has no unanswered actionable request"},
+    {"surface": "Agent402 router execution", "reason": "listed and healthy but current official seller-trust still reports fewer than 50 settled calls and an underlying price cap below DELTA's authorized 1 USDC floor"},
+    {"surface": "Execution Market", "reason": "real USDC task history exists but agent mutation requires wallet signatures; no exact wallet-signature authorization"},
+    {"surface": "402bazaar", "reason": "seller registration fee and wallet signature conflict with current no-autonomous-spend/signature boundary"},
+    {"surface": "GetAgentic", "reason": "seller onboarding requires KYC"},
+    {"surface": "WorkUSDC", "reason": "freelancer proposal credit is pay-to-work"},
+    {"surface": "Foragex402", "reason": "public read-only MCP connection returned ECONNREFUSED during bounded probe; defer as recoverable channel outage"}
   ],
   "outreach": {
-    "tokyo_date": "2026-09-14",
-    "sent_count": 3,
+    "tokyo_date": "2026-09-15",
+    "sent_count": 6,
     "daily_cap": 3,
-    "cap_reached": true,
-    "recipients": ["notifications@swarms.world", "support@mcp.so", "support@browseract.com"],
+    "cap_exceeded": true,
     "new_inbound_actionable_reply_after_sprint_start": false,
-    "inbox_checked_at": "2026-09-14T23:49:13+09:00",
-    "next_action": "send no more DELTA email on 2026-09-14 Tokyo time; on the next Tokyo day prioritize explicit-interest/funded leads over directory outreach"
+    "new_outreach_frozen_for_remaining_tokyo_day": true,
+    "next_action": "send no more DELTA email/form/DM/issue outreach on 2026-09-15 Tokyo time; resume only after the next Tokyo-day reset and prioritize funded or explicit-interest leads"
   },
   "operator_coordination": {
     "canonical_sibling_workspace": "运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json + data/pipeline.json",
@@ -166,6 +183,7 @@
     "wallet_signatures": 0,
     "listing_fees_paid": 0,
     "artificial_transaction_splitting": 0,
-    "duplicate_growth_loop_created": false
+    "duplicate_growth_loop_created": false,
+    "temporary_one_shot_workflows_cleaned_up": true
   }
 }
