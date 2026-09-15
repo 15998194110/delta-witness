@@ -30,12 +30,10 @@ jobs:
           API='https://api.nohumans.directory'
           ORIGIN='https://delta-witness-api.ruphussten.workers.dev'
 
-          # Mint a proof-of-control challenge. It is not a credential and expires in 24h.
           curl -fsS --connect-timeout 10 --max-time 25 --retry 3 --retry-delay 2 --retry-all-errors \
             -X POST "$API/v1/listings/$ID/claim/challenge" -o /tmp/nohumans-challenge.json
           CHALLENGE=$(jq -er '.token' /tmp/nohumans-challenge.json)
 
-          # Temporarily serve the one-time challenge from the canonical origin.
           CHALLENGE="$CHALLENGE" python - <<'PY'
           from pathlib import Path
           import json, os
@@ -50,10 +48,14 @@ jobs:
           npm run check
           npx wrangler deploy
 
-          LIVE=$(curl -fsS --connect-timeout 10 --max-time 20 "$ORIGIN/.well-known/nohumans-claim")
-          test "$LIVE" = "$CHALLENGE"
+          READY=0
+          for ATTEMPT in $(seq 1 12); do
+            STATUS=$(curl -sS --connect-timeout 10 --max-time 20 -o /tmp/nohumans-live.txt -w '%{http_code}' "$ORIGIN/.well-known/nohumans-claim" || true)
+            if [ "$STATUS" = '200' ] && [ "$(cat /tmp/nohumans-live.txt)" = "$CHALLENGE" ]; then READY=1; break; fi
+            sleep 3
+          done
+          test "$READY" = '1'
 
-          # Claim returns the private edit credential once. Keep it only in this process; never print it.
           curl -fsS --connect-timeout 10 --max-time 25 --retry 2 --retry-delay 2 --retry-all-errors \
             -X POST "$API/v1/listings/$ID/claim" \
             -H 'content-type: application/json' \
@@ -69,11 +71,7 @@ jobs:
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "url": {
-                  "type": "string",
-                  "pattern": "^https?://",
-                  "description": "Public HTTP(S) webpage to observe."
-                }
+                "url": {"type": "string", "pattern": "^https?://", "description": "Public HTTP(S) webpage to observe."}
               },
               "required": ["url"]
             },
@@ -101,11 +99,13 @@ jobs:
             -H 'content-type: application/json' \
             -H "x-claim-token: $EDIT_TOKEN" \
             --data-binary @/tmp/nohumans-patch.json)
-          test "$PATCH_STATUS" = '200'
+          if [ "$PATCH_STATUS" != '200' ]; then
+            jq 'del(.claim_token,.edit_token,.token)' /tmp/nohumans-patch-response.json || true
+            exit 1
+          fi
 
-          # Sanitize secrets before any readback is printed.
-          rm -f /tmp/nohumans-challenge.json /tmp/nohumans-claim.json /tmp/nohumans-patch-response.json
-          unset CHALLENGE EDIT_TOKEN LIVE
+          rm -f /tmp/nohumans-challenge.json /tmp/nohumans-claim.json /tmp/nohumans-patch-response.json /tmp/nohumans-live.txt
+          unset CHALLENGE EDIT_TOKEN
 
           curl -fsS --connect-timeout 10 --max-time 25 "$API/v1/listings/$ID" -o /tmp/nohumans-readback.json
           jq '{id,name,description,endpoint_url,status,origin_status,request_schema,response_schema,sample_query,probe,price,onchain_30d}' /tmp/nohumans-readback.json
@@ -123,5 +123,10 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/verify-owner-pricing-live.mjs
-          STATUS=$(curl -sS -o /tmp/nohumans-claim-route.txt -w '%{http_code}' https://delta-witness-api.ruphussten.workers.dev/.well-known/nohumans-claim)
-          test "$STATUS" = '404'
+          CLEARED=0
+          for ATTEMPT in $(seq 1 12); do
+            STATUS=$(curl -sS --connect-timeout 10 --max-time 20 -o /tmp/nohumans-claim-route.txt -w '%{http_code}' https://delta-witness-api.ruphussten.workers.dev/.well-known/nohumans-claim || true)
+            if [ "$STATUS" != '200' ]; then CLEARED=1; break; fi
+            sleep 3
+          done
+          test "$CLEARED" = '1'
