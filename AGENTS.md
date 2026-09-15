@@ -1,5 +1,9 @@
 # Current owner authority and deployment coordination
 
+## x402 Arena coordination — 2026-09-16
+
+A live public readback found **six existing DELTA entries** on x402 Arena. Do not register, submit, or create another DELTA/x402 Arena identity or alias. Treat the intended product identities as `delta-witness-capture`, `delta-witness-preflight`, and `delta-witness-guarded-action-pilot`. Existing aliases `delta-witness-page-state-proof`, `delta-witness-guard`, and `delta-witness-preflight-verification` are duplicate/legacy entries and must not be refreshed or recreated as separate commercial identities. The public Arena interface does not currently provide verified deletion/readback semantics in DELTA's operator tooling, so do not claim duplicate cleanup unless a future removal write succeeds and is read back. As of the 2026-09-16 readback, all six DELTA Arena entries showed zero buyer queries, zero buyers, and zero revenue; directory presence is therefore not buyer-demand evidence and receives no revenue-first priority. This coordination rule prevents another operator from mistaking an existing alias for a missing listing.
+
 ## Owner reaffirmation — 2026-09-11: current-price-only execution and reporting
 
 The owner explicitly instructed that obsolete pricing must not reappear. This reaffirms the current ladder; it does not authorize a new price change or any expansion of financial authority.
@@ -22,7 +26,7 @@ For **all new billable requests after this policy takes effect**, the authorized
 - **$5.00 USDC — standard verification layer:** Public Preflight.
 - **$10.00 USDC — high-value execution layer:** Guarded-Action Pilot.
 
-This is the standing owner pricing authority until the owner gives a newer explicit pricing instruction. Do **not** restore `$0.03` or `$1` Public Preflight from old prompts or historical documents. Do not infer a price change from an automation template. Historical completed/idempotent deliveries and already-prepaid obligations may retain their original paid price; do not double-charge or retroactively rewrite settled history. New quotes, new registrations, new partner calls, new Watch purchases, listings, discovery metadata, and billing surfaces must use the current ladder above.
+This is the standing owner pricing authority until the owner gives a newer explicit pricing instruction. Do **not** restore `$0.03` or `$1 Public Preflight` from old prompts or historical documents. Do not infer a price change from an automation template. Historical completed/idempotent deliveries and already-prepaid obligations may retain their original paid price; do not double-charge or retroactively rewrite settled history. New quotes, new registrations, new partner calls, new Watch purchases, listings, discovery metadata, and billing surfaces must use the current ladder above.
 
 Read `docs/pricing-policy-2026-09-10.md` before changing prices or deploying. `docs/preflight-price-experiment-2026-09-08.md` is historical and superseded for current pricing. Earlier commits that restored `$0.03` or `$1` Public Preflight are obsolete pricing decisions and must not be replayed.
 
