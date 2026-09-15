@@ -3,8 +3,8 @@ import type { Address, EIP1193Provider, Hex } from "viem";
 import {
   API_ORIGIN,
   BASE_NETWORK,
-  MAX_PAYMENT_USD,
   compactProof,
+  maxPaymentUsd,
   paymentPolicy,
   requestBody,
   validateQuote,
@@ -37,7 +37,7 @@ function friendlyError(error: unknown): string {
 }
 
 export default function App() {
-  const [product, setProduct] = useState<Product>("preflight");
+  const [product, setProduct] = useState<Product>("capture");
   const [url, setUrl] = useState("https://example.com/terms");
   const [mustContain, setMustContain] = useState("30-day refund");
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -108,7 +108,7 @@ export default function App() {
         }) => wallet.signTypedData({ ...message, account: address } as never) as Promise<Hex>,
       };
       const client = new x402Client();
-      client.setSpendControls({ maxAmountPerPayment: `$${MAX_PAYMENT_USD}` });
+      client.setSpendControls({ maxAmountPerPayment: `$${maxPaymentUsd(product).toFixed(2)}` });
       client.registerPolicy(paymentPolicy());
       registerExactEvmScheme(client, { signer, networks: [BASE_NETWORK] });
 
@@ -166,17 +166,17 @@ export default function App() {
       <main>
         <section className="intro" aria-labelledby="page-title">
           <h1 id="page-title">Verify the source before you act.</h1>
-          <p>Guard checks whether a public source still matches what you expect.<br />Capture preserves what it says now.</p>
+          <p>Capture a public page for 1 USDC.<br />Guard a critical check for 5 USDC.</p>
         </section>
 
         <div className="workspace">
           <section className="form-region" aria-label="DELTA request">
             <div className="mode-switch" role="radiogroup" aria-label="Product">
-              <button className={product === "preflight" ? "selected" : ""} role="radio" aria-checked={product === "preflight"} onClick={() => setProduct("preflight")}>
-                <span className="radio-dot" aria-hidden="true" /> Guard
-              </button>
               <button className={product === "capture" ? "selected" : ""} role="radio" aria-checked={product === "capture"} onClick={() => setProduct("capture")}>
-                <span className="radio-dot" aria-hidden="true" /> Capture
+                <span className="radio-dot" aria-hidden="true" /> Capture · 1 USDC
+              </button>
+              <button className={product === "preflight" ? "selected" : ""} role="radio" aria-checked={product === "preflight"} onClick={() => setProduct("preflight")}>
+                <span className="radio-dot" aria-hidden="true" /> Guard · 5 USDC
               </button>
             </div>
 
@@ -195,7 +195,7 @@ export default function App() {
             <dl className="quote" aria-label="Live quote">
               <div><dt>Network</dt><dd>Base</dd></div>
               <div><dt>Price</dt><dd>{quote ? `${quote.price} USDC` : "—"}</dd></div>
-              <div><dt>Estimated margin</dt><dd>{quote ? `$${quote.economics.estimatedContributionMarginUsd.toFixed(3)}` : "—"}</dd></div>
+              <div><dt>Settlement</dt><dd>Before work · x402</dd></div>
             </dl>
 
             {quoteError && <p className="inline-error" role="alert">Quote unavailable: {quoteError} <button onClick={() => void loadQuote()}>Retry</button></p>}
