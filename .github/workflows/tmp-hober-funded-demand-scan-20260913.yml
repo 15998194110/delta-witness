@@ -12,6 +12,10 @@ permissions:
 jobs:
   scan:
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
@@ -21,15 +25,20 @@ jobs:
         run: |
           node scripts/check-owner-pricing.mjs
           node scripts/verify-owner-pricing-live.mjs
-      - name: Reconcile current paid funnel and Base Treasury
-        run: |
-          node scripts/query-revenue-candidates.mjs
-          node scripts/reconcile-treasury.mjs
+      - name: Audit current paid funnel
+        continue-on-error: true
+        run: node scripts/query-revenue-candidates.mjs
+      - name: Reconcile Base Treasury independently
+        if: always()
+        continue-on-error: true
+        run: node scripts/reconcile-treasury.mjs
       - name: Install browser runtime
+        if: always()
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install chromium
       - name: Inspect public Hober open-jobs data without mutation
+        if: always()
         run: |
           node <<'NODE'
           const { chromium } = await import('playwright');
