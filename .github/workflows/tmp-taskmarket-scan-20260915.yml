@@ -1,0 +1,27 @@
+name: TEMP Taskmarket funded demand scan 20260915
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-taskmarket-scan-20260915.yml"
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read public funded task feed
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --connect-timeout 10 --max-time 25 --retry 3 --retry-delay 2 --retry-all-errors \
+            -H 'user-agent: delta-witness-demand-audit/1.0' \
+            'https://taskmarket.dev/api/tasks?status=open&limit=100' -o /tmp/tasks.json
+          node <<'NODE'
+          const fs=require('fs');
+          const j=JSON.parse(fs.readFileSync('/tmp/tasks.json','utf8'));
+          const a=Array.isArray(j)?j:(j.results||j.tasks||j.data||[]);
+          console.log('TASK_COUNT='+a.length);
+          for(const t of a){
+            const reward=Number(t.reward||0)/1e6;
+            console.log(JSON.stringify({id:t.id,title:t.title||null,reward_usdc:reward,mode:t.mode,status:t.status,stakeRequired:!!t.stakeRequired,submissionCount:t.submissionCount,tags:t.tags||[],description:(t.description||'').slice(0,1500)}));
+          }
+          NODE
