@@ -1,14 +1,14 @@
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const USER_AGENT = 'DELTA-Revenue-Demand-Scanner/1.1';
+const USER_AGENT = 'DELTA-Revenue-Demand-Scanner/1.2';
 
 // Broad terms discover adjacent paid inventory. They are NOT enough to call a task DELTA-compatible.
-const ADJACENT = /\b(evidence|verify|verification|preflight|proof|audit|web\s*page|website|browser|scrap|monitor|price|availability|terms|policy|procurement|vendor|public\s+source|public\s+url|change\s+detection|snapshot|crawl|product)\b/i;
+const ADJACENT = /\b(evidence|verify|verification|preflight|proof|audit|web\s*page|website|browser|scrap|monitor|price|pricing|availability|inventory|terms|policy|procurement|vendor|public\s+source|public\s+url|change\s+detection|snapshot|crawl|product)\b/i;
 
 // A DELTA-native request must ask for an observation/verification result that the existing product can fulfill,
 // not for custom software, generic research, scraping code, or a new system to be built.
 const NATIVE_SIGNAL = /\b(page[- ]state|webpage\s+(?:state|snapshot|evidence|proof)|public\s+(?:page|url|source).{0,80}(?:verify|verification|evidence|proof|snapshot|observe|observation|capture|check)|(?:verify|verification|evidence|proof|snapshot|observe|observation|capture|check).{0,80}public\s+(?:page|url|source)|(?:price|availability|inventory|terms|policy|vendor|procurement).{0,80}(?:verify|verification|evidence|proof|snapshot|observe|observation|capture|check)|(?:verify|verification|evidence|proof|snapshot|observe|observation|capture|check).{0,80}(?:price|availability|inventory|terms|policy|vendor|procurement)|change\s+detection.{0,80}(?:page|website|url)|preflight.{0,80}(?:page|website|url|public))\b/i;
-const BUILD_DELIVERABLE = /\b(build|implement|write\s+(?:a|an|the)?\s*(?:script|module|library|api|app|crawler|parser)|develop|code|repository|pull\s+request|commit|test\s+suite|package|cli|sdk)\b/i;
+const BUILD_DELIVERABLE = /\b(build|implement|write\s+(?:a|an|the)?\s*(?:script|module|library|api|app|crawler|parser)|develop|code|repository|pull\s+request|commit|test\s+suite|package|cli|sdk|interactive\s+(?:site|website)|html\s+site)\b/i;
 const GENERIC_RESEARCH = /\b(research|compile|comparison|compare|survey|list\s+\d+|find\s+\d+)\b/i;
 
 async function fetchJson(url) {
@@ -61,6 +61,13 @@ function normalizeMoney(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return value;
   return n > 100000 ? n / 1_000_000 : n;
+}
+
+function normalizeBaseUnits(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return value;
+  return n / 1_000_000;
 }
 
 function classifyNative(o) {
@@ -126,6 +133,21 @@ function agentBountiesInventory(body) {
   return dedupe(rows).filter((x) => x.claimable === true || ['funded', 'ready', 'claimable'].includes(String(x.payment_status || '').toLowerCase()));
 }
 
+function taskmarketInventory(body) {
+  const tasks = Array.isArray(body?.tasks) ? body.tasks : [];
+  const rows = tasks.filter((o) => o && o.id && o.description && String(o.status || '').toLowerCase() === 'open' && ADJACENT.test(textOf(o))).map((o) => makeRow(o, {
+    status: o.status,
+    mode: o.mode,
+    budget_usdc: normalizeBaseUnits(o.reward),
+    requester: o.requester,
+    requester_agent_id: o.requesterAgentId ?? null,
+    deadline: o.expiryTime,
+    tags: Array.isArray(o.tags) ? o.tags : [],
+    escrow_tx_hash: o.escrowTxHash ?? null,
+  }));
+  return dedupe(rows);
+}
+
 const sources = [
   {
     channel: 'bountybook',
@@ -147,6 +169,13 @@ const sources = [
     parse: agentBountiesInventory,
     funded_semantics: 'Use only canonical funded/claimable state; settlement requires canonical BountySettled/CompetitionSettledV2 evidence.',
     action_boundary: 'claim requires wallet-owner signature; never sign or claim without separate exact-action authorization',
+  },
+  {
+    channel: 'taskmarket',
+    url: 'https://api.taskmarket.dev/api/tasks?status=open&sort=newest&limit=100',
+    parse: taskmarketInventory,
+    funded_semantics: 'Public open Taskmarket tasks are created with USDC reward escrow; the official status=open list excludes already-expired open tasks.',
+    action_boundary: 'worker entry/delivery requires wallet identity/signature and pitch/bid/benchmark entry can require 0.001 USDC x402; never submit, claim, pitch, bid or proof without separate exact-action authorization',
   },
 ];
 
