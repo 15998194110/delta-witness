@@ -1,5 +1,17 @@
 # Current owner authority and deployment coordination
 
+## Revenue sprint + outreach safety — owner mandate 2026-09-14
+
+The active commercial sprint is fixed at **2026-09-14T13:43:28+09:00 through 2026-09-21T13:43:28+09:00 (Asia/Tokyo)**, with a target of 50 genuine externally paid customer transactions. This target is not a guarantee and must never be copied into actual-results fields. Do not reset or extend the deadline automatically. A counted transaction requires a genuine non-project customer purpose, successful DELTA fulfillment, a unique paid settlement identity, and a matched canonical Base-USDC Treasury receipt. Self-pay, canaries, platform validation, reciprocal/reimbursed/artificial demand, replay, failed delivery, and artificial transaction splitting never count.
+
+Revenue work takes priority over catalog volume. First reconcile Treasury and explicit-interest threads, then qualified funded buyer demand and low-friction integrations. Directory presence, API documentation, technical endpoint health, and adjacent unfunded demand are not Grade-A buyer demand and are not sprint results. If no genuine paid transaction exists after 48 hours, prioritize verified funded demand and shorten integration friction rather than adding catalogs.
+
+**Outbound email hard cap:** maximum **3 total DELTA outreach emails per natural Asia/Tokyo day across all operators**. Before every send, query Gmail Sent using exact Unix-epoch boundaries corresponding to `00:00:00 JST` through the next `00:00:00 JST`; do not use Gmail calendar-date shorthand as the authoritative cap check because mailbox/display timezone can differ. Count all DELTA commercial first contacts, interest-thread replies, and listing emails in that window. If the count or concurrent state is uncertain, do not send. Never chase silence, never use another identity/form/DM to evade the cap, and stop on rejection.
+
+**2026-09-16 incident / freeze:** an exact-epoch readback after a new Trelium send showed that Anchor Browser, Notte, and Magnitude had already consumed the three 2026-09-16 JST DELTA outreach slots. The Trelium message therefore became a fourth send and exceeded the owner cap by one. This was an operator-control failure, not authorization to raise the cap. **Freeze all further DELTA outbound outreach until 2026-09-17T00:00:00+09:00.** Do not delete or rewrite the sent evidence. Future operators must use the exact-epoch pre-send check above.
+
+The canonical Commercial Operator workspace remains `运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json` and `data/pipeline.json` when accessible. If it is inaccessible, do not claim synchronization; repository coordination notes are not a replacement for that state.
+
 ## x402 Arena coordination — 2026-09-16
 
 A live public readback found **six existing DELTA entries** on x402 Arena. Do not register, submit, or create another DELTA/x402 Arena identity or alias. Treat the intended product identities as `delta-witness-capture`, `delta-witness-preflight`, and `delta-witness-guarded-action-pilot`. Existing aliases `delta-witness-page-state-proof`, `delta-witness-guard`, and `delta-witness-preflight-verification` are duplicate/legacy entries and must not be refreshed or recreated as separate commercial identities. The public Arena interface does not currently provide verified deletion/readback semantics in DELTA's operator tooling, so do not claim duplicate cleanup unless a future removal write succeeds and is read back. As of the 2026-09-16 readback, all six DELTA Arena entries showed zero buyer queries, zero buyers, and zero revenue; directory presence is therefore not buyer-demand evidence and receives no revenue-first priority. This coordination rule prevents another operator from mistaking an existing alias for a missing listing.
@@ -34,7 +46,7 @@ Coordinate with the main Commercial Operator before another price deployment. Do
 
 The main operator state remains in the existing sibling operating workspace `运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json` and `data/pipeline.json`; do not rebuild that system.
 
-Fixed sprint: September 7 03:01:23 through September 14 03:01:23 Asia/Shanghai. Zero new cash, credits, paid canaries, wallet signatures or automatic reinvestment. No repeated unanswered outreach. CHISA/ART OF WAR remains excluded. Only fulfilled externally received net cash after verified fees/refunds/liabilities counts; platform verification/self-pay/test traffic is not customer revenue. Preserve valid technical instructions unless they conflict with this latest owner authority.
+The older September 7–14 sprint window is expired and superseded by the 2026-09-14 owner mandate above. Zero new cash, credits, paid canaries, wallet signatures or automatic reinvestment remains in force. No repeated unanswered outreach. CHISA/ART OF WAR remains excluded. Only fulfilled externally received net cash after verified fees/refunds/liabilities counts; platform verification/self-pay/test traffic is not customer revenue. Preserve valid technical instructions unless they conflict with the latest owner authority.
 
 ## Cross-automation synchronization — owner reaffirmation 2026-09-10
 
