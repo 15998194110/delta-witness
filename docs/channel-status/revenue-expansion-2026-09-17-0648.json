@@ -1,0 +1,136 @@
+{
+  "checked_at_jst": "2026-09-17T06:52:08+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "deadline_extended": false,
+    "new_counted_customer_transactions_this_run": 0,
+    "new_unique_independent_buyers_this_run": 0,
+    "new_verified_customer_receipts_this_run": 0,
+    "new_recognized_customer_revenue_usdc_this_run": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "unknown_costs_treated_as_zero": false
+  },
+  "outreach_control": {
+    "jst_epoch_query": "in:sent after:1789570800 before:1789657200",
+    "sent_count": 3,
+    "daily_cap": 3,
+    "remaining_slots": 0,
+    "cap_status": "full_do_not_send_more_today",
+    "sent_targets": ["Rye", "Firmly", "Signets"],
+    "new_outreach_sent_this_run": 0,
+    "cap_evaded": false
+  },
+  "explicit_interest": {
+    "target": "Robauto / AgentHub",
+    "inbound_message_id": "1a08271022339367",
+    "sender": "jhartman@robauto.ai",
+    "commercial_demand_grade": "B_explicit_integration_interest_funding_unknown",
+    "status": "actionable_unanswered_reply_draft_exists",
+    "reply_draft_message_id": "1a0aac0547c30382",
+    "reply_sent": false,
+    "why_not_sent": "Current 2026-09-17 JST DELTA outbound cap is already 3/3. No form, DM or alternate identity was used to evade the cap.",
+    "current_reply_scope": "1 USDC Capture / 5 USDC Public Preflight before a consequential AgentHub browser/workflow action, requesting one representative workflow and public URL.",
+    "new_inbound_reply_this_run": false
+  },
+  "pricing_and_purchase_integrity": {
+    "checked_at_utc": "2026-09-16T21:50:39.502Z",
+    "live_ok": true,
+    "capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_transactions_generated_by_check": 0
+  },
+  "paid_funnel": {
+    "checked_at_utc": "2026-09-16T21:51:52.903Z",
+    "ok": true,
+    "candidate_rows": 0
+  },
+  "treasury_reconciliation": {
+    "asset": "canonical Base USDC",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "complete_scan": {
+      "run_id": 35154571357,
+      "checked_at_utc": "2026-09-16T21:50:51.257Z",
+      "start_block": 51313047,
+      "latest_block": 51403046,
+      "lookback_blocks": 90000,
+      "treasury_received_candidates": 0,
+      "unclassified_receipts": 0,
+      "evidence_quality": "A_direct_canonical_USDC_log"
+    },
+    "extension_scan": {
+      "run_id": 35154681548,
+      "requested_lookback_blocks": 140000,
+      "verified_zero_log_prefix_start_block": 51263084,
+      "verified_zero_log_prefix_end_block": 51335283,
+      "completion_status": "degraded_recoverable_after_verified_prefix",
+      "failure": "mainnet Base RPC rate-limited; alternate RPCs returned archive-token/403 restrictions",
+      "retry_hammered": false
+    },
+    "combined_contiguous_verified_no_receipt_range": {
+      "start_block": 51263084,
+      "end_block": 51403046,
+      "basis": "The verified zero-log prefix of the extension scan overlaps the independently completed 90,000-block scan, forming a contiguous union. This is block-range evidence only and is not asserted as an all-time zero balance."
+    }
+  },
+  "funded_demand_from_fresh_canonical_pulse": {
+    "pulse_run_id": 35145102179,
+    "completed_at_utc": "2026-09-16T20:12:27Z",
+    "agentpact": {
+      "seller_present": true,
+      "offer_count": 3,
+      "active_prices_usdc": [1, 5, 10],
+      "external_requests": 16,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "agentexchange": {
+      "buyer_count": 1,
+      "external_requests": 2,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "paid_settlements": 0
+    },
+    "other_escrow_backed": {
+      "adjacent_funded_requests": 15,
+      "delta_native_funded_requests": 0
+    },
+    "moltjobs": {
+      "external_requests": 12,
+      "funded_rows": 10,
+      "delta_native_funded_requests": 0
+    },
+    "workpnp": {
+      "funded_requests_shown": 0,
+      "delta_native_funded_requests": 0
+    },
+    "payanagent": {
+      "status": "degraded_recoverable_http_500",
+      "unknown_not_zero": true
+    }
+  },
+  "actions_and_boundaries": {
+    "fees_paid": false,
+    "wallet_signatures": false,
+    "asset_movement": false,
+    "paid_tests": false,
+    "kyc_or_identity_attestation": false,
+    "legal_commitments": false,
+    "new_listing_identity_created": false,
+    "new_recurring_growth_loop_created": false,
+    "temporary_reconciliation_workflows_removed_after_evidence_collection": true
+  },
+  "coordination": {
+    "canonical_sibling_operator_workspace": "inaccessible_not_modified",
+    "repository_record_is_not_claimed_as_workspace_sync": true,
+    "existing_canonical_pulse_reused_when_fresh_and_complete": true
+  },
+  "notification_disposition": "No new genuine customer receipt, paid settlement, funded compatible request, explicit inbound intent, high-value listing completion, new user-action blocker, core failure, new material sprint-risk event, or deadline outcome occurred in this run. Remain silent per owner notification rules."
+}
