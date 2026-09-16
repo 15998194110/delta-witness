@@ -1,0 +1,130 @@
+{
+  "checked_at": "2026-09-17T00:05:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "deadline_extended": false
+  },
+  "pricing": {
+    "policy": "owner-2026-09-10-1-5-10",
+    "live_checked_at": "2026-09-17T00:04:38.670+09:00",
+    "live_ok": true,
+    "capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+  },
+  "outreach_control": {
+    "jst_epoch_query": "in:sent after:1789570800 before:1789657200",
+    "sent_count_after_actions": 3,
+    "daily_cap": 3,
+    "remaining_slots": 0,
+    "cap_status": "full_do_not_send_more_today",
+    "sent": [
+      {
+        "target": "Rye",
+        "recipient": "nate@rye.com",
+        "subject": "Rye checkout intents: optional $1 public-source evidence before confirmation",
+        "gmail_message_id": "1a0aabe109a9590c",
+        "use_case": "One opt-in 1 USDC public product/returns-policy Capture before audit-sensitive checkout confirmation.",
+        "commercial_demand_grade": "C_no_reply_or_funding_yet"
+      },
+      {
+        "target": "Firmly",
+        "recipient": "contact@firmly.ai",
+        "subject": "Firmly agentic checkout: public terms evidence for audit-sensitive orders",
+        "gmail_message_id": "1a0aabe35b04cfb6",
+        "use_case": "One opt-in 1 USDC public product/returns-policy Capture before audit-sensitive order submission.",
+        "commercial_demand_grade": "C_no_reply_or_funding_yet"
+      },
+      {
+        "target": "Signets",
+        "recipient": "hello@signets.ai",
+        "subject": "Signets procurement workflows: independent public-source evidence before payment",
+        "gmail_message_id": "1a0aabf2631ff28d",
+        "use_case": "1 USDC Capture or 5 USDC Public Preflight on public vendor price/availability/terms immediately before a customer-selected procurement payment step.",
+        "commercial_demand_grade": "C_no_reply_or_funding_yet"
+      }
+    ]
+  },
+  "explicit_interest": {
+    "target": "Robauto / AgentHub",
+    "inbound_message_id": "1a08271022339367",
+    "inbound_sender": "jhartman@robauto.ai",
+    "inbound_date": "2026-09-08",
+    "evidence": "Founder replied that DELTA is interesting, said they can work with us on verification, and asked for the concrete use case.",
+    "status": "actionable_unanswered_thread_surfaced_in_current_run",
+    "commercial_demand_grade": "B_explicit_integration_interest_funding_unknown",
+    "reply_draft_id": "r-5272361265553983838",
+    "reply_sent": false,
+    "why_not_sent": "Current JST DELTA outreach cap is already 3/3 after Rye, Firmly and Signets. No cap evasion.",
+    "reply_scope": "Current 1 USDC Capture / 5 USDC Public Preflight, concrete AgentHub browser/workflow action checkpoint, asks for one representative workflow and public URL.",
+    "next_action": "At the next eligible outreach window, first recheck exact JST Sent count and suppression/concurrent state. If a slot is available, prioritize this existing explicit-interest reply over new cold outreach."
+  },
+  "treasury_reconciliation": {
+    "checked_at": "2026-09-17T00:04:50.170+09:00",
+    "start_block": 51300866,
+    "latest_block": 51390865,
+    "lookback_blocks": 90000,
+    "canonical_usdc_treasury_receipt_candidates": 0,
+    "known_non_customer_receipts_in_range": 0,
+    "unclassified_receipts_in_range": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "scope_note": "This is explicit 90,000-block coverage only; it is not an all-time zero claim."
+  },
+  "paid_funnel": {
+    "current_temp_run_status": "unknown",
+    "reason": "Current one-shot runner lacked scoped Cloudflare credentials; the paid-funnel audit did not execute successfully. Do not infer zero from this failed step.",
+    "latest_prior_successful_canonical_evidence": "See existing canonical Discovery Pulse/operator record; extend rather than overwrite it."
+  },
+  "funded_demand": {
+    "agentpact": {
+      "seller_present": true,
+      "active_offer_prices_usdc": [1, 5, 10],
+      "external_requests": 14,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "agentexchange": {
+      "observed_buyer_count": 1,
+      "external_requests": 2,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0
+    },
+    "other_escrow_backed": {
+      "adjacent_funded_requests": 15,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false
+    }
+  },
+  "sprint_evidence": {
+    "new_counted_customer_transactions_this_run": 0,
+    "new_unique_independent_buyers_this_run": 0,
+    "new_verified_customer_treasury_receipts_this_run": 0,
+    "recognized_customer_revenue_this_run_usdc": 0,
+    "realized_variable_cost_usdc": null,
+    "realized_contribution_margin_usdc": null,
+    "unknown_costs_treated_as_zero": false
+  },
+  "boundaries": {
+    "fees_paid": false,
+    "wallet_signatures": false,
+    "asset_movement": false,
+    "paid_tests": false,
+    "kyc_or_legal_commitments": false,
+    "new_listing_identity_created": false,
+    "outreach_cap_evaded": false
+  },
+  "coordination": {
+    "canonical_sibling_operator_workspace": "inaccessible_not_modified",
+    "repository_record_is_not_claimed_as_workspace_sync": true,
+    "new_recurring_growth_loop_created": false,
+    "one_shot_reconcile_workflow_removed_after_evidence_collection": true
+  }
+}
