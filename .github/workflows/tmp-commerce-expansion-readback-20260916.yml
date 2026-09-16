@@ -1,0 +1,72 @@
+name: TEMP DELTA free buyer-route contract readback
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/tmp-commerce-expansion-readback-20260916.yml]
+permissions:
+  contents: read
+jobs:
+  official-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v5
+        with: {node-version: '22'}
+      - name: Current owner price gate
+        run: node scripts/check-owner-pricing.mjs && node scripts/verify-owner-pricing-live.mjs
+      - name: Read official buyer-routing contracts without submission or payment
+        run: |
+          mkdir -p /tmp/delta-expansion
+          node --input-type=module <<'JS'
+          import {writeFileSync} from 'node:fs';
+          const urls = [
+            'https://paywitness.ai/',
+            'https://paywitness.ai/llms.txt',
+            'https://paywitness.ai/openapi.json',
+            'https://www.req402.com/',
+            'https://agentmarketplace.arispay.app/publish'
+          ];
+          const out = [];
+          for (const url of urls) {
+            for (let attempt=1;attempt<=2;attempt++) {
+              try {
+                const r=await fetch(url,{signal:AbortSignal.timeout(18000)});
+                const text=await r.text();
+                const row={url, final_url:r.url, checked_at:new Date().toISOString(), attempt, http:r.status, content_type:r.headers.get('content-type'), text:text.slice(0,250000)};
+                if ((r.status>=500 || r.status===429) && attempt<2) {await new Promise(x=>setTimeout(x,1200));continue;}
+                out.push(row);console.log(JSON.stringify({url,http:r.status,length:text.length}));break;
+              } catch(e) {
+                if(attempt<2){await new Promise(x=>setTimeout(x,1200));continue;}
+                out.push({url,attempt,error:String(e),status:'deferred_recoverable'});
+              }
+            }
+          }
+          writeFileSync('/tmp/delta-expansion/official-contracts.json',JSON.stringify(out,null,2));
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: delta-expansion-contracts-${{ github.run_id }}
+          path: /tmp/delta-expansion/
+          retention-days: 7
+  treasury-independent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v5
+        with: {node-version: '22'}
+      - name: Extend canonical Treasury log coverage independently of discovery channels
+        env:
+          DELTA_TREASURY_LOOKBACK_BLOCKS: '130000'
+          DELTA_TREASURY_CHUNK_BLOCKS: '1900'
+        run: node scripts/reconcile-treasury.mjs > /tmp/delta-treasury-expanded.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: delta-expansion-treasury-${{ github.run_id }}
+          path: /tmp/delta-treasury-expanded.json
+          retention-days: 7
