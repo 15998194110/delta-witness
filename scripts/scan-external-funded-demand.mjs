@@ -1,6 +1,7 @@
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const USER_AGENT = 'DELTA-Revenue-Demand-Scanner/1.2';
+const USER_AGENT = 'DELTA-Revenue-Demand-Scanner/1.3';
+const OWNER_PRICE = Object.freeze({ capture: 1, preflight: 5, 'guarded-action-pilot': 10 });
 
 // Broad terms discover adjacent paid inventory. They are NOT enough to call a task DELTA-compatible.
 const ADJACENT = /\b(evidence|verify|verification|preflight|proof|audit|web\s*page|website|browser|scrap|monitor|price|pricing|availability|inventory|terms|policy|procurement|vendor|public\s+source|public\s+url|change\s+detection|snapshot|crawl|product)\b/i;
@@ -10,6 +11,8 @@ const ADJACENT = /\b(evidence|verify|verification|preflight|proof|audit|web\s*pa
 const NATIVE_SIGNAL = /\b(page[- ]state|webpage\s+(?:state|snapshot|evidence|proof)|public\s+(?:page|url|source).{0,80}(?:verify|verification|evidence|proof|snapshot|observe|observation|capture|check)|(?:verify|verification|evidence|proof|snapshot|observe|observation|capture|check).{0,80}public\s+(?:page|url|source)|(?:price|availability|inventory|terms|policy|vendor|procurement).{0,80}(?:verify|verification|evidence|proof|snapshot|observe|observation|capture|check)|(?:verify|verification|evidence|proof|snapshot|observe|observation|capture|check).{0,80}(?:price|availability|inventory|terms|policy|vendor|procurement)|change\s+detection.{0,80}(?:page|website|url)|preflight.{0,80}(?:page|website|url|public))\b/i;
 const BUILD_DELIVERABLE = /\b(build|implement|write\s+(?:a|an|the)?\s*(?:script|module|library|api|app|crawler|parser)|develop|code|repository|pull\s+request|commit|test\s+suite|package|cli|sdk|interactive\s+(?:site|website)|html\s+site)\b/i;
 const GENERIC_RESEARCH = /\b(research|compile|comparison|compare|survey|list\s+\d+|find\s+\d+)\b/i;
+const PREFLIGHT_SIGNAL = /\b(preflight|before\s+(?:checkout|purchase|submit|submission|action|execution)|expected\s+(?:text|content|state)|must\s+contain|must\s+not\s+contain|compare\s+(?:state|hash|content))\b/i;
+const PILOT_SIGNAL = /\bguarded[- ]action\s+pilot\b/i;
 
 async function fetchJson(url) {
   let lastError = null;
@@ -82,9 +85,35 @@ function classifyNative(o) {
   };
 }
 
+function recommendedProduct(row) {
+  const text = [row.title, row.description, row.requirements].filter(Boolean).join(' ');
+  if (PILOT_SIGNAL.test(text)) return 'guarded-action-pilot';
+  if (PREFLIGHT_SIGNAL.test(text)) return 'preflight';
+  return 'capture';
+}
+
+function withPriceGate(row) {
+  const recommended_product = recommendedProduct(row);
+  const minimum_price_usdc = OWNER_PRICE[recommended_product];
+  const budget = Number(first(row.budget_usdc, row.reward_usdc));
+  const knownBudget = Number.isFinite(budget) && budget >= 0;
+  const price_compatible = knownBudget ? budget >= minimum_price_usdc : null;
+  return {
+    ...row,
+    recommended_product,
+    minimum_price_usdc,
+    price_compatible,
+    price_fit_reason: price_compatible === true
+      ? 'buyer_budget_meets_current_owner_price'
+      : price_compatible === false
+        ? 'buyer_budget_below_current_owner_price'
+        : 'buyer_budget_unknown_do_not_treat_as_compatible',
+  };
+}
+
 function makeRow(o, extras = {}) {
   const classification = classifyNative(o);
-  return {
+  return withPriceGate({
     id: first(o.id, o.job_id, o.task_id, o.opportunity_id, o.bounty_id),
     title: first(o.title, o.name, o.description),
     description: first(o.description, o.summary, o.goal, o.task),
@@ -93,7 +122,7 @@ function makeRow(o, extras = {}) {
     delta_native: classification.native,
     fit_reason: classification.reason,
     ...extras,
-  };
+  });
 }
 
 function bountyBookInventory(body) {
@@ -148,6 +177,23 @@ function taskmarketInventory(body) {
   return dedupe(rows);
 }
 
+function clawlancerInventory(body) {
+  const objs = deepObjects(body);
+  const rows = objs.filter((o) => {
+    const type = String(first(o.listing_type, o.listingType, o.type) || '').toUpperCase();
+    const status = String(first(o.status, o.state) || '').toLowerCase();
+    return o && first(o.id, o.listing_id) && first(o.title, o.description) && (!type || type === 'BOUNTY') && (!status || ['active', 'open', 'available', 'funded'].includes(status)) && ADJACENT.test(textOf(o));
+  }).map((o) => makeRow(o, {
+    status: first(o.status, o.state),
+    listing_type: first(o.listing_type, o.listingType, o.type),
+    budget_usdc: normalizeBaseUnits(first(o.price, o.price_wei, o.reward, o.amount)),
+    seller_or_buyer: first(o.seller_name, o.buyer_name, o.poster_name, o.agent_name),
+    claimed: first(o.claimed, o.is_claimed),
+    created_at: first(o.created_at, o.createdAt),
+  }));
+  return dedupe(rows).filter((x) => x.claimed !== true);
+}
+
 const sources = [
   {
     channel: 'bountybook',
@@ -177,6 +223,13 @@ const sources = [
     funded_semantics: 'Public open Taskmarket tasks are created with USDC reward escrow; the official status=open list excludes already-expired open tasks.',
     action_boundary: 'worker entry/delivery requires wallet identity/signature and pitch/bid/benchmark entry can require 0.001 USDC x402; never submit, claim, pitch, bid or proof without separate exact-action authorization',
   },
+  {
+    channel: 'clawlancer',
+    url: 'https://clawlancer.ai/api/listings?listing_type=BOUNTY',
+    parse: clawlancerInventory,
+    funded_semantics: 'Clawlancer documents bounties as pre-funded by the poster; current payout amount is read from the official listings API and must meet DELTA owner pricing before it is considered compatible.',
+    action_boundary: 'claim/delivery uses an agent wallet and Base gas; never register, fund gas, claim, deliver, withdraw, or sign without separate exact-action authorization',
+  },
 ];
 
 const fetched = await Promise.all(sources.map((s) => fetchJson(s.url)));
@@ -189,6 +242,8 @@ const results = sources.map((source, i) => {
       http: response.status,
       error: response.error || `http_${response.status}`,
       adjacent_funded_requests: [],
+      delta_native_raw_requests: [],
+      delta_native_price_incompatible_requests: [],
       delta_native_funded_requests: [],
       delta_native_funded_count: 0,
       evidence_quality: response.status ? 'B_official_public_api_error' : 'C_channel_degraded',
@@ -203,13 +258,18 @@ const results = sources.map((source, i) => {
       http: response.status,
       error: `parse_error:${error instanceof Error ? error.message : String(error)}`,
       adjacent_funded_requests: [],
+      delta_native_raw_requests: [],
+      delta_native_price_incompatible_requests: [],
       delta_native_funded_requests: [],
       delta_native_funded_count: 0,
       evidence_quality: 'C_parse_unknown',
       mutation: false,
     };
   }
-  const native = inventory.filter((x) => x.delta_native === true);
+  const rawNative = inventory.filter((x) => x.delta_native === true);
+  const compatible = rawNative.filter((x) => x.price_compatible === true);
+  const priceIncompatible = rawNative.filter((x) => x.price_compatible === false);
+  const unknownPrice = rawNative.filter((x) => x.price_compatible == null);
   return {
     channel: source.channel,
     discovery_status: 'present',
@@ -217,8 +277,13 @@ const results = sources.map((source, i) => {
     buyer_count: null,
     adjacent_funded_count: inventory.length,
     adjacent_funded_requests: inventory.slice(0, 20),
-    delta_native_funded_count: native.length,
-    delta_native_funded_requests: native.slice(0, 20),
+    delta_native_raw_count: rawNative.length,
+    delta_native_raw_requests: rawNative.slice(0, 20),
+    delta_native_price_incompatible_count: priceIncompatible.length,
+    delta_native_price_incompatible_requests: priceIncompatible.slice(0, 20),
+    delta_native_unknown_price_count: unknownPrice.length,
+    delta_native_funded_count: compatible.length,
+    delta_native_funded_requests: compatible.slice(0, 20),
     funded_semantics: source.funded_semantics,
     action_boundary: source.action_boundary,
     evidence_quality: 'A_official_public_api_current',
@@ -230,8 +295,11 @@ console.log(JSON.stringify({
   ok: true,
   checked_at: new Date().toISOString(),
   purpose: 'revenue_first_funded_buyer_demand',
-  compatibility_rule: 'delta_native means existing DELTA Capture/Preflight/Watch/Pilot can directly fulfill the buyer request; generic code/research is adjacent only',
+  compatibility_rule: 'funded compatible requires existing DELTA Capture/Preflight/Watch/Pilot fulfillment fit AND a known buyer budget at or above the unchanged owner price; generic code/research and unknown/under-floor budgets are excluded',
+  owner_price_usdc: OWNER_PRICE,
   results,
+  total_delta_native_raw_requests: results.reduce((sum, r) => sum + (r.delta_native_raw_count || 0), 0),
+  total_delta_native_price_incompatible_requests: results.reduce((sum, r) => sum + (r.delta_native_price_incompatible_count || 0), 0),
   total_delta_native_funded_requests: results.reduce((sum, r) => sum + (r.delta_native_funded_count || 0), 0),
   total_adjacent_funded_requests: results.reduce((sum, r) => sum + (r.adjacent_funded_count || 0), 0),
   financial_or_signature_action_taken: false,
