@@ -10,6 +10,7 @@ on:
     paths:
       - ".github/workflows/discovery-pulse.yml"
       - "scripts/scan-external-funded-demand.mjs"
+      - "scripts/scan-moltjobs-demand.mjs"
       - "scripts/scan-agentpact-demand.mjs"
 
 jobs:
@@ -57,6 +58,9 @@ jobs:
       - name: Scan additional escrow-backed buyer demand
         continue-on-error: true
         run: node scripts/scan-external-funded-demand.mjs | tee /tmp/delta-external-funded-demand.json
+      - name: Scan MoltJobs funded buyer demand
+        continue-on-error: true
+        run: node scripts/scan-moltjobs-demand.mjs | tee /tmp/delta-moltjobs-demand.json
       - name: Audit paid funnel candidates
         run: node scripts/query-revenue-candidates.mjs | tee /tmp/delta-revenue-candidates.json
       - name: Reconcile Base Treasury
@@ -163,6 +167,7 @@ jobs:
             /tmp/delta-agentexchange-demand.json
             /tmp/delta-agentpact-demand.json
             /tmp/delta-external-funded-demand.json
+            /tmp/delta-moltjobs-demand.json
             /tmp/delta-revenue-candidates.json
             /tmp/delta-treasury.json
           if-no-files-found: warn
