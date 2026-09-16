@@ -1,0 +1,114 @@
+{
+  "checked_at": "2026-09-17T03:39:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "deadline_extended": false
+  },
+  "outreach_control": {
+    "jst_epoch_query": "in:sent after:1789570800 before:1789657200",
+    "sent_count": 3,
+    "daily_cap": 3,
+    "remaining_slots": 0,
+    "new_outbound_sent_this_run": 0,
+    "new_replies_observed_this_run": 0,
+    "rye_delivery": {
+      "recipient": "nate@rye.com",
+      "sent_message_id": "1a0aabe109a9590c",
+      "dsn_message_id": "1a0aabe1ccda4696",
+      "status": "hard_bounce_suppress",
+      "smtp_evidence": "550 5.1.1 recipient account does not exist or cannot receive",
+      "next_action": "Do not retry this address and do not chase through another identity, form or guessed email. A future contact is allowed only if a distinct official public business contact is independently verified and the global outreach cap permits it."
+    },
+    "firmly_delivery": "no bounce or reply observed in this run",
+    "signets_delivery": "no bounce or reply observed in this run"
+  },
+  "explicit_interest": {
+    "robauto_agenthub": {
+      "status": "existing_actionable_thread_no_new_reply_this_run",
+      "commercial_demand_grade": "B_explicit_integration_interest_funding_unknown",
+      "reply_draft_message_id": "1a0aac0547c30382",
+      "reply_sent": false,
+      "why_not_sent": "Current JST global outreach cap remains 3/3."
+    }
+  },
+  "agenthub": {
+    "live_listing_readback": "successful from GitHub runner before any write",
+    "existing_delta_capture_listing_id": "ee9f5a24-be7b-4331-b2aa-17c696316646",
+    "existing_delta_preflight_listing_id": "6006eed4-3ca8-47fb-ab62-dd311a9b15a6",
+    "existing_delta_guarded_listing_id": "9f5fb8f7-84d2-4971-ac80-9fd3f7fa44f8",
+    "duplicate_listing_created": false,
+    "price_bearing_write_performed": false,
+    "reason": "Pre-write readback found the existing canonical Capture endpoint, so no POST was permitted. The public docs expose GET and create-POST but no verified update route in current operator evidence; do not create an alias merely to refresh metadata.",
+    "stale_catalog_values_are_not_current_pricing": true,
+    "stale_catalog_re_notified_to_owner": false
+  },
+  "pricing_live_verification": {
+    "checked_at": "2026-09-17T03:38:29.659+09:00",
+    "ok": true,
+    "capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_transactions_generated": 0
+  },
+  "treasury_reconciliation": {
+    "checked_at": "2026-09-17T03:38:40.357+09:00",
+    "start_block": 51307282,
+    "latest_block": 51397281,
+    "lookback_blocks": 90000,
+    "canonical_usdc_treasury_receipt_candidates": 0,
+    "known_non_customer_receipts_in_range": 0,
+    "unclassified_receipts_in_range": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "scope_note": "Explicit 90,000-block coverage only; not an all-time zero claim."
+  },
+  "paid_funnel": {
+    "latest_properly_scoped_canonical_pulse_run": 35125911004,
+    "latest_properly_scoped_checked_at_utc": "2026-09-16T17:05:08Z",
+    "candidate_rows": 0,
+    "current_one_shot_attempt": "not usable because Cloudflare audit credentials were intentionally unavailable in the one-shot workflow; do not convert unknown current telemetry into zero"
+  },
+  "funded_demand": {
+    "source_run": 35125911004,
+    "agentpact_external_requests": 14,
+    "agentpact_delta_native_funded": 0,
+    "agentexchange_external_requests": 2,
+    "agentexchange_compatible_funded": 0,
+    "other_adjacent_funded_requests": 15,
+    "other_delta_native_funded": 0,
+    "moltjobs_funded_rows": 10,
+    "moltjobs_delta_native_funded": 0,
+    "workpnp_funded_rows": 0
+  },
+  "sprint_evidence": {
+    "new_counted_customer_transactions_this_run": 0,
+    "new_unique_independent_buyers_this_run": 0,
+    "new_verified_customer_treasury_receipts_this_run": 0,
+    "recognized_customer_revenue_this_run_usdc": 0,
+    "realized_variable_cost_usdc": null,
+    "realized_contribution_margin_usdc": null,
+    "unknown_costs_treated_as_zero": false
+  },
+  "boundaries": {
+    "fees_paid": false,
+    "wallet_signatures": false,
+    "asset_movement": false,
+    "paid_tests": false,
+    "kyc_or_legal_commitments": false,
+    "new_listing_identity_created": false,
+    "outreach_cap_evaded": false
+  },
+  "coordination": {
+    "canonical_sibling_operator_workspace": "inaccessible_not_modified",
+    "repository_record_is_not_claimed_as_workspace_sync": true,
+    "new_recurring_growth_loop_created": false,
+    "temporary_workflows_removed_after_evidence_collection": true,
+    "agenthub_inspection_run": 35135509673,
+    "treasury_reconcile_run": 35135645915
+  }
+}
