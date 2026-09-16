@@ -5,8 +5,8 @@
   "sprint_deadline": "2026-09-21T13:43:28+09:00",
   "target_transactions": 50,
   "actions": {
-    "new_prospect_briefs_prepared": 3,
-    "gmail_drafts_created_and_read_back": 2,
+    "new_prospect_briefs_prepared": 4,
+    "gmail_drafts_created_and_read_back": 3,
     "outreach_sent": 0,
     "forms_submitted": 0,
     "new_listing_created": 0,
@@ -72,6 +72,23 @@
       "private_email_guessed": false,
       "contradictions_and_limits": "General protocol support is not an integration commitment, payer independence, a verified paid customer or willingness to purchase DELTA. Do not use its sales form to bypass the current outreach freeze or global cap.",
       "next_action": "Find an official business introduction route or use the published contact route only in an eligible outreach window; first validate a specific paid public-source evidence need."
+    },
+    {
+      "target": "Signets",
+      "official_business_contact": "hello@signets.ai",
+      "contact_source": "https://www.signets.ai/",
+      "workflow_source": "https://www.signets.ai/openclaw",
+      "status": "first_contact_draft_prepared_not_sent",
+      "draft_subject": "Signets procurement workflows: independent public-source evidence before payment",
+      "use_case": "Attach an independent public vendor pricing, availability or terms observation to the intent / policy / authorization / settlement trail for a customer-selected procurement or browser-checkout workflow.",
+      "products": ["Public Capture", "Public Preflight"],
+      "unit_usdc": [1, 5],
+      "technical_fit_quality": "B_official_procurement_checkout_x402_and_reconciliation_fit",
+      "commercial_demand_quality": "C_no_explicit_interest_or_funding_for_DELTA",
+      "evidence_of_ability_or_willingness_to_pay": "Signets publicly supports procurement, browser checkout, stablecoins and x402 and explicitly works with teams building procurement/checkout agents; this establishes payment-rail and use-case capability, not a DELTA purchase commitment.",
+      "independent_customer_settlement_evidence": null,
+      "contradictions_and_limits": "Do not infer that a Signets customer wants DELTA, that stablecoin support means Base-USDC readiness for this exact call, or that DELTA validates private carts/final invoices. DELTA remains public-source evidence only; Signets remains authoritative for policy, authorization and money movement.",
+      "next_action": "After the September 16 freeze ends, re-run the exact-JST global Sent count and suppression check. If a slot is genuinely available, the saved first-contact draft asks for one current customer workflow and representative public URL before any broader integration."
     }
   ],
   "buyer_channel_checks": {
@@ -88,13 +105,15 @@
       "official_registry": "https://api.arispay.app/v1/marketplace",
       "documented_search": "GET /agents",
       "documented_budget_discovery": "POST /discover with budgetCentsMax",
-      "documented_listing": "POST /agents with a developer bearer key; amount is integer cents, so Capture would be 100, not 1",
+      "documented_listing": "POST /agents with a developer bearer key; amount is integer cents, so Capture would be 100 cents and Public Preflight 500 cents",
       "documented_free_signup": "POST https://api.arispay.app/v1/merchants/signup-cli with email, merchantName and payoutAddress",
       "state": "documented_route_prepared_not_registered",
-      "listing_status": "not_yet_verified",
-      "technical_fit_quality": "B_official_published_CLI_contract",
+      "listing_status": "live exact-name DELTA search returned no listing at 2026-09-16T12:48:42Z",
+      "buyer_routing_readback": "Budget-bounded /discover calls for public-page capture, vendor-terms verification and price/availability evidence returned current x402 seller candidates at 1 and 5 USD price bands, but no independent buyer request or DELTA purchase intent.",
+      "technical_fit_quality": "B_official_published_CLI_and_live_discovery_contract",
       "commercial_demand_quality": "C_no_independent_buyer_or_settlement_evidence_yet",
-      "next_gate": "Check canonical DELTA duplicates, merchant existence, live official API, POST request compatibility and real independent buyer demand before spending more priority on registration. Never run CLI try/agent create/funding flows."
+      "registration_blocker": "Signup returns a developer key required for future listing control. Current operator tooling has no verified secure persistence path for that credential; do not create an orphaned seller identity or expose the key in logs/artifacts.",
+      "next_gate": "Only register when the developer credential can be stored securely and read back without logs, after rechecking duplicates and live buyer-routing relevance. Never run CLI try/agent create/funding flows."
     },
     "a2awire": {
       "official_mainnet_board": "https://a2awire.com/api/v1/board?network=mainnet",
@@ -116,28 +135,33 @@
     },
     "tollbooth": {
       "state": "deferred_existing_channel",
-      "this_run_readback": "Initial direct response was a redirect; this attempt did not establish current final service-registry availability or a listing. Prior reported HTTP 500 state was not promoted to a fresh successful readback.",
+      "this_run_readback": "Prior bounded expansion attempt remained unsuccessful; no successful current listing/readback is promoted as buyer demand.",
       "new_submission": false
     }
   },
   "reconciliation": {
     "canonical_pulse_run": 35091892380,
     "canonical_pulse_completed_at": "2026-09-16T11:44:30Z",
-    "paid_funnel_candidates": 0,
-    "agentpact_native_funded_requests": 0,
-    "agentpact_buyer_funded_deals": 0,
-    "agentexchange_compatible_requests": 0,
-    "expanded_treasury_run": 35096963514,
-    "treasury_checked_at": "2026-09-16T12:38:28.681Z",
-    "start_block": 51256474,
-    "latest_block": 51386473,
-    "lookback_blocks": 130000,
+    "canonical_paid_funnel_candidates_at_that_pulse": 0,
+    "agentpact_native_funded_requests_latest": 0,
+    "agentpact_buyer_funded_deals_latest": 0,
+    "agentexchange_compatible_requests_latest": 0,
+    "latest_read_only_reconcile_run": 35101290387,
+    "latest_public_price_check_at": "2026-09-16T13:20:39.504Z",
+    "latest_public_price_check_ok": true,
+    "latest_direct_treasury_checked_at": "2026-09-16T13:20:50.859Z",
+    "start_block": 51337750,
+    "latest_block": 51387749,
+    "lookback_blocks": 50000,
     "canonical_usdc_receipt_candidates_in_range": 0,
     "new_customer_revenue_verified_this_run_usdc": 0,
     "unclassified_receipts_in_range": 0,
+    "latest_adjacent_funded_requests": 16,
+    "latest_delta_native_funded_requests": 0,
+    "latest_read_only_paid_funnel_status": "not_rerun_in_temp_reconcile_missing_scoped_cloudflare_credentials; do not infer zero from that failed audit step; canonical pulse above remains the latest successful paid-funnel evidence",
     "realized_variable_cost": null,
     "realized_contribution_margin": null,
-    "scope": "Explicit block-range and telemetry timestamp evidence only; no assertion of a zero all-time balance or unknown costs being zero. Prospects, documents and drafts are not transactions or revenue."
+    "scope": "Explicit block-range, live-price and prior successful telemetry timestamp evidence only; no assertion of a zero all-time balance or unknown costs being zero. Prospects, documents and drafts are not transactions or revenue."
   },
   "coordination": {
     "local_sibling_operator_workspace": "not_accessible_not_modified",
