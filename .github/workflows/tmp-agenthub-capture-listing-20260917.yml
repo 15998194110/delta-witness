@@ -1,0 +1,88 @@
+name: TEMP DELTA AgentHub Capture listing
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/tmp-agenthub-capture-listing-20260917.yml]
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v5
+        with: {node-version: '22'}
+      - name: Verify current owner pricing and live public 402 invariants immediately before write
+        run: |
+          set -euo pipefail
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Read current AgentHub listings and publish Capture only if absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/agenthub
+          LIST='https://robauto.ai/api/public/listings'
+          curl -fsSL --connect-timeout 10 --max-time 25 --retry 2 --retry-delay 2 --retry-all-errors "$LIST" -o /tmp/agenthub/before.json
+          node --input-type=module <<'JS'
+          import {readFileSync, writeFileSync} from 'node:fs';
+          const raw = JSON.parse(readFileSync('/tmp/agenthub/before.json','utf8'));
+          const rows = Array.isArray(raw) ? raw : Array.isArray(raw.listings) ? raw.listings : Array.isArray(raw.data) ? raw.data : Array.isArray(raw.results) ? raw.results : [];
+          const endpoint='https://delta-witness-api.ruphussten.workers.dev/v1/capture';
+          const existing = rows.find(x => String(x?.endpoint||'').replace(/\/$/,'')===endpoint || (String(x?.agent_handle||'').toLowerCase()==='delta-witness' && /delta witness capture/i.test(String(x?.title||''))));
+          writeFileSync('/tmp/agenthub/precheck.json', JSON.stringify({checked_at:new Date().toISOString(), row_count:rows.length, endpoint, existing:existing||null}, null, 2));
+          if (existing) process.exit(42);
+          JS
+          PRECHECK=$?
+          if [ "$PRECHECK" = 42 ]; then
+            echo 'AGENTHUB_CAPTURE existing=true action=skip_duplicate'
+          elif [ "$PRECHECK" != 0 ]; then
+            echo 'precheck parse failed' >&2
+            exit "$PRECHECK"
+          else
+            cat > /tmp/agenthub/payload.json <<'JSON'
+          {
+            "agent_handle": "delta-witness",
+            "title": "DELTA Witness Capture — Public Page Evidence",
+            "description": "Buyer-authorized x402 Capture of a public product, vendor, pricing, availability, policy or terms page immediately before a consequential procurement, checkout or browser-agent action. Returns timestamped proof metadata and hashes. Public pages only; no private cart, credentials or customer data. The buyer pays DELTA directly and each genuine new Capture costs 1 USDC.",
+            "category": "verification",
+            "price_usdc": 1,
+            "price_note": "1 USDC per new Public Capture. Current owner pricing; no discount or prepaid-use splitting.",
+            "endpoint": "https://delta-witness-api.ruphussten.workers.dev/v1/capture",
+            "url": "https://delta-witness-app.pages.dev/",
+            "tags": ["x402", "base", "usdc", "verification", "web-evidence", "procurement", "checkout", "browser-agent"]
+          }
+          JSON
+            STATUS=$(curl -sS -L --connect-timeout 10 --max-time 25 -o /tmp/agenthub/post.json -w '%{http_code}' -X POST "$LIST" -H 'content-type: application/json' --data-binary @/tmp/agenthub/payload.json)
+            echo "AGENTHUB_POST_HTTP=$STATUS"
+            cat /tmp/agenthub/post.json
+            echo
+            case "$STATUS" in
+              200|201) ;;
+              408|425|429|500|502|503|504) echo 'recoverable AgentHub publish degradation' >&2; exit 75 ;;
+              *) echo "AgentHub listing write rejected HTTP $STATUS; do not retry blindly" >&2; exit 65 ;;
+            esac
+          fi
+          sleep 2
+          curl -fsSL --connect-timeout 10 --max-time 25 --retry 1 --retry-delay 2 --retry-all-errors "$LIST" -o /tmp/agenthub/after.json
+          node --input-type=module <<'JS'
+          import {readFileSync, writeFileSync} from 'node:fs';
+          const raw=JSON.parse(readFileSync('/tmp/agenthub/after.json','utf8'));
+          const rows=Array.isArray(raw)?raw:Array.isArray(raw.listings)?raw.listings:Array.isArray(raw.data)?raw.data:Array.isArray(raw.results)?raw.results:[];
+          const endpoint='https://delta-witness-api.ruphussten.workers.dev/v1/capture';
+          const matches=rows.filter(x=>String(x?.endpoint||'').replace(/\/$/,'')===endpoint || (String(x?.agent_handle||'').toLowerCase()==='delta-witness' && /delta witness capture/i.test(String(x?.title||''))));
+          const result={checked_at:new Date().toISOString(), endpoint, row_count:rows.length, match_count:matches.length, matches};
+          writeFileSync('/tmp/agenthub/readback.json', JSON.stringify(result,null,2));
+          console.log(JSON.stringify(result,null,2));
+          if(matches.length<1) process.exit(3);
+          JS
+      - name: Upload AgentHub evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-agenthub-capture-${{ github.run_id }}
+          path: /tmp/agenthub/
+          if-no-files-found: warn
+          retention-days: 7
