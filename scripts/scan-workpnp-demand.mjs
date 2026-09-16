@@ -54,9 +54,10 @@ function extractRows(html, status) {
   for (const match of html.matchAll(rowPattern)) {
     const rowHtml = match[1];
     const text = htmlText(rowHtml);
-    if (!text || /Title\s+Status\s+Bids\s+Budget/i.test(text)) continue;
+    if (!text || /Title\s+Status\s+Bids\s+Budget/i.test(text) || /^Nothing here yet\.?$/i.test(text)) continue;
     const href = rowHtml.match(/href=["']([^"']*\/jobs\/[^"']+)["']/i)?.[1] || null;
-    const budget = Number(text.match(/([0-9]+(?:\.[0-9]+)?)\s*USDC\b/i)?.[1]);
+    const budgetMatch = text.match(/([0-9]+(?:\.[0-9]+)?)\s*USDC\b/i);
+    const budget = budgetMatch ? Number(budgetMatch[1]) : null;
     const statusMatch = text.match(/\b(open|funded|delivered|paid)\b/i)?.[1]?.toLowerCase();
     if (statusMatch && statusMatch !== status) continue;
     const title = htmlText(rowHtml.match(/<a\b[^>]*>([\s\S]*?)<\/a>/i)?.[1] || '') || text;
@@ -98,9 +99,11 @@ if (!funded.ok) {
 
 const fundedText = htmlText(funded.html);
 const openText = open.ok ? htmlText(open.html) : '';
-const fundedRows = extractRows(funded.html, 'funded');
 const fundedShown = shownCount(fundedText, 'funded');
 const openShown = open.ok ? shownCount(openText, 'open') : null;
+const parsedFundedRows = extractRows(funded.html, 'funded');
+const fundedRows = fundedShown === 0 ? [] : parsedFundedRows;
+const countConsistent = fundedShown == null || fundedRows.length === fundedShown;
 const compatible = fundedRows.filter((x) => x.delta_native && x.price_compatible === true);
 const unknown = fundedRows.filter((x) => x.delta_native && x.price_compatible == null);
 const underFloor = fundedRows.filter((x) => x.delta_native && x.price_compatible === false);
@@ -115,6 +118,7 @@ console.log(JSON.stringify({
   open_requests_shown: openShown,
   funded_requests_shown: fundedShown,
   funded_rows_parsed: fundedRows.length,
+  board_count_consistent: countConsistent,
   funded_requests: fundedRows,
   delta_native_funded_count: compatible.length,
   funded_compatible_requests: compatible,
@@ -122,10 +126,10 @@ console.log(JSON.stringify({
   delta_native_price_incompatible_count: underFloor.length,
   funded_semantics: 'WorkPnP states Base USDC is locked in escrow before work starts; only the public board status=funded view is treated as funded demand. Open budget rows are not treated as funded.',
   commercial_demand_grade: compatible.length ? 'A_funded_compatible_lead' : 'C_no_current_delta_native_funded_match',
-  technical_endpoint_grade: 'A_official_public_board',
+  technical_endpoint_grade: countConsistent ? 'A_official_public_board' : 'B_official_board_parse_incomplete',
   next_conversion_action: compatible.length ? 'Read the specific funded work order and verify direct DELTA fulfillment fit before any bid. Do not register, bid, verify identity, post to X, sign, fund, or deliver unless the relevant authorization boundary is satisfied.' : 'Keep as a read-only funded-demand source. Do not register merely for catalog presence.',
   action_boundary: 'WorkPnP participation requires agent registration followed by human ownership verification using email and an X post; bidding/settlement uses an agent identity/wallet and workers pay a 10% platform fee. This scanner is public read-only and performs no registration, verification, social posting, wallet, bid, signature, financial, or delivery action.',
-  evidence_quality: 'A_official_public_board_current',
+  evidence_quality: countConsistent ? 'A_official_public_board_current' : 'B_official_public_board_parse_incomplete',
   mutation: false,
   financial_or_signature_action_taken: false,
 }, null, 2));
