@@ -1,4 +1,4 @@
-name: TEMP DELTA buyer-route readback
+name: TEMP DELTA Tollbooth Capture expansion
 on:
   push:
     branches: [master]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 jobs:
-  buyer-route-readback:
+  list-capture:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -14,46 +14,36 @@ jobs:
         with: {persist-credentials: false}
       - uses: actions/setup-node@v5
         with: {node-version: '22'}
-      - name: Owner price integrity before interpreting purchase routes
+      - name: Verify owner pricing and live 402 before price-bearing write
         run: node scripts/check-owner-pricing.mjs && node scripts/verify-owner-pricing-live.mjs
-      - name: Query free buyer discovery surfaces without account, payment, signing or mutation
+      - name: Register DELTA Capture only if exact endpoint is absent
         run: |
-          mkdir -p /tmp/delta-expansion
-          node --input-type=module <<'JS'
-          import {writeFileSync} from 'node:fs';
-          const results=[];
-          async function call(name,url,opts={}) {
-            for(let attempt=1;attempt<=2;attempt++) {
-              try {
-                const r=await fetch(url,{...opts,signal:AbortSignal.timeout(18000)});
-                const text=await r.text();
-                if((r.status>=500||r.status===429)&&attempt<2){await new Promise(x=>setTimeout(x,1200));continue;}
-                results.push({name,url,checked_at:new Date().toISOString(),http:r.status,content_type:r.headers.get('content-type'),body:text.slice(0,300000)});
-                console.log(JSON.stringify({name,http:r.status,length:text.length})); return;
-              } catch(e) {
-                if(attempt<2){await new Promise(x=>setTimeout(x,1200));continue;}
-                results.push({name,url,status:'deferred_recoverable',error:String(e)});
-              }
-            }
-          }
-          await call('arispay_search_delta','https://api.arispay.app/v1/marketplace/agents?q=DELTA%20Witness&limit=50');
-          const intents=[
-            ['public_page_capture','preserve a timestamped public product or vendor page before checkout',100],
-            ['vendor_terms_preflight','verify public vendor terms before an autonomous consequential action',500],
-            ['price_availability_evidence','retain evidence of public price or availability immediately before purchase',100]
-          ];
-          for(const [id,intent,budgetCentsMax] of intents){
-            await call(`arispay_discover_${id}`,'https://api.arispay.app/v1/marketplace/discover',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({intent,budgetCentsMax,limit:10})});
-            await call(`paywitness_select_${id}`,'https://paywitness.ai/select',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({intent,budget_usd:budgetCentsMax/100})});
-          }
-          writeFileSync('/tmp/delta-expansion/buyer-route-readback.json',JSON.stringify(results,null,2));
-          JS
-      - name: Deferred Tollbooth recovery readback without mutation
-        continue-on-error: true
-        run: curl -sS --connect-timeout 8 --max-time 20 --retry 1 --retry-delay 2 --retry-all-errors 'https://trytollbooth.com/api/services?q=DELTA%20Witness' -o /tmp/delta-expansion/tollbooth-readback.json -w 'TOLLBOOTH_HTTP=%{http_code}\n'
+          set -euo pipefail
+          BASE='https://www.trytollbooth.com'
+          ENDPOINT='https://delta-witness-api.ruphussten.workers.dev/v1/capture'
+          OUT=/tmp/tollbooth-delta-capture.json
+          readback() { curl -fsS --connect-timeout 10 --max-time 25 --retry 2 --retry-delay 2 --retry-all-errors "$BASE/api/services?q=DELTA%20Witness"; }
+          BEFORE="$(readback || true)"
+          if printf '%s' "$BEFORE" | grep -Fq "$ENDPOINT"; then
+            printf '%s' "$BEFORE" > "$OUT"
+            echo 'TOLLBOOTH_CAPTURE existing=true write=false'
+            exit 0
+          fi
+          PAYLOAD='{"name":"DELTA Witness Capture","endpoint":"https://delta-witness-api.ruphussten.workers.dev/v1/capture","category":"data","priceUsdc":1,"wallet":"0x1990e21bc219696ff7fbc26527dbaed335ac6367","chain":"base","description":"Preserve a timestamped, hash-verifiable observation of a public webpage before checkout, procurement, audit, or automation. Exact x402 price: 1 USDC on Base."}'
+          CODE=$(curl -sS --connect-timeout 10 --max-time 35 -o /tmp/tollbooth-post.json -w '%{http_code}' -X POST "$BASE/api/services" -H 'content-type: application/json' --data "$PAYLOAD" || true)
+          AFTER="$(readback || true)"
+          if printf '%s' "$AFTER" | grep -Fq "$ENDPOINT"; then
+            printf '%s' "$AFTER" > "$OUT"
+            echo "TOLLBOOTH_CAPTURE present=true post_http=$CODE"
+            exit 0
+          fi
+          echo "TOLLBOOTH_CAPTURE present=false post_http=$CODE" >&2
+          cat /tmp/tollbooth-post.json >&2 || true
+          exit 1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: delta-buyer-route-readback-${{ github.run_id }}
-          path: /tmp/delta-expansion/
+          name: delta-tollbooth-capture-${{ github.run_id }}
+          path: /tmp/tollbooth-*.json
+          if-no-files-found: warn
           retention-days: 7
