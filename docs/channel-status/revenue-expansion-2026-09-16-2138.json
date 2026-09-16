@@ -1,0 +1,148 @@
+{
+  "run_date_jst": "2026-09-16",
+  "owner_request": "Continue expanding DELTA revenue-first buyer and integration connections",
+  "sprint_start": "2026-09-14T13:43:28+09:00",
+  "sprint_deadline": "2026-09-21T13:43:28+09:00",
+  "target_transactions": 50,
+  "actions": {
+    "new_prospect_briefs_prepared": 3,
+    "gmail_drafts_created_and_read_back": 2,
+    "outreach_sent": 0,
+    "forms_submitted": 0,
+    "new_listing_created": 0,
+    "new_seller_identity_created": 0,
+    "payments_or_wallet_signatures": 0,
+    "new_verified_customer_transactions": 0,
+    "new_verified_customer_receipts": 0,
+    "new_explicit_integration_interest": 0
+  },
+  "outreach_control": {
+    "gmail_query": "in:sent after:1789484399 before:1789570800",
+    "pagination_complete": true,
+    "observed_delivered_to_sent_count": 4,
+    "known_incident_renotified": false,
+    "freeze_until": "2026-09-17T00:00:00+09:00",
+    "new_sends_permitted_this_day": false,
+    "next_day_is_not_automatic_send_authorization": "Recount all DELTA Sent using the next JST epoch window, check suppression and concurrent reservations, then apply the global three-message cap. Never blindly send every draft."
+  },
+  "prospects": [
+    {
+      "target": "Rye",
+      "official_business_contact": "nate@rye.com",
+      "contact_source": "https://rye.com/pricing",
+      "workflow_source": "https://rye.com/docs/llm-context",
+      "status": "first_contact_draft_prepared_not_sent",
+      "draft_subject": "Rye checkout intents: optional $1 public-source evidence before confirmation",
+      "use_case": "Opt-in public product or returns-policy Capture after offer retrieval and before an audit-sensitive checkout confirmation; retain proof reference alongside the application's checkout-intent ID.",
+      "product": "Public Capture",
+      "unit_usdc": 1,
+      "technical_fit_quality": "B_official_api_flow",
+      "commercial_demand_quality": "C_no_explicit_interest_or_funding_for_DELTA",
+      "independent_customer_settlement_evidence": null,
+      "contradictions_and_limits": "Rye's published per-fetch/order API charges are materially below a DELTA Capture. Do not propose applying Capture to every fetch/order. Only pursue customer-selected audit-sensitive checkpoints whose need justifies the extra cost. Existing card-payment integration does not establish Base USDC readiness. Public evidence does not verify personalized final landed cost.",
+      "next_action": "At the next eligible outreach window, revalidate the global cap and absence of prior contact before sending the existing draft. Ask for one concrete customer workflow and representative public URL, not broad platform integration or reimbursed testing."
+    },
+    {
+      "target": "Firmly",
+      "official_business_contact": "contact@firmly.ai",
+      "contact_source": "https://www.firmly.ai/merchants",
+      "workflow_source": "https://developers.firmly.ai/solutions/agentic-commerce/flows/single-product-purchase/",
+      "status": "first_contact_draft_prepared_not_sent",
+      "draft_subject": "Firmly agentic checkout: public terms evidence for audit-sensitive orders",
+      "use_case": "Optional independent public product/returns-policy observation before a consequential order; the application associates the returned proof with its own order reference.",
+      "product": "Public Capture",
+      "unit_usdc": 1,
+      "technical_fit_quality": "B_official_api_flow",
+      "commercial_demand_quality": "C_no_explicit_interest_or_funding_for_DELTA",
+      "independent_customer_settlement_evidence": null,
+      "contradictions_and_limits": "Do not claim published network GMV as DELTA-addressable spending or verified buyer demand. No private cart/card/customer data enters DELTA. Card-based Agentic Pay is not proof of Base USDC support. Firmly remains authoritative for checkout and authorization.",
+      "next_action": "Use the existing draft only after the next eligible global cap/suppression check. Seek one customer workflow, technical owner and public URL before investing in a broader integration."
+    },
+    {
+      "target": "Crossmint",
+      "official_contact_route": "https://www.crossmint.com/contact",
+      "workflow_source": "https://www.crossmint.com/learn/inside-an-x402-transaction",
+      "status": "qualified_technical_brief_prepared_not_contacted",
+      "use_case": "Optional independent public-source evidence before a buyer-authorized x402 commerce step, using the buyer's existing Base USDC payment controls rather than asking it to implement a new payment rail.",
+      "product": "Public Capture",
+      "unit_usdc": 1,
+      "technical_fit_quality": "B_official_Base_USDC_x402_description",
+      "commercial_demand_quality": "C_no_explicit_interest_or_funding_for_DELTA",
+      "independent_customer_settlement_evidence": null,
+      "private_email_guessed": false,
+      "contradictions_and_limits": "General protocol support is not an integration commitment, payer independence, a verified paid customer or willingness to purchase DELTA. Do not use its sales form to bypass the current outreach freeze or global cap.",
+      "next_action": "Find an official business introduction route or use the published contact route only in an eligible outreach window; first validate a specific paid public-source evidence need."
+    }
+  ],
+  "buyer_channel_checks": {
+    "paywitness": {
+      "official_contract_readback": "homepage, llms.txt and openapi.json returned HTTP 503 with Service Suspended after bounded retries",
+      "state": "deferred_recoverable_external",
+      "listing_status": "unknown_not_submitted",
+      "commercial_demand_quality": "C_current_runtime_unavailable",
+      "marketing_vs_runtime": "Indexed free self-listing and paid-probe claims are not current availability or independent customer demand.",
+      "retry_policy": "Defer to a later normal run; do not hammer or purchase a workaround."
+    },
+    "arispay": {
+      "official_cli_inspected": "agentmarketplace@0.7.2, downloaded with scripts disabled; not executed",
+      "official_registry": "https://api.arispay.app/v1/marketplace",
+      "documented_search": "GET /agents",
+      "documented_budget_discovery": "POST /discover with budgetCentsMax",
+      "documented_listing": "POST /agents with a developer bearer key; amount is integer cents, so Capture would be 100, not 1",
+      "documented_free_signup": "POST https://api.arispay.app/v1/merchants/signup-cli with email, merchantName and payoutAddress",
+      "state": "documented_route_prepared_not_registered",
+      "listing_status": "not_yet_verified",
+      "technical_fit_quality": "B_official_published_CLI_contract",
+      "commercial_demand_quality": "C_no_independent_buyer_or_settlement_evidence_yet",
+      "next_gate": "Check canonical DELTA duplicates, merchant existence, live official API, POST request compatibility and real independent buyer demand before spending more priority on registration. Never run CLI try/agent create/funding flows."
+    },
+    "a2awire": {
+      "official_mainnet_board": "https://a2awire.com/api/v1/board?network=mainnet",
+      "observed_jobs": 1,
+      "state": "platform_onboarding_reward_only_not_customer_demand",
+      "new_account_or_claim": false
+    },
+    "agenteconomy_cloud": {
+      "source": "https://github.com/Onnson/agenteconomy-mcp/blob/master/README.md",
+      "state": "registration_is_paid_no_action",
+      "commercial_demand_quality": "C_unverified_for_DELTA",
+      "payment_made": false
+    },
+    "frantic": {
+      "source": "https://github.com/auscaster/frantic-board/issues/361",
+      "state": "payout_reliability_requires_fresh_verification_before_any_claim",
+      "evidence": "An open claimant report and two claimant updates distinguish accepted/payout_ready from actual paid settlement. No operator resolution was present in the fetched discussion. It is a historical claimant report, not proof that every current payout fails.",
+      "new_account_or_claim": false
+    },
+    "tollbooth": {
+      "state": "deferred_existing_channel",
+      "this_run_readback": "Initial direct response was a redirect; this attempt did not establish current final service-registry availability or a listing. Prior reported HTTP 500 state was not promoted to a fresh successful readback.",
+      "new_submission": false
+    }
+  },
+  "reconciliation": {
+    "canonical_pulse_run": 35091892380,
+    "canonical_pulse_completed_at": "2026-09-16T11:44:30Z",
+    "paid_funnel_candidates": 0,
+    "agentpact_native_funded_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "agentexchange_compatible_requests": 0,
+    "expanded_treasury_run": 35096963514,
+    "treasury_checked_at": "2026-09-16T12:38:28.681Z",
+    "start_block": 51256474,
+    "latest_block": 51386473,
+    "lookback_blocks": 130000,
+    "canonical_usdc_receipt_candidates_in_range": 0,
+    "new_customer_revenue_verified_this_run_usdc": 0,
+    "unclassified_receipts_in_range": 0,
+    "realized_variable_cost": null,
+    "realized_contribution_margin": null,
+    "scope": "Explicit block-range and telemetry timestamp evidence only; no assertion of a zero all-time balance or unknown costs being zero. Prospects, documents and drafts are not transactions or revenue."
+  },
+  "coordination": {
+    "local_sibling_operator_workspace": "not_accessible_not_modified",
+    "existing_scheduler_rebuilt": false,
+    "new_recurring_growth_loop": false,
+    "credentials_or_private_keys_exposed": false
+  }
+}
