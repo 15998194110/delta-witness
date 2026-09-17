@@ -1,0 +1,132 @@
+{
+  "observed_at": "2026-09-17T16:56:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_customer_buyers": 0,
+    "repeat_buyers": 0,
+    "deadline_extended": false
+  },
+  "current_pricing_usdc": {
+    "public_capture": 1,
+    "partner_capture": 1,
+    "partner_preflight": 1,
+    "watch_check": 1,
+    "public_preflight": 5,
+    "guarded_action_pilot": 10
+  },
+  "new_unique_first_contacts": [
+    {
+      "target": "AgentLancer",
+      "official_contact": "hello@agentlancer.io",
+      "contact_evidence": "AgentLancer official marketplace/skill surfaces publish hello@agentlancer.io",
+      "message_id": "1a0ae595dd221016",
+      "specific_use_case": "Route one independently funded buyer job whose acceptance criterion is preserving or verifying a named public supplier/product/policy/price/availability page before the buyer's next consequential action.",
+      "requested_first_paid_scope": "one genuine 1 USDC Public Capture",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "AgentLancer publicly documents requester jobs, provider proposals, staged escrow and stablecoin settlement, but its current public page showed no real open jobs at this readback. Historical settled jobs are adjacent platform evidence only, not DELTA demand.",
+      "next_action": "Wait for an explicit current buyer/job ID and representative public URL; do not chase silence or create a duplicate marketplace identity merely for catalog presence."
+    },
+    {
+      "target": "AffixIO",
+      "official_contact": "hello@affix-io.com",
+      "contact_evidence": "Official AffixIO contact page publishes hello@affix-io.com for product/security/partnership messages.",
+      "message_id": "1a0ae59784a34fb6",
+      "specific_use_case": "Add one independent public-source Capture immediately before an AffixIO Agentic Pay authorization where a public product/supplier/policy/price/availability page materially informs the payment decision; retain DELTA proof beside AffixIO's authorization/audit record.",
+      "requested_first_paid_scope": "one genuine 1 USDC Public Capture",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "AffixIO publicly operates an Agentic Pay Kit with authorization and proof features and paid developer pricing; no DELTA-specific reply, funded request or settlement exists yet.",
+      "next_action": "Wait for one real Agentic Pay workflow, action boundary and representative public URL; do not send another cold first contact."
+    },
+    {
+      "target": "OpenUSDC",
+      "official_contact": "support@openusdc.ai",
+      "contact_evidence": "OpenUSDC official site publishes this address through Cloudflare email protection; decoded from the official page, not guessed.",
+      "message_id": "1a0ae5994b37b140",
+      "specific_use_case": "Use OpenUSDC's buyer-side x402 wallet path to make one genuine independent 1 USDC DELTA merchant call before a separate consequential purchase/approval/routing action.",
+      "requested_first_paid_scope": "one genuine 1 USDC Public Capture from a non-project buyer",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "OpenUSDC publicly describes USDC/x402 buyer wallets and per-settled-payment usage; no DELTA-specific buyer commitment or settlement exists yet.",
+      "next_action": "Wait for one independent buyer workflow and public URL; platform verification/self-test remains excluded from customer revenue."
+    }
+  ],
+  "explicit_interest": {
+    "robauto_agenthub": {
+      "status": "awaiting_new_substantive_inbound_after_current-price_use-case_reply",
+      "action_this_run": "no_chase"
+    }
+  },
+  "reply_check": {
+    "new_substantive_human_inbound_since_prior_handoff": 0,
+    "new_automated_acknowledgements": 1,
+    "automated_ack_target": "Keelvar",
+    "automated_ack_is_demand": false
+  },
+  "agentpact_specific_need_validation": {
+    "need_id": "02cd45a5-c376-4452-859b-0ef2c2aad3be",
+    "title": "[Fleet buyer] Quick public-source evidence screen on USDC (Base)",
+    "status": "open",
+    "budget_min_usdc": 1,
+    "budget_max_usdc": 1,
+    "accepted_payment_method": "usdc",
+    "buyer_agent_id": "b4d617c7-5d68-43e6-a9aa-ecf3166e68e9",
+    "buyer_reputation_score": 0,
+    "buyer_review_count": 0,
+    "buyer_verified_at": null,
+    "tag": "fleet-buyer",
+    "funding_or_escrow_verified": false,
+    "delta_native_fulfillment": false,
+    "classification": "low_confidence_adjacent_not_bid",
+    "reason": "The official need requests a 3-5 sentence research synthesis about USDC decimals and proxy/implementation status with a citation. Existing DELTA Capture/Preflight can preserve or check a public page state but does not itself supply that research synthesis. The need object exposes a 1 USDC budget but no funded/escrow state; the buyer is new/unverified with zero reputation and carries the explicit fleet-buyer tag. Under the owner mandate, budget is not funding and fleet/platform demand stays low-confidence until independently verified.",
+    "action_taken": "read-only detail verification only; no proposal, claim, account mutation, fee, wallet signature, payment or asset movement",
+    "temporary_readback_workflow_removed": true
+  },
+  "fresh_reconciliation": {
+    "canonical_pulse_run_id": 35196112694,
+    "pulse_completed_at": "2026-09-17T07:45:36Z",
+    "treasury_checked_at": "2026-09-17T07:45:33.533Z",
+    "treasury_start_block": 51370892,
+    "treasury_latest_block": 51420891,
+    "treasury_lookback_blocks": 50000,
+    "canonical_usdc_treasury_receipt_candidates": 0,
+    "unclassified_receipts_usdc": 0,
+    "paid_funnel_candidate_rows": 0,
+    "agentpact_offer_count": 3,
+    "agentpact_offer_prices_usdc": [1, 5, 10],
+    "agentpact_external_requests": 16,
+    "agentpact_funded_compatible_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "agentpact_paid_settlements": 0,
+    "agentexchange_external_requests": 2,
+    "agentexchange_funded_compatible_requests": 0,
+    "other_adjacent_funded_requests": 18,
+    "other_delta_native_funded_requests": 0,
+    "moltjobs_funded_rows": 10,
+    "moltjobs_delta_native_funded_requests": 0,
+    "workpnp_open_jobs": 1,
+    "workpnp_funded_jobs": 0,
+    "recognized_customer_revenue_added_usdc": 0,
+    "variable_cost_added_usdc": null,
+    "contribution_margin_added_usdc": null,
+    "scope_note": "The zero Treasury result is limited to this explicit 50,000-block direct canonical-USDC scan. Unknown costs remain unknown; cold outreach, open budgets and adjacent funded work are not transactions or revenue."
+  },
+  "financial_and_risk_actions": {
+    "listing_or_signup_fees_paid": 0,
+    "new_cash_or_credits": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "kyc_identity_attestations": 0,
+    "legal_commitments": 0
+  },
+  "coordination": {
+    "prior_handoff": "docs/channel-status/revenue-expansion-2026-09-17-1512.json",
+    "canonical_sibling_operator_workspace": "not_accessible_in_this_runtime_not_claimed_synchronized",
+    "duplicate_growth_loop_created": false
+  }
+}
