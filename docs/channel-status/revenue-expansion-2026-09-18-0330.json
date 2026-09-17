@@ -1,0 +1,122 @@
+{
+  "run_date_jst": "2026-09-18T03:30:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_buyers": 0,
+    "target_is_not_actual": true
+  },
+  "fresh_canonical_evidence": {
+    "workflow_run": 35258018295,
+    "workflow_completed_at": "2026-09-17T18:18:58Z",
+    "treasury_checked_at": "2026-09-17T18:18:53.438Z",
+    "treasury_start_block": 51389890,
+    "treasury_latest_block": 51439889,
+    "treasury_lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "paid_funnel_candidate_rows": 0,
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_requests": 0,
+    "agentpact_funded_compatible_requests": 0,
+    "agentexchange_external_requests": 2,
+    "agentexchange_compatible_requests": 0,
+    "broader_adjacent_funded_requests": 12,
+    "broader_delta_native_funded_requests": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "scope_note": "Fresh complete canonical pulse evidence was reused rather than redundantly rebuilding the same workflows. The explicit block range is not an all-time zero assertion."
+  },
+  "new_actionable_inbound": {
+    "target": "Outlast AI",
+    "contact": "Mohammad Zuiter <mo@outlastai.com>",
+    "gmail_message_id": "1a0b07dcaa34553a",
+    "thread_id": "1a0b07b1051285d2",
+    "request": "Can you email us from a company domain, for security purposes?",
+    "classification": "actionable_security_prerequisite_not_yet_purchase_commitment",
+    "commercial_demand_grade": "B_explicit_engagement_security_gate",
+    "payment_willingness": "unknown",
+    "next_action": "Reply from a legitimate company-domain mailbox in the existing thread, then ask for one representative public supplier/product URL and the consequential sourcing/PO action it informs. Do not impersonate or spoof a company-domain sender.",
+    "user_action_blocker": true,
+    "blocker_reason": "The connected Gmail sender available to this operator is ruphussten85@gmail.com; no verified company-domain sending identity is available through the current connector."
+  },
+  "new_buyer_outreach": [
+    {
+      "target": "Musqet",
+      "official_business_contact": "hello@musqet.tech",
+      "gmail_message_id": "1a0b0a47bb889b3e",
+      "status": "first_contact_sent_once_no_bounce_observed",
+      "use_case": "Capture public product, availability, delivery or policy state immediately before Musqet creates a signed agentic-commerce payment intent.",
+      "product_fit": "Public Capture 1 USDC; Public Preflight 5 USDC only for a real explicit public-page gate.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_settlement",
+      "next_action": "Wait for substantive inbound; no repeat cold contact."
+    },
+    {
+      "target": "Paygent",
+      "official_business_contact": "hello@paygentcommerce.com",
+      "gmail_message_id": "1a0b0a50b41a0750",
+      "status": "first_contact_sent_once_no_bounce_observed",
+      "use_case": "Preserve the public product-page state that triggered a price-watch purchase before checkout proceeds.",
+      "product_fit": "Public Capture 1 USDC; Public Preflight 5 USDC only for a real explicit condition gate.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_settlement",
+      "next_action": "Wait for substantive inbound; no repeat cold contact."
+    },
+    {
+      "target": "AgentsPay",
+      "official_business_contact": "hello@agentspay.sh",
+      "gmail_message_id": "1a0b0a5295c929d0",
+      "status": "first_contact_sent_once_no_bounce_observed",
+      "use_case": "Attach independent public pricing, availability, policy or vendor-page evidence to an agent's existing x402 payment receipt before autonomous spend.",
+      "product_fit": "Public Capture 1 USDC; Public Preflight 5 USDC only for explicit public conditions.",
+      "technical_fit_grade": "B_plus",
+      "commercial_demand_grade": "C_no_reply_or_settlement",
+      "next_action": "Wait for substantive inbound; no repeat cold contact."
+    }
+  ],
+  "undelivered_first_contact_attempts": [
+    {
+      "target": "OneCheckout / OneText",
+      "attempted_contact": "team@onetext.com",
+      "gmail_message_id": "1a0b0a43d7bc727f",
+      "delivery_status": "bounced_group_missing_or_sender_not_permitted",
+      "disposition": "Do not retry this address. Use only a newly independently verified official business route in a future run."
+    },
+    {
+      "target": "Agents Authority",
+      "attempted_contact": "hello@agentsauthority.com",
+      "gmail_message_id": "1a0b0a45eb1306d2",
+      "delivery_status": "bounced_554_relay_access_denied",
+      "disposition": "Do not retry this address. Use only a newly independently verified official business route in a future run."
+    }
+  ],
+  "controls": {
+    "daily_outreach_cap": null,
+    "new_delivered_first_contacts_this_run": 3,
+    "new_bounced_first_contact_attempts_this_run": 2,
+    "duplicate_first_contacts_sent_this_run": 0,
+    "cold_followups_sent": 0,
+    "fees_paid": 0,
+    "new_cash_or_credits": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "kyc_or_identity_attestations": 0,
+    "legal_commitments": 0,
+    "new_seller_identities": 0,
+    "production_deployments": 0,
+    "local_sibling_operator_workspace": "not_accessible_not_claimed_synchronized"
+  },
+  "material_status": {
+    "new_genuine_customer_receipt": false,
+    "new_external_paid_settlement": false,
+    "new_actionable_explicit_integration_intent": true,
+    "new_funded_compatible_buyer_request": false,
+    "new_unavoidable_user_action_blocker": true,
+    "verified_core_failure": false,
+    "sprint_at_risk": true,
+    "reason": "Outlast has explicitly engaged but requires a legitimate company-domain sender before proceeding; strict counted transactions remain 0/50."
+  }
+}
