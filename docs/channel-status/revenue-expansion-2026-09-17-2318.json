@@ -1,0 +1,113 @@
+{
+  "run_date_jst": "2026-09-17",
+  "observed_at_jst": "2026-09-17T23:18:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_buyers": 0,
+    "repeat_verified_buyers": 0
+  },
+  "new_inbound": [
+    {
+      "target": "Reap",
+      "message_id": "1a0afa2de0c0e209",
+      "subject": "[REAP] We've received your request - Ticket number #54145",
+      "classification": "automated_acknowledgement_only",
+      "actionable_explicit_interest": false,
+      "action_taken": "none"
+    }
+  ],
+  "new_outreach": [
+    {
+      "target": "Gumloop",
+      "official_contact": "support@gumloop.com",
+      "official_contact_evidence": "https://www.gumloop.com/tos and current support/docs surfaces",
+      "use_case_evidence": "https://www.gumloop.com/mcp and https://www.gumloop.com/mcp/browserbase; current Gumloop surface documents Zip procurement requests/approvals/vendors/spend plus Browserbase connector",
+      "message_id": "1a0afb6c3deb0e47",
+      "status": "first_contact_sent",
+      "use_case": "1 USDC Public Capture immediately before a Gumloop Zip/Browserbase workflow acts on public vendor price, availability, policy or terms; 5 USDC Public Preflight only for an explicit public condition gate.",
+      "technical_fit_grade": "B_official_current_workflow",
+      "commercial_demand_grade": "C_no_explicit_interest_or_settlement_yet",
+      "next_action": "No follow-up on silence. Advance only if Gumloop provides a concrete workflow, public URL, technical owner or buyer-funded evaluation."
+    },
+    {
+      "target": "ArisPay Agent Marketplace",
+      "official_contact": "hello@arispay.app",
+      "official_contact_evidence": "https://arispay.app/contact",
+      "message_id": "1a0afb7c4cf6c7ae",
+      "status": "integration_question_sent",
+      "use_case": "Index DELTA's existing direct x402 endpoints into ArisPay's live buyer-discovery path without creating a second commercial identity or replacing DELTA's live 402 payTo.",
+      "technical_fit_grade": "A_open_source_client_and_live_discovery_api",
+      "commercial_demand_grade": "B_verified_active_paid_service_discovery_surface_but_no_DELTA_buyer_yet",
+      "next_action": "Await a substantive response on operator-side import/Bazaar ingestion or confirmation that self-serve http-x402 publication preserves the seller challenge's own payTo. Do not run a paid test."
+    },
+    {
+      "target": "Selarion AI",
+      "official_contact": "craig@selarionai.com",
+      "official_contact_evidence": "https://www.selarionai.com/",
+      "message_id": "1a0afb8c96e8e1cf",
+      "status": "first_contact_sent",
+      "use_case": "1 USDC public supplier-page Capture before urgent MRO/spot-buy RFQ, shortlist or supplier-selection steps that rely on public price, availability, qualification or terms claims.",
+      "technical_fit_grade": "B_current_autonomous_sourcing_model",
+      "commercial_demand_grade": "C_funded_development_evidence_but_no_explicit_DELTA_interest",
+      "next_action": "No follow-up on silence. Advance only on a concrete production/MVP workflow and representative public URL."
+    },
+    {
+      "target": "Sendin",
+      "official_contact": "info@sendin.ai",
+      "official_contact_evidence": "https://www.sendin.ai/",
+      "message_id": "1a0afb9616f34bb1",
+      "status": "first_contact_sent",
+      "use_case": "Use DELTA as a real x402 merchant in Sendin's current agentic-commerce developer/private beta: one independent buyer-funded 1 USDC Capture before a public-source-dependent purchase/action.",
+      "technical_fit_grade": "B_current_agentic_payment_infrastructure",
+      "commercial_demand_grade": "C_no_explicit_interest_or_settlement_yet",
+      "next_action": "No follow-up on silence. If Sendin can route a current real x402 buyer call, reconcile delivery plus canonical Treasury receipt before counting anything."
+    }
+  ],
+  "arispay_buyer_route_evidence": {
+    "checked_at_utc": "2026-09-17T14:10:30.172Z",
+    "search_for_delta": "No DELTA listing returned for DELTA Witness, delta-witness, public page evidence, or price availability verification queries.",
+    "discover_endpoint": "https://api.arispay.app/v1/marketplace/discover",
+    "discover_status": "live_http_200_with_ranked_paid_x402_candidates",
+    "verified_neighbor_demand": true,
+    "evidence": "A 100-cent budget query for timestamped public product/vendor evidence and a 100-cent budget query for public price/availability evidence both returned live paid x402 candidates. This proves a functioning buyer-side paid-service discovery surface, not DELTA buyer demand.",
+    "direct_settlement_semantics": "ArisPay payFetchDelegated first reads the seller's live 402 challenge and forwards its network, asset, amount and payTo as paymentRequirements to delegated-sign, then retries the original seller URL with the signed payment. Therefore a direct http-x402 listing can preserve the seller challenge's own canonical payTo at call time.",
+    "publisher_route": "Official agentmarketplace source documents free/self-serve merchant signup plus authenticated POST /agents publication. Signup returns a developer credential and may require email verification; no signup or paid try call was executed in this run.",
+    "risk_disposition": "Do not expose or strand the one-time developer credential in logs/chat/artifacts. Prefer operator-side import/Bazaar ingestion if ArisPay supports it. If self-serve remains required, establish a durable secure credential-storage path before creating the publisher account."
+  },
+  "fresh_reconciliation": {
+    "one_shot_run_id": 35231782578,
+    "run_conclusion": "success",
+    "owner_pricing_and_live_price_checks": "passed",
+    "treasury_checked_at_utc": "2026-09-17T14:10:30.119Z",
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "treasury_start_block": 51332437,
+    "treasury_latest_block": 51432436,
+    "treasury_lookback_blocks": 100000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts_usdc": 0,
+    "paid_funnel_candidate_rows": 0,
+    "demand_scan_note": "The one-shot shell did not retain the auxiliary demand-scan JSON files after query-revenue-candidates, so the latest complete funded-demand status remains the canonical 22:45 JST handoff/pulse rather than being silently overwritten.",
+    "scope_note": "Treasury result is explicit block-range evidence only, not an all-time zero assertion. Unknown variable cost and contribution margin remain unknown/null, not zero."
+  },
+  "controls": {
+    "daily_outreach_cap": null,
+    "duplicate_first_contacts_sent_this_run": 0,
+    "prior_contact_checked_before_each_send": true,
+    "listing_or_signup_fee_paid": false,
+    "new_account_created": false,
+    "cash_or_credit_added": false,
+    "wallet_signature_or_message_signed": false,
+    "asset_movement": false,
+    "paid_test": false,
+    "kyc_or_identity_attestation": false,
+    "legal_commitment": false,
+    "temporary_workflow_removed_after_evidence": true,
+    "canonical_operator_workspace": "not_accessible_from_this_runtime_not_claimed_synchronized"
+  },
+  "notification_disposition": "No new genuine customer Treasury receipt, external paid settlement, substantive buyer reply, funded DELTA-native request, completed high-value listing, new core failure or unavoidable owner-action blocker occurred. These first contacts and buyer-route research are execution evidence, not a user notification event."
+}
