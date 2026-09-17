@@ -1,0 +1,148 @@
+{
+  "run_date_jst": "2026-09-17",
+  "checked_at": "2026-09-17T21:04:00+09:00",
+  "supersedes_handoff_for_current_status": "docs/channel-status/revenue-expansion-2026-09-17-2029.json",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_independent_buyers": 0,
+    "verified_customer_revenue_usdc": 0
+  },
+  "new_unique_first_contacts_this_run": [
+    {
+      "target": "Freehand",
+      "contact": "Hi@freehand.ai",
+      "official_contact_source": "https://www.freehand.ai/contact",
+      "current_product_source": "https://www.freehand.ai/",
+      "gmail_message_id": "1a0af3c4fcc63be9",
+      "use_case": "Independent public carrier/vendor rate, availability, policy or commercial-term evidence immediately before a supplier dispute, exception approval or procurement action executed by Freehand AI Teams.",
+      "first_paid_scope": "1 USDC Public Capture",
+      "optional_condition_scope": "5 USDC Public Preflight only for a real explicit public condition",
+      "technical_fit": "B_current_autonomous_procure_to_pay_and_supplier_execution",
+      "commercial_demand": "C_no_reply_or_DELTA_funding_yet",
+      "ability_or_willingness_evidence": "Official current product states autonomous AI Teams operate across procurement, supplier management and finance with Fortune 500 customers live; adjacent capacity only, not willingness to buy DELTA.",
+      "next_action": "Wait for substantive reply; if one current workflow and public source are supplied, route to one genuine buyer-authorized paid Capture. Do not chase silence."
+    },
+    {
+      "target": "ProcurAI",
+      "contact": "hello@procurai.tech",
+      "official_contact_source": "https://www.procurai.tech/",
+      "current_product_source": "https://www.procurai.tech/",
+      "gmail_message_id": "1a0af3c72e962381",
+      "use_case": "Preserve the public vendor/product/price/availability/policy source used immediately before tender qualification, recommendation or approved procurement action.",
+      "first_paid_scope": "1 USDC Public Capture",
+      "optional_condition_scope": "5 USDC Public Preflight only for a real explicit public condition",
+      "technical_fit": "B_current_agentic_procurement_and_tender_intelligence",
+      "commercial_demand": "C_no_reply_or_DELTA_funding_yet",
+      "ability_or_willingness_evidence": "Official site presents active enterprise procurement/tender products, audit-ready workflows, named enterprise integrations and customers; adjacent capacity only.",
+      "next_action": "Wait for substantive reply; require one live public-source-dependent workflow, representative URL and technical owner before paid scope."
+    },
+    {
+      "target": "Runtype",
+      "contact": "support@runtype.com",
+      "official_contact_source": "https://www.runtype.com/support",
+      "current_product_source": "https://www.runtype.com/agentic-commerce",
+      "gmail_message_id": "1a0af3c92125cafa",
+      "use_case": "Independent public product/availability/price/returns-policy evidence immediately before an approved agentic checkout, associated with the application execution/order ID.",
+      "first_paid_scope": "1 USDC Public Capture",
+      "optional_condition_scope": "5 USDC Public Preflight only for a real explicit public condition",
+      "technical_fit": "B_current_agentic_commerce_and_approval_flow",
+      "commercial_demand": "C_no_reply_or_DELTA_funding_yet",
+      "ability_or_willingness_evidence": "Official product supports commerce agents that browse catalogs and guide checkout with approval; no explicit DELTA budget or intent yet.",
+      "next_action": "Wait for substantive reply; ask for one current checkout workflow and representative public URL before one genuine paid Capture."
+    }
+  ],
+  "outreach_controls": {
+    "daily_cap": null,
+    "emails_sent_this_run": 3,
+    "prior_domain_contact_found_before_send": false,
+    "duplicate_first_contacts_sent_this_run": 0,
+    "do_not_follow_up_on_silence": true,
+    "official_public_contacts_only": true
+  },
+  "inbound": {
+    "new_actionable_explicit_commercial_intent_this_run": false,
+    "robauto_agenthub": "Prior explicit-interest thread already answered; no newer substantive inbound found in fresh Gmail search.",
+    "pulsefeed": "Historical explicit technical interoperability exchange was re-read. PulseFeed explicitly stated it is commercially frozen and is not spending budget on paid integrations. Latest message contains technical anchoring guidance, not a paid request or unanswered commercial ask. Keep commercial demand Grade-C and do not chase.",
+    "crossmint": "Automated acknowledgement only; no commercial intent."
+  },
+  "delivery_quality": {
+    "aerchain_prior_run_bounce": {
+      "recipient": "sales@aerchain.io",
+      "status": "hard_or_permission_failure",
+      "evidence_message_id": "1a0af200714814b1",
+      "note": "Google Groups response says the sales group may not exist or may not permit posting. Treat the prior contact as failed delivery; do not send another cold email to Aerchain merely to work around the bounce."
+    },
+    "new_contacts_immediate_bounce_or_human_reply_observed": false
+  },
+  "pricing_and_purchase_path": {
+    "workflow_run": 35218675181,
+    "workflow_completed_at": "2026-09-17T12:00:35Z",
+    "owner_pricing_policy_check": "passed",
+    "live_owner_price_verification": "passed",
+    "live_purchase_path_without_payment": "passed",
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_transactions_generated_by_verification": 0
+  },
+  "demand": {
+    "paid_funnel_candidate_rows": 0,
+    "agentpact": {
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0,
+      "settlements": 0,
+      "active_offers": ["Capture 1 USDC", "Public Preflight 5 USDC", "Guarded-Action Pilot 10 USDC"]
+    },
+    "agentexchange": {
+      "buyer_count": 1,
+      "external_requests": 2,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "paid_settlements": 0
+    },
+    "external_funded_scan": {
+      "adjacent_funded_requests": 20,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false
+    },
+    "moltjobs": {"external_requests": 12, "funded_rows": 10, "delta_native_funded_requests": 0},
+    "workpnp": {"open_requests_shown": 1, "funded_requests_shown": 0, "delta_native_funded_requests": 0},
+    "payanagent": {"status": "degraded_recoverable_http_500", "funded_compatible_requests": 0}
+  },
+  "treasury_reconciliation": {
+    "checked_at": "2026-09-17T12:00:32.651Z",
+    "start_block": 51378541,
+    "latest_block": 51428540,
+    "lookback_blocks": 50000,
+    "canonical_usdc_treasury_receipt_candidates": 0,
+    "unclassified_usdc": 0,
+    "known_non_customer_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "note": "Explicit block-range evidence only; not an all-time zero assertion."
+  },
+  "financial_state": {
+    "new_customer_revenue_usdc": 0,
+    "new_verified_settlements": 0,
+    "new_verified_buyers": 0,
+    "realized_variable_cost_usdc": null,
+    "realized_contribution_margin_usdc": null
+  },
+  "coordination": {
+    "canonical_sibling_workspace": "not_accessible_in_this_runtime_not_claimed_synchronized",
+    "new_growth_loop_created": false,
+    "new_seller_identity_created": false,
+    "wallet_signature_or_asset_movement": false,
+    "listing_signup_or_verification_fee_paid": false,
+    "pricing_changed": false
+  }
+}
