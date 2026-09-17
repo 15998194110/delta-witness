@@ -1,0 +1,73 @@
+name: TEMP DELTA Treasury Blockscout fallback 20260917 1901
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/tmp-treasury-blockscout-20260917-1901.yml]
+permissions:
+  contents: read
+jobs:
+  fallback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Query Base head and Blockscout inbound canonical-USDC transfers
+        shell: bash
+        run: |
+          set -euo pipefail
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          USDC='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+          START=51414210
+          mkdir -p /tmp/delta-fallback
+          node --input-type=module <<'JS' | tee /tmp/delta-fallback/result.json
+          const treasury='0x1990e21bc219696ff7fbc26527dbaed335ac6367'.toLowerCase();
+          const usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'.toLowerCase();
+          const start=51414210;
+          async function getJson(url){
+            let last;
+            for(let attempt=1;attempt<=3;attempt++){
+              try{
+                const r=await fetch(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(15000)});
+                const text=await r.text();
+                if(!r.ok) throw new Error(`HTTP ${r.status}: ${text.slice(0,200)}`);
+                return {url,http:r.status,json:JSON.parse(text)};
+              }catch(e){last=e;if(attempt<3) await new Promise(x=>setTimeout(x,1000*attempt));}
+            }
+            throw last;
+          }
+          const headResp=await fetch('https://mainnet.base.org',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_blockNumber',params:[]}),signal:AbortSignal.timeout(12000)});
+          const headJson=await headResp.json();
+          const head=parseInt(headJson.result,16);
+          const url=`https://base.blockscout.com/api/v2/advanced-filters?transaction_types=ERC-20&to_address_hashes_to_include=${treasury}&token_contract_address_hashes_to_include=${usdc}`;
+          const first=await getJson(url);
+          const rows=[];
+          let payload=first.json;
+          let page=0;
+          while(true){
+            page++;
+            for(const item of (payload.items||[])) rows.push(item);
+            const np=payload.next_page_params;
+            if(!np || page>=8) break;
+            const q=new URLSearchParams();
+            q.set('transaction_types','ERC-20');
+            q.set('to_address_hashes_to_include',treasury);
+            q.set('token_contract_address_hashes_to_include',usdc);
+            for(const [k,v] of Object.entries(np)) if(v!==null && v!==undefined) q.set(k,String(v));
+            payload=(await getJson(`https://base.blockscout.com/api/v2/advanced-filters?${q}`)).json;
+          }
+          const norm=rows.map(x=>({
+            tx_hash:x.transaction_hash||x.hash||x.transaction?.hash||null,
+            block_number:Number(x.block_number??x.block_number_raw??x.block?.height??x.block?.number??0),
+            from:String(x.from_address_hash||x.from?.hash||x.from_address||'').toLowerCase(),
+            to:String(x.to_address_hash||x.to?.hash||x.to_address||'').toLowerCase(),
+            token:String(x.token_contract_address_hash||x.token?.address_hash||x.token_address||'').toLowerCase(),
+            value:x.value??x.total?.value??null,
+            raw:x
+          }));
+          const inRange=norm.filter(x=>x.block_number>=start && x.block_number<=head && x.to===treasury && x.token===usdc);
+          console.log(JSON.stringify({ok:true,checked_at:new Date().toISOString(),source:'base_blockscout_v2_advanced_filters',start_block:start,latest_block:head,pages_read:page,rows_returned:rows.length,canonical_usdc_inbound_candidates:inRange.length,candidates:inRange},null,2));
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: delta-treasury-blockscout-${{ github.run_id }}
+          path: /tmp/delta-fallback/result.json
+          retention-days: 7
