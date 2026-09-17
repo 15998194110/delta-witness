@@ -1,0 +1,106 @@
+{
+  "checked_at": "2026-09-17T08:56:46+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "deadline_extended": false
+  },
+  "outreach_control": {
+    "jst_sent_query": "in:sent after:1789570799 before:1789657200",
+    "sent_count": 3,
+    "daily_cap": 3,
+    "remaining_slots": 0,
+    "sent_targets": ["Rye", "Firmly", "Signets"],
+    "new_send_this_run": false,
+    "cap_evaded": false
+  },
+  "explicit_interest": {
+    "robauto_agenthub": {
+      "status": "actionable_unanswered_thread_waiting_for_next_eligible_outreach_window",
+      "commercial_demand_grade": "B_explicit_integration_interest_funding_unknown",
+      "inbound_message_id": "1a08271022339367",
+      "reply_draft_message_id": "1a0aac0547c30382",
+      "reply_sent": false,
+      "reason_not_sent": "Current natural JST day has already consumed the global 3/3 DELTA outreach cap.",
+      "next_action": "Before any later send, re-run the exact JST epoch Sent count, suppression/contact check and concurrent-state check. If a slot exists, this explicit-interest reply remains ahead of cold outreach."
+    }
+  },
+  "inbound_reply_check": {
+    "known_targets_checked": ["Rye", "Firmly", "Signets", "Robauto / AgentHub", "Anchor Browser", "Notte", "Magnitude", "Trelium"],
+    "new_actionable_reply_found_this_run": false
+  },
+  "fresh_canonical_pulse": {
+    "workflow_run": 35160266693,
+    "completed_at_utc": "2026-09-16T23:00:20Z",
+    "pricing_integrity_run_succeeded": true,
+    "paid_funnel_candidates": 0,
+    "treasury": {
+      "checked_at": "2026-09-16T23:00:15.596Z",
+      "network": "eip155:8453",
+      "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+      "start_block": 51355132,
+      "latest_block": 51405131,
+      "lookback_blocks": 50000,
+      "treasury_received_candidates": 0,
+      "unclassified_receipts": 0,
+      "scope_note": "Fresh explicit-range canonical USDC log coverage only; not an all-time zero claim."
+    },
+    "funded_demand": {
+      "agentpact_external_requests": 16,
+      "agentpact_delta_native_funded": 0,
+      "agentpact_buyer_funded_deals": 0,
+      "agentexchange_external_requests": 2,
+      "agentexchange_funded_compatible": 0,
+      "other_adjacent_funded_requests": 16,
+      "other_delta_native_funded": 0,
+      "moltjobs_funded_rows": 10,
+      "moltjobs_delta_native_funded": 0,
+      "workpnp_funded_rows": 0,
+      "workpnp_delta_native_funded": 0
+    }
+  },
+  "additional_channel_recon": {
+    "fiatdock": {
+      "technical_endpoint_grade": "B_live_marketplace_documentation",
+      "commercial_demand_grade": "C_no_verified_external_third_party_buyer_demand",
+      "disposition": "low_priority_no_listing_action",
+      "reason": "Official seller guidance states that as of 2026-08-13 no external buyer had paid a third-party marketplace listing; listing is therefore distribution, not a revenue-first result."
+    },
+    "molted": {
+      "technical_endpoint_grade": "C_docs_present_current_public_jobs_api_readback_failed",
+      "commercial_demand_grade": "unknown",
+      "disposition": "deferred_recoverable",
+      "reason": "Public docs describe Base/USDC jobs and an unauthenticated jobs API, but the bounded current readback returned 404. No registration, bid, wallet, payment or signature action was taken."
+    },
+    "402bazaar": {
+      "commercial_demand_grade": "C_adjacent_settlement_activity_price_band_mismatch_and_fee_gate",
+      "disposition": "no_action",
+      "reason": "Seller listing requires a fee, which is outside standing autonomous financial authority; observed examples are also materially below DELTA's current 1 USDC entry price."
+    }
+  },
+  "sprint_evidence_this_run": {
+    "new_counted_customer_transactions": 0,
+    "new_unique_independent_buyers": 0,
+    "new_verified_customer_treasury_receipts": 0,
+    "new_recognized_customer_revenue_usdc": 0,
+    "new_explicit_integration_interest": 0,
+    "realized_variable_cost_usdc": null,
+    "realized_contribution_margin_usdc": null,
+    "unknown_costs_treated_as_zero": false
+  },
+  "boundaries": {
+    "fees_paid": false,
+    "wallet_signatures": false,
+    "asset_movement": false,
+    "paid_tests": false,
+    "kyc_or_legal_commitments": false,
+    "new_listing_identity_created": false,
+    "new_recurring_growth_loop_created": false
+  },
+  "coordination": {
+    "canonical_sibling_operator_workspace": "inaccessible_not_modified",
+    "repository_record_is_not_claimed_as_workspace_sync": true
+  }
+}
