@@ -1,0 +1,66 @@
+name: TEMP DELTA run9 revenue reconcile 2026-09-17 1245 JST
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/tmp-revenue-reconcile-run9-20260917-1245.yml]
+permissions:
+  contents: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v5
+        with: {node-version: '22'}
+      - name: Owner pricing and live purchase integrity
+        run: |
+          mkdir -p /tmp/delta-run9
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs | tee /tmp/delta-run9/live-pricing.json
+      - name: Paid funnel and buyer-funded demand
+        run: |
+          node scripts/query-revenue-candidates.mjs | tee /tmp/delta-run9/revenue-candidates.json
+          node scripts/scan-agentpact-demand.mjs | tee /tmp/delta-run9/agentpact.json || true
+          node scripts/scan-agentexchange-demand.mjs | tee /tmp/delta-run9/agentexchange.json || true
+          node scripts/scan-external-funded-demand.mjs | tee /tmp/delta-run9/external-funded.json || true
+          node scripts/scan-moltjobs-demand.mjs | tee /tmp/delta-run9/moltjobs.json || true
+          node scripts/scan-workpnp-demand.mjs | tee /tmp/delta-run9/workpnp.json || true
+          node scripts/scan-payan-demand.mjs | tee /tmp/delta-run9/payan.json || true
+      - name: Canonical Base Treasury direct reconciliation
+        continue-on-error: true
+        env:
+          DELTA_TREASURY_LOOKBACK_BLOCKS: '50000'
+          DELTA_TREASURY_CHUNK_BLOCKS: '1900'
+        run: node scripts/reconcile-treasury.mjs | tee /tmp/delta-run9/treasury-rpc.json
+      - name: Extend Treasury coverage via Base Blockscout independent fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEAD_URL='https://base.blockscout.com/api?module=block&action=eth_block_number'
+          TX_URL='https://base.blockscout.com/api?module=account&action=tokentx&address=0x1990e21bc219696ff7fbc26527dbaed335ac6367&contractaddress=0x833589fcd6edb6e08f4c7c32d4f71b54bda02913&startblock=51411636&endblock=99999999&sort=asc'
+          curl -fsS --connect-timeout 10 --max-time 30 --retry 2 --retry-delay 2 --retry-all-errors "$HEAD_URL" -o /tmp/delta-run9/blockscout-head.json
+          curl -fsS --connect-timeout 10 --max-time 30 --retry 2 --retry-delay 2 --retry-all-errors "$TX_URL" -o /tmp/delta-run9/blockscout-transfers.json
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const head=JSON.parse(fs.readFileSync('/tmp/delta-run9/blockscout-head.json','utf8'));
+          const tx=JSON.parse(fs.readFileSync('/tmp/delta-run9/blockscout-transfers.json','utf8'));
+          const treasury='0x1990e21bc219696ff7fbc26527dbaed335ac6367';
+          const usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
+          const hv=head.result;
+          const latest=typeof hv==='string'&&hv.startsWith('0x')?parseInt(hv,16):Number(hv);
+          const rows=Array.isArray(tx.result)?tx.result:[];
+          const incoming=rows.filter(r=>String(r.to||'').toLowerCase()===treasury && String(r.contractAddress||'').toLowerCase()===usdc && Number(r.blockNumber)>=51411636 && Number(r.blockNumber)<=latest);
+          const out={ok:Number.isFinite(latest),checked_at:new Date().toISOString(),source:'Base Blockscout official explorer API',start_block:51411636,latest_block:latest,returned_rows:rows.length,raw_status:tx.status,raw_message:tx.message,canonical_usdc_incoming_candidates:incoming.length,transfers:incoming.map(r=>({tx_hash:r.hash,block_number:Number(r.blockNumber),from:String(r.from||'').toLowerCase(),to:String(r.to||'').toLowerCase(),raw_amount:String(r.value),contract_address:String(r.contractAddress||'').toLowerCase()}))};
+          fs.writeFileSync('/tmp/delta-run9/treasury-blockscout.json',JSON.stringify(out,null,2));
+          console.log(JSON.stringify(out,null,2));
+          if(!out.ok) process.exit(2);
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: delta-run9-revenue-${{ github.run_id }}
+          path: /tmp/delta-run9/
+          if-no-files-found: warn
+          retention-days: 7
