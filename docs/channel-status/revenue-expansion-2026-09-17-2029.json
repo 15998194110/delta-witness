@@ -1,0 +1,157 @@
+{
+  "run_date_jst": "2026-09-17",
+  "checked_at": "2026-09-17T20:29:00+09:00",
+  "supersedes_handoff_for_current_status": "docs/channel-status/revenue-expansion-2026-09-17-2027.json",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_independent_buyers": 0,
+    "verified_customer_revenue_usdc": 0
+  },
+  "new_unique_first_contacts_this_run": [
+    {
+      "target": "Levelpath",
+      "contact": "sales@levelpath.com",
+      "official_contact_source": "https://www.levelpath.com/security",
+      "current_product_source": "https://www.levelpath.com/",
+      "gmail_message_id": "1a0af1df6eb6c385",
+      "use_case": "Ranger workflow records public vendor price/availability/policy/terms immediately before supplier, PO or renewal action.",
+      "first_paid_scope": "1 USDC Public Capture",
+      "optional_condition_scope": "5 USDC Public Preflight only for a real explicit public condition",
+      "technical_fit": "B",
+      "commercial_demand": "C_no_reply_or_DELTA_funding_yet",
+      "ability_or_willingness_evidence": "Public enterprise procurement platform reports $26B+ spend run through Levelpath; adjacent capacity only, not willingness to buy DELTA.",
+      "next_action": "Wait for substantive reply; if one current workflow and representative public URL are supplied, route to one genuine buyer-authorized paid Capture."
+    },
+    {
+      "target": "Tonkean",
+      "contact": "support@tonkean.com",
+      "official_contact_source": "https://docs.tonkean.com/en/resources/frequently-asked-questions.html",
+      "current_product_source": "https://www.tonkean.com/",
+      "gmail_message_id": "1a0af1e2394d06be",
+      "use_case": "External public vendor/product/pricing/availability/terms checkpoint before consequential procurement or supplier orchestration action.",
+      "first_paid_scope": "1 USDC Public Capture",
+      "optional_condition_scope": "5 USDC Public Preflight only for a real explicit public condition",
+      "technical_fit": "B",
+      "commercial_demand": "C_no_reply_or_DELTA_funding_yet",
+      "ability_or_willingness_evidence": "Public enterprise agentic orchestration product executes procurement sourcing, POs, supplier analysis, invoice and approval workflows; adjacent capacity only.",
+      "next_action": "Wait for substantive reply; seek one public-page-dependent process, representative URL and technical owner."
+    },
+    {
+      "target": "Procurify",
+      "contact": "support@procurify.com",
+      "official_contact_source": "https://developer.procurify.com/",
+      "current_product_source": "https://www.procurify.com/contact/",
+      "gmail_message_id": "1a0af1e5581ca970",
+      "use_case": "Public supplier/product page evidence before selected approved requests become PO/order actions.",
+      "first_paid_scope": "1 USDC Public Capture",
+      "optional_condition_scope": "5 USDC Public Preflight only for a real explicit public condition",
+      "technical_fit": "B",
+      "commercial_demand": "C_no_reply_or_DELTA_funding_yet",
+      "ability_or_willingness_evidence": "Current procurement/AP/vendor/API platform with official API support route; adjacent capacity only.",
+      "next_action": "Wait for substantive reply or routing to API/integration owner; require one representative public URL before paid scope."
+    },
+    {
+      "target": "Raindrop",
+      "contact": "hello@raindrop.com",
+      "official_contact_source": "https://raindrop.com/agentic-procurement/",
+      "current_product_source": "https://raindrop.com/",
+      "gmail_message_id": "1a0af1fa5ec64bb8",
+      "use_case": "Rain preserves independent public vendor/product/terms evidence before governed source-to-pay action based on an external page.",
+      "first_paid_scope": "1 USDC Public Capture",
+      "optional_condition_scope": "5 USDC Public Preflight only for a real explicit public condition",
+      "technical_fit": "B_current_agentic_source_to_pay",
+      "commercial_demand": "C_no_reply_or_DELTA_funding_yet",
+      "ability_or_willingness_evidence": "Current enterprise source-to-pay platform with agentic sourcing, supplier, contract and audit workflows; no explicit DELTA budget or intent yet.",
+      "next_action": "Wait for substantive reply; seek one current Rain workflow and representative public URL, then one buyer-authorized paid Capture."
+    },
+    {
+      "target": "Aerchain",
+      "contact": "sales@aerchain.io",
+      "official_contact_source": "https://aerchain.io/",
+      "current_product_source": "https://aerchain.io/",
+      "gmail_message_id": "1a0af1ffaf5e8683",
+      "use_case": "Independent public supplier price/availability/certification/policy/terms evidence before sourcing award, PO or onboarding action.",
+      "first_paid_scope": "1 USDC Public Capture",
+      "optional_condition_scope": "5 USDC Public Preflight only for a real explicit public condition",
+      "technical_fit": "B_current_autonomous_sourcing_agents",
+      "commercial_demand": "C_no_reply_or_DELTA_funding_yet",
+      "ability_or_willingness_evidence": "Official site reports $15B+ total spend managed and 150K+ active suppliers; this is adjacent commercial capacity, not willingness to purchase DELTA.",
+      "next_action": "Wait for substantive reply; seek one existing sourcing/vendor workflow and public URL before one genuine paid Capture."
+    },
+    {
+      "target": "ProcureAINow",
+      "contact": "sales@procureainow.com",
+      "official_contact_source": "https://procureainow.com/",
+      "current_product_source": "https://procureainow.com/",
+      "gmail_message_id": "1a0af202d780f0d6",
+      "use_case": "Discovery/verification/market-intelligence agent retains independent evidence of a public vendor/product source used immediately before recommendation or approved PO.",
+      "first_paid_scope": "1 USDC Public Capture",
+      "optional_condition_scope": "5 USDC Public Preflight only for a real explicit public condition",
+      "technical_fit": "B_current_multi_agent_procurement_workflow",
+      "commercial_demand": "C_no_reply_or_DELTA_funding_yet",
+      "ability_or_willingness_evidence": "Current public product describes nine autonomous procurement agents, buyer/vendor flows and approved-PO workflow; no explicit DELTA budget or intent yet.",
+      "next_action": "Wait for substantive reply; seek one live buyer workflow, representative public URL and technical owner before a genuine paid Capture."
+    }
+  ],
+  "outreach_controls": {
+    "daily_cap": null,
+    "emails_sent_this_run": 6,
+    "all_six_read_back_in_gmail_sent": true,
+    "prior_domain_contact_found_before_send": false,
+    "duplicate_first_contacts_sent_this_run": 0,
+    "immediate_human_replies_or_bounces_observed": 0,
+    "do_not_follow_up_on_silence": true
+  },
+  "inbound": {
+    "new_actionable_explicit_intent_this_run": false,
+    "robauto_agenthub": "Prior explicit-interest thread already answered; no newer substantive inbound in fresh Gmail search.",
+    "crossmint": "Automated acknowledgements only; no commercial intent."
+  },
+  "pricing_and_purchase_path": {
+    "checked_at": "2026-09-17T11:24:32.475Z",
+    "ok": true,
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_transactions_generated_by_verification": 0
+  },
+  "demand": {
+    "paid_funnel_candidate_rows": 0,
+    "agentpact": {"external_requests": 16, "delta_native_requests": 0, "funded_compatible_requests": 0, "buyer_funded_deals": 0, "settlements": 0},
+    "agentexchange": {"buyer_count": 1, "external_requests": 2, "compatible_requests": 0, "funded_compatible_requests": 0, "paid_settlements": 0},
+    "external_funded_scan": {"adjacent_funded_requests": 20, "delta_native_raw_requests": 0, "delta_native_funded_requests": 0, "financial_or_signature_action_taken": false}
+  },
+  "treasury_reconciliation": {
+    "checked_at": "2026-09-17T11:24:45.749Z",
+    "start_block": 51327465,
+    "latest_block": 51427464,
+    "lookback_blocks": 100000,
+    "canonical_usdc_treasury_receipt_candidates": 0,
+    "unclassified_usdc": 0,
+    "known_non_customer_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "note": "Two transient HTTP 429 responses recovered within bounded retries; every chunk in the explicit range completed. This does not establish an all-time zero."
+  },
+  "evidence": {"revenue_workflow_run": 35215506687},
+  "financial_state": {
+    "new_customer_revenue_usdc": 0,
+    "new_verified_settlements": 0,
+    "new_verified_buyers": 0,
+    "realized_variable_cost_usdc": null,
+    "realized_contribution_margin_usdc": null
+  },
+  "coordination": {
+    "canonical_sibling_workspace": "not_accessible_in_this_runtime_not_claimed_synchronized",
+    "new_growth_loop_created": false,
+    "new_seller_identity_created": false,
+    "wallet_signature_or_asset_movement": false,
+    "pricing_changed": false
+  }
+}
