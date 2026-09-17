@@ -1,0 +1,10 @@
+{
+  "observed_at_jst":"2026-09-18T00:51:00+09:00",
+  "sprint":{"deadline":"2026-09-21T13:43:28+09:00","target":50,"counted_customer_transactions":0},
+  "agents_net":{"prior_inbound":"1a0af778b64ba15a","requested_action":"resubmit with a human-facing destination","verified_destination":"https://delta-witness-app.pages.dev/","prior_email_correction":"1a0af925dcf414b3","new_evidence":"Delivery Status Notification shows onboarding@agents.net does not accept the reply; therefore prior status correction_submitted_review_pending is superseded.","current_status":"resubmission_required_not_completed","official_route":"https://agents.net/submit-your-agent","automation_blocker":"Existing connected TinyFish browser wallet remains below zero; the form run did not start. No payment or top-up was authorized or performed.","duplicate_listing_created":false},
+  "reap":{"new_inbound":"Automated receipt only, ticket #54145; not explicit commercial interest."},
+  "revenue_evidence":{"run_id":35231782578,"treasury_checked_at_utc":"2026-09-17T14:10:30.119Z","start_block":51332437,"latest_block":51432436,"lookback_blocks":100000,"treasury_received_candidates":0,"recognized_customer_transactions":0,"scope":"Explicit block-range evidence only, not an all-time zero assertion."},
+  "arispay":{"search_delta_results":0,"note":"Discovery API returns adjacent x402 services for relevant intents, but DELTA is not currently indexed. Directory presence alone is not buyer demand and no registration was performed in this run."},
+  "financial_boundaries":{"cash_added":false,"wallet_signature":false,"listing_fee":false,"paid_test":false,"kyc":false},
+  "operator_workspace":"not accessible from this runtime; not claimed synchronized"
+}
