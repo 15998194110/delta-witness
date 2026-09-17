@@ -1,0 +1,179 @@
+{
+  "run_jst": "2026-09-17T12:45:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_independent_buyers": 0,
+    "repeat_buyers": 0,
+    "deadline_extended": false
+  },
+  "outreach_authority": {
+    "daily_numeric_limit": null,
+    "owner_superseding_instruction_date": "2026-09-17",
+    "quality_controls": [
+      "independently verified public official business contacts/routes only",
+      "one personalized first contact per target",
+      "search Gmail/operator records before each send",
+      "no duplicate first contacts",
+      "no chasing silence",
+      "stop on rejection"
+    ]
+  },
+  "new_unique_first_contacts": [
+    {
+      "target": "Lindy",
+      "contact": "support@lindy.ai",
+      "message_id": "1a0ad6e27a86b97a",
+      "specific_use_case": "Independent public price, availability, vendor-policy or refund-policy evidence immediately before selected consequential agent actions.",
+      "product_fit": "Public Capture 1 USDC; Public Preflight 5 USDC when expected-state verification is needed.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "No DELTA-specific funding or purchase commitment observed; contacted because Lindy operates action-capable agents/workflows.",
+      "next_action": "Await explicit reply; do not chase silence. If a real workflow/public URL is supplied, reduce to one genuine buyer-authorized Capture."
+    },
+    {
+      "target": "AgentCard",
+      "contact": "support@agentcard.ai",
+      "message_id": "1a0ad6e56112b544",
+      "specific_use_case": "Preserve the public merchant product/price/availability/returns page immediately before selected AI-agent card purchases.",
+      "product_fit": "Public Capture 1 USDC; Public Preflight 5 USDC for an expected public state.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "AgentCard is payment-capable infrastructure, but no DELTA-specific buyer funding or commitment is observed.",
+      "next_action": "Await explicit reply and one real checkout workflow/public URL; no repeat first contact."
+    },
+    {
+      "target": "Locus / PayWithLocus",
+      "contact": "founders@paywithlocus.com",
+      "message_id": "1a0ad6ed487e9e82",
+      "specific_use_case": "Expose DELTA through Locus Pro's existing paid-tool discovery/catalog path and route a real buyer's public-source evidence need through a 1 USDC Capture.",
+      "product_fit": "Locus already presents policy-governed agent spending across paid tools; DELTA Capture is a narrow metered paid capability at 1 USDC.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Official Locus surface describes one prepaid balance across paid providers/services, but no DELTA-specific buyer request or settlement exists yet.",
+      "next_action": "Await provider/catalog-owner or buyer-workflow reply; prefer a genuine buyer-authorized call over any platform-funded verification."
+    },
+    {
+      "target": "PayOS",
+      "contact": "hello@payos.ai",
+      "message_id": "1a0ad6f119c10e16",
+      "specific_use_case": "Independent public merchant product/price/availability/terms evidence immediately before selected AI-agent card checkout.",
+      "product_fit": "Public Capture 1 USDC; Public Preflight 5 USDC; PayOS remains payment/authorization layer.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Current public materials describe agent-driven payment infrastructure, but no DELTA-specific purchase intent is observed.",
+      "next_action": "Await product/integrations response with one real checkout and representative public merchant URL."
+    },
+    {
+      "target": "BeyondStyle",
+      "contact": "customerservice@beyondstyle.us",
+      "message_id": "1a0ad6f6e9ba9318",
+      "specific_use_case": "Retain independent evidence of the merchant product, displayed price, availability, coupon/terms or returns page immediately before an autonomous shopping-agent purchase.",
+      "product_fit": "Public Capture 1 USDC; Public Preflight 5 USDC when the shopping workflow needs an expected-state check.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "BeyondStyle publicly describes AI shopping, price tracking and purchase flows; no DELTA-specific funding or buyer commitment yet.",
+      "next_action": "Await partnership/product response and one representative merchant URL; no repeat first contact."
+    },
+    {
+      "target": "Payman AI",
+      "contact": "support@paymanai.com",
+      "message_id": "1a0ad704e71079ab",
+      "specific_use_case": "Preserve a public pricing, plan, vendor-terms or cancellation-policy source immediately before selected policy-controlled agent payments.",
+      "product_fit": "Public Capture 1 USDC; Public Preflight 5 USDC; Payman remains banking/payment authorization layer.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Payment-capable agent infrastructure is present; no DELTA-specific funded need or settlement observed.",
+      "next_action": "Await explicit response; proceed only if a real customer workflow both needs the evidence and can practically settle x402."
+    }
+  ],
+  "qualified_not_contacted": [
+    {
+      "target": "Kernel",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "reason_not_contacted": "High-fit browser-agent checkout surface, but no independently verified direct public business email was found and the official demo form could not be executed in available browser tooling. No guessed address used."
+    },
+    {
+      "target": "Arcade.dev",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "reason_not_contacted": "High-fit side-effectful action runtime, but only official form route was verified and browser form tooling was unavailable. No guessed address used."
+    },
+    {
+      "target": "FluxA",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "reason_not_contacted": "Strong x402/agent-payment fit; official contact form requires phone and no independently verified public email was found. Unknown personal data was not invented."
+    }
+  ],
+  "explicit_interest_threads": {
+    "robauto_agenthub": {
+      "status": "awaiting_inbound_after_answer",
+      "commercial_demand_grade": "B_explicit_interest",
+      "evidence": "Founder explicitly said DELTA was interesting, offered to work on verification, and requested the concrete use case. A current-price answer was already sent in-thread before this run.",
+      "this_run_followup_sent": false,
+      "next_action": "Await substantive inbound; do not chase silence."
+    }
+  },
+  "current_reconciliation": {
+    "pricing_checked_at": "2026-09-17T03:38:02.249Z",
+    "public_capture": {"http": 402, "usdc": 1, "raw": "1000000"},
+    "public_preflight": {"http": 402, "usdc": 5, "raw": "5000000"},
+    "guarded_action_pilot": {"http": 402, "usdc": 10, "raw": "10000000"},
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_funnel": {
+      "checked_at_approx": "2026-09-17T03:40:42Z",
+      "candidate_rows": 0,
+      "evidence_run": 35179048073
+    },
+    "treasury_direct_rpc": {
+      "checked_at": "2026-09-17T03:38:15.315Z",
+      "start_block": 51363473,
+      "latest_block": 51413472,
+      "lookback_blocks": 50000,
+      "treasury_received_candidates": 0,
+      "unclassified_usdc": 0,
+      "evidence_quality": "A_direct_canonical_USDC_log"
+    },
+    "treasury_blockscout_overlap_extension": {
+      "checked_at": "2026-09-17T03:38:15.670Z",
+      "start_block": 51411636,
+      "latest_block": 51413469,
+      "canonical_usdc_incoming_candidates": 0
+    },
+    "agentpact": {
+      "active_offer_prices_usdc": [1, 5, 10],
+      "external_requests": 16,
+      "delta_native_funded_compatible_requests": 0,
+      "buyer_funded_deals": 0,
+      "paid_settlements": 0
+    },
+    "agentexchange": {"external_requests": 2, "funded_compatible_requests": 0},
+    "external_funded_sources": {"adjacent_funded_requests": 16, "delta_native_funded_requests": 0},
+    "moltjobs": {"external_requests": 12, "funded_rows": 10, "delta_native_funded_requests": 0},
+    "workpnp": {"funded_rows": 0, "delta_native_funded_requests": 0},
+    "payanagent": {"status": "degraded_recoverable_http_500", "funded_compatible_requests": 0}
+  },
+  "financial_result": {
+    "new_genuine_customer_treasury_receipts_this_run": 0,
+    "new_external_paid_settlements_this_run": 0,
+    "new_counted_customer_transactions_this_run": 0,
+    "recognized_customer_revenue_added_this_run_usdc": 0,
+    "known_variable_cost_added_this_run_usdc": null,
+    "contribution_margin_added_this_run_usdc": null,
+    "note": "Unknown costs remain unknown; absence of receipts in explicit current coverage is not an all-time zero claim. Cold outreach and technical fit are not revenue."
+  },
+  "coordination": {
+    "canonical_sibling_operator_workspace": "not_accessible_in_this_runtime_not_claimed_synchronized",
+    "new_recurring_loop_created": false,
+    "fees_paid": false,
+    "wallet_signature_or_asset_movement": false,
+    "kyc_or_legal_commitment": false
+  },
+  "evidence_runs": [35178886404, 35179048073]
+}
