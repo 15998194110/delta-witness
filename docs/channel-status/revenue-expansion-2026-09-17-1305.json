@@ -1,0 +1,116 @@
+{
+  "run_jst": "2026-09-17T13:05:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_independent_buyers": 0,
+    "repeat_buyers": 0,
+    "deadline_extended": false
+  },
+  "outreach_authority": {
+    "daily_numeric_limit": null,
+    "quality_controls": [
+      "independently verified public official business contacts/routes only",
+      "one personalized first contact per target",
+      "search Gmail/operator records before each send",
+      "no duplicate first contacts",
+      "no chasing silence",
+      "stop on rejection"
+    ]
+  },
+  "new_unique_first_contacts": [
+    {
+      "target": "Procure Ai",
+      "contact": "hello@procure.ai",
+      "contact_source": "https://www.procure.ai/impressum",
+      "product_source": "https://www.procure.ai/",
+      "message_id": "1a0ad86b0f468314",
+      "specific_use_case": "One buyer-authorized 1 USDC Public Capture immediately before a guided-buying or purchasing agent acts on a public supplier price, availability, delivery term, cancellation policy or other public vendor condition; retain proof metadata beside the procurement event.",
+      "price_fit": "Procure Ai publicly reports 40+ procurement agents and more than EUR 50B annual spend managed, making a 1 USDC audit checkpoint economically plausible for selected consequential events, but this is not evidence of DELTA-specific willingness to pay.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Commercial procurement platform with enterprise customers and large managed spend; no DELTA-specific funded request, reply or commitment observed.",
+      "next_action": "Await explicit reply with one real workflow, representative public URL and technical owner. Do not chase silence or send another first contact."
+    },
+    {
+      "target": "Tacto",
+      "contact": "hello@tacto.ai",
+      "contact_source": "https://www.tacto.ai/en/imprint",
+      "product_source": "https://www.tacto.ai/en",
+      "message_id": "1a0ad86d2f999403",
+      "specific_use_case": "One buyer-authorized 1 USDC Public Capture of a public supplier price, availability, terms, delivery condition or similar external vendor statement before selected RFQ, should-cost, recommendation or renegotiation actions; retain proof beside Tacto's existing audit trail.",
+      "price_fit": "Tacto publicly reports AI-agent procurement workflows and about EUR/USD 1B spend managed, so 1 USDC is immaterial relative to selected procurement events; no claim is made that every event needs DELTA.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Commercial AI procurement platform with documented enterprise use and managed spend; no DELTA-specific funded request, reply or settlement observed.",
+      "next_action": "Await explicit reply and a real external-source workflow/public URL. Do not chase silence or broaden into private supplier data."
+    },
+    {
+      "target": "Scoutbee / Coupa",
+      "contact": "partnerships@scoutbee.com",
+      "contact_source": "https://www.scoutbee.com/about-us",
+      "product_source": "https://www.scoutbee.com/sign_up",
+      "message_id": "1a0ad86ea4870fea",
+      "specific_use_case": "One buyer-authorized 1 USDC Public Capture of a supplier's public product/capacity/availability/commercial-terms/certification page immediately before a selected supplier-discovery or engagement decision; retain proof with the sourcing event.",
+      "price_fit": "Scoutbee publicly describes an AI supplier marketplace used by large procurement teams; 1 USDC is positioned only for selected audit-sensitive buyer actions, not every search or supplier match.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Official buyer/supplier marketplace and partnership route exist; no DELTA-specific buyer request, funding, reply or settlement observed.",
+      "next_action": "Await partnership/product response with one buyer workflow and representative public URL; prefer a genuine buyer-authorized Capture over platform-funded verification."
+    }
+  ],
+  "reply_check": {
+    "checked_after_jst": "2026-09-17T12:45:00+09:00",
+    "new_substantive_inbound_replies": 0,
+    "new_bounces_for_three_contacts": 0,
+    "robauto_agenthub": "No newer substantive inbound after the already-sent current-price use-case answer; do not chase silence."
+  },
+  "reconciliation": {
+    "evidence_run": 35180371484,
+    "pricing_checked_at": "2026-09-17T04:01:58.082Z",
+    "public_capture": {"http": 402, "usdc": 1, "raw": "1000000"},
+    "public_preflight": {"http": 402, "usdc": 5, "raw": "5000000"},
+    "guarded_action_pilot": {"http": 402, "usdc": 10, "raw": "10000000"},
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_funnel": {"candidate_rows": 0},
+    "treasury_direct_rpc": {
+      "checked_at": "2026-09-17T04:02:07.226Z",
+      "start_block": 51354187,
+      "latest_block": 51414186,
+      "lookback_blocks": 60000,
+      "treasury_received_candidates": 0,
+      "unclassified_usdc": 0,
+      "evidence_quality": "A_direct_canonical_USDC_log"
+    },
+    "agentpact": {
+      "active_offer_prices_usdc": [1, 5, 10],
+      "external_requests": 16,
+      "delta_native_funded_compatible_requests": 0,
+      "buyer_funded_deals": 0,
+      "paid_settlements": 0
+    },
+    "partner_gateway_scope": "Not rechecked in this one-shot because the owner live-price verifier reported scoped partner secret unavailable to the script invocation; no partner-price claim is made from this run."
+  },
+  "financial_result": {
+    "new_genuine_customer_treasury_receipts_this_run": 0,
+    "new_external_paid_settlements_this_run": 0,
+    "new_counted_customer_transactions_this_run": 0,
+    "recognized_customer_revenue_added_this_run_usdc": 0,
+    "known_variable_cost_added_this_run_usdc": null,
+    "contribution_margin_added_this_run_usdc": null,
+    "note": "Unknown costs remain unknown. The explicit 60,000-block scan is not an all-time zero claim. Outreach and technical fit are not revenue."
+  },
+  "coordination": {
+    "prior_handoff": "docs/channel-status/revenue-expansion-2026-09-17-1245.json",
+    "canonical_sibling_operator_workspace": "not_accessible_in_this_runtime_not_claimed_synchronized",
+    "temporary_reconciliation_workflow_removed_after_success": true,
+    "new_recurring_loop_created": false,
+    "fees_paid": false,
+    "wallet_signature_or_asset_movement": false,
+    "kyc_or_legal_commitment": false
+  }
+}
