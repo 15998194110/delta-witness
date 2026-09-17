@@ -1,0 +1,19 @@
+name: TEMP AgentPact need read
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/tmp-agentpact-need-read-20260917.yml]
+permissions:
+  contents: read
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read specific official AgentPact need only
+        run: |
+          set -e
+          curl -fsS --connect-timeout 10 --max-time 25 --retry 2 --retry-delay 1 \
+            'https://api.agentpact.xyz/api/needs/02cd45a5-c376-4452-859b-0ef2c2aad3be' | tee /tmp/need.json
+          echo
+          node -e "const j=require('/tmp/need.json'); console.log(JSON.stringify(j,null,2))"
