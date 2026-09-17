@@ -1,0 +1,140 @@
+{
+  "checked_at_utc": "2026-09-17T02:42:00Z",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_independent_buyers": 0,
+    "repeat_buyers": 0,
+    "status": "materially_at_risk_no_repeatable_paid_path_yet",
+    "checkpoint_note": "Targets are planning checkpoints only and are not copied into actual results."
+  },
+  "pricing_live_verification": {
+    "checked_at": "2026-09-17T02:33:31.999Z",
+    "capture_usdc": 1,
+    "capture_raw": "1000000",
+    "public_preflight_usdc": 5,
+    "public_preflight_raw": "5000000",
+    "guarded_action_pilot_usdc": 10,
+    "guarded_action_pilot_raw": "10000000",
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "public_products_verified": true,
+    "paid_transactions_generated_by_verification": 0
+  },
+  "treasury_reconciliation": {
+    "checked_through_utc": "2026-09-17T02:37:15.240Z",
+    "coverage": [
+      {
+        "source": "Base public RPC",
+        "start_block": 51321533,
+        "end_block": 51395632,
+        "canonical_usdc_incoming_candidates": 0,
+        "note": "All completed chunks returned zero matching logs. The next chunk hit mainnet Base RPC 429 and alternate RPC restrictions, so the RPC scan was not falsely reported as complete."
+      },
+      {
+        "source": "Base Blockscout official explorer API fallback",
+        "start_block": 51395633,
+        "end_block": 51411635,
+        "canonical_usdc_incoming_candidates": 0,
+        "raw_message": "No token transfers found"
+      }
+    ],
+    "continuous_covered_start_block": 51321533,
+    "continuous_covered_end_block": 51411635,
+    "continuous_covered_blocks": 90103,
+    "canonical_usdc_incoming_candidates_in_covered_range": 0,
+    "unreconciled_amount_usdc": null,
+    "scope_note": "This is explicit continuous block-range evidence, not an all-time zero-balance assertion. Unknown costs and uncovered historical periods remain unknown."
+  },
+  "paid_funnel": {
+    "checked_at_utc": "2026-09-17T02:33:32Z",
+    "candidate_rows": 0,
+    "payment_authorized": 0,
+    "settlement_confirmed": 0,
+    "fulfilled_paid_uses": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "known_variable_cost_usdc": null,
+    "contribution_margin_usdc": null
+  },
+  "funded_demand": {
+    "agentpact": {
+      "seller_present": true,
+      "active_offer_prices_usdc": [1, 5, 10],
+      "external_requests": 16,
+      "delta_native_funded_requests": 0,
+      "buyer_funded_deals": 0,
+      "buyer_count": 0,
+      "settlement_count": 0
+    },
+    "agentexchange": {
+      "external_requests": 2,
+      "observed_buyer_count": 1,
+      "delta_native_funded_requests": 0,
+      "paid_settlements": 0
+    },
+    "other_escrow_or_funded_sources": {
+      "adjacent_funded_requests": 15,
+      "delta_native_funded_requests": 0,
+      "note": "Bountybook, Clawlancer and other observed funded work remains generic research/custom development or below current DELTA pricing; no claim, bid, wallet signature, fee or delivery action was taken."
+    },
+    "moltjobs": {
+      "external_requests": 12,
+      "funded_rows": 10,
+      "delta_native_funded_requests": 0
+    },
+    "workpnp": {
+      "open_requests_shown": 1,
+      "funded_requests_shown": 0,
+      "delta_native_funded_requests": 0
+    }
+  },
+  "buyer_expansion": [
+    {
+      "target": "Airtop",
+      "surface": "https://www.airtop.ai/",
+      "official_contact": "support@airtop.ai",
+      "official_contact_evidence": [
+        "https://docs.airtop.ai/guides/misc/support",
+        "https://www.airtop.ai/tos"
+      ],
+      "commercial_surface": "https://www.airtop.ai/pricing",
+      "specific_use_case": "For customer-selected high-consequence browser-agent runs, preserve independent evidence of the public product, price, availability, vendor-policy or terms page immediately before a spend, vendor choice, form submission or other external state change.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B_high_fit_production_browser_agent_platform",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_or_funded_request_yet",
+      "ability_to_pay_evidence": "Airtop operates current paid commercial automation plans; this supports ability-to-pay only and is not evidence of willingness to buy DELTA.",
+      "gmail_prior_contact_before_send": false,
+      "first_contact_message_id": "1a0ad3a037f7a992",
+      "first_contact_status": "sent_once",
+      "next_action": "Wait for explicit reply. If Airtop provides a real workflow and representative public URL, narrow to one genuine buyer-authorized 1 USDC Capture. Do not chase silence or send another first contact."
+    }
+  ],
+  "suppression_updates": [
+    {
+      "target": "Openfort",
+      "contact": "support@openfort.xyz",
+      "reason": "New Gmail delivery-status notification reports the address/group does not exist or does not allow posting.",
+      "action": "Suppress this address. Do not guess a replacement or retry the same address. A future contact requires a separately verified official public business route."
+    }
+  ],
+  "explicit_interest_threads": {
+    "robauto_agenthub": {
+      "status": "awaiting_substantive_reply_after_current_price_use_case_response",
+      "last_outbound_message_id": "1a0ace8edff3c0b0",
+      "new_inbound_this_run": false,
+      "action": "Do not chase silence. Advance immediately only on substantive inbound."
+    }
+  },
+  "coordination": {
+    "canonical_sibling_operator_workspace": "not_accessible_from_repository_connector",
+    "sprint_json_modified": false,
+    "pipeline_json_modified": false,
+    "repository_evidence_extended": true,
+    "duplicate_growth_loop_created": false,
+    "financial_or_signature_action_taken": false
+  }
+}
