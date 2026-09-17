@@ -1,0 +1,102 @@
+{
+  "observed_at": "2026-09-17T17:37:46+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_customer_buyers": 0,
+    "repeat_buyers": 0,
+    "deadline_extended": false
+  },
+  "pricing_usdc": {
+    "public_capture": 1,
+    "partner_capture": 1,
+    "partner_preflight": 1,
+    "watch_check": 1,
+    "public_preflight": 5,
+    "guarded_action_pilot": 10
+  },
+  "new_unique_first_contacts": [
+    {
+      "target": "Lightpanda",
+      "official_contact": "hello@lightpanda.io",
+      "contact_evidence": "Lightpanda official homepage Cloud Offer and official Cloud billing documentation publish hello@lightpanda.io.",
+      "message_id": "1a0ae87705674612",
+      "specific_use_case": "After a Lightpanda Agent/Cloud workflow reads public supplier/product pricing, availability, policy or terms and before a consequential checkout/procurement/approval action, retain an independent timestamped source-state proof.",
+      "requested_first_paid_scope": "one genuine buyer-authorized 1 USDC Public Capture",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Lightpanda Cloud has paid Builder and Enterprise production plans and metered browser usage; this establishes a paid production surface but not DELTA-specific budget or intent.",
+      "price_fit": "1 USDC is proposed only for audit-sensitive checkpoints, not every browser session; 5 USDC Public Preflight only when an expected public-page condition must be checked.",
+      "next_action": "Wait for a substantive reply naming one real workflow and representative public URL; do not chase silence or send another first contact."
+    },
+    {
+      "target": "Browzey",
+      "official_contact": "hello@browzey.ai",
+      "contact_evidence": "Browzey official product and pricing pages publish hello@browzey.ai for product/enterprise contact.",
+      "message_id": "1a0ae885dc2a9e0a",
+      "specific_use_case": "For a Browzey price-monitoring/product-comparison workflow, preserve independent evidence of the public product page immediately before a downstream add-to-cart, purchase or approval action, alongside Browzey's own activity log.",
+      "requested_first_paid_scope": "one genuine buyer-authorized 1 USDC Public Capture",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Browzey publishes paid Starter/Pro and custom enterprise plans and live price-monitoring/add-to-cart browser-agent use cases; this is general ability-to-pay evidence, not DELTA-specific funded demand.",
+      "price_fit": "1 USDC is limited to the subset of audit-sensitive actions; it is not proposed for every AI credit/action. Existing plan payments do not prove Base-USDC readiness.",
+      "next_action": "Wait for an explicit workflow/public URL or technical-owner handoff; no duplicate first contact or silence follow-up."
+    }
+  ],
+  "reply_check": {
+    "new_substantive_human_inbound": 0,
+    "crossmint_automated_acknowledgements_are_demand": false,
+    "tinyfish_wallet_balance_notice_is_buyer_demand": false,
+    "robauto_agenthub": "awaiting reply after prior explicit-interest thread was answered; no chase"
+  },
+  "new_delivery_failure": {
+    "target": "Openfort",
+    "failed_address": "support@openfort.xyz",
+    "evidence_message_id": "1a0ad004cc65d3a1",
+    "failure": "Google Group address may not exist or does not permit posting",
+    "classification": "target-specific contact-route failure, not DELTA core failure",
+    "action": "Suppress this failed address. Do not guess another email or use another route merely to evade the failed official contact. Only use a separately verified current official business route if discovered later."
+  },
+  "fresh_reconciliation": {
+    "canonical_pulse_run_id": 35196112694,
+    "pulse_completed_at": "2026-09-17T07:45:36Z",
+    "treasury_checked_at": "2026-09-17T07:45:33.533Z",
+    "treasury_start_block": 51370892,
+    "treasury_latest_block": 51420891,
+    "treasury_lookback_blocks": 50000,
+    "canonical_usdc_treasury_receipt_candidates": 0,
+    "paid_funnel_candidate_rows": 0,
+    "agentpact_funded_compatible_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "agentexchange_funded_compatible_requests": 0,
+    "other_delta_native_funded_requests": 0,
+    "recognized_customer_revenue_added_usdc": 0,
+    "variable_cost_added_usdc": null,
+    "contribution_margin_added_usdc": null,
+    "scope_note": "This zero result is limited to the explicit fresh telemetry and 50,000-block canonical-USDC scan; it is not an all-time zero claim. Cold outreach and general paid-plan evidence are not transactions or buyer intent."
+  },
+  "agentpact_specific_need": {
+    "need_id": "02cd45a5-c376-4452-859b-0ef2c2aad3be",
+    "budget_usdc": 1,
+    "funding_or_escrow_verified": false,
+    "delta_native_fulfillment": false,
+    "classification": "adjacent_not_bid",
+    "reason": "The buyer requests a short semantic research synthesis about Base USDC decimals/proxy status. Existing DELTA Capture/Preflight does not fulfill the requested synthesis, and budget alone is not verified funding."
+  },
+  "financial_and_risk_actions": {
+    "listing_or_signup_fees_paid": 0,
+    "new_cash_or_credits": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "kyc_identity_attestations": 0,
+    "legal_commitments": 0
+  },
+  "coordination": {
+    "prior_handoff": "docs/channel-status/revenue-expansion-2026-09-17-1656.json",
+    "canonical_sibling_operator_workspace": "not_accessible_in_this_runtime_not_claimed_synchronized",
+    "duplicate_growth_loop_created": false
+  }
+}
