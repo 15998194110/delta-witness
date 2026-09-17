@@ -1,0 +1,193 @@
+{
+  "run_local_jst": "2026-09-18T06:52:00+09:00",
+  "sprint_start": "2026-09-14T13:43:28+09:00",
+  "sprint_deadline": "2026-09-21T13:43:28+09:00",
+  "target_transactions": 50,
+  "counted_customer_transactions": 0,
+  "unique_verified_buyers": 0,
+  "reconciliation": {
+    "canonical_pulse_run_id": 35276969770,
+    "pulse_completed_at": "2026-09-17T21:30:10Z",
+    "paid_funnel_candidate_rows": 0,
+    "treasury_checked_at": "2026-09-17T21:30:06.554Z",
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "start_block": 51395628,
+    "latest_block": 51445627,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "verified_customer_receipts": 0,
+    "recognized_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "scope_note": "Current canonical pulse is explicit-range evidence only; it is not an all-time zero claim. Unknown costs remain unknown, not zero."
+  },
+  "funded_demand": {
+    "agentpact": {
+      "offer_count": 3,
+      "external_requests": 16,
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "delta_native_funded_requests": 0,
+      "active_prices_usdc": [1, 5, 10]
+    },
+    "agentexchange": {
+      "external_requests": 2,
+      "buyer_count": 1,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "paid_settlements": 0
+    },
+    "moltjobs": {
+      "external_requests": 12,
+      "funded_rows": 10,
+      "delta_native_funded_requests": 0
+    },
+    "workpnp": {
+      "funded_requests_shown": 0,
+      "delta_native_funded_requests": 0
+    },
+    "broader_official_markets": {
+      "adjacent_funded_requests": 22,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0
+    },
+    "payanagent": {
+      "state": "degraded_recoverable_http_500",
+      "delta_native_funded_requests": 0,
+      "note": "Do not infer zero total demand from degraded channel; only no compatible request was established in this pulse."
+    }
+  },
+  "explicit_interest_threads": {
+    "robauto_agenthub": {
+      "status": "awaiting_reply_after_use_case_response",
+      "action_this_run": "No follow-up; silence is not chased."
+    },
+    "outlast_ai": {
+      "status": "blocked_on_legitimate_company_domain_sender",
+      "action_this_run": "No spoofing or alternate identity used."
+    },
+    "reap": {
+      "status": "review_acknowledgement_only_not_actionable_buyer_intent",
+      "action_this_run": "No follow-up."
+    },
+    "new_inbound_since_previous_handoff": 0
+  },
+  "buyer_and_integration_actions": [
+    {
+      "target": "Autotab",
+      "contact": "enterprise@autotab.com",
+      "official_contact_evidence": "Current official Autotab site publishes enterprise@autotab.com for enterprise/BPO replacement inquiries and describes browser agents acting inside ERP/RMS/TMS/vendor systems.",
+      "prior_contact_check": "Gmail domain search found no prior Autotab contact before send.",
+      "specific_use_case": "One buyer-selected public supplier, policy, price, availability or terms page Capture immediately before an audit-sensitive enterprise browser action; retain proof with Autotab workflow/job record.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "price_fit": "Use only on audit-sensitive checkpoints rather than every browser action.",
+      "technical_fit_grade": "B_direct_enterprise_browser_action_fit",
+      "commercial_demand_grade": "C_no_explicit_DELTA_purchase_yet",
+      "action": "first_contact_sent",
+      "gmail_message_id": "1a0b158841c8d209",
+      "delivery_status": "sent_no_immediate_bounce_observed",
+      "next_action": "Wait for explicit reply. If a current workflow/public URL is provided, move directly to one genuine buyer-funded Capture."
+    },
+    {
+      "target": "Leah",
+      "contact": "connect@leahai.com",
+      "official_contact_evidence": "Current official Leah site publishes connect@leahai.com and describes governed agent execution across procurement, contracting, finance, ERP and CLM systems.",
+      "prior_contact_check": "Gmail domain search found no prior Leah contact before send.",
+      "specific_use_case": "Independent public supplier/regulatory/policy/terms source Capture or Preflight before a governed procurement/contracting action; attach proof reference to the existing audit trail.",
+      "product": "Public Capture first; Public Preflight only when expected-state check is needed",
+      "price_usdc": 1,
+      "preflight_price_usdc": 5,
+      "price_fit": "Narrow external provenance checkpoint; does not replace Leah permissions or private-system controls.",
+      "technical_fit_grade": "B_direct_governed_procurement_action_fit",
+      "commercial_demand_grade": "C_no_explicit_DELTA_purchase_yet",
+      "action": "first_contact_sent",
+      "gmail_message_id": "1a0b158a1090952b",
+      "delivery_status": "sent_no_immediate_bounce_observed",
+      "next_action": "Wait for explicit reply; seek one current public-source dependency and representative URL."
+    },
+    {
+      "target": "Proacure",
+      "contact": "info@proacure.com",
+      "official_contact_evidence": "Current official Proacure site publishes info@proacure.com and offers Supplier Spend AI and Sourcing AI.",
+      "prior_contact_check": "Gmail domain search found no prior Proacure contact before send.",
+      "specific_use_case": "Preserve a public supplier page, certification, policy, price or availability source before sourcing workflow advancement.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "price_fit": "Independent evidence artifact for selected sourcing decisions, not every supplier lookup.",
+      "technical_fit_grade": "B_direct_sourcing_AI_fit",
+      "commercial_demand_grade": "C_no_explicit_DELTA_purchase_yet",
+      "action": "first_contact_sent",
+      "gmail_message_id": "1a0b158bdf3225ad",
+      "delivery_status": "sent_no_immediate_bounce_observed",
+      "next_action": "Wait for explicit reply; convert a real representative public source into one buyer-funded Capture."
+    },
+    {
+      "target": "Agnic",
+      "contact": "hello@agnic.ai",
+      "official_contact_evidence": "Current Agnic official site and current Shopping Agent Challenge FAQ publish hello@agnic.ai. Agnic publicly documents x402 agent wallets, MCP service discovery, per-call USDC payments, API monetization and buyer receipts.",
+      "prior_contact_check": "Gmail domain search found no prior Agnic contact before send.",
+      "specific_use_case": "Route one current Agnic buyer agent with a real public product/merchant/price/availability/policy/vendor-terms dependency to one genuine DELTA Capture, retaining proof beside mandate/payment receipt.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "price_fit": "Agnic already documents buyer-side x402/USDC rails, reducing integration/payment friction without changing DELTA pricing.",
+      "technical_fit_grade": "A_direct_x402_buyer_and_MCP_fit",
+      "commercial_demand_grade": "C_no_explicit_DELTA_purchase_yet",
+      "action": "first_contact_sent",
+      "gmail_message_id": "1a0b159232654ad9",
+      "delivery_status": "sent_no_immediate_bounce_observed",
+      "next_action": "If Agnic identifies one live shopping-agent workflow/public URL, prioritize the normal buyer-authorized 1 USDC path. Do not self-fund a test."
+    },
+    {
+      "target": "Traza",
+      "contact": "contact@traza.ai",
+      "official_contact_evidence": "Current official Traza contact page publishes contact@traza.ai. Traza describes supplier homologation, sourcing/RFx, invoice auditing and price-intelligence agents with immutable audit logs.",
+      "prior_contact_check": "Gmail domain search found no prior Traza contact before send.",
+      "specific_use_case": "Public supplier/certification/sanctions-policy/price/availability source Capture before a supplier or sourcing decision; retain independent proof in Traza audit context.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "price_fit": "Only for provenance-sensitive decisions, not all agent operations.",
+      "technical_fit_grade": "B_direct_procurement_and_price_intelligence_fit",
+      "commercial_demand_grade": "C_no_explicit_DELTA_purchase_yet",
+      "action": "first_contact_sent",
+      "gmail_message_id": "1a0b1594059154de",
+      "delivery_status": "sent_no_immediate_bounce_observed",
+      "next_action": "Wait for explicit reply and request one current public source URL before any broader integration."
+    },
+    {
+      "target": "ShopAgentic",
+      "contact": "info@shopagentic.com",
+      "official_contact_evidence": "Current official ShopAgentic imprint publishes info@shopagentic.com. Current product site explicitly states API support for MPP and x402, sourced recommendations, usage billing and human approval before consequential actions.",
+      "prior_contact_check": "Gmail domain search found no prior ShopAgentic contact before send.",
+      "specific_use_case": "Preserve a public product, merchant-policy, price or availability source immediately before an approved commerce action and retain proof with the action record.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "price_fit": "x402 is already a supported rail; DELTA is proposed only for selected provenance-sensitive actions.",
+      "technical_fit_grade": "A_direct_x402_agentic_commerce_fit",
+      "commercial_demand_grade": "C_prelaunch_no_explicit_DELTA_purchase_yet",
+      "action": "first_contact_sent",
+      "gmail_message_id": "1a0b1595f0d56d82",
+      "delivery_status": "sent_no_immediate_bounce_observed",
+      "next_action": "Wait for explicit reply; if they have a current representative public URL, move to one genuine buyer-funded Capture."
+    }
+  ],
+  "risk_and_boundaries": {
+    "new_cash_or_credits": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "kyc_or_identity_attestation": 0,
+    "legal_commitments": 0,
+    "duplicate_first_contacts": 0,
+    "production_deployments": 0,
+    "new_seller_identities": 0
+  },
+  "canonical_workspace": {
+    "sibling_operator_workspace": "not_accessible_in_this_run_not_claimed_synchronized",
+    "repository_handoff_written": true
+  }
+}
