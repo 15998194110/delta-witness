@@ -1,0 +1,141 @@
+{
+  "run_date_jst": "2026-09-18T08:45:00+09:00",
+  "sprint_start": "2026-09-14T13:43:28+09:00",
+  "sprint_deadline": "2026-09-21T13:43:28+09:00",
+  "target_transactions": 50,
+  "strict_current_result": {
+    "counted_customer_transactions": 0,
+    "unique_verified_buyers": 0,
+    "new_verified_customer_receipts_this_run": 0,
+    "gross_customer_receipts_usdc": 0,
+    "recognized_revenue_usdc": 0,
+    "realized_variable_cost_usdc": null,
+    "realized_contribution_margin_usdc": null
+  },
+  "reconciliation": {
+    "fresh_run_id": 35287886918,
+    "checked_at": "2026-09-17T23:40:59.120Z",
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "start_block": 51349551,
+    "latest_block": 51449550,
+    "lookback_blocks": 100000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "paid_funnel_current_run": "unknown_due_missing_cloudflare_credentials_in_one_shot_runner",
+    "paid_funnel_last_fresh_canonical_success": "candidate_rows=0 at the 2026-09-18 07:54 JST handoff; do not treat that prior result as a current 08:45 verification",
+    "scope_note": "The 100000-block Treasury result is explicit-range evidence only, not proof of an all-time zero balance. Unknown current paid-funnel telemetry remains unknown, not zero."
+  },
+  "funded_demand": {
+    "agentpact": {
+      "offer_count": 3,
+      "offer_prices_usdc": [1, 5, 10],
+      "external_requests": 16,
+      "buyers": 0,
+      "settlements": 0,
+      "delta_native_funded_compatible_requests": 0
+    },
+    "agentexchange": {
+      "external_requests": 2,
+      "buyer_count": 1,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0
+    },
+    "external_funded_scan": {
+      "bountybook_adjacent_funded": 13,
+      "delta_native_funded": 0,
+      "note": "Adjacent code/research jobs are excluded even where buyer budgets exceed the 1 USDC Capture price because current DELTA products cannot fulfill them."
+    },
+    "moltjobs": {
+      "external_requests": 12,
+      "funded_rows": 10,
+      "delta_native_funded": 0
+    },
+    "workpnp": {
+      "open_requests_shown": 1,
+      "funded_requests_shown": 0,
+      "delta_native_funded": 0
+    },
+    "payanagent": {
+      "status": "degraded_recoverable_http_500",
+      "funded_compatible_requests": 0,
+      "note": "Channel error is recoverable and is not treated as mission failure or proof of no demand."
+    }
+  },
+  "explicit_interest_threads": {
+    "robauto_agenthub": {
+      "status": "awaiting_reply_after_answering_founder_use_case_question",
+      "action_this_run": "none_no_chasing_silence"
+    },
+    "outlast_ai": {
+      "status": "blocked_on_explicit_company_domain_sender_security_prerequisite",
+      "action_this_run": "none_no_spoof_or_bypass"
+    },
+    "reap": {
+      "status": "review_acknowledgement_only_not_buyer_intent",
+      "action_this_run": "none"
+    }
+  },
+  "qualified_first_contacts_sent": [
+    {
+      "target": "Sievo",
+      "contact": "contact@sievo.com",
+      "contact_evidence": "Official Sievo product/contact pages publish contact@sievo.com.",
+      "use_case": "Preserve a public supplier/product/terms source immediately before an automated supplier email, negotiation or purchase-related action triggered from Sievo Insights.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "preflight_if_needed_usdc": 5,
+      "technical_fit_grade": "B_current_product_and_automated_action_fit",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_or_funding",
+      "ability_or_willingness_evidence": "Sievo publicly markets enterprise procurement analytics, AI-powered Insights and automated actions including supplier emails and autonomous negotiations; this establishes a real commercial procurement workflow, not willingness to buy DELTA.",
+      "next_action": "Wait for an explicit reply; if interested, request one genuine workflow owner and one representative public URL, then route to one buyer-paid Capture. Do not chase silence."
+    },
+    {
+      "target": "Sastrify",
+      "contact": "hello@sastrify.com",
+      "contact_evidence": "Official Sastrify platform pages publish hello@sastrify.com.",
+      "use_case": "Preserve public vendor/product/terms evidence immediately before a renewal or purchase action that uses Sastrify AI benchmarking or workflow automation.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "preflight_if_needed_usdc": 5,
+      "technical_fit_grade": "B_current_product_and_procurement_workflow_fit",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_or_funding",
+      "ability_or_willingness_evidence": "Sastrify publicly reports a procurement/finance platform with automated renewal intelligence, vendor benchmarking and managed spend; these are commercial workflow signals only, not DELTA buyer intent.",
+      "next_action": "Wait for an explicit reply; if interested, ask for one real renewal/purchase workflow plus one public URL and start with one buyer-paid Capture. Do not chase silence."
+    },
+    {
+      "target": "ProcureDesk",
+      "contact": "sales@procuredesk.com",
+      "contact_evidence": "Official ProcureDesk contact page publishes sales@procuredesk.com for sales enquiries.",
+      "use_case": "Independent public supplier/product/terms observation immediately before a purchase or PO approval in a controlled procure-to-pay flow.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "preflight_if_needed_usdc": 5,
+      "technical_fit_grade": "B_current_product_and_purchase_control_fit",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_or_funding",
+      "ability_or_willingness_evidence": "ProcureDesk publicly markets procurement/AP automation, 200+ supplier punchout catalogs and pre-spend approvals; these are commercial workflow signals only, not proof it will purchase DELTA.",
+      "next_action": "Wait for explicit interest; if present, ask for one real purchase workflow and representative public supplier URL before any broader integration. Do not chase silence."
+    }
+  ],
+  "dedupe_and_safety": {
+    "gmail_domain_search_per_target": true,
+    "duplicate_first_contacts_sent_this_run": 0,
+    "private_or_guessed_emails_used": 0,
+    "silent_targets_chased": 0,
+    "rejected_targets_recontacted": 0,
+    "financial_or_wallet_actions": 0,
+    "new_accounts_or_kyc": 0,
+    "production_deployments": 0
+  },
+  "maintenance": {
+    "temporary_workflow_removed": ".github/workflows/tmp-revenue-run-20260918-0840.yml",
+    "reason": "One-shot reconciliation evidence was read back; removal prevents a stray duplicate loop or future accidental rerun."
+  },
+  "coordination": {
+    "canonical_sibling_operator_workspace": "not_accessible_in_this_run_not_claimed_synchronized",
+    "repository_handoff_only": true,
+    "deadline_extended": false
+  }
+}
