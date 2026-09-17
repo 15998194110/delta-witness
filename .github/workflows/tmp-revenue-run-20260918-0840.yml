@@ -1,0 +1,58 @@
+name: TEMP DELTA revenue run 20260918-0840
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/tmp-revenue-run-20260918-0840.yml]
+permissions:
+  contents: read
+jobs:
+  revenue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v5
+        with: {node-version: '22'}
+      - name: Verify owner pricing and live purchase path without payment
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Scan buyer demand and paid funnel
+        shell: bash
+        run: |
+          set +e
+          node scripts/scan-payan-demand.mjs > /tmp/payan.json 2>/tmp/payan.err
+          node scripts/scan-agentexchange-demand.mjs > /tmp/agentexchange.json 2>/tmp/agentexchange.err
+          node scripts/scan-agentpact-demand.mjs > /tmp/agentpact.json 2>/tmp/agentpact.err
+          node scripts/scan-external-funded-demand.mjs > /tmp/external.json 2>/tmp/external.err
+          node scripts/scan-moltjobs-demand.mjs > /tmp/moltjobs.json 2>/tmp/moltjobs.err
+          node scripts/scan-workpnp-demand.mjs > /tmp/workpnp.json 2>/tmp/workpnp.err
+          node scripts/query-revenue-candidates.mjs > /tmp/revenue-candidates.json 2>/tmp/revenue-candidates.err
+          exit 0
+      - name: Reconcile Treasury independently
+        env:
+          DELTA_TREASURY_LOOKBACK_BLOCKS: '100000'
+          DELTA_TREASURY_CHUNK_BLOCKS: '1900'
+        run: node scripts/reconcile-treasury.mjs > /tmp/treasury.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: delta-revenue-20260918-0840-${{ github.run_id }}
+          path: |
+            /tmp/payan.json
+            /tmp/payan.err
+            /tmp/agentexchange.json
+            /tmp/agentexchange.err
+            /tmp/agentpact.json
+            /tmp/agentpact.err
+            /tmp/external.json
+            /tmp/external.err
+            /tmp/moltjobs.json
+            /tmp/moltjobs.err
+            /tmp/workpnp.json
+            /tmp/workpnp.err
+            /tmp/revenue-candidates.json
+            /tmp/revenue-candidates.err
+            /tmp/treasury.json
+          retention-days: 7
