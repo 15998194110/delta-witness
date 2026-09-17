@@ -33,12 +33,10 @@ The owner's latest explicit pricing instruction supersedes every earlier DELTA p
 
 For **all new billable requests** the authorized ladder is:
 
-- **1.00 USDC** — Public Capture.
-- **1.00 USDC** — authenticated Partner Capture.
-- **1.00 USDC** — authenticated Partner Preflight.
-- **1.00 USDC** — each new Watch check.
-- **5.00 USDC** — Public Preflight.
-- **10.00 USDC** — Guarded-Action Pilot.
+- **$1.00 USDC — entry layer:** Public Capture.
+- **$1.00 USDC — partner/watch entry layer:** authenticated Partner Capture, authenticated Partner Preflight, and each new Watch check.
+- **$5.00 USDC — standard verification layer:** Public Preflight.
+- **$10.00 USDC — high-value execution layer:** Guarded-Action Pilot.
 
 Do not restore obsolete prices from old prompts, historical docs or cached listings. Historical completed/idempotent deliveries and already-prepaid obligations retain original settlement facts and must not be double-charged or retroactively rewritten.
 
