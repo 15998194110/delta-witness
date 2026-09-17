@@ -9,6 +9,10 @@ jobs:
   reconcile:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
     steps:
       - uses: actions/checkout@v6
         with: {persist-credentials: false}
@@ -17,6 +21,7 @@ jobs:
       - name: Owner price integrity and live no-payment verification
         run: node scripts/check-owner-pricing.mjs && node scripts/verify-owner-pricing-live.mjs
       - name: Paid funnel candidates
+        continue-on-error: true
         run: node scripts/query-revenue-candidates.mjs > /tmp/revenue-candidates.json
       - name: AgentPact funded buyer demand
         continue-on-error: true
