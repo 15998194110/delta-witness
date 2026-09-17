@@ -1,0 +1,166 @@
+{
+  "run_date_jst": "2026-09-18T02:47:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_buyers": 0,
+    "target_is_not_actual": true
+  },
+  "pricing": {
+    "checked_at": "2026-09-17T17:46:51.630Z",
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "status": "verified",
+    "paid_transactions_generated_by_diagnostic": 0
+  },
+  "new_buyer_connections": [
+    {
+      "target": "svarmAI",
+      "official_business_contact": "contactus@svarmai.com",
+      "official_source": "https://svarmai.com/procurement-autonomous-agent/",
+      "gmail_message_id": "1a0b078417f5ff3c",
+      "status": "first_contact_sent_once",
+      "use_case": "Retain independent public supplier/product/terms/price/availability evidence immediately before a procurement agent creates or amends a PO, advances an approval, or takes another consequential supplier action.",
+      "product_fit": "Public Capture 1 USDC; Public Preflight 5 USDC only for a real explicit public-page condition gate.",
+      "ability_to_pay_evidence": "Commercial procurement-agent product with autonomous supplier and PO workflows; this establishes an enterprise buyer surface but not DELTA-specific budget.",
+      "willingness_to_pay_delta": "unknown_no_reply_or_settlement",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "next_action": "Wait for substantive inbound with a real workflow/public URL/technical owner; no repeat cold contact."
+    },
+    {
+      "target": "PhaseZero",
+      "official_business_contact": "info@phasezero.ai",
+      "official_source": "https://www.phasezero.ai/",
+      "gmail_message_id": "1a0b0785dad3bf42",
+      "status": "first_contact_sent_once",
+      "use_case": "Retain public product, price, availability or policy evidence before an audit-sensitive B2B commerce order or approval step.",
+      "product_fit": "Public Capture 1 USDC; Public Preflight 5 USDC for an explicit public condition gate.",
+      "ability_to_pay_evidence": "Commercial enterprise B2B/B2C commerce platform; no DELTA-specific funded request established.",
+      "willingness_to_pay_delta": "unknown_no_reply_or_settlement",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "next_action": "Advance only on substantive inbound or a concrete representative public URL and decision point."
+    },
+    {
+      "target": "PayAgents",
+      "official_business_contact": "team@payagents.io",
+      "official_source": "https://payagents.io/",
+      "gmail_message_id": "1a0b0787c6b9541e",
+      "status": "first_contact_sent_once",
+      "use_case": "Use DELTA as an independent public-source evidence call immediately before a buyer-authorized x402/API or commerce spend while PayAgents remains the spending control plane.",
+      "product_fit": "Public Capture 1 USDC matches a narrow pre-spend evidence checkpoint; Public Preflight 5 USDC only for explicit conditions.",
+      "ability_to_pay_evidence": "Official product supports policy-controlled x402/Base buyer payments, establishing direct technical ability to pay the DELTA rail; no DELTA-specific willingness yet.",
+      "willingness_to_pay_delta": "unknown_no_reply_or_settlement",
+      "technical_fit_grade": "B_plus",
+      "commercial_demand_grade": "C",
+      "next_action": "Ask for one current buyer workflow/public source only if they reply; do not repeat cold outreach."
+    },
+    {
+      "target": "Saifuro",
+      "official_business_contact": "contact@saifuro.com",
+      "official_source": "https://saifuro.com/",
+      "gmail_message_id": "1a0b07ae6a823a3e",
+      "status": "first_contact_sent_once",
+      "use_case": "Create a combined audit chain from public source state to DELTA proof reference to Saifuro authorization/decision record to downstream x402 payment receipt.",
+      "product_fit": "Public Capture 1 USDC is below published example per-transaction policy ceilings and is directly compatible with x402/Base; Public Preflight 5 USDC only where a real page condition gates spend.",
+      "ability_to_pay_evidence": "Official product supports x402 buyer-agent budgets, policies, escrow and settlement workflows. Published product examples demonstrate the rail and spending-control capability, not an independently verified commitment to buy DELTA.",
+      "willingness_to_pay_delta": "unknown_no_reply_or_settlement",
+      "technical_fit_grade": "B_plus",
+      "commercial_demand_grade": "C",
+      "next_action": "Advance only if they identify a real buyer workflow or public source that precedes a spend authorization."
+    },
+    {
+      "target": "Outlast AI",
+      "official_business_contact": "sales@outlastai.com",
+      "official_source": "https://www.outlastai.com/",
+      "gmail_message_id": "1a0b07b1051285d2",
+      "status": "first_contact_sent_once",
+      "use_case": "Retain public supplier/product/lead-time/availability/policy evidence before an autonomous sourcing recommendation, supplier follow-up or PO-related action.",
+      "product_fit": "Public Capture 1 USDC for a material public supplier source; Public Preflight 5 USDC only for explicit source conditions.",
+      "ability_to_pay_evidence": "Official site documents production procurement agents and a paying customer case with thousands of orders processed; this supports a real commercial buyer surface, not DELTA-specific willingness.",
+      "willingness_to_pay_delta": "unknown_no_reply_or_settlement",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "next_action": "Wait for a substantive response with a real sourcing/PO workflow and representative public URL."
+    }
+  ],
+  "reply_monitor": {
+    "recent_query": "newer_than:3h -in:sent -in:trash {DELTA Witness, delta-witness, AgentHub, Public Capture, Public Preflight}",
+    "new_substantive_inbound_count": 0,
+    "robauto_agenthub_status": "existing_explicit_interest_thread_no_new_substantive_inbound_this_run",
+    "cold_followups_sent": 0
+  },
+  "funded_demand": {
+    "checked_at": "2026-09-17T17:43:45.783Z",
+    "agentpact": {
+      "offer_count": 3,
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "agentexchange": {
+      "buyer_count": 1,
+      "external_requests": 2,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "paid_settlements": 0
+    },
+    "broader_scan": {
+      "adjacent_funded_requests": 21,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false
+    }
+  },
+  "reconciliation": {
+    "paid_funnel_checked_at": "2026-09-17T17:46:52.021Z",
+    "paid_funnel_candidate_rows": 0,
+    "treasury_checked_at": "2026-09-17T17:46:55.450Z",
+    "treasury_start_block": 51418933,
+    "treasury_latest_block": 51438932,
+    "treasury_lookback_blocks": 20000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "known_non_customer_receipts_in_range": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "recognized_customer_revenue_usdc": 0,
+    "gross_customer_receipts_usdc": 0,
+    "realized_variable_cost_usdc": null,
+    "realized_contribution_margin_usdc": null,
+    "scope_note": "This is an explicit current block-range reconciliation and current paid-funnel read, not an all-time zero assertion. Unknown costs remain unknown rather than zero."
+  },
+  "controls": {
+    "new_first_contacts_sent_this_run": 5,
+    "duplicate_first_contacts_sent_this_run": 0,
+    "fees_paid": 0,
+    "new_cash_or_credits": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "kyc_or_identity_attestations": 0,
+    "legal_commitments": 0,
+    "new_seller_identities": 0,
+    "production_deployments": 0,
+    "local_sibling_operator_workspace": "not_accessible_not_claimed_synchronized"
+  },
+  "material_status": {
+    "new_genuine_customer_receipt": false,
+    "new_external_paid_settlement": false,
+    "new_actionable_explicit_integration_intent": false,
+    "new_funded_compatible_buyer_request": false,
+    "verified_core_failure": false,
+    "sprint_at_risk": true,
+    "reason": "Strict counted transactions remain 0/50 despite continued buyer-surface expansion."
+  }
+}
