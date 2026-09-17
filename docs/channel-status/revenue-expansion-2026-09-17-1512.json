@@ -1,0 +1,119 @@
+{
+  "observed_at": "2026-09-17T15:12:00+09:00",
+  "sprint_deadline": "2026-09-21T13:43:28+09:00",
+  "target_transactions": 50,
+  "counted_customer_transactions": 0,
+  "unique_verified_customer_buyers": 0,
+  "owner_pricing": {
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10
+  },
+  "explicit_interest": {
+    "robauto_agenthub": {
+      "status": "awaiting_new_substantive_inbound_after_current-price_use-case_reply",
+      "action_this_run": "no_chase"
+    }
+  },
+  "new_outreach": [
+    {
+      "target": "Pactum",
+      "official_contact": "hello@pactum.com",
+      "contact_evidence": "official Pactum contact page Cloudflare-protected hello address",
+      "specific_surface": "procurement agents executing supplier negotiations autonomously or with buyer approval",
+      "use_case": "1 USDC Capture of a public supplier pricing/availability/policy/terms page immediately before a consequential requisition or negotiation action; 5 USDC Preflight only for expected-state checking",
+      "commercial_demand_grade": "C",
+      "technical_fit_grade": "B",
+      "message_id": "1a0adf92c4481d97",
+      "next_action": "wait for explicit reply; request one genuine workflow and representative public URL; do not chase silence"
+    },
+    {
+      "target": "Globality",
+      "official_contact": "support@globality.com",
+      "contact_evidence": "official Globality contact page lists support@globality.com for product support",
+      "specific_surface": "Glo agents find suppliers and autonomously run sourcing and negotiation steps",
+      "use_case": "1 USDC Capture of a public supplier source at the decision boundary; 5 USDC Preflight only when the workflow needs an expected public state",
+      "commercial_demand_grade": "C",
+      "technical_fit_grade": "B",
+      "message_id": "1a0adf973bd0f679",
+      "next_action": "wait for explicit routing or product/integration-owner reply; no duplicate first contact"
+    },
+    {
+      "target": "Keelvar",
+      "official_contact": "support@keelvar.com",
+      "contact_evidence": "official Keelvar support documentation lists support@keelvar.com as monitored technical support route",
+      "specific_surface": "Kai and sourcing agents orchestrate and execute sourcing work, including spot quote and sourcing-event workflows",
+      "use_case": "1 USDC Capture of public supplier/market state before a selected sourcing action; 5 USDC Preflight only for expected-state checking",
+      "commercial_demand_grade": "C",
+      "technical_fit_grade": "B",
+      "message_id": "1a0adf98ed0ce091",
+      "acknowledgement": "Zendesk request 67000 received; automated acknowledgement only, not integration intent",
+      "next_action": "wait for substantive human routing/reply; do not count automated acknowledgement as demand"
+    },
+    {
+      "target": "Vertice / Vendr",
+      "official_contact": "info@vertice.one",
+      "contact_evidence": "official Vertice contact page lists info@vertice.one for general contact, including collaborations and partnerships",
+      "specific_surface": "AI pricing and negotiation agents using proprietary B2B software price intelligence before purchases and renewals",
+      "use_case": "1 USDC Capture of a vendor public pricing/packaging/policy page alongside proprietary benchmark context before a consequential purchase/renewal action",
+      "commercial_demand_grade": "C",
+      "technical_fit_grade": "B",
+      "message_id": "1a0adf9e798c157a",
+      "next_action": "wait for explicit reply; request one real purchase/renewal workflow and representative public URL"
+    },
+    {
+      "target": "Tropic",
+      "official_contact": "info@tropicapp.io",
+      "contact_evidence": "official Tropic site publishes info@tropicapp.io; current product describes AI procurement intelligence and agentic purchase/renewal support",
+      "specific_surface": "software purchase and renewal intelligence using proprietary negotiated-price data",
+      "use_case": "1 USDC Capture of a vendor public pricing/packaging/policy page at the purchase or renewal decision boundary",
+      "commercial_demand_grade": "C",
+      "technical_fit_grade": "B",
+      "message_id": "1a0adfa0118ac60f",
+      "next_action": "wait for explicit reply; request one real purchase/renewal workflow and representative public URL"
+    }
+  ],
+  "reply_check": {
+    "new_substantive_inbound_since_previous_handoff": 0,
+    "automated_acknowledgements": 1,
+    "automated_acknowledgement_target": "Keelvar",
+    "automated_acknowledgement_is_demand": false
+  },
+  "reconciliation": {
+    "workflow_run_id": 35188396566,
+    "checked_at": "2026-09-17T06:06:30.460Z",
+    "live_pricing_verified": true,
+    "treasury_start_block": 51357919,
+    "treasury_latest_block": 51417918,
+    "treasury_lookback_blocks": 60000,
+    "canonical_usdc_treasury_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "agentpact_offer_count": 3,
+    "agentpact_external_requests": 16,
+    "agentpact_funded_compatible_requests": 0,
+    "agentpact_paid_settlements": 0,
+    "agentexchange_external_requests": 2,
+    "agentexchange_funded_compatible_requests": 0,
+    "other_adjacent_funded_requests": 18,
+    "other_delta_native_funded_requests": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "scope_note": "The zero receipt result is limited to the explicit 60,000-block reconciliation range. Unknown costs remain unknown. Outreach and automated acknowledgements are not transactions or revenue."
+  },
+  "financial_actions": {
+    "fees_paid": 0,
+    "wallet_signatures": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "new_accounts_or_kyc": 0
+  },
+  "coordination": {
+    "canonical_operator_workspace_access": "not_accessible_in_this_run_not_claimed_synchronized",
+    "duplicate_growth_loop_created": false,
+    "temporary_reconciliation_workflow_removed": true
+  }
+}
