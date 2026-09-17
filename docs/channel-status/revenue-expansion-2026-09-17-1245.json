@@ -25,7 +25,7 @@
     {
       "target": "Lindy",
       "contact": "support@lindy.ai",
-      "message_id": "1a0ad6e27a86b97a",
+      "message_id": "1a0ad6cf07beaf09",
       "specific_use_case": "Independent public price, availability, vendor-policy or refund-policy evidence immediately before selected consequential agent actions.",
       "product_fit": "Public Capture 1 USDC; Public Preflight 5 USDC when expected-state verification is needed.",
       "technical_fit_grade": "B",
@@ -36,7 +36,7 @@
     {
       "target": "AgentCard",
       "contact": "support@agentcard.ai",
-      "message_id": "1a0ad6e56112b544",
+      "message_id": "1a0ad6d7883beb32",
       "specific_use_case": "Preserve the public merchant product/price/availability/returns page immediately before selected AI-agent card purchases.",
       "product_fit": "Public Capture 1 USDC; Public Preflight 5 USDC for an expected public state.",
       "technical_fit_grade": "B",
