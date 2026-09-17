@@ -1,0 +1,179 @@
+{
+  "checked_at": "2026-09-17T10:31:39+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "confirmed_counted_customer_transactions_through_current_evidence": 0,
+    "deadline_extended": false,
+    "target_copied_into_actuals": false
+  },
+  "owner_outreach_authority": {
+    "effective_date": "2026-09-17",
+    "numerical_daily_cap": null,
+    "former_three_per_day_cap_superseded": true,
+    "former_september_16_freeze_superseded": true,
+    "quality_rules": [
+      "official independently verified public business contacts/routes only",
+      "one personalized first contact per target",
+      "search Gmail and operator records before each send",
+      "no duplicate first contacts",
+      "no chasing silence",
+      "stop on rejection",
+      "advance explicit-interest threads promptly",
+      "scale through more qualified unique targets rather than repetition"
+    ]
+  },
+  "explicit_interest_advanced": {
+    "target": "Robauto / AgentHub",
+    "inbound_message_id": "1a08271022339367",
+    "inbound_sender": "jhartman@robauto.ai",
+    "prior_inbound_evidence": "Founder said DELTA was interesting, said they can work with DELTA on verification, and asked for the concrete use case.",
+    "commercial_demand_grade": "B_explicit_integration_interest_funding_unknown",
+    "reply_sent": true,
+    "reply_message_id": "1a0ace8edff3c0b0",
+    "reply_thread_id": "1a0821e4f3c5996c",
+    "reply_scope": "Concrete browser/workflow-agent checkpoint using 1 USDC Capture or 5 USDC Public Preflight before a consequential action; asks for one representative workflow and public URL.",
+    "new_reply_after_our_response": false,
+    "next_action": "Wait for a substantive inbound response; do not chase silence."
+  },
+  "new_qualified_first_contacts_this_run": [
+    {
+      "target": "Composio",
+      "recipient": "support@composio.dev",
+      "gmail_message_id": "1a0acfacee4e2b2c",
+      "subject": "Composio Tool Router: $1 evidence checkpoint before selected side-effectful tools",
+      "specific_use_case": "Optional public-page evidence checkpoint before selected consequential Tool Router executions; retain proof alongside the application execution record.",
+      "product_fit": "Public Capture 1 USDC; Public Preflight 5 USDC for expected-state checks",
+      "technical_fit_grade": "B_current_tool_router_and_side_effectful_action_surface",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "next_action": "Wait for explicit product/integration-owner response or a real customer workflow; no follow-up to silence."
+    },
+    {
+      "target": "AgentScore",
+      "recipient": "hello@agentscore.com",
+      "gmail_message_id": "1a0acfb001564d3b",
+      "subject": "AgentScore Pay × DELTA Witness: one live $1 x402 merchant path to test",
+      "specific_use_case": "A buyer-authorized AgentScore Pay flow purchases a DELTA Capture because the retained public source evidence itself is needed before a consequential commerce action.",
+      "product_fit": "Public Capture 1 USDC",
+      "technical_fit_grade": "B_x402_buyer_payment_surface",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "anti_bootstrap_constraint": "Requested a genuine external buyer-authorized use, not a platform-funded verification/self-test.",
+      "next_action": "Wait for one real buyer workflow/public URL or explicit integration response; no follow-up to silence."
+    },
+    {
+      "target": "x402 Agentic",
+      "recipient": "hello@x402agentic.ai",
+      "gmail_message_id": "1a0acfb2414acef9",
+      "subject": "x402 Agentic integration: route one real buyer use through DELTA Witness",
+      "specific_use_case": "Route a real buyer/framework use through DELTA Capture before an agent acts on public price, availability or vendor terms.",
+      "product_fit": "Public Capture 1 USDC; Public Preflight 5 USDC",
+      "technical_fit_grade": "B_x402_buyer_framework_surface",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "anti_bootstrap_constraint": "Explicitly excluded platform validation/self-test as customer demand.",
+      "next_action": "Wait for a current buyer/framework path and representative public URL; no follow-up to silence."
+    },
+    {
+      "target": "Agentic Commerce / Five Dollar Workday",
+      "recipient": "hello@fivedollarworkday.com",
+      "gmail_message_id": "1a0acfb633035b77",
+      "subject": "Agentic Commerce checkout: $1 independent source evidence before buyer confirmation",
+      "specific_use_case": "Optional public product/price/returns-policy Capture immediately before a buyer-confirmed merchant-authoritative checkout.",
+      "product_fit": "Public Capture 1 USDC; Public Preflight 5 USDC",
+      "technical_fit_grade": "B_current_buyer_and_merchant_checkout_surface",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "next_action": "Wait for one live buyer/merchant workflow and representative public URL; no follow-up to silence."
+    }
+  ],
+  "suppression_and_contact_quality": {
+    "rye": {
+      "state": "invalid_recipient_suppress",
+      "recipient": "nate@rye.com",
+      "evidence": "Gmail delivery failures returned 550 5.1.1 address does not exist/cannot receive mail for the attempted first-contact address.",
+      "next_action": "Do not retry or guess another address. Only use a newly independently verified official business contact if discovered in a future qualified run."
+    },
+    "firmly": {
+      "state": "already_contacted_suppress_until_inbound",
+      "note": "A duplicate-contact incident occurred previously; corrective disregard messages were sent. Do not send again without explicit inbound."
+    },
+    "crossmint": {
+      "state": "already_contacted_suppress_until_human_inbound",
+      "note": "The prior support-address outreach was corrected with disregard messages. Only templated support acknowledgements were observed, not human integration intent."
+    }
+  },
+  "pricing_and_purchase_path": {
+    "checked_at": "2026-09-17T10:31:29+09:00",
+    "policy": "owner-2026-09-10-1-5-10",
+    "live_ok": true,
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "public_products_verified": true,
+    "partner_secret_scoped_products_checked": false,
+    "partner_scope_note": "Partner Capture/Preflight/Watch were not checked by this one-shot because the scoped partner secret was not provided to it. This does not change the standing 1 USDC owner pricing authority."
+  },
+  "paid_funnel": {
+    "checked_at": "2026-09-17T10:31+09:00",
+    "status": "success",
+    "candidate_rows": 0,
+    "source": "scripts/query-revenue-candidates.mjs with repository-scoped Cloudflare read credentials",
+    "unknown_treated_as_zero": false
+  },
+  "treasury_reconciliation": {
+    "checked_at": "2026-09-17T10:31:39.091+09:00",
+    "start_block": 51319672,
+    "latest_block": 51409671,
+    "lookback_blocks": 90000,
+    "network": "eip155:8453",
+    "canonical_usdc_treasury_receipt_candidates": 0,
+    "known_non_customer_receipts_in_range": 0,
+    "unclassified_receipts_in_range": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "scope_note": "This is explicit 90,000-block coverage only; it is not an all-time zero claim."
+  },
+  "latest_buyer_demand_scan": {
+    "source_run": 35160266693,
+    "completed_at": "2026-09-17T08:00:20+09:00",
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_funded_compatible": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "agentexchange_external_requests": 2,
+    "agentexchange_funded_compatible": 0,
+    "other_adjacent_funded_requests": 16,
+    "other_delta_native_funded_requests": 0,
+    "moltjobs_funded_rows": 10,
+    "moltjobs_delta_native_funded_requests": 0,
+    "workpnp_funded_requests": 0,
+    "interpretation": "Funded adjacent demand exists, but no current DELTA-native funded request was verified in these channels."
+  },
+  "sprint_evidence_this_run": {
+    "new_counted_customer_transactions": 0,
+    "new_unique_independent_buyers": 0,
+    "new_verified_customer_treasury_receipts": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "fulfilled_paid_uses": 0,
+    "realized_variable_cost_usdc": null,
+    "realized_contribution_margin_usdc": null,
+    "unknown_costs_treated_as_zero": false,
+    "cold_first_contacts_are_not_counted_as_demand_or_revenue": true
+  },
+  "boundaries": {
+    "fees_paid": false,
+    "wallet_signatures": false,
+    "asset_movement": false,
+    "paid_tests": false,
+    "kyc_or_legal_commitments": false,
+    "new_seller_identity_created": false,
+    "duplicate_first_contacts_intentionally_sent_this_run": false
+  },
+  "coordination": {
+    "canonical_sibling_operator_workspace": "inaccessible_not_modified",
+    "repository_record_is_not_claimed_as_workspace_sync": true,
+    "one_shot_reconcile_workflow_run": 35170882177,
+    "new_recurring_growth_loop_created": false
+  }
+}
