@@ -1,0 +1,180 @@
+{
+  "run_jst": "2026-09-17T14:32:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_independent_buyers": 0,
+    "repeat_buyers": 0,
+    "deadline_extended": false
+  },
+  "outreach_authority": {
+    "daily_numeric_limit": null,
+    "quality_controls": [
+      "independently verified public official business contacts/routes only",
+      "one personalized first contact per target",
+      "search Gmail/operator records before each send",
+      "no duplicate first contacts",
+      "no chasing silence",
+      "stop on rejection"
+    ]
+  },
+  "new_unique_first_contacts": [
+    {
+      "target": "Procurement AI",
+      "contact": "hello@procurementai.com",
+      "contact_source": "https://procurementai.com/contact-us/",
+      "message_id": "1a0add5c5b60e2a0",
+      "specific_use_case": "Selected buyer-authorized 1 USDC Public Capture of a public supplier or marketplace price, availability, delivery, terms or policy page immediately before an AI procurement workflow takes a consequential action; retain proof metadata beside the procurement event.",
+      "price_fit": "Procurement AI operates commercial sourcing and procurement workflows. DELTA is positioned only for selected audit-sensitive actions, not every search or purchase.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Commercial procurement-AI platform and public business contact are verified; no DELTA-specific funded request, reply or settlement observed.",
+      "next_action": "Await explicit reply with one real workflow, representative public URL and technical owner. Do not chase silence."
+    },
+    {
+      "target": "Zip",
+      "contact": "info@ziphq.com",
+      "contact_source": "https://zip.com/blog/how-zip-is-modernizing-spend-controls-with-intake-to-pay",
+      "product_source": "https://zip.com/blog/introducing-zip-ai-superagents-mcp-ai-spend-automation",
+      "message_id": "1a0add5e0101bdab",
+      "specific_use_case": "Selected 1 USDC Public Capture of a public supplier/marketplace source immediately before a Zip Superagent moves a vendor request, sourcing event or approval forward because of that external state.",
+      "price_fit": "Zip publicly operates governed procurement Superagents and reports enterprise procurement scale; 1 USDC is proposed only for selected evidence-sensitive actions.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Current commercial procurement platform with production Superagents; no DELTA-specific willingness-to-pay evidence yet.",
+      "next_action": "Await product/integrations response with one customer workflow and representative public URL."
+    },
+    {
+      "target": "Arkestro",
+      "contact": "Supplier.Enablement@arkestro.com",
+      "contact_source": "https://arkestro.com/datasheets/meet-arkestros-supplier-consulting-group/",
+      "product_source": "https://arkestro.com/predictive-procurement/",
+      "message_id": "1a0add5ff6953e0c",
+      "specific_use_case": "Selected 1 USDC Public Capture of a supplier's public product/capacity/availability/certification/commercial-terms page before that source affects an automated sourcing or negotiation event.",
+      "price_fit": "Arkestro publicly operates predictive procurement and supplier engagement at enterprise scale; selected evidence checkpoints are economically plausible without applying DELTA to every interaction.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Current supplier-consulting and procurement platform surface exists; no DELTA-specific funded need, reply or settlement observed.",
+      "next_action": "Await routing to Product/Integrations/SCG and one genuine buyer workflow/public supplier URL."
+    },
+    {
+      "target": "Fairmarkit",
+      "contact": "suppliers@fairmarkit.com",
+      "contact_source": "https://docs.fairmarkit.com/content/suppliers/suppliers.htm",
+      "product_source": "https://www.fairmarkit.com/platform/execution-agent",
+      "message_id": "1a0add62e8f10273",
+      "specific_use_case": "Selected 1 USDC Public Capture of a supplier's public product, price, availability, certification, delivery or policy page before an autonomous sourcing/award step relies on it.",
+      "price_fit": "Fairmarkit documents autonomous sourcing and enterprise RFx execution; DELTA is offered only for selected external-source evidence checkpoints.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Active supplier portal and autonomous sourcing product are verified; no DELTA-specific funded request, reply or settlement observed.",
+      "next_action": "Await routing to Product/Integrations and one real buyer workflow/public supplier URL."
+    },
+    {
+      "target": "procurement-ai.de / WP Workers GmbH",
+      "contact": "anfrage@procurement-ai.de",
+      "contact_source": "https://procurement-ai.de/kontakt/",
+      "product_source": "https://procurement-ai.de/",
+      "message_id": "1a0add650fab97d1",
+      "specific_use_case": "Selected 1 USDC Public Capture of a public marketplace/supplier source before a regulated or public-sector procurement action relies on that source, retained beside the platform's own audit trail.",
+      "price_fit": "The platform targets regulated/public-sector procurement and advertises audit trails and multi-marketplace search; the 1 USDC checkpoint is proposed only for selected high-accountability actions.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Commercial procurement product and official inquiry email are verified; no DELTA-specific funded demand or settlement observed.",
+      "next_action": "Await explicit reply with one workflow, technical owner and public URL."
+    },
+    {
+      "target": "Ivalua",
+      "contact": "info@ivalua.com",
+      "contact_source": "https://info.ivalua.com/hubfs/datasheet-ai-solution-brief.pdf",
+      "product_source": "https://www.ivalua.com/technology/agentic-ai/",
+      "message_id": "1a0add6f75e491fa",
+      "specific_use_case": "Selected 1 USDC Public Capture of an external public supplier or marketplace source before IVA performs an autonomous sourcing, supplier-risk, purchasing or approval step that materially depends on that source.",
+      "price_fit": "Ivalua publicly positions IVA as a governed source-to-pay agent used by enterprise procurement; 1 USDC is offered only for selected external evidence checkpoints.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Enterprise procurement platform and public business email are verified; no DELTA-specific buyer funding or commitment observed.",
+      "next_action": "Await Product/IVA Studio/Integrations response with one real workflow/public URL."
+    },
+    {
+      "target": "Simfoni",
+      "contact": "info@simfoni.com",
+      "contact_source": "https://info.simfoni.com/hubfs/A%20-%20SALES%20ENABLEMENT%20CONTENT/CASE%20STUDIES/PaaS/ISC%20%26%20SIMFONI%20CASE%20STUDY%20-%20PAAS.pdf",
+      "product_source": "https://simfoni.com/solutions/",
+      "message_id": "1a0add717eec3bd6",
+      "specific_use_case": "Selected 1 USDC Public Capture of a public product/price/availability/delivery/certification/policy page before an automated sourcing or tail-spend action depends on it.",
+      "price_fit": "Simfoni operates commercial sourcing and tail-spend workflows; DELTA is positioned only for selected consequential actions that need an independent public-source record.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Commercial procurement platform and public business email are verified; no DELTA-specific funded request, reply or settlement observed.",
+      "next_action": "Await product/integrations response and one representative public URL."
+    }
+  ],
+  "reply_and_delivery_check": {
+    "checked_after_jst": "2026-09-17T13:05:00+09:00",
+    "new_substantive_inbound_replies": 0,
+    "crossmint_automated_acknowledgements": 3,
+    "crossmint_acknowledgements_are_integration_intent": false,
+    "agentcard_bounce": {
+      "status": "550_5_1_1_user_does_not_exist",
+      "address": "support@agentcard.ai",
+      "action": "suppress_address_no_replacement_guess"
+    },
+    "robauto_agenthub": "No newer substantive inbound after the already-sent current-price use-case answer; do not chase silence."
+  },
+  "reconciliation": {
+    "evidence_run": 35185883477,
+    "pricing_checked_at": "2026-09-17T05:28:47.194Z",
+    "public_capture": {"http": 402, "usdc": 1, "raw": "1000000"},
+    "public_preflight": {"http": 402, "usdc": 5, "raw": "5000000"},
+    "guarded_action_pilot": {"http": 402, "usdc": 10, "raw": "10000000"},
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_funnel": {"candidate_rows": 0},
+    "treasury_direct_rpc": {
+      "checked_at": "2026-09-17T05:28:58.222Z",
+      "start_block": 51356793,
+      "latest_block": 51416792,
+      "lookback_blocks": 60000,
+      "treasury_received_candidates": 0,
+      "unclassified_usdc": 0,
+      "evidence_quality": "A_direct_canonical_USDC_log"
+    },
+    "agentpact": {
+      "active_offer_prices_usdc": [1, 5, 10],
+      "external_requests": 16,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0,
+      "paid_settlements": 0,
+      "buyer_count": 0,
+      "settlement_count": 0
+    },
+    "agentexchange": {"external_requests": 2, "funded_compatible_requests": 0},
+    "external_funded_sources": {
+      "adjacent_funded_requests": 18,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false
+    },
+    "partner_gateway_scope": "Not rechecked because the live verifier reported the scoped partner secret was not provided to this invocation; no partner-price claim is made."
+  },
+  "financial_result": {
+    "new_genuine_customer_treasury_receipts_this_run": 0,
+    "new_external_paid_settlements_this_run": 0,
+    "new_counted_customer_transactions_this_run": 0,
+    "recognized_customer_revenue_added_this_run_usdc": 0,
+    "known_variable_cost_added_this_run_usdc": null,
+    "contribution_margin_added_this_run_usdc": null,
+    "note": "Unknown costs remain unknown. The explicit 60,000-block scan is not an all-time zero claim. Outreach, platform scale and technical fit are not revenue."
+  },
+  "coordination": {
+    "prior_handoff": "docs/channel-status/revenue-expansion-2026-09-17-1305.json",
+    "canonical_sibling_operator_workspace": "not_accessible_in_this_runtime_not_claimed_synchronized",
+    "new_recurring_loop_created": false,
+    "fees_paid": false,
+    "wallet_signature_or_asset_movement": false,
+    "kyc_or_legal_commitment": false
+  }
+}
