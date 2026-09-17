@@ -1,0 +1,119 @@
+{
+  "run_date_jst": "2026-09-17",
+  "checked_at": "2026-09-17T19:02:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_transactions": 50,
+    "counted_transactions_verified_this_run": 0,
+    "new_unique_buyers_verified_this_run": 0,
+    "new_customer_revenue_verified_this_run_usdc": 0
+  },
+  "outreach": {
+    "daily_cap": null,
+    "quality_controls": "public official business contacts only; one first contact per target; exact-target Gmail dedupe before send; no silence chasing or rejection evasion",
+    "new_unique_first_contacts": [
+      {
+        "target": "Agenyx AI",
+        "contact": "sales@agenyx.ai",
+        "source": "https://agenyx.ai/contact",
+        "use_case": "retain public supplier price/availability/policy/terms evidence immediately before autonomous award, PO, or contract actions",
+        "product": "Public Capture",
+        "price_usdc": 1,
+        "technical_fit": "B_current_public_procurement_workflow",
+        "commercial_demand": "C_no_reply_or_DELTA_funding_yet",
+        "gmail_message_id": "1a0aecdfc5ea2fba",
+        "next_action": "wait for substantive reply; if they provide one current workflow and public URL, route to one genuine buyer-authorized paid Capture"
+      },
+      {
+        "target": "Veto",
+        "contact": "hello@veto-ai.com",
+        "source": "https://www.veto-ai.com/",
+        "use_case": "retain the public price/product/policy/terms state an agent relied on before requesting Veto payment authorization",
+        "product": "Public Capture",
+        "price_usdc": 1,
+        "technical_fit": "B_current_public_agent_spend_policy_workflow",
+        "commercial_demand": "C_no_reply_or_DELTA_funding_yet",
+        "gmail_message_id": "1a0aece15e705eb4",
+        "next_action": "wait for substantive reply; request one representative public URL and keep DELTA separate from Veto key custody/authorization"
+      },
+      {
+        "target": "HMZ Technology / Hasan Alzein",
+        "contact": "sales@hmz.technology",
+        "source": "https://hasanalzein.com/en/services/ai-procurement-agent",
+        "use_case": "public supplier page/quote/availability/terms evidence before procurement or browser-agent PO/renewal action",
+        "product": "Public Capture",
+        "price_usdc": 1,
+        "technical_fit": "B_current_public_procurement_and_web_automation_services",
+        "commercial_demand": "C_no_reply_or_DELTA_funding_yet",
+        "gmail_message_id": "1a0aece2dd8d8602",
+        "next_action": "wait for substantive reply; seek one deployed workflow and public URL before broader integration"
+      }
+    ],
+    "duplicate_history_checked": true,
+    "emails_sent_this_run": 3
+  },
+  "inbound": {
+    "new_actionable_explicit_intent": false,
+    "crossmint": "automated acknowledgement only; not commercial intent and no follow-up sent",
+    "robauto_agenthub": "prior explicit-interest thread already received a current-price use-case reply; no newer substantive inbound, so no silence chase"
+  },
+  "pricing_and_purchase_path": {
+    "checked_at": "2026-09-17T09:59:23.144Z",
+    "ok": true,
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+  },
+  "demand": {
+    "agentpact": {
+      "offer_count": 3,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0,
+      "settlements": 0
+    },
+    "agentexchange": {
+      "buyer_count": 1,
+      "external_requests": 2,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0
+    },
+    "external_funded_scan": {
+      "adjacent_funded_requests": 19,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false
+    },
+    "paid_funnel_candidate_rows": 0
+  },
+  "treasury_reconciliation": {
+    "method": "contiguous combined coverage: Base RPC canonical USDC logs followed by Base Blockscout v2 advanced-filter fallback after RPC rate-limit degradation",
+    "checked_at_blockscout": "2026-09-17T10:01:36.409Z",
+    "start_block": 51324910,
+    "latest_block": 51424974,
+    "coverage_blocks": 100065,
+    "rpc_zero_log_range": [51324910, 51414209],
+    "fallback_zero_candidate_range": [51414210, 51424974],
+    "canonical_usdc_treasury_receipt_candidates": 0,
+    "unreconciled_gap_in_reported_range": false,
+    "note": "The primary RPC scan degraded after block 51414209 (429/403 responses). The independent Base Blockscout v2 fallback covered 51414210 through the fresh Base head 51424974 and found zero inbound canonical-USDC Treasury candidates. This is explicit block-range evidence, not an all-time zero assertion."
+  },
+  "evidence": {
+    "revenue_workflow_run": 35208072530,
+    "treasury_fallback_run": 35208281789,
+    "evidence_quality": "A for live public 402 amounts and current public demand APIs; A for canonical-USDC Treasury coverage via combined direct Base logs plus Base Blockscout fallback"
+  },
+  "coordination": {
+    "canonical_sibling_workspace": "not_accessible_in_this_runtime_not_claimed_synchronized",
+    "new_growth_loop_created": false,
+    "new_seller_identity_created": false,
+    "wallet_signature_or_asset_movement": false,
+    "pricing_changed": false
+  }
+}
