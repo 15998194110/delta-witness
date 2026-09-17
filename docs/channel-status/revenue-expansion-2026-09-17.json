@@ -1,0 +1,166 @@
+{
+  "checked_at_jst": "2026-09-17T10:35:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "actual_verified_transactions_this_record": 0
+  },
+  "owner_outreach_authority": {
+    "effective_date": "2026-09-17",
+    "daily_numeric_limit": null,
+    "status": "removed_by_owner",
+    "supersedes": ["3-per-JST-day cap", "2026-09-16 freeze", "daily-volume reservation logic"],
+    "quality_controls_retained": [
+      "official independently verified public business contact only",
+      "maximum one personalized first contact per target",
+      "dedupe exact target/contact/domain before send",
+      "do not chase silence",
+      "stop on rejection",
+      "advance explicit-interest replies promptly",
+      "no generic blasting; every contact requires a concrete current use case and next action"
+    ]
+  },
+  "explicit_interest": [
+    {
+      "target": "Robauto / AgentHub",
+      "contact": "jhartman@robauto.ai",
+      "inbound_message_id": "1a08271022339367",
+      "evidence": "Founder Jalali Hartman explicitly said DELTA is interesting, asked for a potential use case, and said they can work with DELTA on verification.",
+      "reply_sent_message_id": "1a0ace8edff3c0b0",
+      "reply_status": "sent_in_original_thread",
+      "next_action": "Wait for explicit response with a representative workflow/public URL/action boundary. Do not send another message without inbound activity.",
+      "commercial_demand_quality": "B_explicit_integration_interest_no_paid_commitment_yet"
+    }
+  ],
+  "unique_first_contacts_sent": [
+    {
+      "target": "Kilawatt Cloud",
+      "contact": "hello@kilawattcloud.dev",
+      "message_id": "1a0aceebdccaf61a",
+      "use_case": "independent public GPU provider price/capacity/region/policy evidence before high-value route/failover decisions",
+      "products": ["Capture 1 USDC", "Public Preflight 5 USDC"]
+    },
+    {
+      "target": "Skyfire",
+      "contact": "sales@skyfire.xyz",
+      "message_id": "1a0aceffc65afc07",
+      "use_case": "public product/availability/price/returns evidence before Agent Checkout purchases",
+      "products": ["Capture 1 USDC", "Public Preflight 5 USDC"]
+    },
+    {
+      "target": "Sequentum",
+      "contact": "sales@sequentum.com",
+      "message_id": "1a0acf07d2eb2aab",
+      "use_case": "public product/price/availability/returns-policy evidence before Checkout Agent purchase",
+      "products": ["Capture 1 USDC", "Public Preflight 5 USDC"]
+    },
+    {
+      "target": "Nevermined",
+      "contact": "contact@nevermined.ai",
+      "message_id": "1a0acf1075aa06e9",
+      "use_case": "independent public-source evidence before an agent-authorized paid action",
+      "products": ["Capture 1 USDC", "Public Preflight 5 USDC"]
+    },
+    {
+      "target": "TinyFish",
+      "contact": "product@tinyfish.ai",
+      "message_id": "1a0acf19ecb9a498",
+      "use_case": "public-source evidence checkpoint before consequential search/fetch/browser automation actions",
+      "products": ["Capture 1 USDC", "Public Preflight 5 USDC"]
+    },
+    {
+      "target": "Catena Labs",
+      "contact": "hello@catena.com",
+      "message_id": "1a0acf3aeeabd711",
+      "use_case": "independent public-source evidence before ACK/Catena-authorized economic actions",
+      "products": ["Capture 1 USDC", "Public Preflight 5 USDC"]
+    },
+    {
+      "target": "Questflow",
+      "contact": "contact@questflow.ai",
+      "message_id": "1a0acf40a483ebf1",
+      "use_case": "public-source evidence before x402-paid or other consequential multi-agent workflow actions",
+      "products": ["Capture 1 USDC", "Public Preflight 5 USDC"]
+    },
+    {
+      "target": "OpenServ",
+      "contact": "info@openserv.ai",
+      "message_id": "1a0acf6a40ebceef",
+      "use_case": "paid public-source Capture/Preflight as an x402 Agent Market dependency before actions",
+      "products": ["Capture 1 USDC", "Public Preflight 5 USDC"]
+    },
+    {
+      "target": "Merit Systems / AgentCash",
+      "contact": "info@merit.systems",
+      "message_id": "1a0acfbfa65b8a93",
+      "use_case": "route real AgentCash buyer intents to DELTA and preserve canonical existing x402 seller identity",
+      "products": ["Capture 1 USDC", "Public Preflight 5 USDC", "Guarded-Action Pilot 10 USDC"]
+    },
+    {
+      "target": "Scrapybara",
+      "contact": "hello@scrapybara.com",
+      "message_id": "1a0acfd4a0550d8d",
+      "use_case": "public-source evidence immediately before computer-use/browser actions with side effects",
+      "products": ["Capture 1 USDC", "Public Preflight 5 USDC"]
+    }
+  ],
+  "suppression": [
+    {
+      "target": "Rye",
+      "reason": "prior first contact existed; a duplicate was accidentally sent on 2026-09-17 and corrected. Do not contact again without explicit inbound response."
+    },
+    {
+      "target": "Firmly",
+      "reason": "prior first contact existed; a duplicate was accidentally sent on 2026-09-17 and corrected. Do not contact again without explicit inbound response."
+    },
+    {
+      "target": "Crossmint",
+      "reason": "message was sent to support@crossmint.com before that address was independently verified as a published business contact; disregard/correction messages followed. Do not contact again unless a substantive human reply arrives through an appropriate route."
+    },
+    {
+      "target": "Browser Use / Browserbase / Skyvern / Hyperbrowser / Steel / Anchor Browser / Notte / Magnitude / Trelium",
+      "reason": "already received DELTA first contact in earlier runs; no chasing silence."
+    }
+  ],
+  "buyer_router_findings": {
+    "AgentCash": {
+      "official_claim": "1.3M+ paid tool calls and buyer access through Claude, Cursor and Codex",
+      "discovery_spec": "OpenAPI at /openapi.json with x-payment-info and valid runtime 402; registration via X402Scan/MPPScan",
+      "x402scan_registration": "POST /api/x402/registry/register-origin is free but requires SIWX wallet authentication",
+      "financial_boundary": "No SIWX wallet signature was performed because wallet signing/messages require separate exact-action owner authorization.",
+      "outreach_action": "Asked Merit Systems for a provider-import path preserving DELTA's existing canonical seller identity and for a current real buyer intent rather than catalog-only listing."
+    }
+  },
+  "reconciliation": {
+    "run_id": 35170708278,
+    "checked_at": "2026-09-17T01:29:12.928Z",
+    "live_owner_pricing_check": "passed after repository guard text was restored",
+    "paid_funnel_candidate_rows_last_two_hours": 0,
+    "agentpact_offer_count": 3,
+    "agentpact_prices_usdc": [10, 5, 1],
+    "agentpact_delta_native_funded_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "treasury_start_block": 51279596,
+    "treasury_latest_block": 51409595,
+    "treasury_lookback_blocks": 130000,
+    "treasury_received_candidates": 0,
+    "unclassified_usdc": 0,
+    "new_verified_customer_revenue_usdc": 0,
+    "scope": "This is explicit recent block-range and two-hour telemetry evidence only; it is not an all-time zero-revenue assertion."
+  },
+  "control_incident_this_run": {
+    "issue": "AGENTS.md pricing wording was shortened while updating outreach authority, causing check-owner-pricing.mjs exact-text assertions to fail in the first temporary reconcile run.",
+    "impact": "Repository audit step failed before revenue/Treasury checks; no production price or payment route changed.",
+    "correction": "Restored the required exact current-price guard phrases in AGENTS.md and reran the scoped revenue reconcile successfully.",
+    "successful_rerun_id": 35170708278
+  },
+  "risk_boundaries": {
+    "listing_fees_paid": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movements": 0,
+    "paid_canaries": 0,
+    "kyc_or_legal_commitments": 0,
+    "private_keys_exposed": false
+  }
+}
