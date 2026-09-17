@@ -1,0 +1,104 @@
+{
+  "run_local_jst": "2026-09-18T04:36:00+09:00",
+  "sprint_deadline": "2026-09-21T13:43:28+09:00",
+  "target_transactions": 50,
+  "counted_customer_transactions": 0,
+  "unique_verified_buyers": 0,
+  "reconciliation": {
+    "workflow_run_id": 35265680417,
+    "checked_at": "2026-09-17T19:34:44.760Z",
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "start_block": 51342164,
+    "latest_block": 51442163,
+    "lookback_blocks": 100000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "verified_customer_receipts": 0,
+    "recognized_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "scope_note": "Explicit current block range only; not an all-time zero claim. Unknown costs remain unknown."
+  },
+  "funded_demand": {
+    "agentpact": {
+      "offer_count": 3,
+      "external_requests": 16,
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "delta_native_funded_requests": 0,
+      "offers": [
+        {"title":"DELTA Witness Capture — Public Web Evidence","price_usdc":1,"status":"active"},
+        {"title":"DELTA Witness Public Preflight — Deterministic Verification","price_usdc":5,"status":"active"},
+        {"title":"DELTA Witness Guarded-Action Pilot — Higher-Value Evidence","price_usdc":10,"status":"active"}
+      ]
+    },
+    "agentexchange": {
+      "external_requests": 2,
+      "buyer_count": 1,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "paid_settlements": 0
+    },
+    "broader_official_markets": {
+      "adjacent_funded_requests": 22,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false
+    }
+  },
+  "buyer_and_integration_actions": [
+    {
+      "target": "Cloudflare x402 team",
+      "contact": "x402@cloudflare.com",
+      "official_contact_evidence": "Cloudflare's x402 launch article explicitly publishes x402@cloudflare.com for the team working on x402.",
+      "specific_use_case": "Route one real buyer-authorized 1 USDC DELTA Public Capture before an agent acts on a public price, availability, policy or vendor-terms page; retain proof metadata with the agent action record.",
+      "commercial_demand_grade": "C_no_explicit_DELTA_purchase_yet",
+      "technical_fit_grade": "B_direct_x402_agent_infrastructure",
+      "price_fit": "1 USDC Capture is the authorized entry layer and fits an x402-native buyer path without changing DELTA settlement.",
+      "prior_contact_check": "Gmail exact target/domain search returned no prior Cloudflare x402 contact.",
+      "action": "first_contact_sent",
+      "gmail_message_id": "1a0b0df435763dda",
+      "next_action": "Wait for explicit reply; do not chase silence. If they identify a buyer/example workflow, move directly to one genuine paid Capture with a representative public URL."
+    }
+  ],
+  "explicit_interest_threads": {
+    "outlast_ai": {
+      "status": "blocked_on_legitimate_company_domain_sender",
+      "last_inbound": "Mohammad Zuiter requested that DELTA email from a company-domain mailbox for security purposes.",
+      "action_this_run": "No spoofing or alternate identity used; no repeat sent from Gmail account."
+    },
+    "robauto_agenthub": {
+      "status": "awaiting_reply_after_use_case_response",
+      "action_this_run": "No follow-up sent because silence is not chased."
+    }
+  },
+  "distribution_maintenance": {
+    "agents_net": {
+      "status": "resubmission_requested_with_human_facing_destination",
+      "verified_human_facing_destination": "https://delta-witness-app.pages.dev/",
+      "destination_title": "DELTA Witness — Verify the source before you act",
+      "direct_form_action": "not_completed",
+      "blocker": "Connected TinyFish browser automation wallet is below zero and requires a top-up; no new cash was authorized, so no payment/top-up was made.",
+      "priority": "maintenance_only_not_sprint_result",
+      "retry_policy": "Defer; do not substitute repeated email/issue activity for the requested direct resubmission."
+    }
+  },
+  "risk_and_boundaries": {
+    "new_cash_or_credits": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "kyc_or_identity_attestation": 0,
+    "legal_commitments": 0,
+    "duplicate_first_contacts": 0,
+    "production_deployments": 0,
+    "new_seller_identities": 0
+  },
+  "canonical_workspace": {
+    "sibling_operator_workspace": "not_accessible_in_this_run_not_claimed_synchronized",
+    "repository_handoff_written": true
+  }
+}
