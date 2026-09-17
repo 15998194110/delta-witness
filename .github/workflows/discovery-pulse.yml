@@ -1,5 +1,5 @@
 # Canonical revenue-first pulse. Buyer/settlement checks run every pulse; directory maintenance is throttled to once daily.
-# Manual revenue reconciliation trigger: 2026-09-16T08:20+09:00
+# Manual revenue reconciliation trigger: 2026-09-17T20:57+09:00
 name: DELTA Discovery Pulse
 on:
   schedule:
