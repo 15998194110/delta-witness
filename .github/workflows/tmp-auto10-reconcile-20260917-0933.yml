@@ -1,0 +1,58 @@
+name: TEMP DELTA auto10 revenue reconcile 0933
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/tmp-auto10-reconcile-20260917-0933.yml]
+permissions:
+  contents: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v5
+        with: {node-version: '22'}
+      - name: Verify current owner pricing and live public purchase invariants
+        run: node scripts/check-owner-pricing.mjs && node scripts/verify-owner-pricing-live.mjs
+      - name: Audit paid funnel candidates
+        run: node scripts/query-revenue-candidates.mjs > /tmp/delta-revenue-candidates.json
+      - name: Scan AgentPact funded demand
+        continue-on-error: true
+        run: node scripts/scan-agentpact-demand.mjs > /tmp/delta-agentpact-demand.json
+      - name: Scan Agent Exchange funded demand
+        continue-on-error: true
+        run: node scripts/scan-agentexchange-demand.mjs > /tmp/delta-agentexchange-demand.json
+      - name: Scan additional escrow-backed demand
+        continue-on-error: true
+        run: node scripts/scan-external-funded-demand.mjs > /tmp/delta-external-funded-demand.json
+      - name: Scan MoltJobs funded demand
+        continue-on-error: true
+        run: node scripts/scan-moltjobs-demand.mjs > /tmp/delta-moltjobs-demand.json
+      - name: Scan WorkPnP funded demand
+        continue-on-error: true
+        run: node scripts/scan-workpnp-demand.mjs > /tmp/delta-workpnp-demand.json
+      - name: Scan PayanAgent demand
+        continue-on-error: true
+        run: node scripts/scan-payan-demand.mjs > /tmp/delta-payan-demand.json
+      - name: Reconcile canonical Base USDC Treasury over explicit extended range
+        env:
+          DELTA_TREASURY_LOOKBACK_BLOCKS: '90000'
+          DELTA_TREASURY_CHUNK_BLOCKS: '1900'
+        run: node scripts/reconcile-treasury.mjs > /tmp/delta-treasury.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: delta-auto10-reconcile-${{ github.run_id }}
+          path: |
+            /tmp/delta-revenue-candidates.json
+            /tmp/delta-agentpact-demand.json
+            /tmp/delta-agentexchange-demand.json
+            /tmp/delta-external-funded-demand.json
+            /tmp/delta-moltjobs-demand.json
+            /tmp/delta-workpnp-demand.json
+            /tmp/delta-payan-demand.json
+            /tmp/delta-treasury.json
+          if-no-files-found: warn
+          retention-days: 7
