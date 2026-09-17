@@ -1,0 +1,157 @@
+{
+  "observed_at": "2026-09-17T18:21:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_customer_buyers": 0,
+    "repeat_buyers": 0,
+    "deadline_extended": false
+  },
+  "pricing_usdc": {
+    "public_capture": 1,
+    "partner_capture": 1,
+    "partner_preflight": 1,
+    "watch_check": 1,
+    "public_preflight": 5,
+    "guarded_action_pilot": 10
+  },
+  "live_price_verification": {
+    "checked_at": "2026-09-17T09:18:27.791Z",
+    "capture_http": 402,
+    "capture_raw_usdc": "1000000",
+    "preflight_http": 402,
+    "preflight_raw_usdc": "5000000",
+    "guarded_action_pilot_http": 402,
+    "guarded_action_pilot_raw_usdc": "10000000",
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "status": "verified"
+  },
+  "new_unique_first_contacts": [
+    {
+      "target": "Shopstack",
+      "official_contact": "hello@shopstack.ai",
+      "message_id": "1a0aea7cfc50bbe3",
+      "specific_use_case": "After a buyer selects a product and before an approved merchant checkout resumes, preserve a timestamped public product or returns-policy source state and associate the proof reference with the structured order result.",
+      "requested_first_paid_scope": "one genuine buyer-authorized 1 USDC Public Capture",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Shopstack operates an agentic-commerce purchase flow with payment routing and structured order completion; this is a commercial buyer surface but is not DELTA-specific funded intent.",
+      "price_fit": "1 USDC is proposed only for audit-sensitive approved purchases, not every product fetch or checkout.",
+      "prior_contact_check": "No prior Gmail contact to/from shopstack.ai before send.",
+      "next_action": "Wait for substantive inbound naming one real workflow/public URL; do not send another first contact or chase silence."
+    },
+    {
+      "target": "Zomnov / Spotlight",
+      "official_contact": "sales@zomnov.com",
+      "message_id": "1a0aea7ead96e2c3",
+      "specific_use_case": "When procurement agents rely on public supplier, certification, price, availability or terms pages before a PO/approval action, retain an independent source-state proof or check an expected public condition.",
+      "requested_first_paid_scope": "one genuine buyer-authorized 1 USDC Public Capture; 5 USDC Public Preflight only when a condition check is actually needed",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Spotlight is an enterprise procurement product with PO Execution, Contract, Sourcing and Market Intelligence agents; this supports commercial ability-to-pay context, not DELTA-specific funding.",
+      "price_fit": "The 1 USDC checkpoint is limited to audit-sensitive public-source dependencies rather than every ERP or procurement event.",
+      "prior_contact_check": "No prior Gmail contact to/from zomnov.com before send.",
+      "next_action": "Wait for a concrete workflow/public URL or technical-owner handoff; no duplicate cold contact."
+    },
+    {
+      "target": "Browserbeam",
+      "official_contact": "hello@browserbeam.com",
+      "message_id": "1a0aea809a6f1063",
+      "specific_use_case": "Before a consequential browser action, retain an independent public-page observation when Browserbeam session content itself is not retained after the session.",
+      "requested_first_paid_scope": "one genuine buyer-authorized 1 USDC Public Capture",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Browserbeam publishes paid production browser plans and a structured page-state/diff API; this is commercial infrastructure, not DELTA-specific willingness to pay.",
+      "price_fit": "1 USDC applies only to selected audit-sensitive purchase/procurement/form/approval checkpoints, not every session or diff.",
+      "prior_contact_check": "No prior Gmail contact to/from browserbeam.com before send.",
+      "next_action": "Wait for one real customer workflow and representative public URL; no duplicate first contact."
+    },
+    {
+      "target": "Talona",
+      "official_contact": "hello@talona.ai",
+      "message_id": "1a0aea82ad4f9753",
+      "specific_use_case": "When a market-monitoring agent detects a public price/listing/competitor-page change that will trigger a purchase, escalation or approval, preserve independent evidence of that public state before acting.",
+      "requested_first_paid_scope": "one genuine buyer-authorized 1 USDC Public Capture",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Talona publishes paid browser-infrastructure plans/API usage and market-monitoring workflows; this shows a monetized production surface but not DELTA-specific funded demand.",
+      "price_fit": "1 USDC is for the smaller set of audit-sensitive trigger events; 5 USDC Preflight only when checking an expected condition matters.",
+      "prior_contact_check": "No prior Gmail contact to/from talona.ai before send.",
+      "next_action": "Wait for substantive inbound with one workflow/public URL; do not chase silence."
+    }
+  ],
+  "reply_check": {
+    "checked_after": "2026-09-17T07:45:00Z",
+    "new_substantive_human_inbound": 0,
+    "robauto_agenthub": "Prior explicit-interest thread already answered at current pricing; no newer inbound, so no chase."
+  },
+  "neighbor_market_evidence": {
+    "hober": {
+      "source": "https://app.hober.dev/marketplace",
+      "observed": {
+        "agents": 8,
+        "active_jobs": 13,
+        "volume_30d_usd": 0.292,
+        "success_rate_percent": 100
+      },
+      "classification": "verified neighboring paid agent-commerce activity only; no DELTA-native funded request verified",
+      "action_taken": "read-only inspection; no account, bid, job claim, payment or wallet action"
+    }
+  },
+  "fresh_reconciliation": {
+    "run_id": 35204382871,
+    "completed_at": "2026-09-17T09:18:46Z",
+    "treasury_checked_at": "2026-09-17T09:18:42.656Z",
+    "treasury_start_block": 51323683,
+    "treasury_latest_block": 51423682,
+    "treasury_lookback_blocks": 100000,
+    "canonical_usdc_treasury_receipt_candidates": 0,
+    "treasury_evidence_quality": "A_direct_canonical_USDC_log",
+    "transient_degradation": "One Base RPC 429 occurred for one chunk; bounded retry succeeded and the complete requested range was scanned.",
+    "agentpact_external_requests": 16,
+    "agentpact_active_offers": 3,
+    "agentpact_prices_usdc": [1, 5, 10],
+    "agentpact_delta_native_requests": 0,
+    "agentpact_funded_compatible_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "agentexchange_external_requests": 2,
+    "agentexchange_buyer_count": 1,
+    "agentexchange_funded_compatible_requests": 0,
+    "external_adjacent_funded_requests": 20,
+    "external_delta_native_funded_requests": 0,
+    "recognized_customer_revenue_added_usdc": 0,
+    "variable_cost_added_usdc": null,
+    "contribution_margin_added_usdc": null,
+    "scope_note": "The Treasury result is limited to the explicit 100,000-block canonical-USDC range and does not assert an all-time zero balance. Adjacent funded work does not count unless current DELTA products directly fulfill it and settlement/revenue evidence reconciles."
+  },
+  "paid_funnel_freshness": {
+    "fresh_query_available": false,
+    "reason": "The one-shot runner lacked CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN, so query-revenue-candidates could not perform a fresh paid-funnel audit.",
+    "handling": "Do not overwrite prior paid-funnel evidence with a fabricated fresh zero; retain last successful canonical result as stale until the normal secret-bearing pulse refreshes it."
+  },
+  "funded_demand_notes": {
+    "bountybook": "12 independently funded adjacent tasks were observed with budgets that can meet current prices, but all required generic research or custom code rather than an existing DELTA Capture/Preflight/Watch/Pilot fulfillment.",
+    "taskmarket": "4 escrow-backed adjacent tasks were observed, including a 199 USDC CUDA optimization bounty and 2 USDC creative bounties; none are DELTA-native and participation can require wallet identity/signature or action charges, so no action was taken.",
+    "clawlancer": "4 pre-funded adjacent tasks were observed at 0.015-0.025 USDC, all below DELTA's 1 USDC entry price and not DELTA-native.",
+    "riner_and_agent_bounties": "No current DELTA-native funded request verified."
+  },
+  "financial_and_risk_actions": {
+    "listing_or_signup_fees_paid": 0,
+    "new_cash_or_credits": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "kyc_identity_attestations": 0,
+    "legal_commitments": 0
+  },
+  "coordination": {
+    "prior_handoff": "docs/channel-status/revenue-expansion-2026-09-17-1737.json",
+    "one_shot_reconciliation_workflow_removed": true,
+    "canonical_sibling_operator_workspace": "not_accessible_in_this_runtime_not_claimed_synchronized",
+    "duplicate_growth_loop_created": false
+  }
+}
