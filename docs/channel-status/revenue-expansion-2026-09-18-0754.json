@@ -1,0 +1,179 @@
+{
+  "checked_at_jst": "2026-09-18T07:54:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_buyers": 0,
+    "deadline_extended": false
+  },
+  "reconciliation": {
+    "canonical_workflow_run": 35276969770,
+    "workflow_rerun_completed": true,
+    "owner_pricing_check": "passed",
+    "live_purchase_path_check": "passed_without_payment",
+    "treasury_checked_at": "2026-09-17T22:48:27.713Z",
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "start_block": 51397978,
+    "latest_block": 51447977,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "paid_funnel_candidate_rows": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "scope_note": "This is explicit current block-range plus DELTA telemetry evidence, not an all-time zero-balance assertion. Unknown cost remains unknown."
+  },
+  "funded_demand": {
+    "agentpact": {
+      "canonical_active_offers": 3,
+      "offer_prices_usdc": [1, 5, 10],
+      "external_adjacent_requests": 16,
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "delta_native_funded_requests": 0
+    },
+    "agentexchange": {
+      "external_requests": 2,
+      "buyer_count": 1,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0
+    },
+    "broader_official_markets": {
+      "adjacent_funded_requests": 21,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0
+    },
+    "payanagent": "recoverable external degradation when observed; does not block independent channels"
+  },
+  "explicit_interest_threads": {
+    "robauto_agenthub": {
+      "status": "waiting_after_answering_explicit_interest",
+      "action_this_run": "no chase; no newer reply found"
+    },
+    "outlast_ai": {
+      "status": "actionable security prerequisite remains",
+      "request": "buyer asked that contact continue from a company-domain sender",
+      "action_this_run": "not bypassed; current available Gmail identity is not company-domain"
+    },
+    "reap": {
+      "status": "generic review acknowledgment only",
+      "action_this_run": "no chase"
+    }
+  },
+  "new_unique_outreach": [
+    {
+      "target": "GEP",
+      "contact": "info@gep.com",
+      "official_contact_source": "https://www.gep.com/zh-cn/",
+      "current_product_source": "https://www.gep.com/software/gep-quantum-intelligence",
+      "sent_message_id": "1a0b19077e1fdf88",
+      "use_case": "1 USDC public Capture before a Quantum Intelligence sourcing/supplier/purchase/payment action that materially relies on a public supplier, product, policy or vendor-terms page; 5 USDC Public Preflight only when an explicit expected condition is needed.",
+      "commercial_demand_grade": "C_no_external_interest_or_funding_yet",
+      "technical_fit_grade": "B_current_official_agentic_procurement",
+      "price_fit": "Current 1 USDC Capture is positioned only for selected audit-sensitive checkpoints, not every procurement action.",
+      "next_conversion_action": "If GEP replies, obtain one real workflow owner and representative public URL and route directly to one genuine buyer-paid Capture."
+    },
+    {
+      "target": "JAGGAER",
+      "contact": "apac_sales@jaggaer.com",
+      "official_contact_source": "https://www.jaggaer.com/contact",
+      "current_product_source": "https://www.jaggaer.com/press-release/jaggaer-launches-jai-ai-assistant",
+      "sent_message_id": "1a0b190939104675",
+      "use_case": "1 USDC public-page evidence checkpoint for selected JAI/JAGGAER ONE sourcing, supplier or purchasing actions dependent on public supplier claims.",
+      "commercial_demand_grade": "C_no_external_interest_or_funding_yet",
+      "technical_fit_grade": "B_current_official_AI_procurement",
+      "price_fit": "1 USDC fits an exceptional audit checkpoint, not routine assistant queries.",
+      "next_conversion_action": "Seek one APAC workflow owner plus a representative public URL; start with one genuine buyer-paid Capture."
+    },
+    {
+      "target": "Coupa Open Buy",
+      "contact": "openbuy-support@coupa.com",
+      "official_contact_source": "https://compass.coupa.com/en-us/products/product-documentation/supplier-resources/for-suppliers/integration-resources/open-buy-api-reference",
+      "current_product_source": "same official API reference: authentication, search, detail and checkout",
+      "sent_message_id": "1a0b190af8ef24a0",
+      "use_case": "Optional 1 USDC independent public-source Capture associated with selected audit-sensitive Open Buy checkout workflows without touching supplier authentication, private cart/customer data or order authorization.",
+      "commercial_demand_grade": "C_no_external_interest_or_funding_yet",
+      "technical_fit_grade": "B_official_checkout_API_integration_route",
+      "price_fit": "1 USDC is scoped to selected orders where retaining the external public source is worth more than the checkpoint cost.",
+      "next_conversion_action": "Ask for the supported extension/integration pattern and one representative checkout/public URL."
+    },
+    {
+      "target": "Opstream",
+      "contact": "info@opstream.ai",
+      "official_contact_source": "https://www.opstream.ai/",
+      "current_product_source": "https://www.opstream.ai/procurement/",
+      "sent_message_id": "1a0b19118b057745",
+      "use_case": "1 USDC public-source evidence checkpoint before selected autonomous vendor-onboarding, renewal, compliance or procurement actions.",
+      "commercial_demand_grade": "C_no_external_interest_or_funding_yet",
+      "technical_fit_grade": "B_current_official_autonomous_procurement",
+      "price_fit": "1 USDC is limited to selected audit-sensitive external claims and is not inserted into every workflow step.",
+      "next_conversion_action": "Obtain one real workflow and public URL, then one genuine buyer-paid Capture."
+    },
+    {
+      "target": "Zycus",
+      "contact": "info@zycus.com",
+      "official_contact_source": "https://www.zycus.com/locations/japan",
+      "current_product_source": "https://www.zycus.com/",
+      "sent_message_id": "1a0b19135dcf6008",
+      "use_case": "1 USDC public-source proof before selected Merlin Intake, Agentic Sourcing or Autonomous Negotiation actions that materially rely on public supplier/product/warranty/payment-term/policy pages.",
+      "commercial_demand_grade": "C_no_external_interest_or_funding_yet",
+      "technical_fit_grade": "B_current_official_autonomous_procurement",
+      "price_fit": "1 USDC is proposed only for selected auditable external claims; it does not replace negotiation or sourcing records.",
+      "next_conversion_action": "Get the relevant Merlin product owner and one representative public URL; convert to one paid Capture."
+    },
+    {
+      "target": "Prokuria",
+      "contact": "contact@prokuria.com",
+      "official_contact_source": "https://www.prokuria.com/contact",
+      "current_product_source": "https://www.prokuria.com/about-us",
+      "sent_message_id": "1a0b19239fc6210c",
+      "use_case": "1 USDC public evidence checkpoint before selected AI-assisted RFQ/RFP shortlist, award, supplier-management or purchasing decisions where an external public claim matters.",
+      "commercial_demand_grade": "C_no_external_interest_or_funding_yet",
+      "technical_fit_grade": "B_current_official_AI_sourcing_and_integrations",
+      "price_fit": "1 USDC is scoped to selected sourcing decisions and is not added to every bid evaluation.",
+      "next_conversion_action": "Obtain one real RFx/supplier workflow and public URL, then route to one genuine buyer-paid Capture."
+    }
+  ],
+  "outreach_controls": {
+    "daily_numeric_cap": null,
+    "all_contacts_were_independently_verified_public_official_routes": true,
+    "gmail_domain_dedupe_performed_before_send": true,
+    "duplicate_targets_suppressed_this_run": [
+      "Ivalua",
+      "Bardeen",
+      "Browser Use",
+      "Browserless",
+      "Browserbase",
+      "Hyperbrowser",
+      "Steel",
+      "Keelvar",
+      "Fairmarkit",
+      "Globality",
+      "Arkestro"
+    ],
+    "no_chasing_silence": true,
+    "immediate_new_non_sent_messages_after_outreach": 0,
+    "forms_or_DMs_used": false
+  },
+  "financial_actions": {
+    "listing_fees_paid": false,
+    "new_cash_or_credits_used": false,
+    "wallet_signatures_or_messages": false,
+    "asset_movement": false,
+    "paid_tests": false,
+    "KYC_or_identity_attestation": false,
+    "project_funded_purchase": false
+  },
+  "coordination": {
+    "canonical_repo_state_updated": true,
+    "local_sibling_operator_workspace": "not_accessible_in_this_runtime_not_claimed_synchronized",
+    "new_recurring_loop_created": false,
+    "production_changed": false,
+    "pricing_changed": false
+  }
+}
