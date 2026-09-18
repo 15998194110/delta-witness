@@ -1,0 +1,46 @@
+name: TEMP DELTA revenue reconciliation 20260919-0625
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/tmp-revenue-reconcile-20260919-0625.yml]
+permissions:
+  contents: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v5
+        with: {node-version: '22'}
+      - name: Verify current owner pricing without payment
+        run: node scripts/check-owner-pricing.mjs && node scripts/verify-owner-pricing-live.mjs | tee /tmp/delta-live-pricing.json
+      - name: Audit paid funnel candidates
+        run: node scripts/query-revenue-candidates.mjs | tee /tmp/delta-revenue-candidates.json
+      - name: Scan AgentPact funded buyer demand
+        continue-on-error: true
+        run: node scripts/scan-agentpact-demand.mjs | tee /tmp/delta-agentpact-demand.json
+      - name: Scan Agent Exchange funded buyer demand
+        continue-on-error: true
+        run: node scripts/scan-agentexchange-demand.mjs | tee /tmp/delta-agentexchange-demand.json
+      - name: Scan additional funded demand
+        continue-on-error: true
+        run: node scripts/scan-external-funded-demand.mjs | tee /tmp/delta-external-funded-demand.json
+      - name: Reconcile canonical Base USDC Treasury
+        env:
+          DELTA_TREASURY_LOOKBACK_BLOCKS: '100000'
+          DELTA_TREASURY_CHUNK_BLOCKS: '1900'
+        run: node scripts/reconcile-treasury.mjs | tee /tmp/delta-treasury.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: delta-reconcile-${{ github.run_id }}
+          path: |
+            /tmp/delta-live-pricing.json
+            /tmp/delta-revenue-candidates.json
+            /tmp/delta-agentpact-demand.json
+            /tmp/delta-agentexchange-demand.json
+            /tmp/delta-external-funded-demand.json
+            /tmp/delta-treasury.json
+          retention-days: 7
