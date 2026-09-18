@@ -1,0 +1,145 @@
+{
+  "run_date_jst": "2026-09-18T11:00:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "quantity_shortfall_to_target": 50,
+    "checkpoint_target_in_progress_day": 25,
+    "risk_level": "critical",
+    "deadline_extended": false
+  },
+  "pricing_and_purchase_path": {
+    "checked_at": "2026-09-18T01:55:18.909Z",
+    "policy": "owner-2026-09-10-1-5-10",
+    "ok": true,
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "diagnostic_paid_transactions_generated": 0,
+    "diagnostic_customer_revenue_generated": 0
+  },
+  "treasury_reconciliation": {
+    "checked_at": "2026-09-18T01:55:31.322Z",
+    "start_block": 51383588,
+    "latest_block": 51453587,
+    "lookback_blocks": 70000,
+    "treasury_received_candidates": 0,
+    "canonical_usdc_total_in_range": 0,
+    "unclassified_receipts_in_range": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "scope": "Explicit 70,000-block canonical Base-USDC range only; not an all-time zero assertion."
+  },
+  "paid_funnel": {
+    "fresh_temp_run_status": "not_refreshed",
+    "reason": "The one-shot reconciliation workflow intentionally had no Cloudflare account/token secrets, so query-revenue-candidates could not perform a new paid-funnel audit. Do not treat the empty temporary output as fresh evidence.",
+    "latest_successful_canonical_evidence": {
+      "checked_at": "2026-09-18T00:24:58Z",
+      "candidate_rows": 0,
+      "source": "canonical scheduled discovery pulse / prior 09:45 JST handoff"
+    },
+    "core_failure": false,
+    "next_action": "Use the canonical scheduled pulse, which has the scoped secrets, for the next paid-funnel refresh; do not deploy or expose secrets for this diagnostic."
+  },
+  "buyer_demand": {
+    "agentpact": {
+      "listing_status": "present",
+      "offer_count": 3,
+      "offer_prices_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0,
+      "evidence_quality": "A_official_public_api"
+    },
+    "agentexchange": {
+      "discovery_status": "present",
+      "buyer_count": 1,
+      "external_requests": 2,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "paid_settlements": 0,
+      "evidence_quality": "A_official_market_mcp"
+    },
+    "external_funded_scan": {
+      "checked_at": "2026-09-18T01:55:22.214Z",
+      "adjacent_funded_requests": 20,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false,
+      "notes": "Bountybook, Riner, Agent Bounties, Taskmarket and Clawlancer were checked. Current funded jobs are generic research/code/design or otherwise outside existing DELTA Capture/Preflight/Watch/Pilot fulfillment; several Clawlancer jobs are also below current price. No claim/bid/pitch/signature was made."
+    }
+  },
+  "outreach": {
+    "new_first_contacts": [
+      {
+        "target": "SpecLens",
+        "official_contact": "support@speclens.ai",
+        "official_contact_source": "https://www.speclens.ai/contact",
+        "product_source": "https://www.speclens.ai/",
+        "sent_message_id": "1a0b23c3ce316901",
+        "subject": "SpecLens vendor comparisons: $1 independent public-page evidence before selection",
+        "specific_use_case": "Preserve a timestamped public supplier/product page before a buyer relies on it for a vendor comparison, shortlist or award decision.",
+        "recommended_product": "Public Capture",
+        "price_usdc": 1,
+        "technical_fit_grade": "B",
+        "commercial_demand_grade": "C",
+        "ability_or_willingness_to_pay_evidence": "No DELTA-specific funding or reply yet; procurement platform fit only.",
+        "next_action": "Wait for explicit reply. If they provide one real workflow and representative URL, move directly to one genuine buyer-paid Capture. Do not send another first contact or chase silence.",
+        "immediate_bounce_observed": false
+      },
+      {
+        "target": "Certa",
+        "official_contact": "hello@certa.ai",
+        "official_contact_source": "https://www.certa.ai/faqs",
+        "product_source": "https://www.certa.ai/",
+        "sent_message_id": "1a0b23c5c4aeb152",
+        "subject": "Certa supplier onboarding: $1 public-source evidence before selected approvals",
+        "specific_use_case": "Preserve the public source state behind a supplier product/certification/policy/availability claim before selected onboarding or approval steps.",
+        "recommended_product": "Public Capture",
+        "price_usdc": 1,
+        "technical_fit_grade": "B",
+        "commercial_demand_grade": "C",
+        "ability_or_willingness_to_pay_evidence": "No DELTA-specific funding or reply yet; supplier-onboarding fit only.",
+        "next_action": "Wait for explicit reply. If they provide a real onboarding workflow and public supplier URL, move directly to one genuine buyer-paid Capture. Do not send another first contact or chase silence.",
+        "immediate_bounce_observed": false
+      }
+    ],
+    "new_explicit_integration_intent": 0,
+    "new_customer_settlement": 0,
+    "new_customer_treasury_receipt": 0
+  },
+  "existing_threads": {
+    "robauto_agenthub": "Explicit-interest thread already answered once; wait for reply, no chase.",
+    "outlast": "Blocked by their explicit company-domain sender prerequisite; do not spoof or bypass.",
+    "reap": "Review acknowledgement only; wait for a substantive reply.",
+    "agents_net": "Requested resubmission with a stable human-facing destination. Current resubmission path is a web form and no free programmatic POST contract was established in this run; no metered browser automation or duplicate listing was used."
+  },
+  "financials": {
+    "gross_customer_receipts_usdc": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "known_variable_cost_usdc": null,
+    "recognized_contribution_margin_usdc": null,
+    "unreconciled_customer_amount_usdc": 0,
+    "unknown_costs_are_not_zero": true
+  },
+  "safety_and_coordination": {
+    "local_sibling_operator_workspace": "not_accessible_not_modified",
+    "new_recurring_growth_loop": false,
+    "temporary_reconciliation_workflow_removed_after_readback": true,
+    "new_listing_or_seller_identity_created": false,
+    "fee_paid": false,
+    "wallet_signature_or_asset_movement": false,
+    "production_deployment": false,
+    "private_key_exposed": false
+  }
+}
