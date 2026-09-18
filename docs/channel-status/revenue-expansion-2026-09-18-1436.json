@@ -1,0 +1,129 @@
+{
+  "checked_at_jst": "2026-09-18T14:36:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_buyers": 0,
+    "deadline_extended": false,
+    "checkpoint_status": "materially_behind_internal_targets_but_no_new_customer_settlement"
+  },
+  "new_outreach": [
+    {
+      "target": "Procura",
+      "official_contact": "founders@procura-ai.com",
+      "source": "https://procura-ai.com/",
+      "gmail_message_id": "1a0b2fdc2bdfda44",
+      "use_case": "1 USDC public supplier/price/terms Capture before supplier recommendation or approval, with 5 USDC Public Preflight only where an explicit expected-condition check is needed",
+      "technical_fit": "B",
+      "commercial_demand": "C",
+      "status": "first_contact_sent_no_reply_observed"
+    },
+    {
+      "target": "Eluvium",
+      "official_contact": "contact@eluvium.ai",
+      "source": "https://eluvium.ai/en",
+      "gmail_message_id": "1a0b2fddaca6f3a3",
+      "use_case": "1 USDC public supplier/product/terms/availability Capture immediately before shortlist, approval or award in an agentic sourcing event",
+      "technical_fit": "B",
+      "commercial_demand": "C",
+      "status": "first_contact_sent_no_reply_observed",
+      "current_external_evidence": "Eluvium publicly describes AI agents generating RFQs, engaging suppliers, collecting bids and evaluating terms, with customer sourcing events spanning multiple buyers and suppliers. This supports technical relevance only, not willingness to buy DELTA."
+    },
+    {
+      "target": "ClearQuote",
+      "official_contact": "hello@clearquote.dev",
+      "source": "https://clearquote.dev/",
+      "gmail_message_id": "1a0b2fdf8b1f6bb5",
+      "use_case": "1 USDC public manufacturer/distributor product/spec/availability Capture when quote approval depends on evidence outside the uploaded catalog",
+      "technical_fit": "B",
+      "commercial_demand": "C",
+      "status": "first_contact_sent_no_reply_observed"
+    }
+  ],
+  "reply_and_delivery_check": {
+    "new_human_actionable_reply_since_previous_handoff": false,
+    "robauto_new_reply": false,
+    "outlast_company_domain_blocker_new": false,
+    "reap_status": "review_acknowledgement_only",
+    "spendesk_status": "automated_unmonitored_inbox_response_only",
+    "dealion_delivery": {
+      "status": "hard_bounce_suppress_address",
+      "address": "hello@dealion.io",
+      "evidence": "550 5.1.1 recipient address rejected / undeliverable",
+      "retry_same_address": false,
+      "alternative_contact_guessed": false
+    }
+  },
+  "pricing_verification": {
+    "checked_at": "2026-09-18T05:29:07.965Z",
+    "capture_usdc": 1,
+    "preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "capture_raw": "1000000",
+    "preflight_raw": "5000000",
+    "guarded_raw": "10000000",
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_transactions_generated": 0,
+    "status": "verified"
+  },
+  "agentpact": {
+    "checked_at": "2026-09-18T05:29Z",
+    "seller_present": true,
+    "offer_count": 3,
+    "offer_prices_usdc": [10, 5, 1],
+    "buyer_count": 0,
+    "settlement_count": 0,
+    "external_requests": 16,
+    "delta_native_requests": 0,
+    "funded_compatible_requests": 0,
+    "buyer_funded_deals": 0,
+    "paid_settlements": 0,
+    "treasury_received": 0
+  },
+  "funded_demand": {
+    "checked_at": "2026-09-18T05:29Z",
+    "adjacent_funded_requests": 17,
+    "delta_native_funded_requests": 0,
+    "financial_or_signature_action_taken": false,
+    "notes": "Fresh public scans found funded adjacent work but no request fulfillable by existing DELTA Capture/Preflight/Watch/Pilot under current scope and price rules. No wallet identity, bid fee, claim, signature or pay-to-work action was taken."
+  },
+  "paid_funnel": {
+    "checked_at": "2026-09-18T05:29Z",
+    "candidate_rows": 0
+  },
+  "treasury_reconciliation": {
+    "checked_at": "2026-09-18T05:29:20.309Z",
+    "start_block": 51360002,
+    "latest_block": 51460001,
+    "lookback_blocks": 100000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "total_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "scope_note": "This proves only the stated 100000-block range; it is not an all-time zero assertion."
+  },
+  "revenue": {
+    "new_genuine_external_paid_settlement": false,
+    "new_genuine_customer_treasury_receipt": false,
+    "recognized_customer_revenue_usdc": 0,
+    "known_variable_cost_usdc": null,
+    "contribution_margin_usdc": null
+  },
+  "operator_workspace": {
+    "canonical_sibling_workspace_accessible_in_this_run": false,
+    "claim_of_sync": false
+  },
+  "cleanup": {
+    "one_shot_workflow_removed": true,
+    "workflow_run_id": 35310965591,
+    "financial_actions_taken": false,
+    "wallet_signatures_taken": false,
+    "new_seller_identity_created": false,
+    "production_deployment": false
+  },
+  "notification_decision": "silent_no_new_material_threshold_crossed"
+}
