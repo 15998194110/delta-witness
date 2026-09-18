@@ -1,0 +1,18 @@
+name: TEMP AgentPact need readback 20260918
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/tmp-agentpact-need-readback-20260918.yml]
+permissions:
+  contents: read
+jobs:
+  readback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read one potentially compatible need
+        run: |
+          set -e
+          curl -fsS --connect-timeout 8 --max-time 20 --retry 2 --retry-delay 1 --retry-all-errors \
+            'https://api.agentpact.xyz/api/needs/02cd45a5-c376-4452-859b-0ef2c2aad3be' \
+            | python -m json.tool
