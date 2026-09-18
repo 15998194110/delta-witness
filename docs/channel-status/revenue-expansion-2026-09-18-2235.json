@@ -1,0 +1,104 @@
+{
+  "checked_at_jst": "2026-09-18T22:35:11+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "status": "materially_at_risk_no_new_alert"
+  },
+  "reconciliation": {
+    "run_id": 35351039659,
+    "pricing_checked_at": "2026-09-18T13:34:56.699Z",
+    "pricing_verified": true,
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "treasury_checked_at": "2026-09-18T13:35:11.685Z",
+    "start_block": 51374577,
+    "latest_block": 51474576,
+    "lookback_blocks": 100000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "paid_funnel_candidate_rows": 0,
+    "agentpact_offer_count": 3,
+    "agentpact_buyer_count": 0,
+    "agentpact_settlement_count": 0,
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_requests": 0,
+    "agentpact_funded_compatible_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "external_adjacent_funded_requests": 16,
+    "external_delta_native_funded_requests": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "scope_note": "Direct canonical-USDC explicit-range evidence only; not an all-time-zero claim. Unknown costs remain unknown, not zero. Public pricing verification generated no paid transaction."
+  },
+  "reply_updates": {
+    "new_inbound_since_2204_jst": 0,
+    "robauto_agenthub": "explicit-interest thread already answered; still waiting for one real workflow/public URL; do not chase silence",
+    "outlast_ai": "still blocked on request for genuine company-domain sender; do not spoof or bypass",
+    "reap": "explicit rejection remains suppressed"
+  },
+  "new_first_contacts": [
+    {
+      "target": "Aigorai",
+      "official_public_contact": "info@aigorai.com",
+      "contact_evidence": "https://aigorai.com/autonomous/",
+      "message_id": "1a0b4b97a61584ff",
+      "use_case": "one independent public supplier/product-page Capture immediately before recommendation/approval where published price, availability, specification, certification or policy materially affects the sourcing decision",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for a specified public-page condition",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; require one representative public URL and a real approval boundary before attempting one genuine buyer-authorized paid Capture"
+    },
+    {
+      "target": "SupplyScout",
+      "official_public_contact": "support@supplyscout.ai",
+      "contact_evidence": "https://supplyscout.ai/",
+      "message_id": "1a0b4b9a78d7cdc5",
+      "use_case": "public distributor/supplier-page evidence before a buyer-approved reorder or vendor-switch action",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_buyer_interest",
+      "delivery_state": "hard_delivery_failure_554_5_7_1_relay_access_denied",
+      "bounce_message_id": "1a0b4b9b327234ba",
+      "suppression": "suppress exact address; do not retry or guess an alternate private address",
+      "next_action": "only use a separately verified official business contact route if found in a later run; do not treat bounce as buyer rejection or revenue"
+    },
+    {
+      "target": "bidZ.ai / Teckost",
+      "official_public_contact": "info@teckost.com",
+      "contact_evidence": "https://www.bidz.ai/",
+      "message_id": "1a0b4b9ceaef130a",
+      "use_case": "one independent public supplier-page evidence checkpoint before shortlist, vendor approval or PO action when published availability, specification, certification, list pricing or policy materially affects the decision",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for a specified public-page condition",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; require one representative public URL and actual sourcing/PO decision boundary before any paid test"
+    }
+  ],
+  "delivery_check": {
+    "aigorai": "sent; no immediate bounce observed",
+    "bidz_teckost": "sent; no immediate bounce observed",
+    "supplyscout": "failed with 554 5.7.1 Relay access denied"
+  },
+  "coordination": {
+    "canonical_operator_workspace": "运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json and data/pipeline.json",
+    "local_sibling_workspace_access": "not available in this tool run; not claimed synchronized",
+    "temporary_reconciliation_workflow_removed": true,
+    "new_seller_identity_created": false,
+    "new_listing_created": false,
+    "wallet_signature_or_message": false,
+    "asset_movement": false,
+    "fee_or_paid_test": false,
+    "kyc_or_legal_commitment": false,
+    "duplicate_first_contact": false
+  }
+}
