@@ -1,0 +1,139 @@
+{
+  "checked_at": "2026-09-18T18:05:00Z",
+  "run_date_jst": "2026-09-19",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_independent_buyers": 0,
+    "gross_verified_customer_receipts_usdc": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "known_variable_cost_usdc": null,
+    "known_contribution_margin_usdc": null,
+    "risk": "material_shortfall_risk; no repeatable paid path established yet"
+  },
+  "reconciliation": {
+    "workflow_run_id": 35377491745,
+    "price_checked_at": "2026-09-18T17:59:00.008Z",
+    "live_public_prices": {
+      "capture_usdc": 1,
+      "public_preflight_usdc": 5,
+      "guarded_action_pilot_usdc": 10
+    },
+    "live_public_402_raw": {
+      "capture": "1000000",
+      "preflight": "5000000",
+      "guarded_action_pilot": "10000000"
+    },
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_funnel_candidates": 0,
+    "agentpact_external_requests": 16,
+    "agentpact_funded_compatible_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "agentexchange_external_requests": 2,
+    "agentexchange_funded_compatible_requests": 0,
+    "adjacent_external_funded_requests": 14,
+    "delta_native_external_funded_requests": 0,
+    "treasury_checked_at": "2026-09-18T17:59:12.158Z",
+    "treasury_start_block": 51382499,
+    "treasury_latest_block": 51482498,
+    "treasury_lookback_blocks": 100000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log; one transient Base RPC 429 recovered without coverage gap",
+    "scope_note": "Block-range evidence only; it does not assert an all-time zero balance. Unknown costs are not zero."
+  },
+  "buyer_conversion_actions": [
+    {
+      "target": "QuanticData",
+      "official_contact": "hello@quanticdata.io",
+      "official_surface": "https://quanticdata.io/",
+      "status": "personalized_first_contact_sent",
+      "gmail_message_id": "1a0b5ad32a8c1de7",
+      "specific_use_case": "Independent 1 USDC public source-state Capture immediately before a customer acts on a public price/availability signal; 5 USDC Preflight only for an explicit public-page condition.",
+      "technical_fit": "B_high",
+      "commercial_demand": "C_no_reply_or_funding_yet",
+      "next_action": "Wait for explicit response; if interested, require one real workflow and representative public URL before any broader integration. No silence follow-up."
+    },
+    {
+      "target": "Prefero",
+      "official_contact": "hello@prefero.me",
+      "official_surface": "https://prefero.me/",
+      "status": "personalized_first_contact_sent",
+      "gmail_message_id": "1a0b5ad7cdcc1e8b",
+      "specific_use_case": "Independent public-source Capture before a high-consequence MCP write such as repricing, supplier selection, purchase approval or order action that depends on public web state.",
+      "technical_fit": "B_high",
+      "commercial_demand": "C_no_reply_or_funding_yet",
+      "next_action": "Wait for explicit response and ask for one client workflow plus public URL. No silence follow-up."
+    },
+    {
+      "target": "AgentChain",
+      "official_contact": "sales@agentchain.com",
+      "official_surface": "https://www.agentchain.tools/",
+      "status": "personalized_first_contact_sent",
+      "gmail_message_id": "1a0b5b09cdfd5970",
+      "specific_use_case": "1 USDC public supplier-page evidence checkpoint before selected autonomous PO or sourcing actions driven by public price, lead-time, availability, MOQ or policy facts.",
+      "technical_fit": "B_high",
+      "commercial_demand": "C_no_reply_or_funding_yet",
+      "next_action": "Wait for explicit interest; request one production workflow and representative public supplier URL before any integration work."
+    },
+    {
+      "target": "Waybill",
+      "official_contact": "rishi@waybill.to",
+      "official_surface": "https://www.ycombinator.com/companies/waybill",
+      "status": "personalized_first_contact_sent",
+      "gmail_message_id": "1a0b5b0b8e078400",
+      "specific_use_case": "1 USDC independent public supplier/product-page Capture before an audit-sensitive hardware procurement based on public price, stock, lead time, MOQ or terms.",
+      "technical_fit": "B_high",
+      "commercial_demand": "C_no_reply_or_funding_yet",
+      "next_action": "Wait for explicit response; require one actual procurement workflow and representative public URL for a genuine paid first Capture."
+    },
+    {
+      "target": "Agora Gateway",
+      "official_contact": "info@agoragateway.com",
+      "official_surface": "https://www.agoragateway.com/",
+      "status": "personalized_first_contact_sent",
+      "gmail_message_id": "1a0b5b0db921273a",
+      "specific_use_case": "Optional 1 USDC source-state receipt immediately before a consequential AI buying-agent checkout action that depends on public product price, availability, shipping or returns terms.",
+      "technical_fit": "B_high",
+      "commercial_demand": "C_no_reply_or_funding_yet",
+      "next_action": "Wait for explicit response; seek one current merchant/buyer workflow and representative public URL."
+    }
+  ],
+  "agents_net": {
+    "prior_action_needed_email_id": "1a0b5998f4deb50b",
+    "prior_issue": "workers.dev destination rejected as ephemeral/dev host; human-facing stable HTTPS destination required",
+    "official_submission_api": "https://agents.net/api/agents/submit",
+    "pricing_gate_passed_before_write": true,
+    "pre_write_approved_search_found_delta": false,
+    "resubmission_status": "accepted_for_review",
+    "submission_id": 243,
+    "submitted_destination": "https://github.com/15998194110/delta-witness",
+    "category": "Operations",
+    "confirmation_email_id": "1a0b5afa4100012a",
+    "confirmation_subject": "We received your agent submission: DELTA Witness",
+    "listing_status": "in_review_not_yet_approved",
+    "count_as_sprint_result": false,
+    "note": "HTTP 200 response reported success despite local temporary workflow expecting 201; confirmation email independently verifies submission #243. No duplicate approved listing was found before write."
+  },
+  "recoverable_blockers": {
+    "tinyfish_browser_automation": {
+      "status": "blocked_pending_user_funded_tool_balance",
+      "observed_balance_usd": -0.088,
+      "minimum_top_up_usd": 10,
+      "financial_action_taken": false,
+      "impact": "Official web-form-only workflows such as Bold Commerce cannot be autonomously completed through this browser tool until funded; email/API/GitHub/Treasury paths remain available."
+    }
+  },
+  "coordination": {
+    "temporary_revenue_workflow_removed": true,
+    "temporary_agentsnet_workflow_removed": true,
+    "local_sibling_operator_workspace": "not_accessible_not_modified",
+    "new_recurring_growth_loop_created": false,
+    "wallet_signature_or_asset_movement": false,
+    "paid_listing_or_paid_test": false
+  }
+}
