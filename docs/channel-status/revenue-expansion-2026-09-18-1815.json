@@ -1,0 +1,138 @@
+{
+  "checked_at_jst": "2026-09-18T18:18:10+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "status": "materially_at_risk_already_recorded_no_repeat_notification"
+  },
+  "pricing_integrity": {
+    "checked_at": "2026-09-18T09:17:50.472Z",
+    "public_capture_usdc": 1,
+    "public_capture_raw": "1000000",
+    "public_preflight_usdc": 5,
+    "public_preflight_raw": "5000000",
+    "guarded_action_pilot_usdc": 10,
+    "guarded_action_pilot_raw": "10000000",
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "public_live_check": "passed",
+    "paid_transactions_generated_by_check": 0
+  },
+  "reconciliation": {
+    "workflow_run_id": 35328776886,
+    "paid_funnel_candidate_rows": 0,
+    "treasury_checked_at": "2026-09-18T09:18:06.286Z",
+    "treasury_start_block": 51366864,
+    "treasury_latest_block": 51466863,
+    "treasury_lookback_blocks": 100000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "new_verified_customer_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "evidence_scope": "direct canonical Base USDC logs in stated block range plus current DELTA telemetry; does not assert all-time zero or unknown costs are zero"
+  },
+  "funded_demand": {
+    "agentpact_offer_count": 3,
+    "agentpact_prices_usdc": [1, 5, 10],
+    "agentpact_buyer_count": 0,
+    "agentpact_settlement_count": 0,
+    "agentpact_external_requests": 16,
+    "delta_native_funded_requests": 0,
+    "external_adjacent_funded_requests": 17,
+    "external_delta_native_funded_requests": 0,
+    "financial_or_signature_action_taken": false
+  },
+  "inbound_threads": [
+    {
+      "target": "Reap",
+      "result": "explicit_rejection",
+      "action": "suppressed_no_reply_no_chase",
+      "message_id": "1a0b3b34a262b7bc"
+    },
+    {
+      "target": "Outlast AI",
+      "result": "existing_company_domain_sender_requirement",
+      "action": "blocked_without_fabricating_sender; no_repeat_notification"
+    },
+    {
+      "target": "Robauto / AgentHub",
+      "result": "existing_explicit_interest_already_answered",
+      "action": "waiting_for_real_workflow_and_public_url; no_silence_chase"
+    }
+  ],
+  "new_outreach": [
+    {
+      "target": "Serafim Tech",
+      "official_contact": "hello@serafimtech.io",
+      "official_source": "https://serafimtech.io/",
+      "sent_message_id": "1a0b3d0c2aaba4a1",
+      "specific_use_case": "1 USDC public product/availability/returns/policy Capture immediately before a UCP/MCP agent commits a purchase; 5 USDC Preflight only for a specified public condition",
+      "technical_fit": "B_high",
+      "commercial_demand": "C_no_explicit_DELTA_interest_or_funding_yet",
+      "ability_or_willingness_evidence": "operating UK company selling agentic-commerce advisory/capabilities; no evidence yet of willingness to purchase DELTA",
+      "why_current_price_fits": "proposal is limited to selected consequential checkout checkpoints rather than every query; one paid 1 USDC Capture is the minimum validation",
+      "next_action": "only advance on reply or genuine paid call; no silence chase",
+      "delivery_state": "sent_no_immediate_bounce_observed"
+    },
+    {
+      "target": "Katu.ai",
+      "official_contact": "contato@katu.ai",
+      "official_source": "https://www.katu.ai/",
+      "sent_message_id": "1a0b3d0df861bccd",
+      "specific_use_case": "public price/availability/policy evidence before autonomous B2C checkout or B2B settlement",
+      "technical_fit": "B_high",
+      "commercial_demand": "C_no_explicit_DELTA_interest_or_funding",
+      "ability_or_willingness_evidence": "publicly describes autonomous purchasing/settlement, but no verified DELTA buying intent",
+      "why_current_price_fits": "1 USDC proposed only for selected commitment points",
+      "next_action": "none unless a valid official route appears independently; do not guess replacement address",
+      "delivery_state": "hard_bounce_domain_has_no_mail_exchange"
+    },
+    {
+      "target": "Vouch",
+      "official_contact": "hello@vouch.ai",
+      "official_source": "https://tryvouch.app/",
+      "sent_message_id": "1a0b3d1012125698",
+      "specific_use_case": "complement agent identity/authorization verification with independent public product/policy source evidence before checkout",
+      "technical_fit": "B_high",
+      "commercial_demand": "C_no_explicit_DELTA_interest_or_funding",
+      "ability_or_willingness_evidence": "commercial paid verification product, but no verified DELTA buying intent",
+      "why_current_price_fits": "1 USDC Capture only for selected audit-sensitive orders",
+      "next_action": "none unless a valid official route appears independently; do not guess replacement address",
+      "delivery_state": "hard_bounce_domain_has_no_mail_exchange"
+    },
+    {
+      "target": "Mearch",
+      "official_contact": "contact@mearch.ai",
+      "official_source": "https://www.mearch.ai/",
+      "sent_message_id": "1a0b3d1c3d2ccd04",
+      "specific_use_case": "retain public product/policy source evidence used by a shopping agent immediately before checkout handoff",
+      "technical_fit": "B_medium_high",
+      "commercial_demand": "C_no_explicit_DELTA_interest_or_funding_yet",
+      "ability_or_willingness_evidence": "paid merchant AI-shopping product with live ecommerce integrations; no evidence yet of willingness to purchase DELTA",
+      "why_current_price_fits": "one 1 USDC Capture is proposed for selected evidence-sensitive merchant workflows, not every recommendation",
+      "next_action": "only advance on reply or genuine paid call; no silence chase",
+      "delivery_state": "sent_no_immediate_bounce_observed"
+    }
+  ],
+  "other_delivery_state": {
+    "agentlancer": "temporary_delivery_delay; Gmail retrying; do not duplicate",
+    "autonoma_exact_contact": "hard_bounce_suppressed",
+    "aigrouppro_exact_contact": "hard_bounce_suppressed",
+    "getyuka_exact_contact": "hard_bounce_suppressed"
+  },
+  "operator_boundaries": {
+    "new_cash_spent": 0,
+    "wallet_signatures": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "kyc_or_legal_commitment": false,
+    "duplicate_first_contacts_intentionally_sent": 0,
+    "local_sibling_operator_workspace": "not_accessible_not_claimed_synchronized"
+  }
+}
