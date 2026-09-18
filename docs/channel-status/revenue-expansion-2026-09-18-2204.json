@@ -1,0 +1,99 @@
+{
+  "checked_at_jst": "2026-09-18T22:04:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "status": "materially_at_risk_no_new_alert"
+  },
+  "reconciliation": {
+    "treasury_run_id": 35347775194,
+    "treasury_checked_at": "2026-09-18T13:01:16.303Z",
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "start_block": 51403563,
+    "latest_block": 51473562,
+    "lookback_blocks": 70000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "pricing_integrity": "owner pricing checks and live public pricing verifier passed in the temporary reconciliation workflow; no payment, deployment or price-bearing listing write occurred",
+    "latest_canonical_pulse_run_id": 35339386834,
+    "latest_canonical_pulse_completed_at": "2026-09-18T11:23:48Z",
+    "paid_funnel_candidate_rows": 0,
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_requests": 0,
+    "agentpact_funded_compatible_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "external_adjacent_funded_requests": 15,
+    "external_delta_native_funded_requests": 0,
+    "scope_note": "Treasury is direct canonical-USDC explicit-range evidence only, not an all-time-zero claim. Funded-demand and paid-funnel fields reuse the canonical pulse completed about 1.6 hours before this run; no newer compatible demand or settlement evidence was observed. Unknown costs remain unknown, not zero."
+  },
+  "reply_updates": [
+    {
+      "target": "Reap",
+      "state": "explicit_rejection_already_recorded_in_2043_handoff",
+      "action": "suppress; no reply or follow-up"
+    },
+    {
+      "target": "Robauto / AgentHub",
+      "state": "explicit interest thread already answered; no new reply in this run",
+      "action": "do not chase silence"
+    },
+    {
+      "target": "Outlast AI",
+      "state": "still blocked on genuine company-domain sender request",
+      "action": "do not spoof or bypass"
+    }
+  ],
+  "new_first_contacts": [
+    {
+      "target": "Mercanis",
+      "official_public_contact": "sales@mercanis.com",
+      "contact_evidence": "https://www.mercanis.com/imprint",
+      "workflow_evidence": "https://www.mercanis.com/blog/guide-ai-in-procurement",
+      "message_id": "1a0b499eea007419",
+      "use_case": "one independent public supplier-page Capture immediately before a Quick RFQ shortlist, negotiation step or award action when published availability, commercial terms, specification, certification or list pricing materially influences the decision",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for a specified public-page condition",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; require one representative public URL and a real RFQ/decision boundary before attempting one genuine buyer-authorized paid Capture"
+    },
+    {
+      "target": "Focal Point",
+      "official_public_contact": "hello@getfocalpoint.com",
+      "contact_evidence": "https://www.getfocalpoint.com/privacy-policy/",
+      "workflow_evidence": "https://www.getfocalpoint.com/agentic-ai/",
+      "message_id": "1a0b49a1db4c943b",
+      "use_case": "one independent public supplier/product/policy evidence checkpoint before a consequential AI-assisted intake, sourcing, contract or supplier decision",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit expected condition",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; ask for one current workflow and representative public URL before any broader integration"
+    }
+  ],
+  "delivery_check": {
+    "immediate_bounce_search": "no bounce observed for Mercanis or Focal Point immediately after send",
+    "interpretation": "delivery evidence only; not buyer interest"
+  },
+  "directory_maintenance": {
+    "agents_net": "request to resubmit with a stable human-facing destination remains a listing-maintenance item; not prioritized over buyer conversion in this run and not counted as a sprint result"
+  },
+  "coordination": {
+    "canonical_operator_workspace": "运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json and data/pipeline.json",
+    "local_sibling_workspace_access": "not available in this tool run; not claimed synchronized",
+    "new_seller_identity_created": false,
+    "new_listing_created": false,
+    "wallet_signature_or_message": false,
+    "asset_movement": false,
+    "fee_or_paid_test": false,
+    "kyc_or_legal_commitment": false,
+    "duplicate_first_contact": false
+  }
+}
