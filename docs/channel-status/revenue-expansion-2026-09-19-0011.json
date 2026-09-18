@@ -1,0 +1,140 @@
+{
+  "checked_at_jst": "2026-09-19T00:11:26+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "status": "materially_at_risk_no_new_alert"
+  },
+  "reconciliation": {
+    "run_id": 35360847353,
+    "pricing_checked_at": "2026-09-18T15:11:11.973Z",
+    "pricing_verified": true,
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "treasury_checked_at": "2026-09-18T15:11:26.351Z",
+    "start_block": 51377465,
+    "latest_block": 51477464,
+    "lookback_blocks": 100000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "paid_funnel_candidate_rows": 0,
+    "agentpact_offer_count": 3,
+    "agentpact_buyer_count": 0,
+    "agentpact_settlement_count": 0,
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_requests": 0,
+    "agentpact_funded_compatible_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "external_adjacent_funded_requests": 16,
+    "external_delta_native_funded_requests": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "scope_note": "Direct canonical-USDC explicit-range evidence only; not an all-time-zero claim. Unknown costs remain unknown. Pricing checks were diagnostic-only and generated no paid transaction. Partner scoped-secret surfaces were not verified by the public pricing diagnostic."
+  },
+  "reply_updates": {
+    "gmail_query": "after:1789741272 -from:ruphussten85@gmail.com -in:sent -in:trash -in:spam",
+    "new_inbound_since_previous_handoff": 0,
+    "robauto_agenthub": "explicit-interest thread already answered; still waiting for one real workflow/public URL; do not chase silence",
+    "outlast_ai": "still blocked on request for genuine company-domain sender; do not spoof or bypass",
+    "reap": "explicit rejection remains suppressed"
+  },
+  "new_first_contacts": [
+    {
+      "target": "Envoy",
+      "official_public_contact": "info@envoyhq.com",
+      "contact_evidence": "https://www.envoyhq.com/ public site listed info@envoyhq.com and described buyer-assistant/orchestration procurement workflows",
+      "message_id": "1a0b512ee4ac269c",
+      "delivery_status": "hard_bounce_550_5_1_1",
+      "bounce_message_id": "1a0b512f990d25c4",
+      "suppression": "suppress exact address and target from further email first-contact attempts unless a new independently verified official route appears; do not guess alternatives",
+      "use_case": "one public supplier/product-page Capture before a buyer-assistant advances a procurement decision where public source state materially influenced the action",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for a specified page-state condition",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_buyer_interest; delivery_failed"
+    },
+    {
+      "target": "ForgeNeura",
+      "official_public_contact": "hello@forgeneura.com",
+      "contact_evidence": "https://forgeneura.com/ public Get in Touch section",
+      "message_id": "1a0b51323e7fb468",
+      "delivery_status": "sent_no_immediate_bounce_observed",
+      "use_case": "one independent public supplier/tender/specification-page Capture immediately before human-approved RFQ, bid or procurement action; store proof beside ForgeNeura proof-ledger record",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for a specified public-page condition",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; require one representative public URL and approval boundary before any genuine paid Capture"
+    },
+    {
+      "target": "Concourse",
+      "official_public_contact": "hello@concourse.co",
+      "contact_evidence": "https://www.concourse.co/insights/ai-agents-procurement public page explicitly invites contact at hello@concourse.co",
+      "message_id": "1a0b513c5406366b",
+      "delivery_status": "sent_no_immediate_bounce_observed",
+      "use_case": "one public vendor/product/terms-page Capture before a finance/procurement agent takes a consequential vendor, PO or contract-adjacent action influenced by external web evidence",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for a specified public-page condition",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; require one current customer workflow and representative public URL"
+    },
+    {
+      "target": "Molecule One",
+      "official_public_contact": "hello@moleculeone.ai",
+      "contact_evidence": "https://moleculeone.ai/ public site footer/contact route",
+      "message_id": "1a0b513ff5126c9a",
+      "delivery_status": "sent_no_immediate_bounce_observed",
+      "use_case": "one independent public supplier/benchmark/certification/policy-page Capture before a shortlist or award recommendation in source-bound strategic sourcing",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for a specified public-page condition",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; require one live sourcing workflow, public URL and decision boundary"
+    },
+    {
+      "target": "ManoloAI",
+      "official_public_contact": "sales@manoloai.com",
+      "contact_evidence": "https://www.manoloai.com/ public site lists sales@manoloai.com and autonomous procurement/sourcing workflows",
+      "message_id": "1a0b514ea60e0b9e",
+      "delivery_status": "sent_no_immediate_bounce_observed",
+      "use_case": "one public supplier/market/specification-page Capture immediately before an autonomous procurement recommendation or action boundary",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for a specified public-page condition",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; require one current procurement workflow, representative public URL and action boundary"
+    }
+  ],
+  "delivery_check": {
+    "query": "newer_than:1h from:mailer-daemon@googlemail.com {\"info@envoyhq.com\" \"hello@forgeneura.com\" \"hello@concourse.co\" \"hello@moleculeone.ai\" \"sales@manoloai.com\"}",
+    "hard_bounces_observed": 1,
+    "hard_bounced_target": "Envoy",
+    "note": "Absence of an immediate bounce for other contacts is not buyer intent and does not prove eventual delivery."
+  },
+  "funded_demand_disposition": {
+    "total_adjacent_funded_requests": 16,
+    "total_delta_native_funded_requests": 0,
+    "agentpact": "16 external requests observed; none DELTA-native or buyer-funded compatible",
+    "taskmarket": "funded adjacent tasks observed but current public tasks are custom research/build work rather than existing DELTA Capture/Preflight fulfillment; worker entry can require wallet/signature and paid pitch actions, so no mutation taken",
+    "clawlancer": "3 funded adjacent bounties remain below current 1 USDC entry floor and are not DELTA-native",
+    "financial_or_signature_action_taken": false
+  },
+  "coordination": {
+    "canonical_operator_workspace": "运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json and data/pipeline.json",
+    "local_sibling_workspace_access": "not available in this tool run; not claimed synchronized",
+    "temporary_reconciliation_workflow": "removed after successful evidence capture",
+    "new_seller_identity_created": false,
+    "new_listing_created": false,
+    "wallet_signature_or_message": false,
+    "asset_movement": false,
+    "fee_or_paid_test": false,
+    "kyc_or_legal_commitment": false,
+    "duplicate_first_contact": false
+  }
+}
