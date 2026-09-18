@@ -1,0 +1,106 @@
+{
+  "checked_at_jst": "2026-09-18T12:45:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_buyers": 0,
+    "deadline_extended": false
+  },
+  "new_outreach": [
+    {
+      "target": "Dealion",
+      "official_contact": "hello@dealion.io",
+      "source": "https://dealion.io/",
+      "gmail_message_id": "1a0b29a5b76b4f7b",
+      "use_case": "1 USDC public supplier-page Capture before shortlist, negotiation or award decision",
+      "technical_fit": "B",
+      "commercial_demand": "C",
+      "status": "first_contact_sent_no_reply_observed"
+    },
+    {
+      "target": "PurveO",
+      "official_contact": "hello@wheelsontech.com",
+      "source": "https://www.purveo.ai/contact",
+      "gmail_message_id": "1a0b29a72482c7c8",
+      "use_case": "1 USDC public supplier/product/certification Capture before approval or PO creation",
+      "technical_fit": "B",
+      "commercial_demand": "C",
+      "status": "first_contact_sent_no_reply_observed"
+    },
+    {
+      "target": "HelloProcure / Meru Fintech",
+      "official_contact": "hello@merufintech.com",
+      "source": "https://procure.hellobooks.ai/",
+      "gmail_message_id": "1a0b29a8940830a6",
+      "use_case": "1 USDC public supplier evidence checkpoint before vendor selection or one-click PO release",
+      "technical_fit": "B",
+      "commercial_demand": "C",
+      "status": "first_contact_sent_no_reply_observed"
+    }
+  ],
+  "reply_check": {
+    "new_human_actionable_reply_since_midnight_jst": false,
+    "known_outlast_company_domain_blocker_renotified": false,
+    "known_robauto_interest_new_reply": false
+  },
+  "pricing_verification": {
+    "checked_at": "2026-09-18T03:41:40.054Z",
+    "capture_usdc": 1,
+    "preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "capture_raw": "1000000",
+    "preflight_raw": "5000000",
+    "guarded_raw": "10000000",
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_transactions_generated": 0,
+    "status": "verified"
+  },
+  "agentpact": {
+    "checked_at": "2026-09-18T03:41:40Z",
+    "seller_present": true,
+    "offer_count": 3,
+    "offer_prices_usdc": [10, 5, 1],
+    "buyer_count": 0,
+    "settlement_count": 0,
+    "external_requests": 16,
+    "delta_native_requests": 0,
+    "funded_compatible_requests": 0,
+    "buyer_funded_deals": 0,
+    "paid_settlements": 0,
+    "treasury_received": 0
+  },
+  "funded_demand": {
+    "checked_at": "2026-09-18T03:41:41.703Z",
+    "adjacent_funded_requests": 21,
+    "delta_native_funded_requests": 0,
+    "financial_or_signature_action_taken": false,
+    "notes": "Bountybook, Taskmarket and Clawlancer have funded adjacent work but none is fulfillable by existing DELTA Capture/Preflight/Watch/Pilot under the current product scope and price rules."
+  },
+  "treasury_reconciliation": {
+    "checked_at": "2026-09-18T03:41:50.667Z",
+    "start_block": 51356778,
+    "latest_block": 51456777,
+    "lookback_blocks": 100000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "total_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "scope_note": "This proves only the stated 100000-block range; it is not an all-time zero assertion."
+  },
+  "revenue": {
+    "new_genuine_external_paid_settlement": false,
+    "new_genuine_customer_treasury_receipt": false,
+    "recognized_customer_revenue_usdc": 0,
+    "known_variable_cost_usdc": null,
+    "contribution_margin_usdc": null
+  },
+  "operator_workspace": {
+    "canonical_sibling_workspace_accessible_in_this_run": false,
+    "claim_of_sync": false
+  },
+  "notification_decision": "silent_no_material_threshold_crossed"
+}
