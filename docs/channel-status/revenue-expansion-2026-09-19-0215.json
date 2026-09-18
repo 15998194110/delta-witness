@@ -1,0 +1,153 @@
+{
+  "handoff_time_jst": "2026-09-19T02:15:37+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "deadline_extended": false
+  },
+  "pricing_authority": {
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+  },
+  "fresh_canonical_evidence": {
+    "discovery_pulse_run_id": 35368784865,
+    "completed_at_utc": "2026-09-18T16:29:59Z",
+    "workflow_conclusion": "success",
+    "treasury_checked_at_utc": "2026-09-18T16:29:55.963Z",
+    "treasury_start_block": 51429823,
+    "treasury_latest_block": 51479822,
+    "treasury_lookback_blocks": 50000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "paid_funnel_candidate_rows": 0,
+    "agentpact": {
+      "canonical_offers_active": ["Capture1", "PublicPreflight5", "GuardedPilot10"],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "agentexchange": {
+      "external_requests": 2,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0
+    },
+    "external_funded_demand": {
+      "adjacent_funded_requests": 15,
+      "delta_native_funded_requests": 0,
+      "notes": "Taskmarket rows were custom build/benchmark work and require wallet/signature or paid participation; Clawlancer bounties were 0.01-0.03 USDC and non-native/price-incompatible; MoltJobs and WorkPnP yielded no current DELTA-native funded work; PayanAgent remained recoverably degraded. No claim, bid, wallet signature, fee or financial mutation was made."
+    },
+    "evidence_scope": "Explicit block-range and telemetry evidence only; does not assert all-time zero revenue. Unknown variable costs and contribution margin remain unknown/null."
+  },
+  "broader_treasury_crosscheck": {
+    "workflow_run_id": 35366127713,
+    "checked_at_utc": "2026-09-18T16:03:31.071Z",
+    "start_block": 51379027,
+    "latest_block": 51479026,
+    "lookback_blocks": 100000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0
+  },
+  "reply_state": {
+    "robauto_agenthub": {
+      "status": "explicit_interest_already_answered_waiting",
+      "new_reply_this_run": false,
+      "next_action": "Wait for one real workflow/public URL; do not chase silence."
+    },
+    "outlast_ai": {
+      "status": "blocked_by_company_domain_sender_request",
+      "new_reply_this_run": false,
+      "next_action": "Do not spoof or guess a company-domain sender. Resume only from a genuine company-domain account."
+    },
+    "reap": {
+      "status": "explicit_rejection_stop",
+      "reply_received_at_utc": "2026-09-18T08:47:44Z",
+      "summary": "Reap reviewed DELTA internally and said it is not a fit at this time and does not solve a current workflow gap.",
+      "next_action": "Stop outreach; no follow-up unless Reap initiates materially new inbound interest."
+    }
+  },
+  "new_first_contacts_this_run": [
+    {
+      "target": "Aserira",
+      "official_contact": "support@aserira.com",
+      "official_surface": "https://aserira.com/",
+      "specific_use_case": "Independent public supplier-page evidence immediately before supplier advancement, approval or PO action in an AI-native source-to-pay workflow.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only when a specified public-page condition needs checking.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "status": "sent_waiting",
+      "duplicate_check": "No prior Gmail/operator contact found for aserira.com before send.",
+      "next_action": "Wait for explicit interest or a representative public supplier URL; do not chase silence."
+    },
+    {
+      "target": "Claudery AI",
+      "official_contact": "human@claudery.ai",
+      "official_surface": "https://claudery.ai/",
+      "specific_use_case": "Independent evidence checkpoint before a shopping/merchant agent converts public product, price, availability or policy information into checkout or a downstream supplier PO.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight for explicit public-page condition checks.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "status": "sent_waiting",
+      "duplicate_check": "No prior Gmail/operator contact found for claudery.ai before send.",
+      "next_action": "Wait for a real workflow/public URL; do not chase silence."
+    },
+    {
+      "target": "ProEnergy Supply / IVAN",
+      "official_contact": "info@proenergysupply.com",
+      "official_surface": "https://proenergysupply.com/",
+      "specific_use_case": "Independent evidence only for genuinely public manufacturer/distributor inputs before IVAN procurement routing, while explicitly excluding sovereign pricing, SPA, rebate, credit-line and other closed-loop private intelligence.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight where an explicit public-page condition gates action.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "status": "sent_waiting",
+      "duplicate_check": "No prior Gmail/operator contact found for proenergysupply.com before send.",
+      "next_action": "Wait for one current public-source workflow and URL; do not chase silence."
+    }
+  ],
+  "new_suppressions_observed_since_prior_repository_handoff": [
+    {"target_or_address": "info@envoyhq.com", "reason": "550 5.1.1 address does not exist"},
+    {"target_or_address": "support@supplyscout.ai", "reason": "554 5.7.1 relay access denied"},
+    {"target_or_address": "sales@argus.dev", "reason": "domain/MX delivery failure"},
+    {"target_or_address": "hello@vouch.ai", "reason": "domain/MX delivery failure"},
+    {"target_or_address": "contato@katu.ai", "reason": "domain/MX delivery failure"},
+    {"target_or_address": "cm@autonoma.pro", "reason": "address not found"},
+    {"target_or_address": "channels@aigrouppro.com", "reason": "recipient could not be verified"},
+    {"target_or_address": "hello@getyuka.com", "reason": "554 5.7.1 relay access denied"},
+    {"target_or_address": "founders@procura-ai.com", "reason": "554 5.1.1 recipient undeliverable"}
+  ],
+  "outreach_policy": {
+    "daily_numerical_cap": null,
+    "one_first_contact_per_target": true,
+    "official_public_business_contacts_only": true,
+    "no_chasing_silence": true,
+    "stop_on_rejection": true,
+    "gmail_and_operator_dedupe_before_send": true
+  },
+  "financial_actions_this_run": {
+    "listing_or_signup_fees": 0,
+    "new_cash_or_credits": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "kyc_or_identity_attestations": 0,
+    "legal_commitments": 0
+  },
+  "coordination": {
+    "canonical_sibling_operator_workspace": "not_accessible_not_claimed_synchronized",
+    "duplicate_growth_loop_created": false,
+    "new_seller_identity_created": false,
+    "production_deployment_performed": false
+  }
+}
