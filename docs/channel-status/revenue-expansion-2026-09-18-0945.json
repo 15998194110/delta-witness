@@ -1,0 +1,125 @@
+{
+  "run_date_jst": "2026-09-18T09:45:00+09:00",
+  "sprint_start": "2026-09-14T13:43:28+09:00",
+  "sprint_deadline": "2026-09-21T13:43:28+09:00",
+  "target_transactions": 50,
+  "strict_current_result": {
+    "counted_customer_transactions": 0,
+    "unique_verified_buyers": 0,
+    "gross_customer_receipts_usdc": 0,
+    "recognized_revenue_usdc": 0,
+    "realized_variable_cost_usdc": null,
+    "realized_contribution_margin_usdc": null
+  },
+  "fresh_canonical_evidence": {
+    "workflow_run_id": 35291059753,
+    "completed_at": "2026-09-18T00:24:58Z",
+    "pricing_policy_check": "success",
+    "live_owner_price_verification": "success",
+    "live_purchase_path_without_payment": "success",
+    "paid_funnel_candidates": 0,
+    "treasury_checked_at": "2026-09-18T00:24:55.111Z",
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "start_block": 51400872,
+    "latest_block": 51450871,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "scope_note": "Explicit current 50,000-block range only; not an all-time zero assertion. Unknown costs remain null."
+  },
+  "funded_demand": {
+    "agentpact": {"offer_count": 3, "prices_usdc": [1,5,10], "buyer_count": 0, "settlement_count": 0, "external_requests": 16, "delta_native_funded_compatible_requests": 0},
+    "agentexchange": {"external_requests": 2, "compatible_requests": 0},
+    "external_funded_scan": {"adjacent_funded_requests": 20, "delta_native_funded_requests": 0},
+    "financial_or_signature_action_taken": false
+  },
+  "explicit_interest_threads": {
+    "robauto_agenthub": "awaiting_reply_after_owner-authorized use-case reply; no chase",
+    "outlast_ai": "still blocked on explicit company-domain sender security prerequisite; no spoof/bypass",
+    "reap": "review acknowledgement only; no new actionable reply in this run"
+  },
+  "qualified_first_contacts_sent": [
+    {
+      "target": "Kissflow Procurement Cloud",
+      "contact": "sales@kissflow.com",
+      "official_contact_evidence": "Kissflow official procurement/contact pages publish sales@kissflow.com.",
+      "use_case": "Optional public supplier product/price/availability/policy evidence before selected procurement approval or order actions.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "preflight_usdc": 5,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "next_action": "Wait for explicit reply; if interested, request one real workflow and representative public URL, then one genuine buyer-paid Capture."
+    },
+    {
+      "target": "Procr",
+      "contact": "hello@procr.io",
+      "official_contact_evidence": "Procr official site publishes hello@procr.io.",
+      "use_case": "Preserve public vendor pricing/product/policy state before selected contract renewal or negotiation decisions.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "preflight_usdc": 5,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "next_action": "Wait for explicit reply; no chase."
+    },
+    {
+      "target": "Seloria",
+      "contact": "hello@seloria.io",
+      "official_contact_evidence": "Seloria official site publishes hello@seloria.io.",
+      "use_case": "Public supplier source evidence before selected RFQ, award or purchase decisions in an auditable procurement flow.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "preflight_usdc": 5,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "next_action": "Wait for explicit reply; no chase."
+    },
+    {
+      "target": "GenLedge",
+      "contact": "hello@genledge.ai",
+      "official_contact_evidence": "GenLedge official procurement page publishes hello@genledge.ai.",
+      "use_case": "Public supplier source evidence before selected requisition/PO commitments, retained beside the procurement record.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "preflight_usdc": 5,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "next_action": "Wait for explicit reply; no chase."
+    }
+  ],
+  "bounce_corrections": [
+    {
+      "target": "Delvion",
+      "attempted_contact": "hello@delvion.ai",
+      "source_conflict": "The official public site displayed this address, but Gmail received a permanent 550 5.1.1 user-does-not-exist response immediately after send.",
+      "status": "hard_bounce_suppressed",
+      "next_action": "Do not retry or guess another address. Use only a newly verified official contact route if encountered later."
+    },
+    {
+      "target": "Akirolabs",
+      "attempted_contact": "info@akirolabs.com",
+      "status": "hard_bounce_access_denied_observed_this_inbox_window",
+      "next_action": "Suppress address; do not retry unless a different current official route is independently verified."
+    }
+  ],
+  "execution_quality": {
+    "new_first_contacts_sent": 5,
+    "successful_without_immediate_bounce_observed": 4,
+    "hard_bounces_observed": 1,
+    "duplicate_first_contacts_this_run": 0,
+    "silent_targets_chased": 0,
+    "guessed_private_emails": 0,
+    "fees_or_paid_tests": 0,
+    "wallet_signatures_or_asset_movement": 0,
+    "production_deployments": 0
+  },
+  "coordination": {
+    "canonical_sibling_operator_workspace": "not_accessible_in_this_run_not_claimed_synchronized",
+    "repository_handoff_only": true,
+    "deadline_extended": false,
+    "notification_threshold_met": false
+  }
+}
