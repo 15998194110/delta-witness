@@ -1,0 +1,110 @@
+{
+  "checked_at_jst": "2026-09-18T23:21:12+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "status": "materially_at_risk_no_new_alert"
+  },
+  "reconciliation": {
+    "run_id": 35355397284,
+    "pricing_checked_at": "2026-09-18T14:18:27.897Z",
+    "pricing_verified": true,
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "treasury_checked_at": "2026-09-18T14:18:36.645Z",
+    "start_block": 51375881,
+    "latest_block": 51475880,
+    "lookback_blocks": 100000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "paid_funnel_candidate_rows": 0,
+    "agentpact_offer_count": 3,
+    "agentpact_buyer_count": 0,
+    "agentpact_settlement_count": 0,
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_requests": 0,
+    "agentpact_funded_compatible_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "external_adjacent_funded_requests": 15,
+    "external_delta_native_funded_requests": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "scope_note": "Direct canonical-USDC explicit-range evidence only; not an all-time-zero claim. Unknown costs remain unknown. Pricing verification was diagnostic-only and generated no paid transaction. Partner scoped-secret surfaces were not checked in this one-shot run."
+  },
+  "reply_updates": {
+    "gmail_query": "after:1789738500 -from:ruphussten85@gmail.com -in:sent -in:trash -in:spam",
+    "new_inbound_since_2235_jst": 0,
+    "robauto_agenthub": "explicit-interest thread already answered; still waiting for one real workflow/public URL; do not chase silence",
+    "outlast_ai": "still blocked on request for genuine company-domain sender; do not spoof or bypass",
+    "reap": "explicit rejection remains suppressed"
+  },
+  "new_first_contacts": [
+    {
+      "target": "Priorai",
+      "official_public_contact": "hello@priorai.ai",
+      "contact_evidence": "https://priorai.ai/ official Cloudflare-protected contact link, decoded to hello@priorai.ai",
+      "message_id": "1a0b4e3bf9e96d4a",
+      "use_case": "one buyer-selected public supplier/product-page Capture immediately before a human-approved PO is released; no supplier grading, private-quote inspection, autonomous approval or money movement",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only when a specified public-page condition actually requires checking",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; require one representative public URL and a real approval boundary before attempting one genuine buyer-authorized paid Capture"
+    },
+    {
+      "target": "1Room.ai",
+      "official_public_contact": "hello@1room.ai",
+      "contact_evidence": "https://1room.ai/ public footer/contact-sales route",
+      "message_id": "1a0b4e3e31374048",
+      "use_case": "one independent public vendor-page evidence checkpoint before shortlist/evaluation-room decision when a public source materially supports the recommendation",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for a specified page-state condition",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; require one live sourcing requirement, representative public URL and decision boundary"
+    },
+    {
+      "target": "P-ai Electronics",
+      "official_public_contact": "hello@paielectronics.com",
+      "contact_evidence": "https://paielectronics.com/ public Contact Us section",
+      "message_id": "1a0b4e3fe34e7baa",
+      "use_case": "one independent public distributor/manufacturer-page observation before a sourcing recommendation is accepted where public availability, certification, specification or policy materially affects the decision",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for a specified public-page condition",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; require one representative public URL and real sourcing decision boundary before any paid use"
+    }
+  ],
+  "delivery_check": {
+    "query": "newer_than:1h from:mailer-daemon@googlemail.com {\"hello@priorai.ai\" \"hello@1room.ai\" \"hello@paielectronics.com\"}",
+    "immediate_bounces_observed": 0,
+    "note": "No immediate bounce is not buyer intent and does not prove eventual delivery."
+  },
+  "funded_demand_disposition": {
+    "total_adjacent_funded_requests": 15,
+    "total_delta_native_funded_requests": 0,
+    "clawlancer": "3 funded adjacent bounties at 0.01-0.03 USDC are below the current 1 USDC entry floor and are not DELTA-native",
+    "taskmarket": "funded adjacent tasks observed but current public tasks are custom research/build work rather than existing DELTA Capture/Preflight fulfillment; some worker entry paths require wallet/signature or paid pitch actions, so no mutation taken",
+    "financial_or_signature_action_taken": false
+  },
+  "coordination": {
+    "canonical_operator_workspace": "运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json and data/pipeline.json",
+    "local_sibling_workspace_access": "not available in this tool run; not claimed synchronized",
+    "temporary_reconciliation_workflow": ".github/workflows/tmp-revenue-run-20260918-2317.yml scheduled for removal after evidence capture",
+    "new_seller_identity_created": false,
+    "new_listing_created": false,
+    "wallet_signature_or_message": false,
+    "asset_movement": false,
+    "fee_or_paid_test": false,
+    "kyc_or_legal_commitment": false,
+    "duplicate_first_contact": false
+  }
+}
