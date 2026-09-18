@@ -1,0 +1,48 @@
+name: TEMP DELTA revenue run 20260918-1630
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/tmp-revenue-run-20260918-1630.yml]
+permissions:
+  contents: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v5
+        with: {node-version: '22'}
+      - name: Verify current owner pricing
+        run: node scripts/check-owner-pricing.mjs && node scripts/verify-owner-pricing-live.mjs | tee /tmp/live-pricing.json
+      - name: Scan AgentPact demand
+        continue-on-error: true
+        run: node scripts/scan-agentpact-demand.mjs | tee /tmp/agentpact.json
+      - name: Scan independently funded demand
+        continue-on-error: true
+        run: node scripts/scan-external-funded-demand.mjs | tee /tmp/external-funded.json
+      - name: Audit paid-funnel candidates
+        continue-on-error: true
+        run: node scripts/query-revenue-candidates.mjs | tee /tmp/revenue-candidates.json
+      - name: Reconcile canonical Base USDC Treasury
+        env:
+          DELTA_TREASURY_LOOKBACK_BLOCKS: '100000'
+          DELTA_TREASURY_CHUNK_BLOCKS: '1900'
+        run: node scripts/reconcile-treasury.mjs | tee /tmp/treasury.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: delta-revenue-run-${{ github.run_id }}
+          path: |
+            /tmp/live-pricing.json
+            /tmp/agentpact.json
+            /tmp/external-funded.json
+            /tmp/revenue-candidates.json
+            /tmp/treasury.json
+          if-no-files-found: warn
+          retention-days: 7
