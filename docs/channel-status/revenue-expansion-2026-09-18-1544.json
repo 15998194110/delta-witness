@@ -1,0 +1,126 @@
+{
+  "checked_at": "2026-09-18T06:44:30Z",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "actual_counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "gross_verified_customer_receipts_usdc": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "risk": "material_shortfall_risk_already_known_no_new_alert"
+  },
+  "reconciliation": {
+    "github_actions_run": 35316118557,
+    "live_pricing_checked_at": "2026-09-18T06:43:31.955Z",
+    "live_public_products": {
+      "capture_usdc": 1,
+      "preflight_usdc": 5,
+      "guarded_action_pilot_usdc": 10
+    },
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_funnel_candidates": 0,
+    "agentpact": {
+      "offers": 3,
+      "prices_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "external_funded_demand": {
+      "adjacent_funded_requests": 16,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false
+    },
+    "treasury_scan": {
+      "checked_at": "2026-09-18T06:43:46.703Z",
+      "start_block": 51362234,
+      "latest_block": 51462233,
+      "lookback_blocks": 100000,
+      "treasury_received_candidates": 0,
+      "unclassified_receipts": 0,
+      "evidence_quality": "A_direct_canonical_USDC_log"
+    }
+  },
+  "reply_check": {
+    "since": "2026-09-18T05:36:00Z",
+    "new_actionable_delta_replies": 0,
+    "robauto_status": "explicit_interest_answered_waiting_for_real_workflow_and_public_url",
+    "outlast_status": "blocked_by_counterparty_request_for_genuine_company_domain_sender",
+    "silent_threads_followed_up": 0
+  },
+  "new_first_contacts": [
+    {
+      "target": "HORECAI",
+      "official_contact": "hello@horecai.ai",
+      "official_source": "https://www.horecai.ai/",
+      "message_id": "1a0b34392762ddcb",
+      "use_case": "selected restaurant procurement orders: preserve public supplier/product/terms evidence before review/place-order boundary",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "price_fit": "1 USDC Capture for opt-in audit-sensitive source evidence; 5 USDC Preflight only when a stated public-page condition needs checking",
+      "next_action": "wait for explicit reply; if interested request one real workflow, public URL and action boundary; do not chase silence"
+    },
+    {
+      "target": "ProcureIQ",
+      "official_contact": "hello@procureiq.app",
+      "official_source": "https://procureiq.app/",
+      "message_id": "1a0b343f65cc454a",
+      "use_case": "retain public supplier/price/terms source before selected shortlist, negotiation, RFQ or PO action",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "price_fit": "1 USDC Capture is small relative to selected consequential sourcing decisions, not every search",
+      "next_action": "wait for explicit reply; if interested validate one genuine paid Capture first"
+    },
+    {
+      "target": "Nayeb.ai",
+      "official_contact": "hello@nayeb.ai",
+      "official_source": "https://nayeb.ai/",
+      "message_id": "1a0b34452863f0c7",
+      "use_case": "independent observation of public market/supplier evidence before selected RFQ, renegotiation or supplier recommendation",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "price_fit": "1 USDC Capture fits selective external evidence checkpoints while ERP/private data stay outside DELTA",
+      "next_action": "wait for explicit reply; no duplicate first contact"
+    },
+    {
+      "target": "GoKart",
+      "official_contact": "contact@gokarthq.com",
+      "official_source": "https://www.gokarthq.com/",
+      "message_id": "1a0b344b14a19ccf",
+      "use_case": "preserve public vendor/product/terms source before selected sourcing decision or contract handoff",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_early_access_no_explicit_DELTA_interest_yet",
+      "price_fit": "1 USDC Capture only for provenance-sensitive checkpoints rather than every RFP/vendor touch",
+      "next_action": "wait for explicit reply; no chase"
+    }
+  ],
+  "delivery_readback": {
+    "immediate_bounces_observed_for_new_contacts": 0,
+    "delivery_status_is_not_buyer_interest": true
+  },
+  "suppressed_or_already_contacted": [
+    "ProcureAINow",
+    "Raindrop",
+    "Fairmarkit",
+    "Arkestro",
+    "Keelvar",
+    "Scoutbee",
+    "Aerchain",
+    "Globality"
+  ],
+  "operator_coordination": {
+    "canonical_sibling_workspace": "not_accessible_in_this_runtime_not_claimed_synchronized",
+    "duplicate_growth_loop_created": false,
+    "financial_or_signature_action_taken": false,
+    "pricing_changed": false,
+    "customer_transaction_created_by_operator": false
+  }
+}
