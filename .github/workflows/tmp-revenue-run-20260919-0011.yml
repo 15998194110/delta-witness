@@ -1,0 +1,47 @@
+name: TEMP DELTA revenue reconciliation 2026-09-19 0011 JST
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/tmp-revenue-run-20260919-0011.yml]
+permissions:
+  contents: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DELTA_INDEXNOW_ADMIN_SECRET: ${{ secrets.DELTA_INDEXNOW_ADMIN_SECRET }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
+      DELTA_TREASURY_LOOKBACK_BLOCKS: '100000'
+      DELTA_TREASURY_CHUNK_BLOCKS: '1900'
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v5
+        with: {node-version: '22'}
+      - name: Verify owner pricing live without payment
+        run: node scripts/check-owner-pricing.mjs && node scripts/verify-owner-pricing-live.mjs | tee /tmp/delta-pricing.json
+      - name: Scan AgentPact funded buyer demand
+        continue-on-error: true
+        run: node scripts/scan-agentpact-demand.mjs | tee /tmp/delta-agentpact.json
+      - name: Scan external funded demand
+        continue-on-error: true
+        run: node scripts/scan-external-funded-demand.mjs | tee /tmp/delta-external-funded.json
+      - name: Audit paid funnel candidates
+        continue-on-error: true
+        run: node scripts/query-revenue-candidates.mjs | tee /tmp/delta-revenue-candidates.json
+      - name: Reconcile Base Treasury
+        run: node scripts/reconcile-treasury.mjs | tee /tmp/delta-treasury.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: delta-revenue-run-${{ github.run_id }}
+          path: |
+            /tmp/delta-pricing.json
+            /tmp/delta-agentpact.json
+            /tmp/delta-external-funded.json
+            /tmp/delta-revenue-candidates.json
+            /tmp/delta-treasury.json
+          retention-days: 7
