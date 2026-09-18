@@ -1,0 +1,187 @@
+{
+  "checked_at_jst": "2026-09-18T20:43:09+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "status": "materially_at_risk_but_no_new_risk_alert_emitted_this_run"
+  },
+  "canonical_reconciliation": {
+    "source_run_id": 35339386834,
+    "run_completed_at": "2026-09-18T11:23:48Z",
+    "pricing_checks": "workflow completed successfully; no price-bearing write or deployment was performed in this run",
+    "paid_funnel_candidate_rows": 0,
+    "treasury_checked_at": "2026-09-18T11:23:45.246Z",
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "treasury_start_block": 51420637,
+    "treasury_latest_block": 51470636,
+    "treasury_lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "scope_note": "Fresh canonical scheduled-pulse evidence reused because it completed approximately 20 minutes before this operator run. This is explicit-range/telemetry evidence, not an all-time-zero assertion; unknown costs remain unknown."
+  },
+  "funded_demand": {
+    "agentpact": {
+      "listing_status": "present",
+      "offer_count": 3,
+      "prices_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "external_scan": {
+      "adjacent_funded_requests": 15,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false
+    }
+  },
+  "reply_and_delivery_updates": [
+    {
+      "target": "Reap",
+      "message_id": "1a0b3b34a262b7bc",
+      "received_at": "2026-09-18T08:47:44Z",
+      "classification": "explicit_rejection",
+      "summary": "Reap states DELTA is not the right fit at this time, does not solve a current workflow gap, and the value reasoning is insufficient for them to proceed.",
+      "action": "suppress future follow-up; do not chase or re-contact absent materially new inbound interest",
+      "commercial_demand_grade": "C_rejected_current_fit",
+      "counted_transaction": false
+    },
+    {
+      "target": "Argus",
+      "address": "sales@argus.dev",
+      "classification": "hard_bounce_domain_no_mx",
+      "action": "suppress exact address/domain; do not retry or guess alternate private contact"
+    },
+    {
+      "target": "Vouch",
+      "address": "hello@vouch.ai",
+      "classification": "hard_bounce_domain_no_mx",
+      "action": "suppress exact address/domain; do not retry or guess alternate private contact"
+    },
+    {
+      "target": "Katu",
+      "address": "contato@katu.ai",
+      "classification": "hard_bounce_domain_no_mx",
+      "action": "suppress exact address/domain; do not retry or guess alternate private contact"
+    },
+    {
+      "target": "Autonoma",
+      "address": "cm@autonoma.pro",
+      "classification": "hard_bounce_address_not_found",
+      "action": "suppress exact address; do not guess alternate private contact"
+    },
+    {
+      "target": "AI Group Pro",
+      "address": "channels@aigrouppro.com",
+      "classification": "hard_bounce_recipient_unverified",
+      "action": "suppress exact address; do not guess alternate private contact"
+    },
+    {
+      "target": "Yuka",
+      "address": "hello@getyuka.com",
+      "classification": "hard_bounce_relay_denied",
+      "action": "suppress exact address; do not retry same route"
+    },
+    {
+      "target": "AgentLancer",
+      "address": "hello@agentlancer.io",
+      "classification": "temporary_delivery_delay",
+      "action": "do not resend while Gmail retry is pending; wait for final delivery/bounce outcome"
+    }
+  ],
+  "new_first_contacts": [
+    {
+      "target": "Diddo",
+      "official_public_contact": "support@shopdiddo.com",
+      "contact_evidence": "https://docs.shopdiddo.com/getting-started/introduction",
+      "workflow_evidence": "https://docs.shopdiddo.com/api/Checkout",
+      "message_id": "1a0b4555599ee744",
+      "use_case": "opt-in independent public product or merchant-policy Capture immediately before an audit-sensitive cross-store checkout/order",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; if interested require one representative public URL plus cart/order action boundary and attempt one genuine buyer-authorized paid Capture"
+    },
+    {
+      "target": "Kindred",
+      "official_public_contact": "hello@kindredteam.com",
+      "contact_evidence": "https://help.kindred.co/support/solutions/articles/77000524168-getting-in-touch",
+      "workflow_evidence": "https://kindred.co/",
+      "message_id": "1a0b4557af064d22",
+      "use_case": "enterprise AI-platform public merchant/product/policy evidence checkpoint associated with a consequential offer or checkout record",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only where a stated public-page condition needs verification",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "ability_to_pay_evidence": "Kindred publicly states it connects AI platforms/apps to 75,000+ merchants and names enterprise customers; this is organizational capability evidence, not willingness to buy DELTA.",
+      "next_action": "wait for explicit reply; request one current enterprise/AI-platform workflow with a representative public URL before deeper integration"
+    },
+    {
+      "target": "UCPhub",
+      "official_public_contact": "office@ucphub.ai",
+      "contact_evidence": "https://ucphub.ai/contact/",
+      "workflow_evidence": "https://ucphub.ai/",
+      "message_id": "1a0b4559cb7bb07e",
+      "use_case": "optional independent public-web evidence checkpoint beside UCP discovery/checkout/order when an external merchant/product/policy page materially influences a binding action",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for explicit public-page conditions",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; require one genuine platform-side/reference-agent workflow and public URL, not a generic directory/listing discussion"
+    },
+    {
+      "target": "Synchronity / Themewire",
+      "official_public_contact": "hello@themewire.co",
+      "contact_evidence": "https://synchronity.app/privacy-policy",
+      "workflow_evidence": "https://synchronity.app/docs/quickstart",
+      "message_id": "1a0b4565af102d0c",
+      "use_case": "independent public-source Capture immediately before a human-delegated execute_checkout decision when an external merchant page influenced the action",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only when a public condition must hold before checkout",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; if interested request one real merchant/buyer workflow, public URL and delegation threshold/action boundary"
+    },
+    {
+      "target": "Cronwell",
+      "official_public_contact": "info@cronwell.ai",
+      "contact_evidence": "https://www.cronwell.ai/",
+      "message_id": "1a0b456777a10f72",
+      "use_case": "public supplier price/availability/lead-time/policy evidence immediately before a sourcing, RFQ or PO decision that otherwise relies on buyer inbox and ERP records",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for explicit public-page conditions",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "ability_to_pay_evidence": "Cronwell publicly describes paid enterprise pilots/subscriptions and named customer proof; this supports organizational commercial capacity only, not willingness to buy DELTA.",
+      "next_action": "wait for explicit reply; ask for one representative supplier public URL and decision boundary before any broader integration"
+    }
+  ],
+  "delivery_check": {
+    "immediate_bounce_search_for_new_five": "none observed immediately after send",
+    "interpretation": "absence of an immediate bounce is delivery evidence only, not buyer interest"
+  },
+  "existing_high_priority_threads": {
+    "robauto_agenthub": "explicit interest already answered; waiting for one real workflow/public URL; do not chase silence",
+    "outlast_ai": "recipient requested a genuine company-domain sender; current Gmail identity cannot satisfy this without a legitimate domain mailbox connection; do not spoof or bypass",
+    "reap": "explicitly rejected current fit; suppress follow-up"
+  },
+  "coordination": {
+    "canonical_operator_workspace": "运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json and data/pipeline.json",
+    "local_sibling_workspace_access": "not available in this tool run; not claimed synchronized",
+    "canonical_scheduled_pulse_reused_when_fresh": true,
+    "duplicate_loop_created": false,
+    "new_seller_identity_created": false,
+    "new_listing_created": false,
+    "wallet_signature_or_message": false,
+    "asset_movement": false,
+    "fee_or_paid_test": false,
+    "kyc_or_legal_commitment": false
+  }
+}
