@@ -1,0 +1,24 @@
+{
+  "checked_at_jst": "2026-09-18T18:24:05+09:00",
+  "supplements": [
+    {
+      "target": "Argus",
+      "official_source": "https://argus-pay.com/",
+      "official_contact_published": "sales@argus.dev",
+      "gmail_dedupe_before_send": "no prior exact to/from sales@argus.dev",
+      "sent_message_id": "1a0b3d48249d2197",
+      "specific_use_case": "1 USDC public supplier/product/terms Capture between Argus policy approval and selected audit-sensitive procurement execution; 5 USDC Preflight only for a stated public condition",
+      "technical_fit": "B_high",
+      "commercial_demand": "C_no_explicit_DELTA_interest",
+      "ability_evidence": "official Argus site describes live agent-spend governance, procurement automation and USDC on Base; this is not evidence of willingness to buy DELTA",
+      "delivery_state": "hard_bounce",
+      "bounce_reason": "DNS MX lookup for argus.dev returned no mail exchanger; Gmail could not deliver to the official published sales address",
+      "disposition": "suppress this email route; do not guess another address or resend. A future official contact form may be used only if independently verified and not as a rejection/suppression bypass."
+    }
+  ],
+  "commercial_result": {
+    "new_verified_customer_transactions": 0,
+    "new_verified_customer_receipts": 0,
+    "new_explicit_integration_interest": 0
+  }
+}
