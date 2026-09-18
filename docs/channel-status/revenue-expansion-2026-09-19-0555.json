@@ -104,6 +104,18 @@
       "technical_fit_grade": "B_direct_procurement_workflow_fit",
       "prior_contact_search": "none found before send",
       "next_action": "wait for explicit reply; ask for one current sourcing workflow, public URL and RFQ/PO decision boundary; no silence follow-up"
+    },
+    {
+      "target": "EGIXIA",
+      "official_contact": "contacto@egixia.com",
+      "official_surface": "https://ai.egixia.com/en/contact",
+      "source_fact": "official procurement-agent contact surface lists supplier search, assisted negotiation, document verification, order follow-up and P2P automation; official site publishes contacto@egixia.com",
+      "use_case": "1 USDC Capture of a public supplier price/availability/certification/terms source before the next procurement action; 5 USDC Public Preflight only for an explicit expected-condition check",
+      "gmail_message_id": "1a0b64a9728554bf",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "technical_fit_grade": "B_direct_procurement_workflow_fit",
+      "prior_contact_search": "none found before send",
+      "next_action": "wait for explicit reply; ask for one current supplier-search/negotiation/order workflow, public URL and decision boundary; no silence follow-up"
     }
   ],
   "delivery_check": {
