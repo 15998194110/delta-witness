@@ -111,9 +111,10 @@
       "offer": "1 USDC Public Capture; 5 USDC Public Preflight where an explicit public-page condition gates action.",
       "technical_fit_grade": "B",
       "commercial_demand_grade": "C",
-      "status": "sent_waiting",
+      "status": "delivery_failed_suppressed",
       "duplicate_check": "No prior Gmail/operator contact found for proenergysupply.com before send.",
-      "next_action": "Wait for one current public-source workflow and URL; do not chase silence."
+      "delivery_failure": "Google Groups rejection: info group may not exist or may not permit external posting.",
+      "next_action": "Do not retry the target or guess an alternate private address unless ProEnergy initiates materially new inbound contact."
     }
   ],
   "new_suppressions_observed_since_prior_repository_handoff": [
@@ -125,7 +126,8 @@
     {"target_or_address": "cm@autonoma.pro", "reason": "address not found"},
     {"target_or_address": "channels@aigrouppro.com", "reason": "recipient could not be verified"},
     {"target_or_address": "hello@getyuka.com", "reason": "554 5.7.1 relay access denied"},
-    {"target_or_address": "founders@procura-ai.com", "reason": "554 5.1.1 recipient undeliverable"}
+    {"target_or_address": "founders@procura-ai.com", "reason": "554 5.1.1 recipient undeliverable"},
+    {"target_or_address": "info@proenergysupply.com", "reason": "Google Groups rejection / external posting unavailable"}
   ],
   "outreach_policy": {
     "daily_numerical_cap": null,
