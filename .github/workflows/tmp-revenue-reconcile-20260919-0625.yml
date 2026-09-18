@@ -6,41 +6,65 @@ on:
 permissions:
   contents: read
 jobs:
-  reconcile:
+  blockscout-fallback:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
-        with: {persist-credentials: false}
-      - uses: actions/setup-node@v5
-        with: {node-version: '22'}
-      - name: Verify current owner pricing without payment
-        run: node scripts/check-owner-pricing.mjs && node scripts/verify-owner-pricing-live.mjs | tee /tmp/delta-live-pricing.json
-      - name: Audit paid funnel candidates
-        run: node scripts/query-revenue-candidates.mjs | tee /tmp/delta-revenue-candidates.json
-      - name: Scan AgentPact funded buyer demand
-        continue-on-error: true
-        run: node scripts/scan-agentpact-demand.mjs | tee /tmp/delta-agentpact-demand.json
-      - name: Scan Agent Exchange funded buyer demand
-        continue-on-error: true
-        run: node scripts/scan-agentexchange-demand.mjs | tee /tmp/delta-agentexchange-demand.json
-      - name: Scan additional funded demand
-        continue-on-error: true
-        run: node scripts/scan-external-funded-demand.mjs | tee /tmp/delta-external-funded-demand.json
-      - name: Reconcile canonical Base USDC Treasury
-        env:
-          DELTA_TREASURY_LOOKBACK_BLOCKS: '100000'
-          DELTA_TREASURY_CHUNK_BLOCKS: '1900'
-        run: node scripts/reconcile-treasury.mjs | tee /tmp/delta-treasury.json
+      - name: Read canonical USDC transfers into Treasury from failed-RPC boundary forward
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/delta-fallback
+          TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'
+          USDC='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+          START=51464821
+          curl -fsS --connect-timeout 10 --max-time 30 --retry 2 --retry-delay 2 --retry-all-errors \
+            'https://base.blockscout.com/api?module=block&action=eth_block_number' \
+            -o /tmp/delta-fallback/head.json
+          curl -fsS --connect-timeout 10 --max-time 30 --retry 2 --retry-delay 2 --retry-all-errors \
+            "https://base.blockscout.com/api?module=account&action=tokentx&contractaddress=${USDC}&address=${TREASURY}&startblock=${START}&endblock=99999999&sort=asc" \
+            -o /tmp/delta-fallback/transfers.json
+          python - <<'PY'
+          import json, datetime
+          treasury='0x1990e21bc219696ff7fbc26527dbaed335ac6367'.lower()
+          usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'.lower()
+          start=51464821
+          h=json.load(open('/tmp/delta-fallback/head.json'))
+          raw=h.get('result')
+          head=int(raw,16) if isinstance(raw,str) and raw.startswith('0x') else int(raw)
+          t=json.load(open('/tmp/delta-fallback/transfers.json'))
+          rows=t.get('result') if isinstance(t,dict) else []
+          if not isinstance(rows,list):
+              raise SystemExit(f'unexpected Blockscout transfers response: {t}')
+          incoming=[]
+          for r in rows:
+              if str(r.get('to','')).lower()!=treasury: continue
+              if str(r.get('contractAddress','')).lower()!=usdc: continue
+              b=int(r.get('blockNumber') or 0)
+              if b < start: continue
+              incoming.append({
+                  'tx_hash': r.get('hash'), 'block_number': b,
+                  'from': str(r.get('from','')).lower(), 'to': str(r.get('to','')).lower(),
+                  'raw_amount': str(r.get('value','')), 'token_symbol': r.get('tokenSymbol'),
+                  'confirmations': r.get('confirmations')
+              })
+          out={
+            'ok': True,
+            'checked_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'source':'Base Blockscout legacy token-transfer API fallback',
+            'network':'eip155:8453','asset':usdc,'treasury':treasury,
+            'start_block':start,'latest_block':head,
+            'treasury_received_candidates':len(incoming),
+            'transfers':incoming,
+            'evidence_quality':'A_official_chain_indexer_fallback',
+            'scope':'Completes the current-run gap from the first Base RPC chunk that failed after blocks through 51464820 were already directly checked.'
+          }
+          print(json.dumps(out,indent=2))
+          open('/tmp/delta-fallback/reconciliation.json','w').write(json.dumps(out,indent=2))
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: delta-reconcile-${{ github.run_id }}
-          path: |
-            /tmp/delta-live-pricing.json
-            /tmp/delta-revenue-candidates.json
-            /tmp/delta-agentpact-demand.json
-            /tmp/delta-agentexchange-demand.json
-            /tmp/delta-external-funded-demand.json
-            /tmp/delta-treasury.json
+          name: delta-blockscout-fallback-${{ github.run_id }}
+          path: /tmp/delta-fallback/
           retention-days: 7
