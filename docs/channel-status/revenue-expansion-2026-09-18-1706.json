@@ -1,0 +1,145 @@
+{
+  "checked_at_jst": "2026-09-18T17:06:12+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "status": "materially_at_risk",
+    "deadline_unchanged": true
+  },
+  "fresh_reconciliation": {
+    "source_run_id": 35320249046,
+    "pricing_checked_at": "2026-09-18T07:36:46.207Z",
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_transactions_generated_by_diagnostic": 0,
+    "paid_funnel_candidate_rows": 0,
+    "treasury_checked_at": "2026-09-18T07:36:58.074Z",
+    "treasury_start_block": 51363831,
+    "treasury_latest_block": 51463830,
+    "treasury_lookback_blocks": 100000,
+    "treasury_receipt_candidates": 0,
+    "treasury_unclassified_receipts": 0,
+    "scope_note": "Explicit 100,000-block canonical-USDC range and current telemetry only; not an all-time-zero claim. Variable cost and realized contribution margin remain unknown/null."
+  },
+  "agentpact": {
+    "listing_status": "present",
+    "offer_count": 3,
+    "prices_usdc": [1, 5, 10],
+    "buyer_count": 0,
+    "settlement_count": 0,
+    "external_requests": 16,
+    "delta_native_requests": 0,
+    "funded_compatible_requests": 0,
+    "buyer_funded_deals": 0
+  },
+  "external_funded_demand": {
+    "checked_at": "2026-09-18T07:36:47.850Z",
+    "adjacent_funded_requests_observed": 13,
+    "delta_native_funded_requests": 0,
+    "rule": "Only current DELTA Capture/Preflight/Watch/Pilot native fulfillment with verified buyer budget at or above current owner price qualifies. Generic research/code remains excluded."
+  },
+  "explicit_interest_threads": {
+    "robauto_agenthub": "No new reply in the latest Gmail readback; previously explicit-interest and already answered once, waiting for one real workflow/public URL.",
+    "outlast_ai": "Still blocked by recipient request for a genuine company-domain sender; no workaround or identity spoofing attempted.",
+    "reap": "No new actionable buyer intent observed."
+  },
+  "outreach": {
+    "quality_rule": "No daily numerical cap. Official public contacts only, one personalized first contact per target, Gmail/operator dedupe before send, no chasing silence.",
+    "new_first_contacts_attempted": [
+      {
+        "target": "Synteric",
+        "contact": "support@synteric.co",
+        "official_source": "https://www.synteric.co/",
+        "use_case": "1 USDC Capture of a public supplier page immediately before ranking/recommendation/approval; 5 USDC Preflight only for a specified public-page condition.",
+        "technical_fit": "B",
+        "commercial_demand": "C",
+        "delivery_state": "sent_no_immediate_bounce_observed"
+      },
+      {
+        "target": "Yuka",
+        "contact": "hello@getyuka.com",
+        "official_source": "https://www.getyuka.com/",
+        "use_case": "1 USDC Capture of a public manufacturer/distributor page before quote/spec/PO-entry actions.",
+        "technical_fit": "B",
+        "commercial_demand": "C",
+        "delivery_state": "hard_bounce_554_relay_access_denied",
+        "suppression": "Suppress this exact address; do not retry or guess another private address."
+      },
+      {
+        "target": "Siyata.AI",
+        "contact": "dvir@siyata.ai",
+        "official_source": "https://siyata.ai/",
+        "use_case": "1 USDC public supplier evidence before rental/material/finish recommendations.",
+        "technical_fit": "B",
+        "commercial_demand": "C",
+        "delivery_state": "sent_no_immediate_bounce_observed"
+      },
+      {
+        "target": "AI Group Purchasing",
+        "contact": "channels@aigrouppro.com",
+        "official_source": "https://aigrouppro.com/",
+        "use_case": "1 USDC public vendor evidence before autonomous supplier recommendation/action.",
+        "technical_fit": "B",
+        "commercial_demand": "C",
+        "delivery_state": "hard_bounce_550_cant_verify_recipient",
+        "suppression": "Suppress this exact address; do not retry or guess another private address."
+      },
+      {
+        "target": "Autonoma",
+        "contact": "cm@autonoma.pro",
+        "official_source": "https://autonoma.pro/pricing",
+        "use_case": "1 USDC Capture of the public supplier page before promotion into an RFI/shortlist action.",
+        "technical_fit": "B",
+        "commercial_demand": "C",
+        "delivery_state": "hard_bounce_address_not_found",
+        "suppression": "Suppress this exact address; do not retry or guess another private address."
+      },
+      {
+        "target": "Kopernicus",
+        "contact": "team@kopernicus.com",
+        "official_source": "https://www.kopernicus.com/",
+        "use_case": "1 USDC independent public-page evidence alongside audit-grade vendor/RFP intelligence.",
+        "technical_fit": "B",
+        "commercial_demand": "C",
+        "delivery_state": "sent_no_immediate_bounce_observed"
+      }
+    ],
+    "corrections": [
+      {
+        "target": "Procura",
+        "contact": "founders@procura-ai.com",
+        "previous_state": "sent/no immediate bounce",
+        "new_state": "hard bounce 554 5.1.1 undeliverable",
+        "action": "Suppress exact address; do not retry or guess a replacement."
+      }
+    ]
+  },
+  "operator_workspace": {
+    "sibling_canonical_workspace_access": "not_verified_in_this_run",
+    "repository_handoff_updated": true,
+    "duplicate_growth_loop_created": false
+  },
+  "financial_boundary": {
+    "new_cash_or_credit": 0,
+    "paid_tests": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "listing_or_signup_fees": 0,
+    "kyc_or_identity_attestation": 0,
+    "legal_commitments": 0
+  },
+  "next_conversion_priority": [
+    "Respond immediately only if Robauto/AgentHub or another target provides a concrete workflow/public URL or funded request.",
+    "Continue qualified unique-target expansion while preserving one-first-contact dedupe and bounce suppressions.",
+    "Prioritize targets with existing buyer traffic, live procurements, or agentic purchase actions over generic procurement software listings.",
+    "Continue independent Treasury and paid-funnel reconciliation every run; never infer revenue from outreach, directory presence or marketing claims."
+  ]
+}
