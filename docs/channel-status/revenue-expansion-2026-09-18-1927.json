@@ -1,0 +1,127 @@
+{
+  "checked_at_jst": "2026-09-18T19:27:35+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0
+  },
+  "pricing_and_reconciliation": {
+    "source_run_id": 35328776886,
+    "pricing_checked_at": "2026-09-18T09:17:50.472Z",
+    "pricing_ok": true,
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_transactions_generated_by_diagnostic": 0,
+    "paid_funnel_candidate_rows": 0,
+    "treasury_checked_at": "2026-09-18T09:18:06.286Z",
+    "treasury_start_block": 51366864,
+    "treasury_latest_block": 51466863,
+    "treasury_lookback_blocks": 100000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "scope_note": "Explicit 100000-block canonical-USDC Treasury evidence plus current paid-funnel telemetry; not an all-time-zero assertion. Realized variable costs and contribution margin remain unknown/null until actual customer settlement exists."
+  },
+  "funded_demand": {
+    "agentpact": {
+      "listing_status": "present",
+      "offer_count": 3,
+      "prices_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "external_scan_checked_at": "2026-09-18T09:17:53.293Z",
+    "adjacent_funded_requests": 17,
+    "delta_native_funded_requests": 0,
+    "financial_or_signature_action_taken": false
+  },
+  "reply_updates": [
+    {
+      "target": "Reap",
+      "message_id": "1a0b3b34a262b7bc",
+      "received_at": "2026-09-18T08:47:44Z",
+      "classification": "explicit_rejection",
+      "summary": "Reap states DELTA is not the right fit at this time, does not solve a current workflow gap, and the value reasoning is insufficient for them to proceed.",
+      "action": "suppress future follow-up; do not chase silence or rejection",
+      "commercial_demand_grade": "C_rejected_current_fit",
+      "counted_transaction": false
+    }
+  ],
+  "new_first_contacts": [
+    {
+      "target": "Alvrion",
+      "official_public_contact": "hello@alvrion.com",
+      "contact_evidence": "https://alvrion.com/",
+      "message_id": "1a0b410f28ab28c6",
+      "use_case": "independent public-page Capture immediately before consequential browser clicks, form submissions, orders or other state-changing actions",
+      "price_fit": "1 USDC Capture; 5 USDC Public Preflight only for explicit public-page conditions",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_yet",
+      "next_action": "wait for explicit reply; if interested request one real workflow, public URL and action boundary; no duplicate first contact"
+    },
+    {
+      "target": "utobo",
+      "official_public_contact": "hello@utobo.com",
+      "contact_evidence": "https://utobo.com/contact-us",
+      "message_id": "1a0b41110618de44",
+      "use_case": "selective evidence for public supplier/competitor/product/policy pages before high-value autonomous commerce pricing, inventory or purchasing decisions",
+      "price_fit": "1 USDC Capture; 5 USDC Public Preflight only when a specified public-page condition needs verification",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_yet",
+      "next_action": "wait for explicit reply; require one real external-source-driven commerce workflow before deeper integration"
+    },
+    {
+      "target": "Juliia",
+      "official_public_contact": "hello@juliia.ai",
+      "contact_evidence": "https://www.juliia.ai/en",
+      "message_id": "1a0b4113244273a1",
+      "use_case": "opt-in public product/price/availability/returns-policy evidence immediately before high-value or audit-sensitive cart/checkout actions",
+      "price_fit": "1 USDC Capture only where evidence value justifies the added cost; 5 USDC Preflight for explicit conditions",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_yet",
+      "next_action": "wait for explicit reply; prioritize B2B/high-value workflows rather than ordinary low-value shopping sessions"
+    },
+    {
+      "target": "AgentHub Commerce",
+      "official_public_contact": "hello@agenthubcommerce.com",
+      "contact_evidence": "https://www.agenthubcommerce.com/",
+      "message_id": "1a0b41152e2897e9",
+      "use_case": "independent public product/merchant-policy evidence immediately before buyer-authorized AP2/UCP purchase actions",
+      "price_fit": "1 USDC Capture; 5 USDC Public Preflight for explicit public-page condition checks",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_yet",
+      "next_action": "wait for explicit reply; request one shopping-agent or merchant workflow, public URL and purchase boundary"
+    }
+  ],
+  "delivery_check": {
+    "immediate_bounce_search": "none observed within the run window for the four new messages",
+    "interpretation": "absence of an immediate bounce is delivery evidence only, not buyer interest"
+  },
+  "existing_high_priority_threads": {
+    "robauto_agenthub": "explicit interest already answered; waiting for one real workflow/public URL; do not chase silence",
+    "outlast_ai": "blocked by recipient request for a genuine company-domain sender; do not spoof or bypass",
+    "reap": "explicitly rejected current fit; suppress follow-up"
+  },
+  "coordination": {
+    "canonical_operator_workspace": "运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json and data/pipeline.json",
+    "local_sibling_workspace_access": "not available in this tool run; not claimed synchronized",
+    "duplicate_loop_created": false,
+    "new_seller_identity_created": false,
+    "new_listing_created": false,
+    "wallet_signature_or_message": false,
+    "asset_movement": false,
+    "fee_or_paid_test": false,
+    "kyc_or_legal_commitment": false
+  }
+}
