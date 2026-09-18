@@ -1,0 +1,26 @@
+{
+  "checked_at": "2026-09-18T07:48:00Z",
+  "supplements": "docs/channel-status/revenue-expansion-2026-09-18-1645.json",
+  "new_first_contact": {
+    "target": "Shoppable",
+    "official_contact": "info@shoppable.com",
+    "official_source": "https://about.shoppable.com/help/shoppable-mcp-server-",
+    "product_sources": [
+      "https://about.shoppable.com/agentic-commerce",
+      "https://about.shoppable.com/"
+    ],
+    "gmail_domain_dedupe_before_send": "no_prior_shoppable.com_messages_found",
+    "message_id": "1a0b37ec77e6475d",
+    "use_case": "retain the public merchant/product source immediately before a selected MCP or Universal Checkout purchase action",
+    "technical_fit_grade": "B",
+    "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+    "price_fit": "1 USDC Public Capture only on provenance-sensitive purchase checkpoints; 5 USDC Public Preflight only for a specified price, availability or returns-text condition",
+    "next_action": "wait for explicit reply; if interested request one live workflow, representative public URL and action boundary; no duplicate first contact and no chase"
+  },
+  "delivery_readback": {
+    "immediate_bounce_observed": false,
+    "delivery_status_is_not_buyer_interest": true
+  },
+  "financial_or_signature_action_taken": false,
+  "counted_customer_transactions_added": 0
+}
