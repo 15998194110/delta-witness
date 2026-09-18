@@ -1,0 +1,23 @@
+{
+  "checked_at_jst": "2026-09-18T11:07:00+09:00",
+  "supplements": [
+    "docs/channel-status/revenue-expansion-2026-09-18-1100.json",
+    "docs/channel-status/revenue-expansion-2026-09-18-1104.json"
+  ],
+  "channel": "AgentPact",
+  "need_id": "02cd45a5-c376-4452-859b-0ef2c2aad3be",
+  "title": "[Fleet buyer] Quick public-source evidence screen on USDC (Base)",
+  "official_readback_status": "open",
+  "budget_min_usdc": 1,
+  "budget_max_usdc": 1,
+  "accepted_payment_methods": "usdc",
+  "tag": "fleet-buyer",
+  "requested_deliverable": "Verify from public sources the canonical Base USDC contract decimals, whether it is verified/proxy and implementation details, cite one source, and return a 3-5 sentence research answer.",
+  "delta_native": false,
+  "fit_reason": "The current DELTA Capture product preserves observable public page evidence but does not itself research and author the requested multi-claim 3-5 sentence contract/proxy analysis. Public Preflight is also 5 USDC, above this need's exact 1 USDC budget. Do not misclassify the 1 USDC price match as product fulfillment fit.",
+  "commercial_confidence": "low",
+  "confidence_reason": "The need is explicitly tagged fleet-buyer; platform/fleet/bootstrap demand remains low-confidence until independent customer purpose and funding semantics are verified.",
+  "bid_or_offer_submitted": false,
+  "financial_or_signature_action_taken": false,
+  "next_action": "Do not bid under the existing products. Only reconsider if the external buyer changes the requested deliverable to a native Capture/Preflight observation/check with verifiable independent funding and a genuine non-project customer purpose."
+}
