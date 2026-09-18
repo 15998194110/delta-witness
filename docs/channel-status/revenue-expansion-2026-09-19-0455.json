@@ -1,0 +1,172 @@
+{
+  "handoff_time_jst": "2026-09-19T04:55:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "deadline_extended": false,
+    "material_shortfall_risk": true
+  },
+  "pricing_authority": {
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+  },
+  "fresh_canonical_evidence": {
+    "discovery_pulse_run_id": 35387310128,
+    "completed_at_utc": "2026-09-18T19:41:41Z",
+    "workflow_conclusion": "success",
+    "owner_pricing_policy_check": "success",
+    "live_price_verification_without_payment": "success",
+    "live_purchase_path_without_payment": "success",
+    "treasury_checked_at_utc": "2026-09-18T19:41:35.843Z",
+    "treasury_start_block": 51435573,
+    "treasury_latest_block": 51485572,
+    "treasury_lookback_blocks": 50000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "paid_funnel_candidate_rows": 0,
+    "agentpact": {
+      "canonical_offers_active": ["Capture1", "PublicPreflight5", "GuardedPilot10"],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "agentexchange": {
+      "buyer_count": 1,
+      "external_requests": 2,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0
+    },
+    "external_funded_demand": {
+      "adjacent_funded_requests": 15,
+      "delta_native_funded_requests": 0,
+      "notes": "Current Taskmarket rows are custom build/benchmark work rather than existing DELTA fulfillment; Clawlancer current bounties are non-native and below the current 1 USDC entry price. MoltJobs and PayanAgent are recoverably degraded. WorkPnP has no funded DELTA-native row. No claim, bid, wallet signature, fee or financial mutation was made."
+    },
+    "evidence_scope": "Fresh canonical pulse evidence retrieved during this run. It is explicit block-range/telemetry evidence and does not assert an all-time zero balance. Variable cost and realized contribution margin remain unknown/null."
+  },
+  "reply_and_listing_state": {
+    "robauto_agenthub": {
+      "status": "explicit_interest_already_answered_waiting",
+      "new_reply_this_run": false,
+      "next_action": "Wait for one real workflow/public URL; do not chase silence."
+    },
+    "outlast_ai": {
+      "status": "blocked_by_company_domain_sender_request",
+      "new_reply_this_run": false,
+      "next_action": "Do not spoof or guess a company-domain sender."
+    },
+    "reap": {
+      "status": "explicit_rejection_stop",
+      "next_action": "No follow-up unless Reap initiates materially new inbound interest."
+    },
+    "agents_net": {
+      "submission_id": 243,
+      "category": "Operations",
+      "status": "in_review",
+      "received_email_at_utc": "2026-09-18T18:03:01Z",
+      "typical_review_window": "24-48 hours as stated by Agents.net",
+      "buyer_demand_grade": "C_directory_review_not_customer_intent",
+      "next_action": "Wait for approval/go-live email; do not count review status as listing completion, buyer demand or revenue."
+    }
+  },
+  "new_first_contacts_this_run": [
+    {
+      "target": "Zeroagent",
+      "official_contact": "support@zeroagent.io",
+      "official_surface": "https://zeroagent.io/",
+      "specific_use_case": "Selective public product or returns-policy evidence before checkout-assistance, add-to-cart, order or return actions.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for a specified public-page condition check.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "status": "sent_no_immediate_bounce_observed",
+      "duplicate_check": "Gmail search found no prior zeroagent.io contact before send.",
+      "next_action": "Wait for explicit interest or a representative public URL; do not chase silence."
+    },
+    {
+      "target": "Cantill / Straightops",
+      "official_contact": "info@straightops.com",
+      "official_surface": "https://straightops.com/",
+      "specific_use_case": "Independent public supplier/product/compliance page evidence immediately before shortlist, advance or approval actions in an AI-native source-to-pay workflow.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for explicit public-page condition checks.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "status": "sent_no_immediate_bounce_observed",
+      "duplicate_check": "Gmail search found no prior straightops.com contact before send.",
+      "next_action": "Wait for explicit interest or a representative public supplier URL; do not chase silence."
+    },
+    {
+      "target": "Procol",
+      "official_contact": "partner@procol.in",
+      "official_surface": "https://www.procol.ai/wp-content/uploads/2025/08/AI-in-Procurement-Whitepaper.pdf",
+      "specific_use_case": "Independent evidence for a public supplier/product/compliance or market-information page immediately before an autonomous sourcing/finance action.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition check.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "status": "sent_no_immediate_bounce_observed",
+      "duplicate_check": "Gmail search found no prior procol.in contact before send.",
+      "next_action": "Wait for explicit interest or a representative public supplier URL; do not chase silence."
+    }
+  ],
+  "new_delivery_failures_this_run": [
+    {
+      "target": "Frisbee",
+      "attempted_official_contact": "support@frisbee.one",
+      "source": "https://www.frisbee.one/",
+      "failure": "550 5.7.1 recipient unable to receive email",
+      "status": "delivery_failed_suppressed",
+      "note": "Bounce text suggested another address, but it is not treated as a separately verified public official business contact in this run; do not guess or retry."
+    },
+    {
+      "target": "PeakCommerce",
+      "attempted_official_contact": "sales@peakcommerce.com",
+      "source": "https://www.peakcommerce.com/contact",
+      "failure": "550 5.1.1 mailbox does not exist",
+      "status": "delivery_failed_suppressed",
+      "note": "Current public site and SMTP reality conflict. Do not retry another address in this run."
+    },
+    {
+      "target": "Ask Shoppie",
+      "attempted_official_contact": "hello@askshoppie.com",
+      "source": "https://www.askshoppie.com/",
+      "failure": "550 5.4.1 recipient address rejected / access denied",
+      "status": "delivery_failed_suppressed",
+      "note": "Do not retry another address or alternate identity."
+    }
+  ],
+  "outreach_policy": {
+    "daily_numerical_cap": null,
+    "one_first_contact_per_target": true,
+    "official_public_business_contacts_only": true,
+    "no_chasing_silence": true,
+    "stop_on_rejection": true,
+    "gmail_and_operator_dedupe_before_send": true
+  },
+  "financial_actions_this_run": {
+    "listing_or_signup_fees": 0,
+    "new_cash_or_credits": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "kyc_or_identity_attestations": 0,
+    "legal_commitments": 0
+  },
+  "coordination": {
+    "canonical_sibling_operator_workspace": "not_accessible_not_claimed_synchronized",
+    "duplicate_growth_loop_created": false,
+    "new_seller_identity_created": false,
+    "production_deployment_performed": false,
+    "directory_only_activity_counted_as_result": false
+  }
+}
