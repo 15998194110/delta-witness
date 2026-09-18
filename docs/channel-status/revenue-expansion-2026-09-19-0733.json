@@ -1,0 +1,153 @@
+{
+  "checked_at_jst": "2026-09-19T07:33:06+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0
+  },
+  "pricing": {
+    "checked_at": "2026-09-18T21:29:43.830Z",
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "verification_result": "pass",
+    "payment_generated_by_check": false
+  },
+  "treasury_reconciliation": {
+    "latest_fallback_checked_at": "2026-09-18T21:32:01.721423Z",
+    "latest_fallback_source": "Base Blockscout canonical token transfer indexer",
+    "latest_fallback_block_range": [51464821, 51488883],
+    "latest_fallback_receipt_candidates": 0,
+    "prior_independent_100k_range": [51379027, 51479026],
+    "prior_independent_100k_receipt_candidates": 0,
+    "combined_contiguous_zero_candidate_evidence_range": [51379027, 51488883],
+    "scope_note": "Explicit range evidence only. This is not an all-time-zero claim. Current-run direct Base RPC degraded on rate limits and the bounded official indexer fallback was used for the remaining gap.",
+    "recognized_customer_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null
+  },
+  "demand": {
+    "agentpact": {
+      "active_offer_prices_usdc": [1, 5, 10],
+      "buyers": 0,
+      "settlements": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "agentexchange": {
+      "external_requests": 2,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "paid_settlements": 0
+    },
+    "external_funded_scan": {
+      "result": "adjacent funded work exists, but no current request is DELTA-native under the existing Capture/Preflight/Watch/Pilot products"
+    }
+  },
+  "outreach": {
+    "no_daily_cap": true,
+    "attempted_unique_targets": 7,
+    "contacts": [
+      {
+        "target": "Talkom AI",
+        "official_contact": "sales@talkom.ai",
+        "official_source": "https://talkom.ai/",
+        "use_case": "selective 1 USDC Capture of public product/returns/shipping source immediately before an audit-sensitive shopping-agent checkout",
+        "technical_fit": "B",
+        "commercial_demand": "C_until_reply_or_paid_request",
+        "status": "sent_no_immediate_bounce_observed",
+        "message_id": "1a0b6aadc89d3f51",
+        "next_action": "wait for explicit reply; do not chase silence"
+      },
+      {
+        "target": "Tokora",
+        "official_contact": "support@tokora.ai",
+        "official_source": "https://tokora.ai/",
+        "use_case": "1 USDC external-source evidence before an agent pays a vendor based on a public price/terms/availability page",
+        "technical_fit": "B",
+        "commercial_demand": "C",
+        "status": "hard_bounce_550_5_1_1_route_suppressed",
+        "message_id": "1a0b6aaf1a86db72",
+        "bounce_message_id": "1a0b6aaf8d4791fa",
+        "next_action": "do not retry this address and do not guess an alternative private address"
+      },
+      {
+        "target": "Pivota",
+        "official_contact": "contact@pivota.cc",
+        "official_source": "https://pivota.cc/",
+        "use_case": "1 USDC Capture of a selected public offer/availability/policy page immediately before converting it into checkout/payment action",
+        "technical_fit": "B",
+        "commercial_demand": "C_until_reply_or_paid_request",
+        "status": "sent_no_immediate_bounce_observed",
+        "message_id": "1a0b6ab058ddd66c",
+        "next_action": "wait for explicit reply; do not chase silence"
+      },
+      {
+        "target": "Visify Agentic",
+        "official_contact": "info@visifyagentic.com",
+        "official_source": "https://www.visifyagentic.com/",
+        "use_case": "independent 1 USDC public product/policy proof for selected agentic recommendation or checkout flows",
+        "technical_fit": "B",
+        "commercial_demand": "C",
+        "status": "hard_bounce_550_5_1_1_route_suppressed",
+        "message_id": "1a0b6ab2c8c678a3",
+        "bounce_message_id": "1a0b6ab328efda28",
+        "next_action": "do not retry this address and do not guess an alternative private address"
+      },
+      {
+        "target": "Unimode AI",
+        "official_contact": "info@unimode.ai",
+        "official_source": "https://unimode.ai/contact",
+        "use_case": "selective 1 USDC public-source Capture before a shopping-agent recommendation/checkout that depends on current public price/policy/availability",
+        "technical_fit": "B",
+        "commercial_demand": "C_until_reply_or_paid_request",
+        "status": "sent_no_immediate_bounce_observed",
+        "message_id": "1a0b6ab4771c70a4",
+        "next_action": "wait for explicit reply; do not chase silence"
+      },
+      {
+        "target": "Clink",
+        "official_contact": "contact@clinkbill.com",
+        "official_source": "https://www.globenewswire.com/news-release/2026/04/30/3284590/0/en/Clink-Launches-the-World-s-First-Fiat-Agentic-Payment-Skill-Letting-Any-Merchant-Get-Paid-by-AI-Agents.html",
+        "use_case": "1 USDC Capture of the public merchant source that triggers a selected agentic payment, retained alongside Clink authorization/payment evidence",
+        "technical_fit": "B",
+        "commercial_demand": "C_until_reply_or_paid_request",
+        "status": "sent_no_immediate_bounce_observed",
+        "message_id": "1a0b6abb65199ed0",
+        "next_action": "wait for explicit reply; do not chase silence"
+      },
+      {
+        "target": "PartSpace / PartsAgent",
+        "official_contact": "info@partspace.io",
+        "official_source": "https://www.partspace.io/procurement-agent",
+        "use_case": "1 USDC Capture of a current public supplier price/availability/policy/product page immediately before a selected RFQ, supplier-selection or order action",
+        "technical_fit": "B",
+        "commercial_demand": "C_until_reply_or_paid_request",
+        "status": "sent_no_immediate_bounce_observed",
+        "message_id": "1a0b6abd32790aba",
+        "next_action": "wait for explicit reply; do not chase silence"
+      }
+    ]
+  },
+  "explicit_interest_threads": {
+    "robauto_agenthub": "already answered; waiting for one real workflow/public URL",
+    "outlast_ai": "blocked on recipient-requested genuine company-domain sender identity; do not spoof",
+    "reap": "explicit rejection; stop",
+    "agents_net": "submission #243 remains in review; directory review is not buyer demand or revenue"
+  },
+  "coordination": {
+    "canonical_sibling_operator_workspace": "not accessible in this run; not claimed synchronized",
+    "duplicate_growth_loop_created": false,
+    "new_seller_identity_created": false,
+    "fees_or_wallet_signatures": false,
+    "production_deployment": false
+  }
+}
