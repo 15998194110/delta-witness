@@ -1,0 +1,45 @@
+name: TEMP DELTA Agents.net resubmit stable destination
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/tmp-agentsnet-resubmit-20260919.yml]
+permissions:
+  contents: read
+jobs:
+  resubmit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v5
+        with: {node-version: '22'}
+      - name: Verify owner pricing before price-bearing listing write
+        run: node scripts/check-owner-pricing.mjs && node scripts/verify-owner-pricing-live.mjs
+      - name: Read current approved registry and submit only if absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          SEARCH=$(curl -fsS --connect-timeout 10 --max-time 20 'https://agents.net/api/agents?search=DELTA%20Witness&limit=100')
+          printf '%s' "$SEARCH" > /tmp/agentsnet-before.json
+          if node -e "const j=require('/tmp/agentsnet-before.json'); const a=Array.isArray(j.agents)?j.agents:[]; process.exit(a.some(x=>String(x.name||'').toLowerCase()==='delta witness')?0:1)"; then
+            echo 'AGENTSNET already_approved=true mutation=false'
+            exit 0
+          fi
+          cat > /tmp/agentsnet-payload.json <<'JSON'
+          {
+            "name": "DELTA Witness",
+            "description": "Public-web evidence and deterministic preflight for AI agents. Public Capture preserves a timestamped, hash-verifiable observation of a public page for 1 USDC. Public Preflight checks a specified public-page condition for 5 USDC. Guarded-Action Pilot is 10 USDC. Live x402 v2 on Base; human-readable docs and purchase instructions are on the linked repository page.",
+            "category": "Operations",
+            "contactEmail": "ruphussten85@gmail.com",
+            "apiEndpoint": "https://github.com/15998194110/delta-witness",
+            "platform": "Custom"
+          }
+          JSON
+          STATUS=$(curl -sS --connect-timeout 10 --max-time 20 -o /tmp/agentsnet-submit.json -w '%{http_code}' \
+            -X POST 'https://agents.net/api/agents/submit' \
+            -H 'content-type: application/json' \
+            --data-binary @/tmp/agentsnet-payload.json)
+          echo "AGENTSNET submit_http=$STATUS"
+          cat /tmp/agentsnet-submit.json
+          if [ "$STATUS" != "201" ] && [ "$STATUS" != "409" ]; then exit 1; fi
