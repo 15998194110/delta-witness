@@ -1,0 +1,106 @@
+{
+  "checked_at_jst": "2026-09-18T11:32:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_buyers": 0
+  },
+  "fresh_reconciliation": {
+    "workflow_run_id": 35299568232,
+    "pricing_checked_at": "2026-09-18T02:30:12.743Z",
+    "pricing_ok": true,
+    "capture_usdc": 1,
+    "preflight_usdc": 5,
+    "guarded_action_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "treasury_checked_at": "2026-09-18T02:30:26.326Z",
+    "treasury_start_block": 51354635,
+    "treasury_latest_block": 51454634,
+    "treasury_lookback_blocks": 100000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "realized_variable_cost": null,
+    "realized_contribution_margin": null,
+    "scope_note": "Direct canonical Base-USDC log evidence for this explicit 100000-block range only; not an all-time zero assertion. Partner-authenticated pricing was not checked because the scoped secret was not provided."
+  },
+  "funded_demand": {
+    "agentpact_offer_count": 3,
+    "agentpact_prices_usdc": [1, 5, 10],
+    "agentpact_buyer_count": 0,
+    "agentpact_settlement_count": 0,
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_requests": 0,
+    "agentpact_funded_compatible_requests": 0,
+    "external_adjacent_funded_requests": 20,
+    "external_delta_native_funded_requests": 0,
+    "financial_or_signature_action_taken": false
+  },
+  "reply_check": {
+    "new_actionable_explicit_interest_since_prior_handoff": 0,
+    "new_rejections": 0,
+    "new_known_bounces_only": ["hello@delvion.ai", "info@akirolabs.com"],
+    "note": "No new actionable human reply was observed in the recent inbox window. Existing Robauto/AgentHub explicit-interest thread remains waiting after DELTA answered; Outlast remains blocked by its company-domain sender requirement."
+  },
+  "new_first_contacts": [
+    {
+      "target": "Kifly",
+      "official_contact": "hello@kifly.ai",
+      "official_source": "https://kifly.ai/",
+      "gmail_message_id": "1a0b258e3efbf987",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "use_case": "Opt-in 1 USDC public-page Capture immediately before a shopper-authorized purchase where price, availability, warranty, shipping or returns claims matter; retain proof with the Kifly order reference.",
+      "ability_or_willingness_evidence": "Kifly publicly supports agent checkout and USDC settlement, establishing technical ability to participate in agentic commerce; no DELTA-specific willingness or funding has been observed.",
+      "next_action": "Wait for explicit reply only; if Kifly provides a real merchant/product URL, narrow to one genuine paid Capture before broader integration.",
+      "duplicate_check": "Gmail exact target/domain search returned no prior Kifly contact before send."
+    },
+    {
+      "target": "BizNetAI / ConsumerGenie",
+      "official_contact": "biznetai@consumergenie.net",
+      "official_source": "https://biznetai.consumergenie.net/",
+      "gmail_message_id": "1a0b259239f548e5",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "use_case": "Selected 1 USDC Capture of a public merchant product/policy page before an agent purchase relying on price, availability, shipping, warranty or returns claims; associate proof with the Merchant Node transaction/audit trail.",
+      "ability_or_willingness_evidence": "BizNetAI publicly positions its Merchant Node for AI-agent catalog, inventory, pricing, policy and checkout transactions; no DELTA-specific willingness or funding has been observed.",
+      "next_action": "Wait for explicit reply only; seek one current merchant flow and representative public URL for one genuine paid Capture.",
+      "duplicate_check": "Gmail exact target/domain search returned no prior BizNetAI/ConsumerGenie contact before send."
+    },
+    {
+      "target": "CodeSpar",
+      "official_contact": "hello@codespar.dev",
+      "official_source": "https://codespar.dev/trust",
+      "gmail_message_id": "1a0b259426c0f289",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "use_case": "Pair a CodeSpar KYA spend mandate with one independent 1 USDC Capture of the public product/vendor source the agent relied on before an audit-sensitive spend.",
+      "ability_or_willingness_evidence": "CodeSpar publicly documents verifiable agent identity and spend mandates, establishing a compatible control plane; no DELTA-specific willingness or funding has been observed.",
+      "next_action": "Wait for explicit reply only; request one live/pilot KYA workflow and representative public URL before any broader integration.",
+      "duplicate_check": "Gmail exact target/domain search returned no prior CodeSpar contact before send."
+    }
+  ],
+  "risk_and_controls": {
+    "payments_made": 0,
+    "wallet_signatures": 0,
+    "new_cash_or_credits": 0,
+    "listing_fees": 0,
+    "kyc_or_identity_attestations": 0,
+    "legal_commitments": 0,
+    "production_deployments": 0,
+    "new_seller_identities": 0,
+    "repeat_or_duplicate_first_contacts": 0,
+    "outreach_daily_limit": null,
+    "quality_rules": "Official public business contacts only; one first contact per target; no chasing silence; stop on rejection."
+  },
+  "operator_workspace": {
+    "canonical_local_path": "运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json and data/pipeline.json",
+    "accessible_this_run": false,
+    "synchronized_claimed": false
+  }
+}
