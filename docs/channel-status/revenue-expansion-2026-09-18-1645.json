@@ -1,0 +1,143 @@
+{
+  "checked_at": "2026-09-18T07:40:00Z",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "actual_counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "gross_verified_customer_receipts_usdc": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "risk": "material_shortfall_risk_already_known_no_new_alert"
+  },
+  "reconciliation": {
+    "github_actions_run": 35320249046,
+    "live_pricing_checked_at": "2026-09-18T07:36:46.207Z",
+    "live_public_products": {
+      "capture_usdc": 1,
+      "preflight_usdc": 5,
+      "guarded_action_pilot_usdc": 10
+    },
+    "public_raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "partner_price_scope": "not_checked_in_this_one_shot_run_scoped_secret_not_provided",
+    "paid_funnel_candidates": 0,
+    "agentpact": {
+      "offers": 3,
+      "prices_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "external_funded_demand": {
+      "adjacent_funded_requests": 17,
+      "delta_native_funded_requests": 0,
+      "channels": {
+        "bountybook": 13,
+        "taskmarket": 1,
+        "clawlancer": 3,
+        "riner": 0,
+        "agent_bounties": 0
+      },
+      "financial_or_signature_action_taken": false
+    },
+    "treasury_scan": {
+      "checked_at": "2026-09-18T07:36:58.074Z",
+      "start_block": 51363831,
+      "latest_block": 51463830,
+      "lookback_blocks": 100000,
+      "treasury_received_candidates": 0,
+      "unclassified_receipts": 0,
+      "evidence_quality": "A_direct_canonical_USDC_log"
+    }
+  },
+  "reply_check": {
+    "since_epoch": 1789713840,
+    "since_iso": "2026-09-18T06:44:00Z",
+    "new_actionable_delta_replies": 0,
+    "robauto_status": "explicit_interest_answered_waiting_for_real_workflow_and_public_url",
+    "outlast_status": "blocked_by_counterparty_request_for_genuine_company_domain_sender",
+    "silent_threads_followed_up": 0
+  },
+  "new_first_contacts": [
+    {
+      "target": "Henry Labs",
+      "official_contact": "support@henrylabs.ai",
+      "official_source": "https://docs.henrylabs.ai/v1/info/contact-us",
+      "product_source": "https://www.henrylabs.ai/",
+      "message_id": "1a0b376539a1bf52",
+      "use_case": "retain public product/returns/availability source immediately before selected embedded checkout or universal-cart purchase",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "price_fit": "1 USDC Capture only on provenance-sensitive purchases; 5 USDC Public Preflight only when a specified public-page condition must be checked",
+      "next_action": "wait for explicit reply; if interested request one real workflow, representative public URL and action boundary; do not chase silence"
+    },
+    {
+      "target": "Zinc",
+      "official_contact": "sales@zinc.io",
+      "official_source": "https://zinc.io/index.html",
+      "message_id": "1a0b376b9562867d",
+      "use_case": "preserve public retailer product/price/availability source immediately before selected automated order submission",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "price_fit": "1 USDC Capture fits selected audit-sensitive automated orders rather than every API call",
+      "next_action": "wait for explicit reply; if interested validate one genuine buyer-authorized Capture first"
+    },
+    {
+      "target": "Catalog",
+      "official_contact": "hamish@getcatalog.ai",
+      "official_source": "https://www.getcatalog.ai/legal/terms-of-service",
+      "product_source": "https://www.getcatalog.ai/",
+      "message_id": "1a0b3772498f7c53",
+      "use_case": "retain merchant public-source provenance when agent-facing product data is about to influence a selected consequential purchase or recommendation",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "price_fit": "1 USDC Capture fits selected provenance-sensitive actions, not every product lookup",
+      "next_action": "wait for explicit reply; no duplicate first contact"
+    },
+    {
+      "target": "Aesthetic",
+      "official_contact": "hello@myaesthetic.ai",
+      "official_source": "https://www.myaesthetic.ai/terms",
+      "product_source": "https://www.myaesthetic.shop/",
+      "message_id": "1a0b3777a1d99b2b",
+      "use_case": "retain public product/merchant page immediately before selected AI-assisted purchase where public price/availability/details may change",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "price_fit": "1 USDC Capture for selected purchase-sensitive checkpoints; 5 USDC Preflight only for explicit condition checks",
+      "next_action": "wait for explicit reply; if interested request one live shopping flow and representative URL"
+    },
+    {
+      "target": "Price.com",
+      "official_contact": "support@price.com",
+      "official_source": "https://help.price.com/",
+      "product_source": "https://price.com/",
+      "message_id": "1a0b377d4fc5979f",
+      "use_case": "retain public merchant/product source between AI comparison or price trigger and selected Buy-with-AI checkout",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "price_fit": "1 USDC Capture only on selected purchase checkpoints; 5 USDC Preflight only when an explicit public-page price/availability condition must be checked",
+      "next_action": "wait for explicit reply or product-owner routing; do not chase silence"
+    }
+  ],
+  "delivery_readback": {
+    "immediate_bounces_observed_for_new_contacts": 0,
+    "new_human_replies_observed_for_new_contacts": 0,
+    "delivery_status_is_not_buyer_interest": true
+  },
+  "operator_coordination": {
+    "canonical_sibling_workspace": "not_accessible_in_this_runtime_not_claimed_synchronized",
+    "temporary_reconciliation_workflow_removed": true,
+    "duplicate_growth_loop_created": false,
+    "financial_or_signature_action_taken": false,
+    "pricing_changed": false,
+    "customer_transaction_created_by_operator": false
+  }
+}
