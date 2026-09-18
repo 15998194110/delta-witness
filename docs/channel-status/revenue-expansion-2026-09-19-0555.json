@@ -1,0 +1,131 @@
+{
+  "checked_at_jst": "2026-09-19T05:55:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "realized_contribution_margin_usdc": null
+  },
+  "canonical_pulse": {
+    "run_id": 35387310128,
+    "run_completed_at": "2026-09-18T19:41:41Z",
+    "owner_pricing_policy_check": "success",
+    "live_owner_pricing_check": "success",
+    "live_purchase_path_no_payment": "success",
+    "treasury": {
+      "checked_at": "2026-09-18T19:41:35.843Z",
+      "network": "eip155:8453",
+      "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+      "start_block": 51435573,
+      "latest_block": 51485572,
+      "lookback_blocks": 50000,
+      "treasury_received_candidates": 0,
+      "unclassified_usdc": 0,
+      "evidence_quality": "A_direct_canonical_USDC_log"
+    },
+    "paid_funnel_candidate_rows": 0,
+    "agentpact": {
+      "offers": [
+        {"product": "Capture", "price_usdc": 1},
+        {"product": "Public Preflight", "price_usdc": 5},
+        {"product": "Guarded-Action Pilot", "price_usdc": 10}
+      ],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_funded_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "agentexchange": {
+      "buyer_count": 1,
+      "external_requests": 2,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "paid_settlements": 0
+    },
+    "external_funded_demand": {
+      "adjacent_funded_requests": 15,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0
+    },
+    "workpnp": {
+      "public_board_status": "present",
+      "funded_requests_shown": 0,
+      "delta_native_funded_requests": 0
+    },
+    "moltjobs": "degraded_recoverable",
+    "payanagent": "degraded_recoverable_http_500"
+  },
+  "explicit_interest_and_stops": {
+    "robauto_agenthub": "explicit-interest reply already answered; waiting for one real workflow/public URL; do not chase silence",
+    "outlast_ai": "blocked by counterparty request for genuine company-domain sender; do not spoof or guess",
+    "reap": "explicit rejection; stop unless materially new inbound",
+    "agents_net": "submission #243 remains in review; no newer approval observed in Gmail as of this run"
+  },
+  "new_first_contacts": [
+    {
+      "target": "Expert Supply NY Inc.",
+      "official_contact": "demo@expert-supply.com",
+      "official_surface": "https://www.expert-supply.com/",
+      "source_fact": "autonomous procurement engine; supplier discovery, negotiation, compliance and spend automation; official site publishes demo@expert-supply.com",
+      "use_case": "1 USDC Capture of a public supplier/product/certification/terms page immediately before a consequential supplier-selection or purchase action; 5 USDC Public Preflight only for an explicit public-page condition",
+      "gmail_message_id": "1a0b64974d43c0db",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "technical_fit_grade": "B_direct_procurement_workflow_fit",
+      "prior_contact_search": "none found before send",
+      "next_action": "wait for explicit reply; if interested ask for one representative public URL and real decision boundary; no silence follow-up"
+    },
+    {
+      "target": "DXwand / ORXTRA",
+      "official_contact": "sales@dxwand.com",
+      "official_surface": "https://dxwand.com/product/procurement-ai-agent/",
+      "source_fact": "ORXTRA procurement agent generates RFPs, handles bidder Q&A, evaluates proposals and integrates with Ariba/Coupa; official site publishes sales@dxwand.com",
+      "use_case": "1 USDC Capture of the public supplier/bidder source before a consequential RFP/award/write action; 5 USDC Preflight only for an explicit expected-condition check",
+      "gmail_message_id": "1a0b649906118f82",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "technical_fit_grade": "B_direct_procurement_workflow_fit",
+      "prior_contact_search": "none found before send",
+      "next_action": "wait for explicit reply; ask for one live RFP/bidder workflow and representative URL; no silence follow-up"
+    },
+    {
+      "target": "ADO Aerospace",
+      "official_contact": "sales@adoaerospace.com",
+      "official_surface": "https://adoaero.com/",
+      "source_fact": "MRO Suite automates RFQs, quote comparison, negotiation, PO issuance and freight selection; official site publishes sales@adoaerospace.com",
+      "use_case": "1 USDC Capture of a public supplier/inventory/capability/terms page before RFQ/PO action; 5 USDC Preflight only where an explicit public condition must still hold",
+      "gmail_message_id": "1a0b649ad2b4edc0",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "technical_fit_grade": "B_direct_procurement_workflow_fit",
+      "prior_contact_search": "none found before send",
+      "next_action": "wait for explicit reply; ask for one current sourcing workflow, public URL and RFQ/PO decision boundary; no silence follow-up"
+    }
+  ],
+  "delivery_check": {
+    "searched_for_immediate_mailer_daemon_failures": true,
+    "immediate_bounces_observed_for_new_contacts": 0,
+    "note": "absence of an immediate bounce is delivery evidence only, not buyer interest"
+  },
+  "actions_not_taken": [
+    "no self-payment",
+    "no canary",
+    "no wallet signature or message",
+    "no asset movement",
+    "no paid test",
+    "no listing/signup/verification fee",
+    "no KYC or legal commitment",
+    "no duplicate seller identity",
+    "no production deployment",
+    "no silence follow-up"
+  ],
+  "operator_workspace": {
+    "canonical_sibling_workspace": "运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json and data/pipeline.json",
+    "status_this_run": "not directly accessible from available connector/runtime; not claimed synchronized"
+  },
+  "notification_assessment": "No new customer receipt, paid settlement, explicit integration reply, funded compatible request, new unavoidable blocker, or core failure observed. New first contacts are ordinary pipeline expansion and are not notification events."
+}
