@@ -1,0 +1,27 @@
+{
+  "checked_at_jst": "2026-09-18T11:04:00+09:00",
+  "supplements": "docs/channel-status/revenue-expansion-2026-09-18-1100.json",
+  "target": "Payhawk",
+  "official_contact": "sales@payhawk.com",
+  "official_contact_source": "https://payhawk.com/en-us/blog/best-procurement-software",
+  "product_sources": [
+    "https://payhawk.com/en-us/procurement",
+    "https://payhawk.com/blog/agentic-ai-procurement-workflows"
+  ],
+  "public_product_evidence": "Payhawk publicly describes AI-led procurement orchestration from request to payment and a Procurement AI Agent that validates requests and supports purchasing/card workflows.",
+  "gmail_prior_contact_search": "in:anywhere payhawk.com",
+  "prior_contact_found": false,
+  "sent_message_id": "1a0b23f9c8b95922",
+  "subject": "Payhawk Procurement Agent: $1 public-source evidence before selected purchase commitments",
+  "specific_use_case": "For selected purchase requests where a vendor's public price, availability, product terms, policy, certification or other public claim is material before spend is committed, retain a timestamped independent public-source Capture beside the procurement request or approval record.",
+  "recommended_product": "Public Capture",
+  "price_usdc": 1,
+  "technical_fit_grade": "B",
+  "commercial_demand_grade": "C",
+  "ability_or_willingness_to_pay_evidence": "No DELTA-specific reply or funding observed yet; current evidence is platform workflow fit plus a published sales channel.",
+  "next_action": "Wait for explicit reply. If Payhawk identifies one real workflow and representative public vendor URL, move directly to one genuine buyer-paid Capture; do not send another first contact or chase silence.",
+  "immediate_bounce_or_reply_observed": false,
+  "counted_customer_transaction": false,
+  "recognized_revenue_usdc": 0,
+  "financial_or_signature_action_taken": false
+}
