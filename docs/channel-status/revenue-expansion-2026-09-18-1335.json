@@ -1,0 +1,106 @@
+{
+  "run_time_jst": "2026-09-18T13:35:00+09:00",
+  "sprint_deadline": "2026-09-21T13:43:28+09:00",
+  "strict_counted_transactions": 0,
+  "strict_verified_unique_buyers": 0,
+  "reconciliation_source": "reused fresh 2026-09-18 12:45 JST handoff and 100000-block Treasury evidence; no redundant reconciliation run was started within the same hour",
+  "treasury_evidence": {
+    "checked_at": "2026-09-18T03:41:50.667Z",
+    "block_start": 51356778,
+    "block_end": 51456777,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "scope_note": "Explicit block-range evidence only; not an all-time zero assertion. Variable costs and contribution margin remain unknown/null."
+  },
+  "inbox_after_previous_handoff": {
+    "query_after_epoch": 1789703100,
+    "actionable_new_human_replies": 0
+  },
+  "new_first_contacts": [
+    {
+      "target": "Najar",
+      "official_contact": "partners@najar.ai",
+      "official_source": "Najar partner-program page; integrations/partnership inquiries",
+      "gmail_message_id": "1a0b2c498d8da208",
+      "use_case": "Opt-in public supplier pricing/terms/certification/availability evidence before purchase approval or vendor-selection action.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only when an expected public-text condition is required",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "technical_fit_grade": "B_current_procurement_workflow",
+      "next_action": "Wait for explicit reply; if they provide a genuine workflow and public URL, advance directly to one buyer-funded Capture. No follow-up on silence."
+    },
+    {
+      "target": "Sakon",
+      "official_contact": "info@sakon.com",
+      "official_source": "Sakon official business-inquiry contact",
+      "gmail_message_id": "1a0b2c4b00d31a4f",
+      "use_case": "Public carrier availability/service-description/plan/terms evidence before selected telecom procurement, renewal or approval decisions.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight for expected public-text conditions",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "technical_fit_grade": "B_telecom_procurement_workflow",
+      "next_action": "Wait for explicit reply; request one live customer workflow and representative public carrier URL. No follow-up on silence."
+    },
+    {
+      "target": "Teampay",
+      "official_contact": "hello@teampay.co",
+      "official_source": "Teampay official published contact in buyer materials",
+      "gmail_message_id": "1a0b2c4cdafa478e",
+      "use_case": "Public vendor pricing/terms/availability evidence immediately before selected approved requests move toward payment.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight when required",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "technical_fit_grade": "B_purchase_to_payment_workflow",
+      "next_action": "Wait for explicit reply and one real public URL; no duplicate first contact or silence follow-up."
+    },
+    {
+      "target": "CloudEagle.ai",
+      "official_contact": "partners@cloudeagle.ai",
+      "official_source": "CloudEagle current official contact page lists partners@cloudeagle.ai",
+      "gmail_message_id": "1a0b2c543c420b1e",
+      "use_case": "Independent evidence of a public SaaS vendor pricing/policy/availability source before selected renewal or purchase workflow decisions.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight when needed",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "technical_fit_grade": "B_procurement_and_AI_governance_workflow",
+      "next_action": "Wait for explicit reply; seek one real renewal/purchase workflow and representative public vendor URL."
+    },
+    {
+      "target": "Tipalti",
+      "official_contact": "contact@tipalti.com",
+      "official_source": "Tipalti current official contact page labels contact@tipalti.com as general inquiry/contact sales",
+      "gmail_message_id": "1a0b2c55ae288386",
+      "use_case": "Public supplier pricing/policy/certification/availability evidence before selected procurement and supplier approvals.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight when needed",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "technical_fit_grade": "B_procurement_supplier_management",
+      "next_action": "Wait for explicit reply; ask for a technical owner and one genuine public supplier URL before any broader integration."
+    },
+    {
+      "target": "Spendesk",
+      "official_contact": "hello@spendesk.com",
+      "official_source": "Spendesk current official legal/help material publishes hello@spendesk.com for general contact",
+      "gmail_message_id": "1a0b2c57043bbff3",
+      "use_case": "Public vendor pricing/terms/policy/availability evidence before selected purchase approvals in request-to-payment workflows.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight when needed",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "technical_fit_grade": "B_procurement_request_to_payment",
+      "next_action": "Wait for explicit reply and one real workflow/public URL. Do not chase silence."
+    }
+  ],
+  "delivery_control": {
+    "gmail_dedupe_completed_before_each_send": true,
+    "duplicate_first_contacts_sent": 0,
+    "guessed_private_emails_used": 0,
+    "immediate_bounces_observed_for_new_contacts": 0,
+    "daily_volume_cap": null,
+    "no_chasing_silence": true,
+    "stop_on_rejection": true
+  },
+  "financial_risk": {
+    "new_cash_or_credits": 0,
+    "fees_paid": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "kyc_or_identity_attestations": 0,
+    "legal_commitments": 0
+  },
+  "notification_status": "No new genuine receipt, paid settlement, actionable explicit integration reply, funded DELTA-native buyer request, core failure or new unavoidable blocker in this run. Outbound first contacts are evidence of execution, not sprint transactions or Grade-A demand."
+}
