@@ -1,0 +1,117 @@
+{
+  "checked_at_jst": "2026-09-19T01:05:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "status": "materially_at_risk_no_new_alert"
+  },
+  "reconciliation": {
+    "run_id": 35366127713,
+    "pricing_checked_at": "2026-09-18T16:03:14.557Z",
+    "pricing_verified": true,
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "treasury_checked_at": "2026-09-18T16:03:31.071Z",
+    "start_block": 51379027,
+    "latest_block": 51479026,
+    "lookback_blocks": 100000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "paid_funnel_fresh_status": "not_refreshed_in_temporary_run_scoped_cloudflare_credentials_not_provided",
+    "latest_successful_paid_funnel_candidate_rows_from_prior_canonical_handoff": 0,
+    "agentpact_offer_count": 3,
+    "agentpact_buyer_count": 0,
+    "agentpact_settlement_count": 0,
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_requests": 0,
+    "agentpact_funded_compatible_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "external_adjacent_funded_requests": 15,
+    "external_delta_native_funded_requests": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "scope_note": "Direct canonical-USDC explicit-range evidence only; not an all-time-zero claim. The temporary paid-funnel audit lacked scoped Cloudflare credentials, so its empty temporary output is not treated as fresh telemetry. Unknown costs remain unknown. Pricing diagnostics generated no paid transaction."
+  },
+  "reply_updates": {
+    "new_actionable_inbound_since_previous_handoff": 0,
+    "robauto_agenthub": "explicit-interest thread already answered; still waiting for one real workflow/public URL; do not chase silence",
+    "outlast_ai": "still blocked on its request for a genuine company-domain sender; do not spoof or bypass",
+    "reap": "explicit rejection remains suppressed",
+    "agents_net": "previous human-facing destination resubmission request remains known; no new current-run response",
+    "crossmint": "automated acknowledgement only; not buyer intent"
+  },
+  "new_first_contacts": [
+    {
+      "target": "Sapiom",
+      "official_public_contact": "partners@sapiom.ai",
+      "contact_evidence": "https://www.sapiom.ai/contact/ lists partners@sapiom.ai for integrations/building on Sapiom; https://www.sapiom.ai/ describes metered production-agent runtime, step traces and machine-native payment direction",
+      "message_id": "1a0b54278ccdc20e",
+      "delivery_status": "sent_no_immediate_bounce_observed",
+      "use_case": "one independent public pricing/availability/policy/vendor-page Capture immediately before a consequential metered production-agent capability call; retain proof beside the Sapiom trace",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for a specified public-page condition",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; require one production-agent workflow, representative public URL and step boundary before any genuine paid Capture"
+    },
+    {
+      "target": "Sentrik",
+      "official_public_contact": "hello@getsentrik.com",
+      "contact_evidence": "https://www.getsentrik.com/ public site describes deterministic authorization infrastructure for AI agents and lists hello@getsentrik.com",
+      "message_id": "1a0b5429f3f1e155",
+      "delivery_status": "sent_no_immediate_bounce_observed",
+      "use_case": "one public merchant/vendor/policy/pricing-page Capture before Sentrik evaluates a consequential agent action whose authorization is influenced by that source; keep source proof distinct from the authorization decision",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for a specified public-page condition",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; require one current authorization flow, representative public URL and decision boundary"
+    },
+    {
+      "target": "AgentSmith",
+      "official_public_contact": "support@agentsmith.so",
+      "contact_evidence": "https://agentsmith.so/ public site describes browser agents that click, fill, submit and replay workflows and publishes support@agentsmith.so",
+      "message_id": "1a0b542bc95535b8",
+      "delivery_status": "sent_no_immediate_bounce_observed",
+      "use_case": "one public price/availability/terms/policy-page Capture immediately before a browser submit, checkout-like action or replay that relies on that source; retain proof beside the workflow record",
+      "price_fit": "1 USDC Public Capture; 5 USDC Public Preflight only for a specified public-page condition",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_no_reply_or_funded_need_yet",
+      "next_action": "wait for explicit reply; require one current browser workflow, representative public URL and action boundary"
+    }
+  ],
+  "delivery_check": {
+    "query": "newer_than:1h from:mailer-daemon@googlemail.com {\"partners@sapiom.ai\" \"hello@getsentrik.com\" \"support@agentsmith.so\"}",
+    "hard_bounces_observed": 0,
+    "note": "Absence of an immediate bounce is not buyer interest and does not prove eventual delivery."
+  },
+  "funded_demand_disposition": {
+    "total_adjacent_funded_requests": 15,
+    "total_delta_native_funded_requests": 0,
+    "agentpact": "16 external requests observed; none DELTA-native or buyer-funded compatible",
+    "bountybook": "11 funded adjacent jobs observed; all were generic research or custom code rather than existing DELTA Capture/Preflight fulfillment",
+    "taskmarket": "one 199 USDC escrow-backed quantum-safe Bitcoin bounty observed; custom CUDA/code work is not DELTA-native and worker participation can require wallet/signature and paid actions, so no mutation taken",
+    "clawlancer": "3 funded adjacent bounties remain non-native and below the 1 USDC entry floor",
+    "financial_or_signature_action_taken": false
+  },
+  "coordination": {
+    "canonical_operator_workspace": "运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json and data/pipeline.json",
+    "local_sibling_workspace_access": "not available in this tool run; not claimed synchronized",
+    "temporary_reconciliation_workflow": "scheduled for removal after successful evidence capture",
+    "new_seller_identity_created": false,
+    "new_listing_created": false,
+    "wallet_signature_or_message": false,
+    "asset_movement": false,
+    "fee_or_paid_test": false,
+    "kyc_or_legal_commitment": false,
+    "duplicate_first_contact": false
+  }
+}
