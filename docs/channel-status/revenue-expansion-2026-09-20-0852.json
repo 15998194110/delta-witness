@@ -1,0 +1,148 @@
+{
+  "run_date_jst": "2026-09-20",
+  "run_time_jst": "08:52",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0
+  },
+  "canonical_reconciliation": {
+    "workflow_run": 35475409105,
+    "completed_at": "2026-09-19T23:11:44Z",
+    "treasury_checked_at": "2026-09-19T23:11:41.031Z",
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "start_block": 51485076,
+    "latest_block": 51535075,
+    "lookback_blocks": 50000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "paid_funnel_candidate_rows": 0,
+    "scope_note": "Explicit block-range and telemetry evidence only; not an all-time-zero claim. Unknown realized variable costs and contribution margin remain unknown/null."
+  },
+  "buyer_demand": {
+    "agentpact": {
+      "canonical_offers_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "agentexchange": {
+      "external_requests": 4,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0
+    },
+    "external_funded_scan": {
+      "adjacent_funded_requests": 18,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0
+    },
+    "workpnp": {
+      "funded_rows": 0,
+      "delta_native_rows": 0,
+      "financial_or_identity_gates_avoided": true
+    },
+    "payanagent": "recoverable HTTP 500 degradation",
+    "moltjobs": "recoverable fetch degradation"
+  },
+  "explicit_interest_threads": {
+    "a2a_list": {
+      "status": "waiting_after_operator_requested_retry_and_received_sanitized_failure_report",
+      "operator_reply_at": "2026-09-19T14:08:54Z",
+      "operator_claim": "Cloudflare rule corrected; official no-wallet POST /api/a2a tasks/send should reach JSON-RPC",
+      "delta_retry_result": "Fresh independent runner still received Cloudflare managed challenge HTTP 403; response evidence was sent once with cf-ray a3d9915cafd6ba30-SEA and no payment/wallet data.",
+      "next_action": "Wait for materially new operator reply; do not chase or hammer."
+    },
+    "robauto_agenthub": {
+      "status": "explicit_interest_answered_waiting_real_workflow_and_public_url",
+      "next_action": "Advance only on new inbound."
+    },
+    "outlast_ai": {
+      "status": "blocked_by_requested_genuine_company_domain_sender",
+      "next_action": "Do not spoof or guess sender identity."
+    }
+  },
+  "new_first_contacts": [
+    {
+      "target": "ArStudioz",
+      "contact": "hello@arstudioz.com",
+      "contact_basis": "official public business email on company site",
+      "use_case": "x402/Base-USDC autonomous procurement agent purchases 1 USDC Capture before external-public-source-dependent spend; 5 USDC Preflight only for explicit condition checks",
+      "sent_message_id": "1a0bc1442ee12497",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "technical_fit_grade": "B_high_x402_payment_fit",
+      "immediate_bounce_observed": false,
+      "next_action": "Wait for explicit response; no second first contact and no silence chasing."
+    },
+    {
+      "target": "Experidium",
+      "contact": "contact@experidium.com",
+      "contact_basis": "official public contact email on company site",
+      "use_case": "autonomous procurement/supply-chain action retains public supplier price/availability/lead-time/policy evidence before order/substitution/approval",
+      "sent_message_id": "1a0bc1459b92a023",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "technical_fit_grade": "B_procurement_fit",
+      "immediate_bounce_observed": false,
+      "next_action": "Wait for explicit response; no second first contact and no silence chasing."
+    },
+    {
+      "target": "Prokraya",
+      "contact": "prokrayateam@prokraya.com",
+      "contact_basis": "official public business contact on company contact page",
+      "use_case": "source-to-pay supplier shortlist/award records a public vendor page with 1 USDC Capture before consequential supplier decision",
+      "sent_message_id": "1a0bc146f7ed0a96",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "technical_fit_grade": "B_procurement_fit",
+      "immediate_bounce_observed": false,
+      "next_action": "Wait for explicit response; no second first contact and no silence chasing."
+    }
+  ],
+  "failed_or_suppressed_routes_this_run": [
+    {
+      "target": "CommercePulse",
+      "attempted_public_contact": "partners@commercepulse.io",
+      "sent_message_id": "1a0bc129881ffc69",
+      "result": "recipient enterprise blocked delivery; bounce referenced support@commercepulse.io routing",
+      "disposition": "suppress route; no guessed alternative"
+    },
+    {
+      "target": "RShift",
+      "attempted_public_contact": "info@rshift.co",
+      "sent_message_id": "1a0bc12b27df856f",
+      "result": "hard bounce address not found",
+      "disposition": "suppress exact route; no guessed alternative"
+    },
+    {
+      "target": "Qatom/TODAQ",
+      "attempted_public_contact": "hello@todaq.net",
+      "sent_message_id": "1a0bc12d21f2017d",
+      "result": "Google group hello may not exist or external posting is not permitted",
+      "disposition": "suppress route; no guessed alternative"
+    },
+    {
+      "target": "Relevance AI",
+      "route": "product support",
+      "result": "human support explicitly stated the support channel cannot handle partnership/integration proposals and closed ticket; recommended current website business contact options",
+      "disposition": "do not reply to support; only use a separately verified official business route if independently found"
+    }
+  ],
+  "financial_boundary": {
+    "new_cash_or_credits": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "listing_signup_verification_fees": 0,
+    "kyc_or_legal_commitments": 0,
+    "project_funded_purchases": 0
+  },
+  "operator_workspace": {
+    "sibling_local_workspace_access": "not_verified_in_this_run",
+    "repository_handoff_written": true
+  }
+}
