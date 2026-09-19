@@ -1,0 +1,59 @@
+name: TEMP DELTA Treasury Blockscout fallback 20260919-2308-auto9
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/tmp-treasury-blockscout-20260919-2308-auto9.yml]
+permissions:
+  contents: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/setup-node@v5
+        with: {node-version: '22'}
+      - name: Reconcile missing/current range through Base Blockscout public API
+        run: |
+          node --input-type=module <<'JS' | tee /tmp/treasury-blockscout.json
+          const TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'.toLowerCase();
+          const USDC='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'.toLowerCase();
+          const START=51487123;
+          let head=null, headSource=null;
+          try {
+            const r=await fetch('https://mainnet.base.org',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_blockNumber',params:[]}),signal:AbortSignal.timeout(12000)});
+            const j=await r.json(); if(r.ok&&j.result){head=parseInt(j.result,16);headSource='mainnet.base.org';}
+          } catch {}
+          if(head===null){
+            try {
+              const r=await fetch('https://base.blockscout.com/api/v2/blocks?type=block',{signal:AbortSignal.timeout(12000)});
+              const j=await r.json(); const n=j?.items?.[0]?.height ?? j?.items?.[0]?.number; if(r.ok&&n!=null){head=Number(n);headSource='base.blockscout.com/api/v2/blocks';}
+            } catch {}
+          }
+          let url=`https://base.blockscout.com/api/v2/addresses/${TREASURY}/token-transfers?type=ERC-20`;
+          let pages=0, completeToStart=false, oldest=null; const matched=[]; const all=[];
+          while(url && pages<100){
+            pages++;
+            const r=await fetch(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(15000)});
+            if(!r.ok) throw new Error(`blockscout HTTP ${r.status}: ${(await r.text()).slice(0,300)}`);
+            const j=await r.json(); const items=Array.isArray(j.items)?j.items:[];
+            for(const x of items){
+              const block=Number(x.block_number ?? x.block ?? x.transaction?.block_number ?? 0);
+              if(block && (oldest===null || block<oldest)) oldest=block;
+              all.push({block,tx_hash:x.transaction_hash ?? x.tx_hash ?? x.transaction?.hash ?? null,from:(x.from?.hash ?? x.from ?? '').toLowerCase?.() ?? '',to:(x.to?.hash ?? x.to ?? '').toLowerCase?.() ?? '',token:(x.token?.address_hash ?? x.token?.address ?? '').toLowerCase?.() ?? '',value:x.total?.value ?? x.value ?? null,decimals:x.total?.decimals ?? x.token?.decimals ?? null});
+            }
+            if(oldest!==null && oldest<START){completeToStart=true;break;}
+            const n=j.next_page_params;
+            if(!n) {completeToStart=true; break;}
+            const q=new URLSearchParams(); for(const [k,v] of Object.entries(n)){if(v!=null)q.set(k,String(v));}
+            url=`https://base.blockscout.com/api/v2/addresses/${TREASURY}/token-transfers?type=ERC-20&${q}`;
+          }
+          for(const x of all){if(x.block>=START && x.to===TREASURY && x.token===USDC) matched.push(x);}
+          console.log(JSON.stringify({ok:completeToStart,checked_at:new Date().toISOString(),network:'eip155:8453',asset:USDC,treasury:TREASURY,start_block:START,head_block:head,head_source:headSource,pages_scanned:pages,oldest_block_seen:oldest,complete_to_start:completeToStart,canonical_usdc_receipt_candidates:matched.length,candidates:matched,evidence_quality:completeToStart?'A_public_explorer_address_token_transfer_history':'B_partial_public_explorer_history',scope:'Completes the RPC-gap/current range only; does not rewrite earlier historical classifications.'},null,2));
+          if(!completeToStart) process.exitCode=2;
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: delta-treasury-blockscout-${{ github.run_id }}
+          path: /tmp/treasury-blockscout.json
+          retention-days: 7
