@@ -1,0 +1,154 @@
+{
+  "run_start_jst": "2026-09-19T13:35:40+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "deadline_extended": false
+  },
+  "pricing_authority": {
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+  },
+  "fresh_revenue_evidence": {
+    "workflow_run_id": 35419042720,
+    "workflow_conclusion": "success",
+    "pricing_checked_at_utc": "2026-09-19T03:37:34.094Z",
+    "public_capture_http": 402,
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts_verified": ["1000000", "5000000", "10000000"],
+    "paid_funnel_candidate_rows": 0,
+    "agentpact": {
+      "listing_status": "present",
+      "canonical_offer_count": 3,
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "external_funded_demand": {
+      "adjacent_funded_requests": 15,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "notes": "Bountybook jobs were generic research/code rather than existing DELTA fulfillment; Taskmarket's 199 USDC quantum/CUDA bounty is custom work with wallet/signature/participation boundaries; Clawlancer rows are non-native and below the current 1 USDC entry price. No claim, bid, wallet signature, fee or financial mutation was made."
+    },
+    "treasury_checked_at_utc": "2026-09-19T03:37:41.572Z",
+    "treasury_start_block": 51429855,
+    "treasury_latest_block": 51499854,
+    "treasury_lookback_blocks": 70000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "treasury_evidence_quality": "A_direct_canonical_USDC_log",
+    "transient_degradation": "One Base RPC 429 occurred during chunked scan and recovered on bounded retry; all block chunks completed successfully.",
+    "scope": "Fresh complete explicit-range evidence reused within the same operating hour rather than launching a redundant reconciliation workflow. This does not assert an all-time zero balance. Variable cost and realized contribution margin remain unknown/null."
+  },
+  "reply_state": {
+    "new_actionable_human_reply_this_run": false,
+    "robauto_agenthub": "explicit_interest_already_answered_waiting_for_real_workflow_and_public_url",
+    "outlast_ai": "blocked_by_explicit_genuine_company_domain_sender_requirement",
+    "reap": "explicit_rejection_stop",
+    "agents_net_submission_243": "in_review_known_prior_state"
+  },
+  "new_first_contacts_this_run": [
+    {
+      "target": "Tomex AI",
+      "official_contact": "contact@tomex.ai",
+      "official_surface": "https://tomex.ai/",
+      "specific_use_case": "Independent public supplier, index, surcharge, availability or commercial-term evidence immediately before a Tomex agent converts a public-source claim into a supplier-spend finding, dispute or consequential action.",
+      "ability_or_willingness_evidence": "Tomex publicly reports enterprise deployment across complex supplier spend, $1.5B+ supplier spend analyzed and evidence-backed procurement workflows; this is technical/commercial adjacency, not DELTA purchase intent.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition check.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "duplicate_check": "No prior Gmail/operator contact found for tomex.ai before send.",
+      "status": "delivery_failed_suppressed",
+      "delivery_failure": "Immediate Gmail DSN: 550 5.1.1 contact@tomex.ai address not found/unable to receive.",
+      "next_action": "Do not retry another Tomex address or alternate route unless Tomex initiates materially new inbound contact; one-first-contact and suppression rules remain binding."
+    },
+    {
+      "target": "NULogic / Cartivo",
+      "official_contact": "hello@nulogic.ai",
+      "official_surface": "https://cartivo.nulogic.io/",
+      "specific_use_case": "Optional independent public product, promotion, delivery-promise or returns-policy Capture immediately before a selected higher-value or audit-sensitive conversational checkout.",
+      "ability_or_willingness_evidence": "Cartivo publicly operates a full commerce loop with live catalog, inventory, pricing, cart, checkout and payment and documents production/POC commercial deployment; this is technical fit and capacity-to-integrate evidence, not DELTA purchase intent.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only when a concrete public condition must be checked.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "duplicate_check": "No prior Gmail/operator contact found for nulogic.ai or nulogic.io before send.",
+      "status": "sent_waiting_no_immediate_bounce_observed",
+      "next_action": "Wait for explicit interest and one representative real public URL/action boundary; do not chase silence."
+    },
+    {
+      "target": "Soource",
+      "official_contact": "info@soource.com",
+      "official_surface": "https://soource.com/",
+      "specific_use_case": "Independent evidence checkpoint when supplier scouting, qualification, RFQ, monitoring or data-update action relies on a public certification, market-price, supplier-term or availability source.",
+      "ability_or_willingness_evidence": "Soource publicly reports 50+ customer companies, agentic procurement workflows using verified external data and a real multinational RFQ case; this demonstrates an active commercial buyer surface but is not DELTA-specific willingness to pay.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "duplicate_check": "No prior Gmail/operator contact found for soource.com before send.",
+      "status": "sent_waiting_no_immediate_bounce_observed",
+      "next_action": "Wait for explicit interest, a representative public supplier URL and a genuine buyer-authorized paid use; do not chase silence."
+    },
+    {
+      "target": "Hello Retail",
+      "official_contact": "support@helloretail.com",
+      "official_surface": "https://developer.helloretail.com/mcp/",
+      "specific_use_case": "Optional public-source Capture immediately before a confirmed MCP write when the user is acting because of a public product, availability, campaign or supplier source; preserve proof beside the existing assistant/audit action without bypassing Hello Retail confirmation or publishing controls.",
+      "ability_or_willingness_evidence": "Hello Retail publicly documents an MCP server for ChatGPT/Codex/Claude with read/write tools, confirmation prompts and product/search/agent operations; this is an identifiable integration surface, not DELTA-specific funded demand.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "duplicate_check": "No prior Gmail/operator contact found for helloretail.com before send.",
+      "status": "sent_waiting_no_immediate_bounce_observed",
+      "next_action": "Wait for explicit interest and one real MCP write/public URL pair; do not chase silence."
+    }
+  ],
+  "new_suppressions_observed_since_0215_handoff": [
+    {"target_or_address": "sales@agentchain.com", "reason": "550 5.1.1 address does not exist"},
+    {"target_or_address": "sales@peakcommerce.com", "reason": "550 5.1.1 address does not exist"},
+    {"target_or_address": "support@frisbee.one", "reason": "550 5.7.1 unable to receive; DSN suggested another person but no alternate was used because independent public-business verification and one-target contact rules remain binding"},
+    {"target_or_address": "hello@askshoppie.com", "reason": "550 5.4.1 recipient access denied"},
+    {"target_or_address": "hello@fey.supply", "reason": "550 5.1.1 user does not exist"},
+    {"target_or_address": "support@tokora.ai", "reason": "550 5.1.1 address does not exist"},
+    {"target_or_address": "info@visifyagentic.com", "reason": "550 5.1.1 address does not exist"},
+    {"target_or_address": "contact@tomex.ai", "reason": "550 5.1.1 address does not exist/unable to receive"}
+  ],
+  "outreach_policy": {
+    "daily_numerical_cap": null,
+    "one_first_contact_per_target": true,
+    "official_public_business_contacts_only": true,
+    "no_chasing_silence": true,
+    "stop_on_rejection": true,
+    "gmail_and_operator_dedupe_before_send": true
+  },
+  "financial_actions_this_run": {
+    "listing_or_signup_fees": 0,
+    "new_cash_or_credits": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "kyc_or_identity_attestations": 0,
+    "legal_commitments": 0
+  },
+  "coordination": {
+    "canonical_sibling_operator_workspace": "not_accessible_not_claimed_synchronized",
+    "repository_handoff_written": true,
+    "duplicate_growth_loop_created": false,
+    "new_seller_identity_created": false,
+    "production_deployment_performed": false
+  }
+}
