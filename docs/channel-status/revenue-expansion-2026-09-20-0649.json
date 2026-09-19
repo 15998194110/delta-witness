@@ -1,0 +1,92 @@
+{
+  "checked_at_jst": "2026-09-20T06:49:59+09:00",
+  "sprint_deadline": "2026-09-21T13:43:28+09:00",
+  "strict_counted_customer_transactions": 0,
+  "unique_verified_independent_buyers": 0,
+  "recognized_customer_revenue_usdc": 0,
+  "reconciliation": {
+    "source_run_id": 35468425415,
+    "completed_at_utc": "2026-09-19T20:47:11Z",
+    "live_price_check_at_utc": "2026-09-19T20:46:46.132Z",
+    "public_prices_verified_usdc": {"capture": 1, "public_preflight": 5, "guarded_action_pilot": 10},
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "treasury_block_range": {"start": 51480738, "end": 51530737, "blocks": 50000},
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "paid_funnel_candidate_rows": 0,
+    "agentpact": {"external_requests": 16, "delta_native_funded_compatible": 0, "buyer_count": 0, "settlement_count": 0},
+    "agentexchange": {"external_requests": 4, "compatible_funded": 0, "buyer_count": 2, "paid_settlements": 0},
+    "external_funded_adjacent": 18,
+    "external_funded_delta_native": 0,
+    "scope_note": "This is explicit canonical evidence coverage, not proof of all-time zero revenue. No target checkpoint has been copied into actual results."
+  },
+  "reply_review": {
+    "new_actionable_explicit_interest": 0,
+    "already_handled_waiting_threads": ["A2A List", "Robauto / AgentHub"],
+    "known_blockers_not_renotified": ["Outlast AI company-domain sender requirement", "Relevance AI support-route rejection", "TinyFish metered browser balance"],
+    "rejections_respected": ["Reap"]
+  },
+  "new_buyer_conversion_actions": [
+    {
+      "target": "Hexa Agents",
+      "official_source": "https://www.hexaagents.com/procurement",
+      "official_contact": "admin@hexaagents.com",
+      "gmail_dedupe_before_send": "no prior message found for hexaagents.com",
+      "gmail_message_id": "1a0bba7f22152dca",
+      "status": "first_contact_sent",
+      "use_case": "Selective independent evidence checkpoint when a procurement recommendation/approval depends on a genuinely public supplier, product or terms page before supplier/PO action.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "commercial_demand_reason": "Production-facing procurement workflow is documented, but no explicit DELTA interest, funded request or receipt exists yet.",
+      "next_action": "Wait for explicit reply. No chase of silence. If they provide a real customer workflow and public URL, scope one genuine buyer-purpose paid Capture."
+    },
+    {
+      "target": "DeliverEarly",
+      "official_source": "https://www.deliverearly.com/",
+      "official_contact_attempted": "hello@deliverearly.com",
+      "gmail_dedupe_before_send": "no prior message found for deliverearly.com",
+      "gmail_sent_message_id": "1a0bba81f01ebb1f",
+      "delivery_status": "hard_bounce_550_5.1.1",
+      "bounce_message_id": "1a0bba827edef76c",
+      "status": "email_route_suppressed",
+      "use_case": "Public supplier/product/terms evidence before a sourcing or approval action inside ATLAS workflows.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "next_action": "Do not retry this email or guess another address. The company website has an official demo/contact form; use only that official route if an authorized browser channel is available without a new financial commitment."
+    },
+    {
+      "target": "U.CASH Agents",
+      "official_source": "https://u.cash/faq",
+      "product_source": "https://agents.u.cash/",
+      "official_contact": "partners@u.cash",
+      "gmail_dedupe_before_send": "no prior message found for u.cash",
+      "gmail_message_id": "1a0bba976e2df402",
+      "status": "first_contact_sent",
+      "use_case": "Existing x402/Base buyer wallets call one genuine 1 USDC public-source Capture before a consequential workflow that depends on public price, availability, vendor term or policy evidence.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "A",
+      "commercial_demand_grade": "C",
+      "technical_fit_reason": "Official U.CASH documentation exposes AI-agent buy/sell flows, x402-compatible USDC on Base, buyer-side payment support and merchant discovery; no new payment rail would be required for a buyer already using it.",
+      "commercial_demand_reason": "No explicit U.CASH buyer request or DELTA settlement exists yet; platform capability and user counts are not counted as buyer demand.",
+      "next_action": "Wait for explicit reply or a genuine buyer-side request. Do not ask for a platform-funded/reimbursed test."
+    }
+  ],
+  "source_discovery_notes": {
+    "hexa": "Official procurement page states buyers approve before sends and final POs, and that the system tracks supplier SLA terms; suitable only where a public source materially informs the workflow.",
+    "deliverearly": "Official page states ATLAS follows vendors and connects ERP, email, chat and supplier portals; DELTA remains public-source only and must not imply access to private portals.",
+    "ucash": "Official FAQ lists partners@u.cash for partnerships and states U.CASH Agents can buy x402 resources; contact is an independently verified public partnership address."
+  },
+  "coordination": {
+    "sibling_operator_workspace": "not_accessible_this_run_not_claimed_synchronized",
+    "duplicate_growth_loop_created": false,
+    "new_seller_identity_created": false,
+    "financial_action_taken": false,
+    "wallet_signature_or_message": false,
+    "paid_test_or_canary": false
+  }
+}
