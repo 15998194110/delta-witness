@@ -1,0 +1,152 @@
+{
+  "updated_at_jst": "2026-09-19T18:30:35+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "remaining_hours_at_latest_action": 43.2147,
+    "material_shortfall_risk": true
+  },
+  "pricing_and_purchase_path": {
+    "checked_at": "2026-09-19T09:22:41.811Z",
+    "policy": "owner-2026-09-10-1-5-10",
+    "ok": true,
+    "public_capture": {"http": 402, "usdc": 1, "raw": "1000000"},
+    "public_preflight": {"http": 402, "usdc": 5, "raw": "5000000"},
+    "guarded_action_pilot": {"http": 402, "usdc": 10, "raw": "10000000"},
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_transactions_generated_by_diagnostics": 0,
+    "customer_revenue_generated_by_diagnostics": 0
+  },
+  "reconciliation": {
+    "paid_funnel_candidates": 0,
+    "paid_funnel_checked_at": "2026-09-19T09:22:51Z",
+    "treasury": {
+      "prior_complete_through_block": 51508360,
+      "fresh_tail_start_block": 51508361,
+      "fresh_tail_latest_block": 51510361,
+      "fresh_tail_blocks": 2001,
+      "fresh_tail_checked_at": "2026-09-19T09:27:50.456Z",
+      "fresh_tail_canonical_usdc_receipt_candidates": 0,
+      "continuous_coverage_through_block": 51510361,
+      "evidence_quality": "A_direct_canonical_USDC_log_tail",
+      "scope": "The prior complete canonical Treasury reconciliation was extended continuously through Base block 51510361. No canonical-USDC receipt candidate was found in the fresh tail. This is explicit block-range evidence, not an all-time-zero assertion.",
+      "recoverable_degradation": "An attempted 100000-block refresh hit Base RPC rate limits/403s after many zero-log chunks. The missing range was then completed with a smaller bounded tail scan; no financial action was taken."
+    },
+    "recognized_customer_revenue_usdc": 0,
+    "gross_verified_customer_receipts_usdc": 0,
+    "unreconciled_customer_amount_usdc": 0,
+    "known_variable_cost_usdc": null,
+    "known_contribution_margin_usdc": null
+  },
+  "funded_demand": {
+    "agentpact": {
+      "listing_status": "present",
+      "offer_count": 3,
+      "offers_current_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0,
+      "evidence_quality": "A_official_public_api"
+    },
+    "agentexchange": {
+      "neighbor_buyer_count": 2,
+      "external_requests": 4,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "paid_settlements": 0,
+      "evidence_quality": "A_official_market_mcp"
+    },
+    "external_boards": {
+      "adjacent_funded_requests": 17,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false,
+      "notes": "Bountybook and Taskmarket contained funded adjacent research/development work, including higher-value tasks, but none matched existing DELTA Capture/Preflight/Watch/Pilot fulfillment. Clawlancer tasks were non-native and below current DELTA pricing. No bid, pitch, claim, signature or paid entry was attempted."
+    },
+    "moltjobs": {"status": "degraded_recoverable", "delta_native_funded_count": 0},
+    "workpnp": {"status": "present", "funded_requests_shown": 0, "delta_native_funded_count": 0}
+  },
+  "reply_and_interest_state": {
+    "gmail_inbound_search_since_prior_handoff": "after:1789806120 -in:sent -in:trash -in:spam",
+    "new_inbound_messages_before_this_runs_outreach": 0,
+    "new_actionable_explicit_integration_intent": 0,
+    "robauto_agenthub": "existing explicit-interest thread already answered; waiting for one real workflow and representative URL; no repeat follow-up sent",
+    "outlast": "existing company-domain-sender requirement unchanged; not re-notified"
+  },
+  "outreach_actions": [
+    {
+      "target": "BuyPilot / Forager Labs",
+      "official_contact": "hello@foragerlabs.com",
+      "official_surface": "https://www.buypilot.com/",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0b8fc6bd998add",
+      "sent_at_jst": "2026-09-19T18:25:45+09:00",
+      "status": "sent_no_immediate_bounce_observed",
+      "use_case": "1 USDC public supplier price/availability/MOQ/certification/policy Capture before shortlist, approval or PO placement",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "technical_fit_grade": "B_high_workflow_fit",
+      "next_conversion_action": "Wait for a real buyer workflow/public URL; do not chase silence."
+    },
+    {
+      "target": "NexShop / Bytes Technolab",
+      "official_contact": "hello@bytestechnolab.com",
+      "official_surface": "https://www.bytestechnolab.com/nexshop-ai-shopping-agent/",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0b8fc99f1650ad",
+      "sent_at_jst": "2026-09-19T18:25:57+09:00",
+      "status": "sent_no_immediate_bounce_observed",
+      "use_case": "Selective 1 USDC Capture of public product/availability/comparison/returns evidence before higher-value checkout",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "technical_fit_grade": "B_high_workflow_fit",
+      "next_conversion_action": "Wait for a representative public URL/action boundary; do not chase silence."
+    },
+    {
+      "target": "Mandvia",
+      "official_contact": "hello@mandvia.com",
+      "official_surface": "https://www.mandvia.com/company",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0b8fcba1b8d42d",
+      "sent_at_jst": "2026-09-19T18:26:05+09:00",
+      "status": "bounced_550_5_1_1_undeliverable",
+      "bounce_message_id": "1a0b8fcec3d86f19",
+      "suppression": "Suppress this exact official route. Do not guess another private address and do not retry unless Mandvia publishes a new official business contact route.",
+      "commercial_demand_grade": "C_no_contact_established"
+    },
+    {
+      "target": "AIBuyer",
+      "official_contact": "king@aibuyer.ai",
+      "official_surface": "https://www.aibuyer.ai/",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0b900d84f31818",
+      "sent_at_jst": "2026-09-19T18:30:35+09:00",
+      "status": "sent_no_immediate_bounce_observed",
+      "use_case": "1 USDC Capture of public supplier/pricing/certification/policy evidence before shortlist, approval or award",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "technical_fit_grade": "B_high_procurement_fit",
+      "next_conversion_action": "Wait for one real sourcing event/public URL; do not chase silence."
+    }
+  ],
+  "dedupe_and_suppression_notes": {
+    "mearch": "Official contact was re-evaluated but Gmail showed a prior first contact from 2026-09-18; no duplicate was sent.",
+    "procureainow": "Official contact was re-evaluated but Gmail showed a prior first contact from 2026-09-17; no duplicate was sent.",
+    "mandvia": "Official published address bounced and is now suppressed.",
+    "agentlancer": "A separate older first-contact thread is currently receiving Gmail delivery-delay notices; no retry or additional contact was initiated."
+  },
+  "risk_and_boundaries": {
+    "financial_or_signature_action_taken": false,
+    "listing_or_signup_fee_paid": false,
+    "project_funded_purchase": false,
+    "wallet_signature_or_asset_movement": false,
+    "new_recurring_growth_loop_created": false,
+    "sibling_operator_workspace": "not_accessible_not_modified",
+    "notification_disposition": "No new genuine customer receipt, paid settlement, actionable explicit integration intent, funded DELTA-native request, completed high-value buyer-facing listing, new unavoidable owner blocker, or core failure was observed in this run. Material sprint shortfall risk remains already-known."
+  }
+}
