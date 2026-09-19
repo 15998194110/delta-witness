@@ -1,0 +1,188 @@
+{
+  "handoff_time_jst": "2026-09-19T14:20:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "deadline_extended": false,
+    "remaining_hours_approx": 47.4,
+    "material_shortfall_risk": true
+  },
+  "pricing_authority": {
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+  },
+  "fresh_reconciliation": {
+    "one_shot_run_id": 35423479819,
+    "workflow_conclusion": "success",
+    "pricing_checked_at_utc": "2026-09-19T05:15:49.184Z",
+    "public_pricing_live_verified": {
+      "capture": {"http": 402, "usdc": 1, "raw": "1000000"},
+      "preflight": {"http": 402, "usdc": 5, "raw": "5000000"},
+      "guarded_action_pilot": {"http": 402, "usdc": 10, "raw": "10000000"},
+      "network_asset_treasury_match": true,
+      "paid_transactions_generated_by_probe": 0
+    },
+    "partner_live_pricing": "not_checked_scoped_secret_not_provided_by_verifier",
+    "paid_funnel_candidate_rows": 0,
+    "treasury_checked_at_utc": "2026-09-19T05:15:58.686Z",
+    "treasury_start_block": 51432803,
+    "treasury_latest_block": 51502802,
+    "treasury_lookback_blocks": 70000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "treasury_evidence_quality": "A_direct_canonical_USDC_log",
+    "evidence_scope": "Explicit 70,000-block canonical-USDC log range and current paid-funnel telemetry only; not an all-time-zero claim."
+  },
+  "buyer_demand": {
+    "agentpact": {
+      "listing_status": "present",
+      "canonical_offer_count": 3,
+      "offer_prices_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0,
+      "channel_http_all_ok": true
+    },
+    "external_funded": {
+      "adjacent_funded_requests": 16,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false,
+      "notes": [
+        "Bountybook exposed 12 currently funded adjacent requests; all are custom research/code deliverables rather than existing DELTA Capture/Preflight/Watch/Pilot fulfillment.",
+        "Taskmarket exposed one 199 USDC quantum-safe CUDA bounty; it is unrelated custom engineering and carries wallet/signature/action-fee boundaries.",
+        "Clawlancer exposed three pre-funded adjacent bounties at 0.01/0.015/0.03 USDC; all are non-native and below the 1 USDC entry price."
+      ]
+    }
+  },
+  "reply_state": {
+    "new_actionable_human_reply_this_run": false,
+    "robauto_agenthub": "explicit_interest_already_answered_waiting_for_real_workflow_and_public_url",
+    "outlast_ai": "blocked_by_genuine_company_domain_sender_requirement",
+    "reap": "explicit_rejection_stop",
+    "agents_net_submission_243": "in_review_not_customer_demand_or_revenue"
+  },
+  "new_first_contacts_this_run": [
+    {
+      "target": "Injester",
+      "official_contact": "founders@injester.com",
+      "official_surface": "https://injester.com/",
+      "specific_use_case": "Independent public product/price/availability/policy Capture immediately before a live agent-native Shopify purchase commitment.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "neighbor_demand_evidence": "Current official site describes an agent-native Shopify purchase path and public live activity; this is adjacent commercial activity, not DELTA buyer intent.",
+      "gmail_message_id": "1a0b8169cdf55bb5",
+      "status": "sent_no_immediate_bounce_or_reply_observed",
+      "next_action": "Wait for one genuine workflow/public URL; do not chase silence."
+    },
+    {
+      "target": "Didero",
+      "official_contact": "hello@didero.ai",
+      "official_surface": "https://didero.ai/",
+      "specific_use_case": "Independent public supplier/manufacturer source evidence immediately before sourcing, quote, PO or supplier-action execution.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "gmail_message_id": "1a0b816daa25a0b8",
+      "status": "sent_no_immediate_bounce_or_reply_observed",
+      "next_action": "Wait for one genuine workflow/public URL; do not chase silence."
+    },
+    {
+      "target": "Kyance",
+      "official_contact": "contact@kyance.com",
+      "official_surface": "https://kyance.com/",
+      "specific_use_case": "Bind an independent public product/price/availability/policy observation to a transaction-bound trust receipt without replacing identity, delegation or payment authorization.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "gmail_message_id": "1a0b816fa8118fe3",
+      "status": "sent_no_immediate_bounce_or_reply_observed",
+      "next_action": "Wait for one genuine checkout/merchant workflow and public URL; do not chase silence."
+    },
+    {
+      "target": "Shopthru",
+      "official_contact": "hello@shopthru.ai",
+      "official_surface": "https://shopthru.ai/",
+      "specific_use_case": "Optional public-source evidence checkpoint before an AI shopping flow commits to a purchase in an agentic-checkout partnership surface.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "gmail_message_id": "1a0b8172225ade55",
+      "status": "sent_no_immediate_bounce_or_reply_observed",
+      "next_action": "Wait for one real brand/catalog or checkout workflow and public URL; do not chase silence."
+    },
+    {
+      "target": "NULogic",
+      "official_contact": "sales@nulogic.io",
+      "official_surface": "https://nulogic.io/",
+      "specific_use_case": "Independent public product/price/stock/policy Capture immediately before an agentic checkout commitment in Cartivo/retail-agent flows.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "gmail_message_id": "1a0b817428204923",
+      "status": "sent_no_immediate_bounce_or_reply_observed",
+      "next_action": "Wait for one genuine workflow/public URL; do not chase silence."
+    },
+    {
+      "target": "PayAgentic",
+      "official_contact": "hello@payagentic.ai",
+      "official_surface": "https://payagentic.ai/",
+      "specific_use_case": "Route one genuine existing independent-customer x402 buyer need to DELTA's existing 1 USDC Capture endpoint under the buyer's normal Base-USDC spend policy; explicitly exclude platform validation or project-funded synthetic traffic.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "technical_fit_grade": "A",
+      "commercial_demand_grade": "C",
+      "neighbor_demand_evidence": "Current official PayAgentic surfaces document buyer-side x402 Base-USDC checkout, governed wallets and trusted API purchases. This establishes payment-rail compatibility, not DELTA demand.",
+      "gmail_message_id": "1a0b818a528f575b",
+      "status": "sent_no_immediate_bounce_or_reply_observed",
+      "next_action": "Wait for a genuine customer-purpose workflow/public URL or explicit integration intent; do not request synthetic platform verification."
+    }
+  ],
+  "new_delivery_failures_observed_since_previous_handoff": [
+    {"address": "contact@tomex.ai", "reason": "address not found / unable to receive", "disposition": "suppress exact route; do not guess replacement"},
+    {"address": "info@visifyagentic.com", "reason": "550 5.1.1 recipient does not exist", "disposition": "suppress exact route; do not guess replacement"},
+    {"address": "support@tokora.ai", "reason": "550 5.1.1 recipient does not exist", "disposition": "suppress exact route; do not guess replacement"},
+    {"address": "hello@fey.supply", "reason": "550 5.1.1 user does not exist", "disposition": "suppress exact route; do not guess replacement"},
+    {"address": "hello@askshoppie.com", "reason": "550 5.4.1 access denied", "disposition": "suppress exact route"},
+    {"address": "sales@peakcommerce.com", "reason": "550 5.1.1 recipient does not exist", "disposition": "suppress exact route; do not guess replacement"},
+    {"address": "support@frisbee.one", "reason": "550 5.7.1 recipient unable to receive", "disposition": "suppress exact route; bounce mentioned another address but do not use it without independent public-business verification"},
+    {"address": "sales@agentchain.com", "reason": "550 5.1.1 recipient does not exist", "disposition": "suppress exact route; do not guess replacement"}
+  ],
+  "accounting": {
+    "gross_verified_customer_receipts_usdc": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "realized_variable_cost_usdc": null,
+    "realized_contribution_margin_usdc": null,
+    "unreconciled_customer_amounts_usdc": 0
+  },
+  "financial_actions_this_run": {
+    "listing_or_signup_fees": 0,
+    "new_cash_or_credits": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "kyc_or_identity_attestations": 0,
+    "legal_commitments": 0
+  },
+  "coordination": {
+    "previous_repository_handoff": "docs/channel-status/revenue-expansion-2026-09-19-1240.json",
+    "canonical_sibling_operator_workspace": "not_accessible_not_claimed_synchronized",
+    "duplicate_growth_loop_created": false,
+    "new_seller_identity_created": false,
+    "production_deployment_performed": false,
+    "directory_only_activity_counted_as_result": false
+  }
+}
