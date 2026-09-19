@@ -1,0 +1,166 @@
+{
+  "updated_at_jst": "2026-09-19T23:12:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "remaining_hours_approx": 38.5,
+    "material_shortfall_risk": true
+  },
+  "pricing_and_purchase_path": {
+    "checked_at": "2026-09-19T14:06:29.492Z",
+    "policy": "owner-2026-09-10-1-5-10",
+    "ok": true,
+    "public_capture": {"http": 402, "usdc": 1, "raw": "1000000"},
+    "public_preflight": {"http": 402, "usdc": 5, "raw": "5000000"},
+    "guarded_action_pilot": {"http": 402, "usdc": 10, "raw": "10000000"},
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "partner_price_scope": "not independently re-read in this one-shot run; live verifier reported scoped_secret_not_provided for partner paths. No mismatch inferred.",
+    "paid_transactions_generated_by_diagnostics": 0,
+    "customer_revenue_generated_by_diagnostics": 0
+  },
+  "reconciliation": {
+    "primary_workflow_run": 35447719557,
+    "fallback_workflow_run": 35447865848,
+    "paid_funnel": {
+      "checked_at": "2026-09-19T14:06:32Z",
+      "ok": true,
+      "candidate_rows": 0
+    },
+    "treasury": {
+      "checked_through": "2026-09-19T14:09:26.254Z",
+      "continuous_covered_start_block": 51418723,
+      "continuous_covered_head_block": 51518809,
+      "coverage_blocks": 100087,
+      "canonical_usdc_receipt_candidates": 0,
+      "unclassified_receipts": 0,
+      "evidence_quality": "A_combined_direct_RPC_logs_plus_public_Blockscout_address_token_transfer_history",
+      "details": "Direct RPC eth_getLogs successfully covered 51,418,723 through 51,487,122 with zero canonical-USDC Treasury logs before mainnet RPC rate limiting and alternate RPC access restrictions. A bounded Base Blockscout fallback then covered 51,487,123 through current head 51,518,809 and found zero canonical-USDC receipts to Treasury. The fallback page reached an oldest observed transfer block of 50,985,188, below the gap start, establishing complete address-token-transfer history for the missing/current range.",
+      "scope": "Explicit continuous recent block coverage only; not an all-time-zero assertion and does not rewrite historical excluded receipts."
+    },
+    "recognized_customer_revenue_usdc": 0,
+    "gross_verified_customer_receipts_usdc": 0,
+    "unreconciled_customer_amount_usdc": 0,
+    "known_variable_cost_usdc": null,
+    "known_contribution_margin_usdc": null
+  },
+  "funded_demand": {
+    "agentpact": {
+      "listing_status": "present",
+      "offer_count": 3,
+      "offers_current_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "agentexchange": {
+      "neighbor_buyer_count": 2,
+      "external_requests": 4,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "paid_settlements": 0
+    },
+    "external_boards": {
+      "adjacent_funded_requests": 18,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false,
+      "notes": "Current funded requests remain generic research/custom software/benchmark work or below DELTA's current 1 USDC entry floor. None are existing DELTA Capture/Preflight/Watch/Pilot fulfillment. No claim, bid, wallet signature, x402 entry fee or project-funded action was taken."
+    }
+  },
+  "reply_and_interest_state": {
+    "new_actionable_explicit_integration_intent": 0,
+    "new_genuine_customer_reply": 0,
+    "robauto_agenthub": "Existing explicit-interest thread remains answered and waiting for a real workflow/public URL; no repeat follow-up.",
+    "outlast": "Genuine company-domain sender requirement unchanged; no spoofing or workaround.",
+    "reap": "Explicit rejection remains suppressed.",
+    "recent_inbox_check": "No new human DELTA reply in the latest three-hour inbox window; only delivery-status messages were observed."
+  },
+  "outreach_actions": [
+    {
+      "target": "Pay3",
+      "official_contact": "hello@pay3.money",
+      "official_surface": "https://pay3.money/",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0ba00c83178e67",
+      "status": "sent_no_immediate_bounce_observed",
+      "specific_use_case": "One genuine buyer-authorized 1 USDC public product/pricing/vendor/policy Capture immediately before an agentic stablecoin payment; 5 USDC Preflight only for an explicit public-page condition.",
+      "technical_fit_grade": "B_agentic_stablecoin_and_Base_payment_fit",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "ability_or_willingness_evidence": "Official product page describes agentic commerce, stablecoin rails, programmable autonomous payments and Base support; this is technical/payment capability evidence, not willingness to purchase DELTA.",
+      "why_price_fits": "The 1 USDC Capture is selective for audit-sensitive actions, not every payment.",
+      "next_conversion_action": "Wait for one real current workflow, representative public URL and technical owner; do not chase silence."
+    },
+    {
+      "target": "Atrya",
+      "official_contact": "hello@atrya.io",
+      "official_surface": "https://www.atrya.io/agentic",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0ba00f61961df1",
+      "status": "sent_no_immediate_bounce_observed",
+      "specific_use_case": "One genuine beta-agent purchase of an API/data service where an independent public pricing/terms/vendor snapshot is retained immediately before payment.",
+      "technical_fit_grade": "B_MCP_agent_wallet_purchase_fit",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "ability_or_willingness_evidence": "Official private-beta page documents per-agent wallets, hard budgets, allowlists and MCP purchase of integrated APIs/data providers; Base/x402 compatibility was explicitly asked rather than assumed.",
+      "why_price_fits": "1 USDC is proposed only where the public-source evidence itself solves a real audit/dispute need.",
+      "next_conversion_action": "Wait for a genuine beta workflow/public URL and confirmation whether its current rail can authorize Base-USDC/x402; no platform-funded demo."
+    },
+    {
+      "target": "CONSENX",
+      "official_contact": "hello@consenx.com",
+      "official_surface": "https://consenx.com/",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0ba01270f665ab",
+      "status": "sent_no_immediate_bounce_observed",
+      "specific_use_case": "Independent public product/supplier/pricing/policy Capture immediately before a controlled commercial payment or settlement decision, retained beside the platform's own agreement/payment record.",
+      "technical_fit_grade": "B_agent_commerce_payment_verification_settlement_fit",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "ability_or_willingness_evidence": "Official platform describes agent wallets, spending mandates, controlled payments, verification, settlement and agent purchases of APIs/data/software. This does not establish a DELTA budget or buyer intent.",
+      "why_price_fits": "1 USDC is limited to consequential public-source-dependent actions; DELTA does not replace CONSENX Proof or private delivery verification.",
+      "next_conversion_action": "Wait for one current customer/pilot workflow with a representative public URL and a real buyer-authorized purchase path; do not chase silence."
+    }
+  ],
+  "new_suppressions_or_delivery_states": [
+    {
+      "target_route": "hello@4wardforge.com",
+      "state": "blocked_550_5_4_1_access_denied",
+      "retry": false,
+      "note": "New hard delivery failure observed this run. Suppress the exact route; do not guess a replacement private address."
+    },
+    {
+      "target_route": "hello@alvrion.com",
+      "state": "temporary_delivery_delay",
+      "retry": false,
+      "note": "Gmail will retry automatically; do not create a duplicate send."
+    },
+    {
+      "target_route": "hello@agenthubcommerce.com",
+      "state": "temporary_delivery_delay_continues",
+      "retry": false
+    }
+  ],
+  "recoverable_degradation": {
+    "treasury_rpc": "The primary 100,000-block RPC scan encountered mainnet Base 429 after partial success; PublicNode and LlamaRPC rejected archive/history access. This did not become mission failure because the missing/current range was completed via Base Blockscout public address token-transfer history.",
+    "core_failure": false
+  },
+  "boundaries_and_coordination": {
+    "no_daily_outreach_cap": true,
+    "one_first_contact_per_target_preserved": true,
+    "gmail_dedupe_performed": true,
+    "private_email_guessed": false,
+    "financial_or_signature_action_taken": false,
+    "listing_or_signup_fee_paid": false,
+    "project_funded_purchase": false,
+    "wallet_signature_or_asset_movement": false,
+    "new_recurring_growth_loop_created": false,
+    "sibling_operator_workspace": "not_accessible_not_modified",
+    "notification_disposition": "No new genuine customer Treasury receipt, external paid settlement, actionable explicit integration intent, DELTA-native funded request, completed high-value buyer-facing listing, new unavoidable owner-action blocker or verified core failure. Existing material shortfall risk remains known rather than newly triggered."
+  }
+}
