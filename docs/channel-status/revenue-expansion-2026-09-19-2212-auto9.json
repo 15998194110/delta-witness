@@ -1,0 +1,148 @@
+{
+  "updated_at_jst": "2026-09-19T22:12:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "remaining_hours_approx": 39.5,
+    "material_shortfall_risk": true
+  },
+  "pricing_and_purchase_path": {
+    "checked_at": "2026-09-19T13:09:10.249Z",
+    "policy": "owner-2026-09-10-1-5-10",
+    "ok": true,
+    "public_capture": {"http": 402, "usdc": 1, "raw": "1000000"},
+    "public_preflight": {"http": 402, "usdc": 5, "raw": "5000000"},
+    "guarded_action_pilot": {"http": 402, "usdc": 10, "raw": "10000000"},
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "partner_price_scope": "not independently re-read in this one-shot run because scoped secret was unavailable; no mismatch inferred",
+    "paid_transactions_generated_by_diagnostics": 0,
+    "customer_revenue_generated_by_diagnostics": 0
+  },
+  "reconciliation": {
+    "workflow_run": 35444908910,
+    "treasury": {
+      "checked_at": "2026-09-19T13:09:10.950Z",
+      "start_block": 51510002,
+      "latest_block": 51517001,
+      "lookback_blocks": 7000,
+      "canonical_usdc_receipt_candidates": 0,
+      "unclassified_receipts": 0,
+      "evidence_quality": "A_direct_canonical_USDC_log",
+      "scope": "Fresh overlapping explicit-range check only; not an all-time-zero assertion."
+    },
+    "paid_funnel_current_run": {
+      "status": "unknown_not_refreshed",
+      "reason": "CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN were not injected into the one-shot workflow; the paid-funnel audit produced no result file content. Do not convert this unknown into zero.",
+      "last_known_canonical_result": "0 candidates in the prior successful canonical evidence referenced by the 21:08 JST handoff"
+    },
+    "recognized_customer_revenue_usdc": 0,
+    "gross_verified_customer_receipts_usdc": 0,
+    "unreconciled_customer_amount_usdc": 0,
+    "known_variable_cost_usdc": null,
+    "known_contribution_margin_usdc": null
+  },
+  "funded_demand": {
+    "agentpact": {
+      "listing_status": "present",
+      "offer_count": 3,
+      "offers_current_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "agentexchange": {
+      "neighbor_buyer_count": 2,
+      "external_requests": 4,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "paid_settlements": 0
+    },
+    "external_boards": {
+      "adjacent_funded_requests": 18,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false,
+      "notes": "Current funded tasks remain generic research/custom coding/benchmark work or under the 1 USDC owner floor. None are existing DELTA Capture/Preflight/Watch/Pilot fulfillment."
+    }
+  },
+  "reply_and_interest_state": {
+    "new_actionable_explicit_integration_intent": 0,
+    "new_genuine_customer_reply": 0,
+    "relevance_ai": {
+      "state": "support_route_closed_not_commercial_interest",
+      "evidence": "Human support reply says its support channel cannot handle partnership/integration proposals and recommends the business-development/contact options on relevanceai.com; ticket is closing.",
+      "next_action": "Do not reply to support. Use only an independently verified official business-development route if a direct supported action becomes available; do not treat the redirect as buyer intent."
+    },
+    "robauto_agenthub": "Existing explicit-interest thread already answered; waiting for a real workflow/public URL. No repeat follow-up sent.",
+    "outlast": "Company-domain-sender requirement unchanged; no spoofing or workaround.",
+    "reap": "Explicit rejection remains suppressed."
+  },
+  "outreach_actions": [
+    {
+      "target": "Inngest",
+      "official_contact": "partnerships@inngest.com",
+      "official_surface": "https://www.inngest.com/get-in-touch",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0b9c7e27b28374",
+      "status": "hard_bounce_suppressed",
+      "smtp": "550 5.1.1 address does not exist",
+      "specific_use_case": "Selective 1 USDC public-source Capture before consequential durable-function/agent side effects; 5 USDC Preflight for explicit expected-condition checks.",
+      "technical_fit_grade": "B_durable_agent_workflow_fit",
+      "commercial_demand_grade": "C_no_reply_or_funding",
+      "next_conversion_action": "Suppress this exact route. Do not guess a replacement address or send another first contact unless a new independently verified official business route appears."
+    },
+    {
+      "target": "Restate",
+      "official_contact": "info@restate.dev",
+      "official_surface": "https://restate.dev/contact",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0b9c8088ac575e",
+      "status": "sent_no_immediate_bounce_observed",
+      "specific_use_case": "Selective 1 USDC public-source Capture immediately before consequential durable-workflow/agent actions; 5 USDC Preflight for explicit source-state conditions.",
+      "technical_fit_grade": "B_durable_workflow_fit",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "why_price_fits": "1 USDC is scoped only to audit-sensitive public-source-dependent actions rather than every workflow execution.",
+      "next_conversion_action": "Wait for a real customer workflow, public URL and technical owner; do not chase silence."
+    }
+  ],
+  "new_suppressions_or_delivery_states": [
+    {"target_route": "partnerships@inngest.com", "state": "hard_bounce_550_5_1_1", "retry": false},
+    {"target_route": "hello@skyhq.ai", "state": "address_not_found", "retry": false},
+    {"target_route": "hello@mandvia.com", "state": "undeliverable", "retry": false},
+    {"target_route": "hello@onerule.com", "state": "address_not_found", "retry": false},
+    {"target_route": "contact@tomex.ai", "state": "address_not_found", "retry": false},
+    {"target_route": "info@visifyagentic.com", "state": "address_not_found", "retry": false},
+    {"target_route": "support@tokora.ai", "state": "address_not_found", "retry": false},
+    {"target_route": "hello@askshoppie.com", "state": "blocked_550_5_4_1", "retry": false},
+    {"target_route": "sales@peakcommerce.com", "state": "address_not_found", "retry": false},
+    {"target_route": "support@frisbee.one", "state": "recipient_unable_to_receive", "retry": false, "note": "DSN suggested a personal address, but it was not used because it was not independently verified as a public official business contact."}
+  ],
+  "pending_delivery_not_retried": [
+    "hello@agenthubcommerce.com",
+    "hello@nayeb.ai",
+    "hello@agentlancer.io",
+    "hello@horecai.ai"
+  ],
+  "boundaries_and_coordination": {
+    "no_daily_outreach_cap": true,
+    "one_first_contact_per_target_preserved": true,
+    "gmail_dedupe_performed": true,
+    "private_email_guessed": false,
+    "financial_or_signature_action_taken": false,
+    "listing_or_signup_fee_paid": false,
+    "project_funded_purchase": false,
+    "wallet_signature_or_asset_movement": false,
+    "new_recurring_growth_loop_created": false,
+    "one_shot_reconciliation_workflow_removed_after_evidence": true,
+    "sibling_operator_workspace": "not_accessible_not_modified",
+    "notification_disposition": "No new genuine customer Treasury receipt, external paid settlement, actionable explicit integration intent, DELTA-native funded request, completed high-value buyer-facing listing, new unavoidable owner-action blocker or core failure. Existing material shortfall risk remains known rather than newly triggered."
+  }
+}
