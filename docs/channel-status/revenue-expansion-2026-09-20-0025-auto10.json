@@ -1,0 +1,119 @@
+{
+  "updated_at_jst": "2026-09-20T00:25:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "known_realized_variable_cost_usdc": null,
+    "known_realized_contribution_margin_usdc": null,
+    "remaining_hours_approx": 37.3,
+    "risk": "material_shortfall_risk"
+  },
+  "current_pricing": {
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "latest_direct_price_verification": "2026-09-19T15:19:08.705Z",
+    "live_public_402_verified": true,
+    "public_raw_amounts": [1000000, 5000000, 10000000]
+  },
+  "reconciliation": {
+    "latest_direct_treasury_checked_at": "2026-09-19T15:22:32.224Z",
+    "treasury_start_block": 51451000,
+    "treasury_latest_block": 51520999,
+    "treasury_lookback_blocks": 70000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "treasury_evidence_quality": "A_direct_canonical_USDC_log",
+    "latest_canonical_paid_funnel_checked_at": "2026-09-19T14:28:33Z_to_14:29:07Z_pulse",
+    "latest_canonical_paid_funnel_candidates": 0,
+    "current_one_shot_paid_funnel_note": "A later ad-hoc paid-funnel query lacked Cloudflare scoped credentials and therefore is not treated as a current telemetry result. The latest successful canonical pulse remains the paid-funnel evidence. Treasury reconciliation completed independently after it.",
+    "scope": "No all-time-zero assertion. Unknown costs remain unknown. No Treasury receipt may be classified as customer revenue without non-project payer plus successful DELTA fulfillment reconciliation."
+  },
+  "a2alist_explicit_integration_thread": {
+    "commercial_status": "actionable_explicit_integration_intent_external_blocker",
+    "inbound": "A2A List operator said the Cloudflare managed-challenge rule had been corrected and explicitly asked DELTA to retry the official no-wallet machine submission endpoint with the canonical URL, without using the paid browser form or payment authorization.",
+    "retry_run_id": 35451428070,
+    "retry_checked_at": "2026-09-19T15:19:17Z",
+    "duplicate_readback": "GET /api/agents searches were blocked HTTP 403 by Cloudflare managed challenge; exact current approved-listing readback therefore remained unavailable from this runner.",
+    "submission": "One POST to https://a2alist.ai/api/a2a using JSON-RPC tasks/send for the canonical DELTA identity and current 1/5/10 pricing.",
+    "submission_result": "HTTP 403 HTML Cloudflare challenge; JSON-RPC application was not reached.",
+    "cloudflare_evidence": {
+      "cf_mitigated": "challenge",
+      "cf_ray": "a3d9915cafd6ba30-SEA",
+      "server": "cloudflare",
+      "body_class": "Just a moment / JavaScript and cookies challenge"
+    },
+    "safety": "No wallet signature, signed payment data, payment authorization, browser paid form, account funding or fee was used. No retry loop was left behind.",
+    "operator_reply": "Sent one threaded reply to srvzt@pm.me with the exact HTTP status, Cloudflare headers/ray and sanitized failure description. No repeat message should be sent without a new reply or materially new operator instruction.",
+    "next_action": "Wait for A2A List operator to correct the Cloudflare machine-path rule or provide a stable official alternative. On explicit response, retry once with bounded readback; do not hammer."
+  },
+  "buyer_expansion_this_run": [
+    {
+      "target": "Clawdoe",
+      "official_contact": "hello@clawdoe.com",
+      "status": "first_contact_sent",
+      "use_case": "Route one genuine customer-purpose x402 buyer call through DELTA Public Capture before an agent spends or changes state based on a public price, availability or vendor-terms page.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "Public x402/Base buyer/discovery product and observed adjacent paid transaction infrastructure; no explicit willingness to buy DELTA yet.",
+      "next_action": "Wait for explicit reply or a real paid call. Do not chase silence or send another first contact."
+    },
+    {
+      "target": "Invoica",
+      "official_contact": "team@invoica.ai",
+      "status": "first_contact_sent",
+      "use_case": "Attach one paid DELTA public-source proof to an existing x402 invoice, mandate or settlement record before agent spend.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "Public x402 settlement/invoice product on Base and adjacent live settlement activity; no explicit willingness to buy DELTA yet.",
+      "next_action": "Wait for explicit reply or a real paid call. Do not chase silence or send another first contact."
+    }
+  ],
+  "existing_priority_threads": {
+    "robauto_agenthub": "Explicit interest already answered; waiting for a real workflow/public URL. No silence follow-up.",
+    "outlast": "Explicit company-domain sender requirement remains a user-action blocker; do not spoof a company-domain From address.",
+    "reap": "Explicit rejection; suppressed.",
+    "a2alist": "Highest-priority external integration thread in this run because operator explicitly requested a retry; now blocked again by Cloudflare managed challenge after evidence reply."
+  },
+  "latest_canonical_market_state": {
+    "agentpact_active_offers": 3,
+    "agentpact_offer_prices_usdc": [1, 5, 10],
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_funded_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "agentexchange_external_requests": 4,
+    "agentexchange_compatible_requests": 0,
+    "adjacent_funded_external_tasks": 18,
+    "delta_native_funded_external_tasks": 0,
+    "note": "Adjacent research/custom-code/wallet-signature jobs are not DELTA-native demand and were not accepted to manufacture activity."
+  },
+  "outreach_control": {
+    "daily_cap": null,
+    "quality_rules": "Official public business contacts only; one personalized first contact per target; search prior contact before send; no duplicate first contacts; no chasing silence; stop on rejection; advance explicit-interest threads promptly.",
+    "new_first_contacts_sent_this_run": 2,
+    "explicit_interest_replies_sent_this_run": 1,
+    "known_new_bounces_for_new_first_contacts": 0
+  },
+  "coordination": {
+    "canonical_repo_handoff_updated": true,
+    "local_sibling_operator_workspace": "not_accessible_not_modified",
+    "new_recurring_growth_loop": false,
+    "temporary_workflows_removed_after_execution": true,
+    "credentials_private_keys_wallet_signatures_exposed": false
+  }
+}
