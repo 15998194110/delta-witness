@@ -1,0 +1,147 @@
+{
+  "checked_at_jst": "2026-09-20T07:05:32+09:00",
+  "sprint_deadline_jst": "2026-09-21T13:43:28+09:00",
+  "strict_counted_customer_transactions": 0,
+  "target_customer_transactions": 50,
+  "unique_verified_independent_buyers": 0,
+  "recognized_customer_revenue_usdc": 0,
+  "realized_variable_cost_usdc": null,
+  "realized_contribution_margin_usdc": null,
+  "canonical_revenue_evidence": {
+    "pulse_run_id": 35468425415,
+    "pulse_completed_at": "2026-09-19T20:47:11Z",
+    "owner_pricing_check": "success",
+    "live_pricing_check": "success",
+    "purchase_path_check": "success",
+    "paid_funnel_candidate_rows": 0,
+    "treasury_checked_at": "2026-09-19T20:47:07.265Z",
+    "treasury_start_block": 51480738,
+    "treasury_latest_block": 51530737,
+    "treasury_lookback_blocks": 50000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "scope_note": "Explicit canonical Base-USDC block range only; not an all-time-zero assertion."
+  },
+  "buyer_demand": {
+    "agentpact": {
+      "active_offers": 3,
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "agentexchange": {
+      "external_requests": 4,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "paid_settlements": 0
+    },
+    "additional_escrow_backed": {
+      "adjacent_funded_requests": 18,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0
+    },
+    "workpnp": {
+      "funded_requests_shown": 0,
+      "delta_native_funded_requests": 0,
+      "financial_action_taken": false
+    },
+    "moljobs": "recoverable_fetch_degradation_no_delta_native_funded_request_established",
+    "payan": "recoverable_http_500_no_funded_compatible_request_established"
+  },
+  "inbound_since_previous_handoff": {
+    "actionable_human_replies": 0,
+    "new_paid_settlements": 0,
+    "new_customer_treasury_receipts": 0,
+    "deliver_early": {
+      "target": "DeliverEarly",
+      "exact_route": "hello@deliverearly.com",
+      "status": "delivery_failed_550_5_1_1_suppress_exact_route",
+      "next_action": "Do not retry this exact address and do not guess a private alternative."
+    },
+    "brainform": "previously_known_550_5_1_1_suppression_reobserved_no_new_notification"
+  },
+  "buyer_conversion_actions": [
+    {
+      "target": "Vectus",
+      "official_contact": "hello@vectus.ai",
+      "official_source": "https://www.vectus.ai/",
+      "use_case": "Independent public supplier/carrier/pricing/terms evidence immediately before autonomous RFQ, PO acknowledgement or execution action.",
+      "offer": "One genuine buyer-authorized 1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "gmail_message_id": "1a0bbb268c855766",
+      "status": "first_contact_sent_no_reply_observed_yet",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C"
+    },
+    {
+      "target": "Scouter / Dragon Sourcing AI",
+      "official_contact": "rebecca@dragonsourcingai.com",
+      "official_source": "https://www.supplierscouter.io/",
+      "use_case": "Independent observation of a public supplier page immediately before shortlist, validation or supplier-engagement decision.",
+      "offer": "One genuine buyer-authorized 1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "gmail_message_id": "1a0bbb283dbdf0dc",
+      "status": "first_contact_sent_no_reply_observed_yet",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C"
+    },
+    {
+      "target": "SPEAR",
+      "official_contact": "ai@spear.work",
+      "official_source": "https://spear.work/",
+      "use_case": "Independent public supplier/product/terms evidence before a sourcing agent recommends, escalates or executes a governed action.",
+      "offer": "One genuine buyer-authorized 1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "gmail_message_id": "1a0bbb2984ef5be0",
+      "status": "first_contact_sent_no_reply_observed_yet",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C"
+    },
+    {
+      "target": "Procuman AI RFQ",
+      "official_contact": "info@procuman.com",
+      "official_source": "https://procuman.ai/",
+      "use_case": "Preserve the public supplier page state that materially supports shortlist, RFQ invitation or award in an AI RFQ workflow.",
+      "offer": "One genuine buyer-authorized 1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "gmail_message_id": "1a0bbb3c4a1041bb",
+      "status": "first_contact_sent_no_reply_observed_yet",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C"
+    },
+    {
+      "target": "ZOPAAgent / 12New",
+      "official_contact": "hello@12new.ai",
+      "official_source": "https://zopaagent.ai/about/",
+      "use_case": "Independent public supplier/pricing/terms observation before negotiation or award in an autonomous sourcing project.",
+      "offer": "One genuine buyer-authorized 1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "gmail_message_id": "1a0bbb3de6aff1af",
+      "status": "first_contact_sent_no_reply_observed_yet",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C"
+    },
+    {
+      "target": "Circular",
+      "official_contact": "info@circular.co",
+      "official_source": "https://www.circular.co/ and current case study contact route",
+      "use_case": "Retain independent public supplier/material page evidence before shortlist, qualification or transaction in a sustainable-material sourcing workflow.",
+      "offer": "One genuine buyer-authorized 1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "gmail_message_id": "1a0bbb3f75160530",
+      "status": "first_contact_sent_no_reply_observed_yet",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C"
+    }
+  ],
+  "existing_explicit_interest": {
+    "robauto_agenthub": "Explicit-interest thread already answered; waiting for a real workflow/public URL; do not chase silence.",
+    "a2a_list": "Explicit integration thread already answered with Cloudflare 403 evidence; waiting for operator-side machine-path fix; do not chase silence.",
+    "outlast_ai": "Blocked by their requirement for a genuine company-domain sender identity; do not spoof or guess an identity."
+  },
+  "operator_workspace": "运营/RUPHUS_OPERATOR_2026-09-05 sibling workspace not accessible in this run; no synchronization claimed.",
+  "financial_actions_taken": false,
+  "wallet_signatures_taken": false,
+  "paid_tests_taken": false,
+  "listing_fees_paid": false,
+  "production_deployment_changed": false,
+  "deadline_extended": false,
+  "notes": "New first contacts are not counted as demand, buyers, transactions or revenue. Strict count remains 0/50 until genuine external paid settlement, DELTA fulfillment and matched canonical Treasury receipt reconcile."
+}
