@@ -1,0 +1,86 @@
+name: TEMP DELTA A2A List no-wallet retry 20260920-0018
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/tmp-a2alist-retry-20260920-0018.yml]
+permissions:
+  contents: read
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      BASE: https://delta-witness-api.ruphussten.workers.dev
+      A2A: https://a2alist.ai/api/a2a
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v5
+        with: {node-version: '22'}
+      - name: Verify owner pricing immediately before price-bearing submission
+        run: |
+          set -euo pipefail
+          node scripts/check-owner-pricing.mjs | tee /tmp/a2a-price-source.json
+          node scripts/verify-owner-pricing-live.mjs | tee /tmp/a2a-price-live.json
+      - name: Read approved directory before submission to prevent duplicate identity
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/a2alist
+          curl -fsS --connect-timeout 10 --max-time 25 --retry 2 --retry-delay 2 --retry-all-errors 'https://a2alist.ai/api/agents?q=DELTA%20Witness&per_page=100' -o /tmp/a2alist/search-name.json || true
+          curl -fsS --connect-timeout 10 --max-time 25 --retry 2 --retry-delay 2 --retry-all-errors 'https://a2alist.ai/api/agents?q=delta-witness-api.ruphussten.workers.dev&per_page=100' -o /tmp/a2alist/search-url.json || true
+      - name: Submit only when no exact canonical approved listing is visible
+        id: submit
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const canonical='https://delta-witness-api.ruphussten.workers.dev';
+          const files=['/tmp/a2alist/search-name.json','/tmp/a2alist/search-url.json'];
+          let combined='';
+          for (const f of files) { if (fs.existsSync(f)) combined += fs.readFileSync(f,'utf8')+'\n'; }
+          if (combined.toLowerCase().includes(canonical.toLowerCase())) {
+            fs.writeFileSync('/tmp/a2alist/result.json', JSON.stringify({ok:true,action:'skipped_existing_exact_canonical_listing',canonical,checked_at:new Date().toISOString()},null,2));
+            process.exit(0);
+          }
+          const body={
+            jsonrpc:'2.0',id:1,method:'tasks/send',params:{
+              name:'DELTA Witness',
+              url:canonical,
+              description:'Deterministic public-page evidence Capture and Preflight before autonomous consequential web actions; x402 v2 on Base canonical USDC.',
+              protocol:'x402',
+              category:'API',
+              github_url:'https://github.com/15998194110/delta-witness',
+              pricing:'Capture 1 USDC; Public Preflight 5 USDC; Guarded-Action Pilot 10 USDC',
+              endpoint_count:3
+            }
+          };
+          fs.writeFileSync('/tmp/a2alist/request.json',JSON.stringify(body,null,2));
+          const r=await fetch('https://a2alist.ai/api/a2a',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(25000)});
+          const text=await r.text();
+          fs.writeFileSync('/tmp/a2alist/response-headers.json',JSON.stringify(Object.fromEntries(r.headers.entries()),null,2));
+          fs.writeFileSync('/tmp/a2alist/response.txt',text);
+          let parsed=null; try{parsed=JSON.parse(text)}catch{}
+          fs.writeFileSync('/tmp/a2alist/result.json',JSON.stringify({ok:r.ok,http:r.status,checked_at:new Date().toISOString(),canonical,response:parsed??text.slice(0,4000)},null,2));
+          if (r.status>=500 || r.status===429) process.exit(0);
+          if (!r.ok) process.exit(1);
+          if (parsed?.error) process.exit(1);
+          const taskId=parsed?.result?.taskId || parsed?.result?.task_id || parsed?.result?.id;
+          if (taskId) {
+            const getBody={jsonrpc:'2.0',id:2,method:'tasks/get',params:{taskId}};
+            const g=await fetch('https://a2alist.ai/api/a2a',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(getBody),signal:AbortSignal.timeout(25000)});
+            const gt=await g.text();
+            fs.writeFileSync('/tmp/a2alist/readback.txt',gt);
+          }
+          JS
+      - name: Upload readback evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-a2alist-retry-${{ github.run_id }}
+          path: |
+            /tmp/a2alist/
+            /tmp/a2a-price-source.json
+            /tmp/a2a-price-live.json
+          if-no-files-found: warn
+          retention-days: 7
