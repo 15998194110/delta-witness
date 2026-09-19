@@ -1,4 +1,4 @@
-name: TEMP DELTA revenue reconciliation 20260919-1821-auto9
+name: TEMP DELTA treasury tail 20260919-1821-auto9
 on:
   push:
     branches: [master]
@@ -6,56 +6,48 @@ on:
 permissions:
   contents: read
 jobs:
-  reconcile:
+  treasury-tail:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
-      DELTA_TREASURY_LOOKBACK_BLOCKS: '100000'
-      DELTA_TREASURY_CHUNK_BLOCKS: '1900'
+    timeout-minutes: 6
     steps:
-      - uses: actions/checkout@v6
-        with: {persist-credentials: false}
       - uses: actions/setup-node@v5
         with: {node-version: '22'}
-      - name: Verify owner pricing and live public 402 amounts
+      - name: Reconcile canonical Base USDC Treasury since prior complete head
         run: |
-          node scripts/check-owner-pricing.mjs
-          node scripts/verify-owner-pricing-live.mjs | tee /tmp/delta-live-pricing.json
-      - name: Scan AgentPact funded demand
-        continue-on-error: true
-        run: node scripts/scan-agentpact-demand.mjs | tee /tmp/delta-agentpact-demand.json
-      - name: Scan AgentExchange funded demand
-        continue-on-error: true
-        run: node scripts/scan-agentexchange-demand.mjs | tee /tmp/delta-agentexchange-demand.json
-      - name: Scan external funded demand
-        continue-on-error: true
-        run: node scripts/scan-external-funded-demand.mjs | tee /tmp/delta-external-funded-demand.json
-      - name: Scan MoltJobs funded demand
-        continue-on-error: true
-        run: node scripts/scan-moltjobs-demand.mjs | tee /tmp/delta-moltjobs-demand.json
-      - name: Scan WorkPnP funded demand
-        continue-on-error: true
-        run: node scripts/scan-workpnp-demand.mjs | tee /tmp/delta-workpnp-demand.json
-      - name: Audit paid funnel candidates
-        continue-on-error: true
-        run: node scripts/query-revenue-candidates.mjs | tee /tmp/delta-revenue-candidates.json
-      - name: Reconcile Base Treasury
-        run: node scripts/reconcile-treasury.mjs | tee /tmp/delta-treasury.json
+          node --input-type=module <<'JS' | tee /tmp/delta-treasury-tail.json
+          const TREASURY='0x1990e21bc219696ff7fbc26527dbaed335ac6367'.toLowerCase();
+          const USDC='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'.toLowerCase();
+          const TOPIC='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+          const TO=`0x${TREASURY.slice(2).padStart(64,'0')}`;
+          const START=51508361; // first block after the latest complete canonical Treasury reconciliation in the current handoff
+          const urls=['https://mainnet.base.org','https://base-rpc.publicnode.com'];
+          async function rpc(method,params){
+            let last;
+            for(const url of urls){
+              for(let a=1;a<=3;a++){
+                try{
+                  const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(12000)});
+                  const t=await r.text(); if(!r.ok) throw new Error(`${url} HTTP ${r.status}: ${t.slice(0,160)}`);
+                  const j=JSON.parse(t); if(j.error) throw new Error(`${url} RPC ${JSON.stringify(j.error)}`);
+                  return {url,result:j.result};
+                }catch(e){last=e; await new Promise(x=>setTimeout(x,700*a));}
+              }
+            }
+            throw last;
+          }
+          const headResp=await rpc('eth_blockNumber',[]);
+          const latest=parseInt(headResp.result,16);
+          const all=[];
+          for(let from=START;from<=latest;from+=1500){
+            const to=Math.min(from+1499,latest);
+            const q=await rpc('eth_getLogs',[{address:USDC,fromBlock:`0x${from.toString(16)}`,toBlock:`0x${to.toString(16)}`,topics:[TOPIC,null,TO]}]);
+            all.push(...q.result);
+          }
+          const transfers=all.map(log=>({tx_hash:log.transactionHash,block_number:parseInt(log.blockNumber,16),log_index:parseInt(log.logIndex,16),from:`0x${log.topics[1].slice(-40)}`.toLowerCase(),to:`0x${log.topics[2].slice(-40)}`.toLowerCase(),raw_amount:BigInt(log.data).toString(),usdc:Number(BigInt(log.data))/1e6,treasury_received:true}));
+          console.log(JSON.stringify({ok:true,checked_at:new Date().toISOString(),network:'eip155:8453',asset:USDC,treasury:TREASURY,start_block:START,latest_block:latest,covered_blocks:Math.max(0,latest-START+1),treasury_received_candidates:transfers.length,transfers,evidence_quality:'A_direct_canonical_USDC_log_tail',prior_complete_through_block:51508360,scope:'This tail extends the prior complete canonical Treasury reconciliation through the current Base head; it is not an all-time-zero assertion.'},null,2));
+          JS
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: delta-revenue-auto9-${{ github.run_id }}
-          path: |
-            /tmp/delta-live-pricing.json
-            /tmp/delta-agentpact-demand.json
-            /tmp/delta-agentexchange-demand.json
-            /tmp/delta-external-funded-demand.json
-            /tmp/delta-moltjobs-demand.json
-            /tmp/delta-workpnp-demand.json
-            /tmp/delta-revenue-candidates.json
-            /tmp/delta-treasury.json
-          if-no-files-found: warn
+          name: delta-treasury-tail-${{ github.run_id }}
+          path: /tmp/delta-treasury-tail.json
           retention-days: 7
