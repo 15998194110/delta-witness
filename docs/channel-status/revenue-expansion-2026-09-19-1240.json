@@ -1,0 +1,153 @@
+{
+  "handoff_time_jst": "2026-09-19T12:40:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "deadline_extended": false,
+    "remaining_hours_approx": 49.1,
+    "material_shortfall_risk": true
+  },
+  "pricing_authority": {
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+  },
+  "fresh_reconciliation": {
+    "one_shot_run_id": 35419042720,
+    "workflow_conclusion": "success",
+    "pricing_checked_at_utc": "2026-09-19T03:37:34.094Z",
+    "public_pricing_live_verified": {
+      "capture": {"http": 402, "usdc": 1, "raw": "1000000"},
+      "preflight": {"http": 402, "usdc": 5, "raw": "5000000"},
+      "guarded_action_pilot": {"http": 402, "usdc": 10, "raw": "10000000"},
+      "network_asset_treasury_match": true,
+      "paid_transactions_generated_by_probe": 0
+    },
+    "partner_live_pricing": "not_checked_scoped_secret_not_available_to_verifier",
+    "paid_funnel_candidate_rows": 0,
+    "treasury_checked_at_utc": "2026-09-19T03:37:41.572Z",
+    "treasury_start_block": 51429855,
+    "treasury_latest_block": 51499854,
+    "treasury_lookback_blocks": 70000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "treasury_evidence_quality": "A_direct_canonical_USDC_log",
+    "treasury_note": "One Base RPC chunk initially returned HTTP 429 and then succeeded on bounded retry. Full requested range completed successfully. Explicit block-range evidence only, not an all-time-zero claim."
+  },
+  "buyer_demand": {
+    "agentpact": {
+      "listing_status": "present",
+      "canonical_offer_count": 3,
+      "offer_prices_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0,
+      "channel_http_all_ok": true
+    },
+    "external_funded": {
+      "adjacent_funded_requests": 15,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false,
+      "notes": [
+        "Bountybook had 11 funded adjacent research/code requests but none can be fulfilled by the existing DELTA Capture/Preflight/Watch/Pilot products.",
+        "Taskmarket had a 199 USDC quantum-safe CUDA bounty, but it is unrelated custom engineering and carries wallet/signature/action-fee boundaries.",
+        "Clawlancer had three pre-funded adjacent bounties at 0.01/0.015/0.03 USDC; all are non-native and below the 1 USDC entry price."
+      ]
+    }
+  },
+  "reply_state": {
+    "new_actionable_human_reply_this_run": false,
+    "robauto_agenthub": "explicit_interest_already_answered_waiting_for_real_workflow_and_public_url",
+    "outlast_ai": "blocked_by_genuine_company_domain_sender_requirement",
+    "reap": "explicit_rejection_stop",
+    "agents_net_submission_243": "in_review_not_customer_demand_or_revenue"
+  },
+  "new_first_contacts_this_run": [
+    {
+      "target": "Pardisio",
+      "official_contact": "hello@pardisio.com",
+      "official_contact_evidence": "current Pardisio public business site/contact surface",
+      "specific_use_case": "Independent public price/availability/policy/supplier-page Capture immediately before an AI Seller Agent makes or accepts a consequential offer or commercial commitment.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "gmail_message_id": "1a0b7bdb1aae1555",
+      "status": "sent_no_immediate_bounce_or_reply_observed",
+      "duplicate_check": "Exact Gmail target/address search found no prior DELTA contact before send.",
+      "next_action": "Wait for explicit interest and one representative real public URL; do not chase silence."
+    },
+    {
+      "target": "Kleio",
+      "official_contact": "contact@kleio.ai",
+      "official_contact_evidence": "current Kleio public company/contact surface",
+      "specific_use_case": "Independent public product/pricing/policy/availability evidence before a high-value quote, recommendation or transaction in a complex agentic-commerce journey.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "gmail_message_id": "1a0b7bdc8c2cf6ce",
+      "status": "sent_no_immediate_bounce_or_reply_observed",
+      "duplicate_check": "Exact Gmail target/address search found no prior DELTA contact before send.",
+      "next_action": "Wait for explicit interest and one representative real public URL; do not chase silence."
+    },
+    {
+      "target": "x402 Inc. Japan",
+      "official_contact": "hello@x402jp.com",
+      "official_contact_evidence": "current x402 Inc. Japan public business/contact surface",
+      "specific_use_case": "One independent public-source Capture before an autonomous agent settles an x402/stablecoin payment because of a public price, availability, policy or supplier page.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "gmail_message_id": "1a0b7bddf9df2e32",
+      "status": "sent_no_immediate_bounce_or_reply_observed",
+      "duplicate_check": "Exact Gmail target/address search found no prior DELTA contact before send.",
+      "next_action": "Wait for explicit interest and one real autonomous-payment workflow/public URL; do not chase silence."
+    }
+  ],
+  "outreach_policy": {
+    "daily_numerical_cap": null,
+    "one_first_contact_per_target": true,
+    "official_public_business_contacts_only": true,
+    "gmail_and_operator_dedupe_before_send": true,
+    "no_chasing_silence": true,
+    "stop_on_rejection": true
+  },
+  "accounting": {
+    "gross_verified_customer_receipts_usdc": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "realized_variable_cost_usdc": null,
+    "realized_contribution_margin_usdc": null,
+    "unreconciled_customer_amounts_usdc": 0
+  },
+  "financial_actions_this_run": {
+    "listing_or_signup_fees": 0,
+    "new_cash_or_credits": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "kyc_or_identity_attestations": 0,
+    "legal_commitments": 0
+  },
+  "coordination": {
+    "previous_repository_handoff": "docs/channel-status/revenue-expansion-2026-09-19-1126.json",
+    "canonical_sibling_operator_workspace": "not_accessible_not_claimed_synchronized",
+    "one_shot_reconciliation_workflow_removed_after_success": true,
+    "one_shot_workflow_deletion_commit": "e75d4e0f702e120625111b68a2ab3be044fda9ec",
+    "duplicate_growth_loop_created": false,
+    "new_seller_identity_created": false,
+    "production_deployment_performed": false,
+    "directory_only_activity_counted_as_result": false
+  }
+}
