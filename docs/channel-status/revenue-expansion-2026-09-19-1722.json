@@ -1,0 +1,153 @@
+{
+  "handoff_time_jst": "2026-09-19T17:22:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "deadline_extended": false,
+    "remaining_hours_approx": 44.36,
+    "material_shortfall_risk": true
+  },
+  "pricing_authority": {
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+  },
+  "fresh_reconciliation": {
+    "one_shot_run_id": 35431757244,
+    "workflow_conclusion": "success",
+    "pricing_checked_at_utc": "2026-09-19T08:21:04.875Z",
+    "public_pricing_live_verified": {
+      "capture": {"http": 402, "usdc": 1, "raw": "1000000"},
+      "preflight": {"http": 402, "usdc": 5, "raw": "5000000"},
+      "guarded_action_pilot": {"http": 402, "usdc": 10, "raw": "10000000"},
+      "network_asset_treasury_match": true,
+      "paid_transactions_generated_by_probe": 0
+    },
+    "partner_live_pricing": "not_checked_scoped_secret_not_provided_by_verifier",
+    "paid_funnel": {
+      "temporary_run_output": "empty_unusable_do_not_treat_as_fresh_zero",
+      "latest_successful_canonical_pulse_run": 35425327007,
+      "latest_successful_candidate_rows": 0,
+      "latest_successful_pulse_completed_at_utc": "2026-09-19T05:58:27Z",
+      "notes": "The one-shot verifier did not receive the scoped telemetry secret needed for a fresh paid-funnel result. The latest successful canonical scheduled pulse remains authoritative and reported candidate_rows=0."
+    },
+    "treasury_checked_at_utc": "2026-09-19T08:21:16.004Z",
+    "treasury_start_block": 51438361,
+    "treasury_latest_block": 51508360,
+    "treasury_lookback_blocks": 70000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "treasury_evidence_quality": "A_direct_canonical_USDC_log",
+    "evidence_scope": "Explicit 70,000-block canonical-USDC log range plus latest successful canonical paid-funnel telemetry; not an all-time-zero claim."
+  },
+  "buyer_demand": {
+    "agentpact": {
+      "listing_status": "present",
+      "canonical_offer_count": 3,
+      "offer_prices_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "agentexchange": {
+      "external_requests": 4,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0
+    },
+    "external_funded": {
+      "adjacent_funded_requests": 17,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false,
+      "notes": "Current funded adjacent work remains custom research/engineering or otherwise outside existing DELTA Capture/Preflight/Watch/Pilot fulfillment. The 199 USDC Taskmarket engineering bounty is non-native and carries wallet/signature boundaries. Current Clawlancer bounties are non-native and below the 1 USDC entry price."
+    }
+  },
+  "reply_state": {
+    "new_actionable_explicit_integration_intent_this_run": false,
+    "relevance_ai": {
+      "message_id": "1a0b87f797643438",
+      "state": "support_channel_declined_partnership_handling_and_redirected_to_official_business_contact_options",
+      "commercial_demand_grade": "C_not_buyer_intent",
+      "next_action": "Use the official relevanceai.com business-development/demo route only; do not reply to support or treat the redirect as interest. A browser-form submission was attempted but did not start because the already-known metered browser wallet is negative. No submission occurred and no paid workaround was authorized."
+    },
+    "robauto_agenthub": "explicit_interest_already_answered_waiting_for_real_workflow_and_public_url",
+    "outlast_ai": "blocked_by_genuine_company_domain_sender_requirement",
+    "reap": "explicit_rejection_stop",
+    "agents_net_submission_243": "in_review_not_customer_demand_or_revenue"
+  },
+  "new_first_contacts_this_run": [
+    {
+      "target": "OneRule",
+      "official_contact": "hello@onerule.com",
+      "official_surface": "https://www.onerule.com/",
+      "specific_use_case": "Independent public supplier/product/policy Capture before a procurement agent advances a consequential recommend/buy step.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "technical_fit_grade": "A",
+      "commercial_demand_grade": "C",
+      "gmail_message_id": "1a0b8bfd8244750a",
+      "status": "delivery_failed_address_not_found_or_unable_to_receive",
+      "bounce_message_id": "1a0b8bfe3d06f670",
+      "next_action": "Suppress this exact route. Do not retry another address or guess a private alternative unless OneRule publishes a different official business route later."
+    },
+    {
+      "target": "BloomCommerceOS",
+      "official_contact": "hello@bloomcommerceos.com",
+      "official_surface": "https://bloomcommerceos.com/company/partners/",
+      "specific_use_case": "Independent public supplier/product/price/availability/policy Capture before Procurement, Dynamic Pricing, Inventory or other autonomous commerce agents take a consequential action.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "technical_fit_grade": "A",
+      "commercial_demand_grade": "C",
+      "gmail_message_id": "1a0b8bffc084a339",
+      "status": "sent_no_immediate_bounce_or_human_reply_observed",
+      "next_action": "Wait for one genuine customer workflow, public URL and action boundary; do not chase silence."
+    },
+    {
+      "target": "Lio",
+      "official_contact": "info@asklio.ai",
+      "official_surface": "https://www.lio.ai/",
+      "specific_use_case": "Independent public supplier/market-source Capture immediately before Lio's end-to-end procurement agents advance a sourcing, supplier, approval or purchase action based on that public source.",
+      "offer": "1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition.",
+      "technical_fit_grade": "A",
+      "commercial_demand_grade": "C",
+      "gmail_message_id": "1a0b8c0ecab2a680",
+      "status": "sent_no_immediate_bounce_or_human_reply_observed",
+      "next_action": "Wait for one genuine customer workflow/public URL; do not chase silence."
+    }
+  ],
+  "accounting": {
+    "gross_verified_customer_receipts_usdc": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "realized_variable_cost_usdc": null,
+    "realized_contribution_margin_usdc": null,
+    "unreconciled_customer_amounts_usdc": 0
+  },
+  "financial_actions_this_run": {
+    "listing_or_signup_fees": 0,
+    "new_cash_or_credits": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "paid_tests": 0,
+    "kyc_or_identity_attestations": 0,
+    "legal_commitments": 0
+  },
+  "coordination": {
+    "previous_repository_handoff": "docs/channel-status/revenue-expansion-2026-09-19-1600.json",
+    "canonical_sibling_operator_workspace": "not_accessible_not_claimed_synchronized",
+    "duplicate_growth_loop_created": false,
+    "new_seller_identity_created": false,
+    "production_deployment_performed": false,
+    "directory_only_activity_counted_as_result": false
+  }
+}
