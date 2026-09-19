@@ -1,0 +1,158 @@
+{
+  "updated_at_jst": "2026-09-19T21:08:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "remaining_hours_at_run_start": 40.7,
+    "material_shortfall_risk": true
+  },
+  "pricing_and_purchase_path": {
+    "checked_at": "2026-09-19T12:04:36.274Z",
+    "policy": "owner-2026-09-10-1-5-10",
+    "ok": true,
+    "public_capture": {"http": 402, "usdc": 1, "raw": "1000000"},
+    "public_preflight": {"http": 402, "usdc": 5, "raw": "5000000"},
+    "guarded_action_pilot": {"http": 402, "usdc": 10, "raw": "10000000"},
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_transactions_generated_by_diagnostics": 0,
+    "customer_revenue_generated_by_diagnostics": 0,
+    "partner_price_scope": "not independently re-read in this one-shot run; no mismatch inferred"
+  },
+  "reconciliation": {
+    "workflow_run": 35441831986,
+    "paid_funnel_candidates": 0,
+    "treasury": {
+      "checked_at": "2026-09-19T12:04:37.421Z",
+      "start_block": 51508065,
+      "latest_block": 51515064,
+      "lookback_blocks": 7000,
+      "canonical_usdc_receipt_candidates": 0,
+      "unclassified_receipts": 0,
+      "evidence_quality": "A_direct_canonical_USDC_log",
+      "scope": "Fresh overlapping explicit-range check only; not an all-time-zero assertion."
+    },
+    "recognized_customer_revenue_usdc": 0,
+    "gross_verified_customer_receipts_usdc": 0,
+    "unreconciled_customer_amount_usdc": 0,
+    "known_variable_cost_usdc": null,
+    "known_contribution_margin_usdc": null
+  },
+  "funded_demand": {
+    "agentpact": {
+      "listing_status": "present",
+      "offer_count": 3,
+      "offers_current_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "agentexchange": {
+      "neighbor_buyer_count": 2,
+      "external_requests": 4,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "paid_settlements": 0
+    },
+    "external_boards": {
+      "adjacent_funded_requests": 19,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false,
+      "notes": "Current funded tasks remain custom coding/research/other work or below the 1 USDC entry price; none match existing Capture/Preflight/Watch/Pilot fulfillment."
+    }
+  },
+  "reply_and_interest_state": {
+    "gmail_inbound_search_since_prior_handoff": "after:1789814610 -in:sent -in:trash -in:spam",
+    "new_actionable_explicit_integration_intent": 0,
+    "new_genuine_customer_reply": 0,
+    "robauto_agenthub": "existing explicit-interest thread already answered; waiting for a real workflow/public URL; no repeat follow-up sent",
+    "outlast": "company-domain-sender requirement unchanged; no spoofing",
+    "reap": "explicit rejection remains suppressed",
+    "new_bounce": {
+      "target": "4WARD FORGE",
+      "address": "hello@4wardforge.com",
+      "smtp": "550 5.4.1 Recipient address rejected: Access denied",
+      "disposition": "suppress exact route; do not retry or guess a private replacement"
+    }
+  },
+  "outreach_actions": [
+    {
+      "target": "Agentic Systems / Agentify",
+      "official_contact": "hello@agenticsystems.de",
+      "official_surface": "https://www.agenticsystems.de/",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0b98cd465fe96a",
+      "status": "sent_no_immediate_bounce_observed",
+      "specific_use_case": "Selective 1 USDC Capture of a public supplier availability, price, cancellation-policy or terms page immediately before a consequential agentic booking/order execution.",
+      "technical_fit_grade": "B_high_transaction_workflow_fit",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "why_price_fits": "1 USDC is proposed only for customer-selected audit-sensitive bookings/orders, not ordinary transactions or backend inventory truth.",
+      "next_conversion_action": "Wait for one real workflow, representative public URL and action boundary; do not chase silence."
+    },
+    {
+      "target": "signalCommerce / OrcaQubits AI",
+      "official_contact": "info@orcaqubits-ai.com",
+      "official_surface": "https://www.orcaqubits-ai.com/contact",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0b98d00ba00d1b",
+      "status": "sent_no_immediate_bounce_observed",
+      "specific_use_case": "Optional 1 USDC public product/availability/returns/policy Capture before selected UCP agent checkout where independent evidence is required.",
+      "technical_fit_grade": "B_agentic_commerce_protocol_fit",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "why_price_fits": "The checkpoint is selective and does not replace real-time inventory sync, personalized pricing or private cart truth.",
+      "next_conversion_action": "Wait for one current merchant/agent workflow and representative public URL; do not chase silence."
+    },
+    {
+      "target": "Owl Browser",
+      "official_contact": "hello@owlbrowser.net",
+      "official_surface": "https://owlbrowser.net/",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0b98d2099f55c1",
+      "status": "sent_no_immediate_bounce_observed",
+      "specific_use_case": "Optional 1 USDC independent public-page Capture immediately before consequential Playwright/Puppeteer/agent browser actions such as submit, order or account-changing steps.",
+      "technical_fit_grade": "B_browser_execution_infrastructure_fit",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "why_price_fits": "Applied only to audit-sensitive public-source-dependent actions, not every browser session.",
+      "next_conversion_action": "Wait for one real customer workflow and public URL; do not chase silence."
+    },
+    {
+      "target": "Helvra",
+      "official_contact": "hello@helvra.eu",
+      "official_surface": "https://www.helvra.eu/",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0b98d3eae53002",
+      "status": "sent_no_immediate_bounce_observed",
+      "specific_use_case": "Selective 1 USDC public supplier-page Capture before an MCP/SAP tool action that depends on public price, availability, policy or compliance information.",
+      "technical_fit_grade": "B_enterprise_MCP_action_fit",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "why_price_fits": "1 USDC is scoped to selected high-consequence actions and does not replace SAP authorization, RBAC or private enterprise validation.",
+      "next_conversion_action": "Wait for one real MCP/SAP workflow and representative public URL; do not chase silence."
+    }
+  ],
+  "concurrent_operator_activity_observed_since_prior_handoff": [
+    {"target": "Aurus", "address": "info@aurusinc.com", "message_id": "1a0b9717358f0fe1", "status": "sent; no new inbound observed in this run"},
+    {"target": "4WARD FORGE", "address": "hello@4wardforge.com", "message_id": "1a0b9718cc7df659", "status": "hard/route failure; suppressed as above"},
+    {"target": "Add To Cart AI", "address": "hello@addtocart.ai", "message_id": "1a0b971b595062d5", "status": "sent; no new inbound observed in this run"}
+  ],
+  "boundaries_and_coordination": {
+    "no_daily_outreach_cap": true,
+    "one_first_contact_per_target_preserved": true,
+    "gmail_dedupe_performed": true,
+    "private_email_guessed": false,
+    "financial_or_signature_action_taken": false,
+    "listing_or_signup_fee_paid": false,
+    "project_funded_purchase": false,
+    "wallet_signature_or_asset_movement": false,
+    "new_recurring_growth_loop_created": false,
+    "sibling_operator_workspace": "not_accessible_not_modified",
+    "notification_disposition": "No new genuine customer Treasury receipt, external paid settlement, actionable explicit integration intent, DELTA-native funded request, completed high-value buyer-facing listing, new unavoidable owner-action blocker or core failure. Material shortfall risk remains already known."
+  }
+}
