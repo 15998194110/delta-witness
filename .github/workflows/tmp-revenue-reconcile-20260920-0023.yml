@@ -1,0 +1,32 @@
+name: TEMP DELTA current revenue reconcile 20260920-0023
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/tmp-revenue-reconcile-20260920-0023.yml]
+permissions:
+  contents: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v5
+        with: {node-version: '22'}
+      - name: Audit paid funnel candidates
+        run: node scripts/query-revenue-candidates.mjs | tee /tmp/delta-revenue-candidates.json
+      - name: Reconcile canonical Base USDC Treasury
+        env:
+          DELTA_TREASURY_LOOKBACK_BLOCKS: '70000'
+          DELTA_TREASURY_CHUNK_BLOCKS: '1900'
+        run: node scripts/reconcile-treasury.mjs | tee /tmp/delta-treasury.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: delta-current-reconcile-${{ github.run_id }}
+          path: |
+            /tmp/delta-revenue-candidates.json
+            /tmp/delta-treasury.json
+          if-no-files-found: warn
+          retention-days: 7
