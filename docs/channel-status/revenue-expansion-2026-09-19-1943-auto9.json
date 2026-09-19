@@ -1,0 +1,145 @@
+{
+  "updated_at_jst": "2026-09-19T19:43:30+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "remaining_hours_at_latest_action": 41.9994,
+    "material_shortfall_risk": true
+  },
+  "pricing_and_purchase_path": {
+    "checked_at": "2026-09-19T10:40:25.621Z",
+    "policy": "owner-2026-09-10-1-5-10",
+    "ok": true,
+    "public_capture": {"http": 402, "usdc": 1, "raw": "1000000"},
+    "public_preflight": {"http": 402, "usdc": 5, "raw": "5000000"},
+    "guarded_action_pilot": {"http": 402, "usdc": 10, "raw": "10000000"},
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_transactions_generated_by_diagnostics": 0,
+    "customer_revenue_generated_by_diagnostics": 0,
+    "partner_price_scope": "not independently re-read in this one-shot run; do not infer a mismatch from unverified scope"
+  },
+  "reconciliation": {
+    "workflow_run": 35438036691,
+    "paid_funnel_candidates": 0,
+    "treasury": {
+      "checked_at": "2026-09-19T10:40:29.928Z",
+      "start_block": 51505542,
+      "latest_block": 51512541,
+      "lookback_blocks": 7000,
+      "canonical_usdc_receipt_candidates": 0,
+      "unclassified_receipts": 0,
+      "evidence_quality": "A_direct_canonical_USDC_log",
+      "scope": "Fresh overlapping explicit-range check only; not an all-time-zero assertion."
+    },
+    "recognized_customer_revenue_usdc": 0,
+    "gross_verified_customer_receipts_usdc": 0,
+    "unreconciled_customer_amount_usdc": 0,
+    "known_variable_cost_usdc": null,
+    "known_contribution_margin_usdc": null
+  },
+  "funded_demand": {
+    "agentpact": {
+      "listing_status": "present",
+      "offer_count": 3,
+      "offers_current_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "agentexchange": {
+      "neighbor_buyer_count": 2,
+      "external_requests": 4,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0,
+      "paid_settlements": 0
+    },
+    "external_boards": {
+      "adjacent_funded_requests": 19,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false,
+      "notes": "Current funded tasks remain custom coding/research/other work or below DELTA's current price; none match existing Capture/Preflight/Watch/Pilot fulfillment."
+    }
+  },
+  "reply_and_interest_state": {
+    "gmail_inbound_search_since_prior_handoff": "after:1789810235 -in:sent -in:trash -in:spam",
+    "new_actionable_explicit_integration_intent": 0,
+    "new_genuine_customer_reply": 0,
+    "nayeb_delivery_state": "temporary_delivery_delay_only; Gmail will retry; no duplicate contact or alternate address attempted",
+    "robauto_agenthub": "existing explicit-interest thread already answered; waiting for one real workflow and representative URL; no repeat follow-up sent",
+    "outlast": "existing company-domain-sender requirement unchanged; no spoofing or re-notification"
+  },
+  "outreach_actions": [
+    {
+      "target": "Bundle",
+      "official_contact": "hello@bundle.build",
+      "official_surface": "https://www.bundle.build/",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0b942dadf4567c",
+      "status": "sent_no_immediate_bounce_observed",
+      "specific_use_case": "Selective 1 USDC Capture of a public supplier/product page immediately before an audit-sensitive material shortlist, approval or purchase; retain price/availability/lead-time/policy evidence beside Bundle's order record.",
+      "technical_fit_grade": "B_high_workflow_fit",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "why_price_fits": "A 1 USDC checkpoint is proposed only for customer-selected higher-value or audit-sensitive purchases, not every product lookup.",
+      "next_conversion_action": "Wait for one real materials purchase, representative public URL and action boundary; do not chase silence."
+    },
+    {
+      "target": "SupplyDent",
+      "official_contact": "hello@supplydent.com",
+      "official_surface": "https://supplydent.com/",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0b942f6a768528",
+      "status": "sent_no_immediate_bounce_observed",
+      "specific_use_case": "Selective 1 USDC Capture of public vendor price/availability/delivery/returns evidence immediately before approval or automated portal/email order dispatch.",
+      "technical_fit_grade": "B_high_workflow_fit",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "why_price_fits": "SupplyDent coordinates materially larger real orders; 1 USDC is positioned only on audit-sensitive transactions and does not claim to validate private contract pricing.",
+      "next_conversion_action": "Wait for one real supplier/order workflow and representative public URL; do not chase silence."
+    },
+    {
+      "target": "Sky",
+      "official_contact": "hello@skyhq.ai",
+      "official_surface": "https://www.skyhq.ai/",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0b9431bc3cc7a6",
+      "status": "bounced_address_not_found",
+      "bounce_message_id": "1a0b943239145fe6",
+      "suppression": "Suppress this exact published route. Do not guess a replacement private address or retry unless Sky publishes a new official business contact route.",
+      "commercial_demand_grade": "C_no_contact_established"
+    },
+    {
+      "target": "Steel Bridge / BridgeAI",
+      "official_contact": "hello@steelbridge.in",
+      "official_surface": "https://steelbridge.in/",
+      "gmail_dedupe_before_send": true,
+      "message_id": "1a0b9433c2eb2be2",
+      "status": "sent_no_immediate_bounce_observed",
+      "specific_use_case": "Selective 1 USDC Capture of a public supplier page containing specs, availability, lead-time language, certification claims or commercial policy before an RFQ/sourcing commitment.",
+      "technical_fit_grade": "B_workflow_fit",
+      "commercial_demand_grade": "C_no_reply_or_funding_yet",
+      "why_price_fits": "1 USDC is scoped only to public-source-dependent RFQ decisions where independent retention matters, not private quote data or material certification.",
+      "next_conversion_action": "Wait for one real RFQ/sourcing case and representative public URL; do not chase silence."
+    }
+  ],
+  "boundaries_and_coordination": {
+    "no_daily_outreach_cap": true,
+    "one_first_contact_per_target_preserved": true,
+    "gmail_dedupe_performed": true,
+    "private_email_guessed": false,
+    "financial_or_signature_action_taken": false,
+    "listing_or_signup_fee_paid": false,
+    "project_funded_purchase": false,
+    "wallet_signature_or_asset_movement": false,
+    "new_recurring_growth_loop_created": false,
+    "sibling_operator_workspace": "not_accessible_not_modified",
+    "notification_disposition": "No new genuine customer Treasury receipt, paid settlement, actionable explicit integration intent, independently funded DELTA-native request, completed high-value buyer-facing listing, new unavoidable owner-action blocker or core failure. Material shortfall risk remains already known."
+  }
+}
