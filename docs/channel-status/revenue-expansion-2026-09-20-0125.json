@@ -1,0 +1,107 @@
+{
+  "checked_at": "2026-09-19T16:21:06.606Z",
+  "run_local_jst": "2026-09-20T01:21:06+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "new_counted_transactions_this_run": 0
+  },
+  "pricing": {
+    "policy": "owner-2026-09-10-1-5-10",
+    "verified_at": "2026-09-19T16:21:03.356Z",
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "live_http_402_verified": true,
+    "payment_generated_by_check": false
+  },
+  "reconciliation": {
+    "github_run_id": 35454664783,
+    "paid_funnel_candidate_rows": 0,
+    "treasury_start_block": 51502760,
+    "treasury_latest_block": 51522759,
+    "treasury_lookback_blocks": 20000,
+    "treasury_received_candidates": 0,
+    "unclassified_receipts": 0,
+    "recognized_customer_revenue_usdc_this_run": 0,
+    "scope_note": "This is explicit block-range and current paid-funnel evidence, not an all-time zero assertion. Unknown realized variable costs and contribution margin remain unknown/null."
+  },
+  "funded_demand": {
+    "agentpact": {
+      "offer_count": 3,
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0,
+      "evidence_quality": "A_official_public_api"
+    },
+    "external_scan": {
+      "adjacent_funded_requests": 18,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false
+    }
+  },
+  "gmail": {
+    "new_actionable_human_reply_since_prior_checkpoint": false,
+    "robauto_agenthub": "Explicit-interest thread remains answered and waiting for a real workflow/public URL; no new reply observed.",
+    "paielectronics_delivery_state": "Temporary Gmail delivery delay only; recipient server did not accept connection and Gmail will retry automatically. Do not resend manually while this temporary state remains unresolved."
+  },
+  "new_buyer_connections": [
+    {
+      "target": "Mero",
+      "domain": "merohq.com",
+      "official_public_contact": "hello@merohq.com",
+      "official_surface": "https://www.merohq.com/",
+      "gmail_prior_contact_check": "none before send",
+      "gmail_sent_message_id": "1a0ba7718ee4a3c0",
+      "use_case": "For purchase orders whose human authorization depends on a public supplier/product page, preserve listed price, stock, lead time or published term immediately before approval/send and attach proof metadata to the PO audit trail.",
+      "proposed_product": "Public Capture",
+      "price_usdc": 1,
+      "secondary_product": "Public Preflight",
+      "secondary_price_usdc": 5,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Mero publicly sells paid procurement automation plans and shows consequential PO workflows; no explicit willingness to buy DELTA yet.",
+      "next_executable_action": "Wait for an explicit reply identifying one real workflow, representative public URL and action boundary; do not chase silence."
+    },
+    {
+      "target": "ConforgeLabs",
+      "domain": "conforgelabs.ai",
+      "official_public_contact": "hello@conforgelabs.ai",
+      "official_surface": "https://conforgelabs.ai/solutions/supplier-intelligence",
+      "gmail_prior_contact_check": "none before send",
+      "gmail_sent_message_id": "1a0ba78f218ba44e",
+      "use_case": "For supplier-intelligence decisions that rely on a public vendor source, preserve public lead time, availability, price, compliance notice, policy or other vendor-page state before a governed recommendation/escalation/sourcing action.",
+      "proposed_product": "Public Capture",
+      "price_usdc": 1,
+      "secondary_product": "Public Preflight",
+      "secondary_price_usdc": 5,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_to_pay_evidence": "Conforge publicly markets paid enterprise supplier intelligence with agent actions, audit trails and human authority controls; no explicit willingness to buy DELTA yet.",
+      "next_executable_action": "Wait for an explicit reply identifying one current workflow and representative public vendor URL; do not chase silence."
+    }
+  ],
+  "delivery_readback": {
+    "immediate_hard_bounce_for_new_connections": false,
+    "note": "No immediate mailer-daemon result was observed for Mero or ConforgeLabs at the readback point; delivery is not buyer interest."
+  },
+  "coordination": {
+    "canonical_local_operator_workspace": "not accessible in this runtime; not claimed synchronized",
+    "duplicate_recurring_growth_loop_created": false,
+    "price_deployment_or_production_change": false,
+    "wallet_signature_or_asset_movement": false,
+    "paid_listing_or_paid_test": false,
+    "private_key_exposed": false
+  }
+}
