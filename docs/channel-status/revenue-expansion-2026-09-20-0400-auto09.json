@@ -1,0 +1,133 @@
+{
+  "updated_at_jst": "2026-09-20T04:00:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "known_realized_variable_cost_usdc": null,
+    "known_realized_contribution_margin_usdc": null,
+    "remaining_hours_approx": 33.7,
+    "risk": "material_shortfall_risk"
+  },
+  "current_pricing": {
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "latest_canonical_price_path_run": 35460046223,
+    "latest_canonical_price_path_result": "owner policy, live prices and purchase path all passed without payment"
+  },
+  "reconciliation": {
+    "canonical_pulse_run": 35460046223,
+    "canonical_pulse_completed_at": "2026-09-19T18:05:25Z",
+    "treasury_checked_at": "2026-09-19T18:05:17.540Z",
+    "treasury_start_block": 51475883,
+    "treasury_latest_block": 51525882,
+    "treasury_lookback_blocks": 50000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "paid_funnel_candidates": 0,
+    "treasury_evidence_quality": "A_direct_canonical_USDC_log",
+    "scope": "Explicit current block-range and canonical telemetry only; not an all-time-zero assertion. No customer revenue may be recognized without independent customer purpose, successful DELTA fulfillment, unique settlement identity and matched canonical Treasury receipt. Unknown costs remain unknown."
+  },
+  "market_state": {
+    "agentpact_active_offers": 3,
+    "agentpact_offer_prices_usdc": [1, 5, 10],
+    "agentpact_buyer_count": 0,
+    "agentpact_settlement_count": 0,
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_funded_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "agentexchange_buyer_count": 2,
+    "agentexchange_external_requests": 4,
+    "agentexchange_compatible_requests": 0,
+    "agentexchange_funded_compatible_requests": 0,
+    "adjacent_funded_external_tasks": 18,
+    "delta_native_funded_external_tasks": 0,
+    "note": "No custom research/code, below-floor bounty, wallet-signature or pay-to-work task was accepted merely to create activity."
+  },
+  "inbound_and_conversion": {
+    "relevance_ai": {
+      "status": "explicit_business_route_redirect_not_integration_interest",
+      "human_reply": "Support stated that its channel cannot handle partnerships/integration proposals and explicitly directed business development / partnership enquiries to the contact options on relevanceai.com, then closed the support ticket.",
+      "official_route_verified": "https://relevanceai.com/book-a-demo and https://relevanceai.com/partners expose official business/partner forms",
+      "next_action": "Use the official business/partner route only when supported without violating the no-new-cash browser boundary. Do not email support again or treat the redirect as buyer demand.",
+      "commercial_demand_grade": "C"
+    },
+    "a2alist": {
+      "status": "actionable_explicit_integration_intent_external_blocker",
+      "unchanged_from_previous_handoff": true,
+      "next_action": "Wait for operator to correct Cloudflare machine-path rule or provide a stable official alternative; retry once only on explicit new instruction."
+    },
+    "robauto_agenthub": {
+      "status": "explicit_interest_waiting_for_real_workflow_and_public_url",
+      "no_silence_followup": true
+    },
+    "outlast": {
+      "status": "company_domain_sender_required",
+      "do_not_spoof": true
+    }
+  },
+  "buyer_expansion_this_run": [
+    {
+      "target": "Gapup / SAGA AI Services LLC",
+      "official_contact": "api@gapup.io",
+      "official_surface": "https://hub.gapup.io/x402",
+      "status": "first_contact_sent",
+      "gmail_message_id": "1a0bb088a0896384",
+      "use_case": "A Gapup agent that relies on a live public vendor, price, availability, policy, procurement or regulatory page before a consequential recommendation/action calls DELTA Public Capture to retain independent page-state evidence.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "Gapup publicly operates x402-paid MCP/HTTP tools on Base for software companies and autonomous-agent customers; this proves rail compatibility and adjacent paid usage, not willingness to buy DELTA.",
+      "next_action": "Wait for an explicit reply or genuine paid customer-purpose call. Do not chase silence or send a duplicate first contact."
+    },
+    {
+      "target": "LibertAI",
+      "official_contact": "contact@libertai.io",
+      "official_surface": "https://docs.libertai.io/agents/ and https://docs.libertai.io/apis/x402.html",
+      "status": "first_contact_sent",
+      "gmail_message_id": "1a0bb09af7938b92",
+      "use_case": "A LibertAI AgentKit workflow that relies on a live public price/vendor/availability/policy/protocol page calls DELTA Capture before a consequential onchain or business action.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "LibertAI documents agent wallets with USDC on Base, x402-paid inference and AgentKit actions; this establishes buyer-side payment capability, not explicit DELTA demand.",
+      "next_action": "Wait for an explicit reply or genuine paid customer-purpose call. Do not chase silence or send a duplicate first contact."
+    }
+  ],
+  "delivery_state": {
+    "new_hard_bounces_for_this_run_contacts": 0,
+    "prefero": "Temporary Gmail delivery delay only; Gmail will retry automatically. Do not resend or classify as a hard bounce yet."
+  },
+  "dedupe_checks": {
+    "gapup": "No prior Gmail or repository contact record found before send.",
+    "libertai": "No prior Gmail or repository contact record found before send.",
+    "browser_use": "Prior contacts found; suppressed from new first contact.",
+    "steel": "Prior contact found; suppressed.",
+    "hyperbrowser": "Prior contact found; suppressed.",
+    "airtop": "Prior contact found; suppressed.",
+    "browserless": "Prior contact found; suppressed.",
+    "openusdc": "Prior contact found; suppressed."
+  },
+  "coordination": {
+    "canonical_repo_handoff_updated": true,
+    "local_sibling_operator_workspace": "not_accessible_not_modified",
+    "new_recurring_growth_loop": false,
+    "new_listing_or_seller_identity": false,
+    "financial_actions": 0,
+    "wallet_signatures_or_messages": 0,
+    "credentials_private_keys_exposed": false
+  }
+}
