@@ -1,0 +1,73 @@
+{
+  "checked_at_jst": "2026-09-20T05:24:00+09:00",
+  "sprint_deadline_jst": "2026-09-21T13:43:28+09:00",
+  "strict_counted_customer_transactions": 0,
+  "unique_verified_independent_buyers": 0,
+  "recognized_customer_revenue_usdc": 0,
+  "canonical_revenue_evidence": {
+    "pulse_run_id": 35460046223,
+    "completed_at": "2026-09-19T18:05:25Z",
+    "paid_funnel_candidate_rows": 0,
+    "treasury_checked_at": "2026-09-19T18:05:17.540Z",
+    "treasury_start_block": 51475883,
+    "treasury_latest_block": 51525882,
+    "treasury_lookback_blocks": 50000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "scope_note": "Explicit range only; not an all-time-zero assertion."
+  },
+  "fresh_diagnostic": {
+    "run_id": 35467086979,
+    "public_pricing_checked_at": "2026-09-19T20:20:39.017Z",
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts_verified": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "public_pricing_status": "verified",
+    "partner_floor_status": "not_freshly_verified_temp_diagnostic_returned_401_due_to_scoped_secret_mismatch_do_not_treat_as_production_price_mismatch",
+    "paid_funnel_status": "not_refreshed_temp_run_missing_scoped_cloudflare_credentials_use_latest_successful_canonical_pulse",
+    "agentpact": {"offers": 3, "buyer_count": 0, "settlement_count": 0, "external_requests": 16, "delta_native_requests": 0, "funded_compatible_requests": 0, "buyer_funded_deals": 0},
+    "external_funded_demand": {"adjacent_funded_requests": 18, "delta_native_funded_requests": 0},
+    "treasury_partial_readback": {"start_block": 51429948, "last_successful_block": 51509747, "receipt_logs": 0, "status": "recoverable_rpc_degradation_after_partial_overlap", "reason": "Base main RPC 429 then alternate RPCs 403; do not treat intended 100k scan as complete"}
+  },
+  "buyer_conversion_actions": [
+    {
+      "target": "SPARS / Magnum Opus System Corp.",
+      "official_contact": "sales@sparsus.com",
+      "official_source": "https://www.sparsus.com/mcp",
+      "use_case": "Public supplier/product/terms evidence before governed MCP purchase-order or approval action",
+      "offer": "one genuine buyer-authorized 1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition",
+      "status": "first_contact_sent_2026-09-20_no_reply_observed_yet",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C"
+    },
+    {
+      "target": "CorgiMaps",
+      "official_contact": "hello@corgimaps.com",
+      "official_source": "https://www.corgimaps.com/platform",
+      "use_case": "Public product/availability/returns-policy evidence immediately before agentic checkout",
+      "offer": "one genuine buyer-authorized 1 USDC Public Capture; 5 USDC Public Preflight only for an explicit public-page condition",
+      "status": "first_contact_sent_2026-09-20_no_reply_observed_yet",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C"
+    },
+    {
+      "target": "Brainform",
+      "official_contact": "hello@brainform.ai",
+      "official_source": "https://brainform.ai/about",
+      "status": "delivery_failed_550_5_1_1_suppress_exact_route",
+      "next_action": "Do not retry this exact address and do not guess an alternative private email."
+    }
+  ],
+  "reply_state": {
+    "a2a_list": "explicit integration thread already answered; waiting after DELTA supplied fresh Cloudflare 403 challenge evidence on 2026-09-19T15:20:24Z; do not chase silence",
+    "relevance_ai": "support route declined partnership handling and closed ticket; official business route is relevanceai.com sales/demo form; do not reuse support channel"
+  },
+  "operator_workspace": "运营/RUPHUS_OPERATOR_2026-09-05 local sibling state not accessible in this run; no synchronization claimed",
+  "financial_actions_taken": false,
+  "wallet_signatures_taken": false,
+  "paid_tests_taken": false,
+  "temporary_workflow_removed": true
+}
