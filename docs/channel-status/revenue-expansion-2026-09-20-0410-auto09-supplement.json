@@ -1,0 +1,97 @@
+{
+  "updated_at_jst": "2026-09-20T04:10:00+09:00",
+  "base_handoff": "docs/channel-status/revenue-expansion-2026-09-20-0400-auto09.json",
+  "sprint": {
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "risk": "material_shortfall_risk_unchanged"
+  },
+  "reconciliation_evidence_reused_as_fresh_and_complete": {
+    "canonical_pulse_run": 35460046223,
+    "completed_at_utc": "2026-09-19T18:05:25Z",
+    "treasury_checked_at_utc": "2026-09-19T18:05:17.540Z",
+    "treasury_start_block": 51475883,
+    "treasury_latest_block": 51525882,
+    "lookback_blocks": 50000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "paid_funnel_candidates": 0,
+    "agentpact_delta_native_funded_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "agentexchange_funded_compatible_requests": 0,
+    "adjacent_funded_external_tasks": 18,
+    "delta_native_funded_external_tasks": 0,
+    "scope_note": "Fresh canonical pulse evidence was complete and under one hour old at execution; this supplement extends buyer coverage rather than creating a redundant reconciliation workflow. It is explicit-range evidence, not an all-time-zero claim."
+  },
+  "buyer_expansion": [
+    {
+      "target": "smart402",
+      "official_public_contact": "rob@smart402.com",
+      "official_surface": "https://smart402.com/",
+      "gmail_prior_contact_check": "no prior DELTA message found for smart402.com before send",
+      "gmail_message_id": "1a0bb10ab912f8c3",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "use_case": "Before a smart402 policy evaluation for a consequential x402 payment triggered by a public supplier price, availability or terms page, buy one DELTA Capture and record its proof reference alongside the payment-policy decision log.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_until_explicit_reply_or_paid_customer_call",
+      "ability_or_willingness_evidence": "smart402 publicly provides deterministic policy/risk controls for x402 agent payments; this establishes adjacent payment-decision infrastructure, not willingness to purchase DELTA.",
+      "next_action": "Wait for explicit reply or genuine buyer-authorized call; no silence follow-up."
+    },
+    {
+      "target": "HPP x402",
+      "official_public_contact": "partner@hpp.io",
+      "official_surface": "https://docs.hpp.io/pages/x402/index.html",
+      "gmail_prior_contact_check": "no prior DELTA message found for hpp.io before send",
+      "gmail_message_id": "1a0bb10d38944afa",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "use_case": "An HPP-connected agent retains independent public supplier/product/price/availability/terms evidence immediately before a consequential paid external action.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_until_explicit_reply_or_paid_customer_call",
+      "ability_or_willingness_evidence": "HPP documents an x402 MCP bridge and paid HTTP-call path. The outreach explicitly does not assume that its current bridge routes Base payment requirements and asks for an official external-Base interop path or real buyer workflow.",
+      "next_action": "Wait for explicit reply. If Base external-resource payment is unsupported, do not distort compatibility or create a paid workaround."
+    },
+    {
+      "target": "NegotiateAI",
+      "official_public_contact": "info@negotiateai.co",
+      "official_surface": "https://www.negotiateai.co/",
+      "gmail_prior_contact_check": "no prior DELTA message found for negotiateai.co before send",
+      "gmail_message_id": "1a0bb10f7266115b",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "use_case": "Preserve the exact public supplier price, availability, policy or terms state before a consequential autonomous negotiation, award or downstream procurement action.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C_until_explicit_reply_or_paid_customer_call",
+      "ability_or_willingness_evidence": "NegotiateAI publicly describes autonomous procurement negotiations and downstream system updates with customer outcomes. This is adjacent commercial capability evidence, not DELTA purchase intent.",
+      "next_action": "Wait for an explicit customer workflow/public URL or genuine paid Capture; no silence follow-up."
+    }
+  ],
+  "delivery_readback": {
+    "checked_after_send": true,
+    "new_bounce_for_three_contacts": 0,
+    "note": "Absence of an immediate bounce is delivery evidence only, not buyer interest."
+  },
+  "known_conversion_threads": {
+    "a2alist": "No new inbound after sanitized Cloudflare 403 evidence was sent; wait for operator-side fix/instruction and do not hammer.",
+    "robauto_agenthub": "Explicit interest remains unanswered by buyer after DELTA supplied the use case; wait for real workflow/public URL and do not chase silence.",
+    "outlast_ai": "Still requires a genuine company-domain sender; do not spoof or guess an identity.",
+    "relevance_ai": "Support route closed for partnerships and redirected to official business forms; do not reuse support route."
+  },
+  "boundaries": {
+    "new_listing_or_seller_identity": false,
+    "cash_credit_fee_paid_test": false,
+    "wallet_signature_or_message": false,
+    "asset_movement": false,
+    "kyc_or_identity_attestation": false,
+    "legal_commitment": false,
+    "production_deployment": false,
+    "canonical_local_operator_workspace": "not_accessible_not_claimed_synchronized"
+  }
+}
