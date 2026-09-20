@@ -27,7 +27,8 @@ jobs:
         run: node scripts/verify-owner-pricing-live.mjs
       - name: Canonical Base USDC Treasury reconciliation
         env:
-          DELTA_TREASURY_LOOKBACK_BLOCKS: '100000'
+          DELTA_TREASURY_LOOKBACK_BLOCKS: '10000'
+          DELTA_TREASURY_CHUNK_BLOCKS: '1900'
         run: node scripts/reconcile-treasury.mjs
       - name: State safety boundary
         if: always()
