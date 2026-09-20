@@ -1,0 +1,128 @@
+{
+  "updated_at_jst": "2026-09-21T07:56:42+09:00",
+  "sprint": {
+    "window_start": "2026-09-14T13:43:28+09:00",
+    "window_end": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_real_purchases": 0,
+    "fulfilled_paid_uses": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "status": "material_risk"
+  },
+  "fresh_reconciliation": {
+    "source": "canonical GitHub DELTA Discovery Pulse run 35541878959",
+    "checked_at_utc": "2026-09-20T22:30:41.253Z",
+    "checked_at_jst": "2026-09-21T07:30:41.253+09:00",
+    "base_block_range": [51527045, 51577044],
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "canonical_treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "treasury_received_candidates": 0,
+    "total_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "paid_funnel_candidate_rows": 0,
+    "payment_authorized": 0,
+    "settlement_confirmed": 0,
+    "treasury_received": 0
+  },
+  "pricing_and_live_path": {
+    "checked_at_utc": "2026-09-20T22:30:17.557Z",
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": [1000000, 5000000, 10000000],
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "status": "verified",
+    "public_capture_endpoint": "https://delta-witness-api.ruphussten.workers.dev/v1/capture",
+    "docs": "https://delta-witness-api.ruphussten.workers.dev/docs"
+  },
+  "funded_demand": {
+    "agentpact_buyer_count": 0,
+    "agentpact_settlement_count": 0,
+    "agentpact_delta_native_funded": 0,
+    "external_adjacent_funded_seen": 19,
+    "external_delta_native_raw": 0,
+    "external_delta_native_funded": 0,
+    "note": "Adjacent funded rows remain generic/non-native or blocked by scope/price/financial-action boundaries; none qualifies as a DELTA-native funded buyer request."
+  },
+  "inbound": {
+    "gmail_inbox_search_at_or_after_last_outreach": "no new inbox messages in the last hour as of this run",
+    "genuine_customer_receipt": false,
+    "external_paid_settlement": false,
+    "actionable_explicit_buyer_reply": false
+  },
+  "new_targeted_first_contacts": [
+    {
+      "target": "SatGate",
+      "official_route": "contact@satgate.io",
+      "gmail_message_id": "1a0c10830969b05f",
+      "sent_at_jst": "2026-09-21T07:55:34+09:00",
+      "dedupe": "Gmail and canonical repo search showed no prior SatGate contact before send",
+      "technical_fit": "strong buyer-side: governed paid external calls / budgets / request-path evidence",
+      "commercial_evidence": "no explicit interest or DELTA budget; not a buyer yet",
+      "ask": "one genuine buyer-authorized 1 USDC Public Capture in a current SatGate-governed workflow",
+      "count_as_sale": false
+    },
+    {
+      "target": "X-Agent / XAgent Labs",
+      "official_route": "admin@xagt.ai (site Contact sales)",
+      "gmail_message_id": "1a0c1084da7ff6d7",
+      "sent_at_jst": "2026-09-21T07:55:41+09:00",
+      "dedupe": "Gmail and canonical repo search showed no prior X-Agent contact before send",
+      "technical_fit": "strong buyer-side: agent runtime plus xpense budgets/approvals/x402 settlement",
+      "commercial_evidence": "no explicit interest or DELTA budget; not a buyer yet",
+      "ask": "one genuine buyer-authorized 1 USDC Public Capture in a current live agent workflow",
+      "count_as_sale": false
+    },
+    {
+      "target": "Axiru",
+      "official_route": "hello@axiru.com (official Agent Controls early-access/business route)",
+      "gmail_message_id": "1a0c10938d0120ec",
+      "sent_at_jst": "2026-09-21T07:56:42+09:00",
+      "dedupe": "Gmail and canonical repo search showed no prior Axiru contact before send",
+      "technical_fit": "strong buyer-side: live x402 pre-authorization before payment execution",
+      "commercial_evidence": "no explicit interest or DELTA budget; not a buyer yet",
+      "ask": "one genuine policy-authorized 1 USDC Public Capture in a current Axiru-governed workflow",
+      "count_as_sale": false
+    }
+  ],
+  "preserved_suppressions_and_dedupe": {
+    "do_not_chase_silence": true,
+    "preserve": [
+      "Relevance AI support closure",
+      "Reap rejection",
+      "all prior hard bounces and DNS/MX failures",
+      "A2A List registry-path cooperation is directory/operator cooperation only, not buyer intent",
+      "Rail402 already received a first contact on 2026-09-20 and was not re-contacted",
+      "AgentScore already received a first contact on 2026-09-16 and was not re-contacted",
+      "Saifuro already received a first contact on 2026-09-17 and was not re-contacted"
+    ]
+  },
+  "tracking": {
+    "value_authored": "three new tailored buyer-conversion first contacts",
+    "payment_authorized": 0,
+    "settlement_confirmed": 0,
+    "treasury_received": 0,
+    "fulfilled_paid_uses": 0,
+    "counted_customer_transactions": 0,
+    "buyer_count": 0,
+    "settlement_count": 0,
+    "external_requests": "no newly qualified DELTA-native funded request",
+    "intents_402": 0,
+    "paid_settlements": 0,
+    "revenue_usdc": 0,
+    "variable_cost": "unknown; do not coerce to zero",
+    "contribution_margin": "not realized / not computed without a genuine sale and verified cost",
+    "sprint_count_over_target": "0/50",
+    "next_conversion_action": "inspect replies immediately; fulfill genuine paid Capture if a buyer authorizes and settles; otherwise continue only with new uniquely qualified buyer-side targets, not catalog expansion"
+  },
+  "coordination": {
+    "canonical_repo_updated": true,
+    "local_operator_workspace": "not accessed in this run",
+    "local_sync_claimed": false,
+    "note": "This handoff is coordination evidence only and does not replace or imply synchronization with 运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json or data/pipeline.json."
+  }
+}
