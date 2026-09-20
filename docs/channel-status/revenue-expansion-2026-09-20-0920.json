@@ -1,0 +1,216 @@
+{
+  "run_date_jst": "2026-09-20",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "target_is_not_actual": true
+  },
+  "canonical_revenue_evidence": {
+    "workflow_run": 35475409105,
+    "completed_at": "2026-09-19T23:11:44Z",
+    "owner_pricing_policy_check": "success",
+    "live_owner_price_verification_without_payment": "success",
+    "live_purchase_path_without_payment": "success",
+    "treasury_checked_at": "2026-09-19T23:11:41.031Z",
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "treasury_start_block": 51485076,
+    "treasury_latest_block": 51535075,
+    "treasury_lookback_blocks": 50000,
+    "treasury_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "paid_funnel_candidate_rows": 0,
+    "agentpact": {
+      "offers": [
+        {"product": "Capture", "price_usdc": 1, "status": "active"},
+        {"product": "Public Preflight", "price_usdc": 5, "status": "active"},
+        {"product": "Guarded-Action Pilot", "price_usdc": 10, "status": "active"}
+      ],
+      "buyers": 0,
+      "settlements": 0,
+      "external_requests": 16,
+      "delta_native_funded_compatible_requests": 0
+    },
+    "agentexchange": {
+      "buyer_count": 2,
+      "external_requests": 4,
+      "compatible_requests": 0,
+      "funded_compatible_requests": 0
+    },
+    "external_funded_demand": {
+      "adjacent_funded_requests": 18,
+      "delta_native_raw_requests": 0,
+      "delta_native_funded_requests": 0
+    },
+    "workpnp": {
+      "funded_rows": 0,
+      "delta_native_funded_requests": 0
+    },
+    "recoverable_channel_degradation": ["PayanAgent HTTP 500", "MoltJobs fetch failed"],
+    "recognized_customer_revenue_usdc": 0,
+    "realized_variable_cost_usdc": null,
+    "realized_contribution_margin_usdc": null,
+    "scope": "Fresh explicit block-range and canonical telemetry evidence only. Zero rows in this range is not an all-time zero claim; unknown cost is not zero profit."
+  },
+  "buyer_conversion_actions": [
+    {
+      "target": "Mina AI",
+      "official_contact": "contact@mina-ai.co",
+      "official_source": "https://mina-ai.co/",
+      "use_case": "Independent public supplier/product/certification/commodity-source evidence immediately before buyer approval in supplier scouting, RFQ, bid comparison or price-increase-defence workflows.",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "technical_fit_grade": "B_high",
+      "price_fit": "Selective 1 USDC Capture at a consequential approval boundary; 5 USDC Public Preflight only for an explicit page condition.",
+      "prior_contact_search": "none_found",
+      "action": "personalized_first_contact_sent",
+      "sent_message_id": "1a0bc26a6e7a31d4",
+      "next_action": "If human interest arrives, ask for one real workflow and representative public URL; run one genuine buyer-authorized paid Capture before broader integration. Do not chase silence."
+    },
+    {
+      "target": "Vairah Ventures",
+      "official_contact": "sales@vairah.co.in",
+      "official_source": "https://www.vairah.co.in/ai-assistant",
+      "use_case": "Independent evidence of the public price, policy, supplier or certification source used immediately before a consequential sourcing decision.",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "technical_fit_grade": "B_high",
+      "price_fit": "1 USDC selective Capture rather than charging every sourcing query.",
+      "prior_contact_search": "none_found",
+      "action": "personalized_first_contact_sent",
+      "sent_message_id": "1a0bc26bc5974f13",
+      "next_action": "Advance only on explicit reply with a real public URL and genuine buyer purpose."
+    },
+    {
+      "target": "Savvily",
+      "official_contact": "hello@savvily.io",
+      "official_source": "https://savvily.io/",
+      "use_case": "Independent public-source record when a supplier recommendation also relies on a supplier page, product specification, certification page or published commercial term.",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "technical_fit_grade": "B_high",
+      "price_fit": "1 USDC at selected decision boundaries; Savvily publicly sells paid procurement recommendation plans, but that is ability-to-pay context, not DELTA demand.",
+      "prior_contact_search": "none_found",
+      "action": "personalized_first_contact_sent",
+      "sent_message_id": "1a0bc26d54019a17",
+      "next_action": "Advance only on explicit reply with one current buyer recommendation workflow and public URL."
+    },
+    {
+      "target": "MidlandsAI",
+      "official_contact": "ben@midlandsai.com",
+      "official_source": "https://www.midlandsai.com/",
+      "use_case": "Repeatable transaction-time public product/policy evidence for selected client agentic-commerce handoffs from AI discovery into checkout.",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "technical_fit_grade": "B_high_channel_partner",
+      "price_fit": "1 USDC selective Capture can be a client workflow dependency without competing with the agency's larger onboarding/monthly commercial model.",
+      "prior_contact_search": "none_found",
+      "action": "personalized_first_contact_sent",
+      "sent_message_id": "1a0bc26ec8b7c168",
+      "next_action": "If interest arrives, request one live client journey and one public product/policy URL; no broad integration before a genuine paid call."
+    },
+    {
+      "target": "qlows",
+      "official_contact": "hello@qlows.com",
+      "official_source": "https://www.qlows.com/platform/qlows-mcp",
+      "use_case": "Independent timestamped observation of a public tender notice at a consequential Go/No-Go or submission decision, complementary to qlows' source-grounded MCP context.",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "technical_fit_grade": "B_medium_high",
+      "price_fit": "1 USDC Capture for selected live tenders; 5 USDC Preflight only when a specific deadline/threshold/eligibility page condition needs checking.",
+      "prior_contact_search": "none_found",
+      "action": "personalized_first_contact_sent",
+      "sent_message_id": "1a0bc270396636f3",
+      "next_action": "Advance only on explicit reply with one real tender notice URL."
+    },
+    {
+      "target": "ProcuraPilot",
+      "official_contact": "hello@procurapilot.com",
+      "official_source": "https://procurapilot.com/",
+      "use_case": "Independent public supplier/certification/product evidence immediately before a buyer approves the recommended vendor and PO confirmation.",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "technical_fit_grade": "B_high",
+      "price_fit": "1 USDC Capture is small relative to a consequential RFQ/PO decision and is proposed only for cases with a material public-source dependency.",
+      "prior_contact_search": "none_found",
+      "action": "personalized_first_contact_sent",
+      "sent_message_id": "1a0bc27749738966",
+      "next_action": "If explicit interest arrives, request one active RFQ and public supplier/certification URL and convert to one genuine paid Capture."
+    },
+    {
+      "target": "Emkan AI / PIE360",
+      "official_contact": "contact@emkanai.com",
+      "official_source": "https://pie360.emkanai.com/",
+      "use_case": "Independent public vendor/certification/product evidence immediately before a procurement team awards an RFQ after PIE360 agent comparison.",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "technical_fit_grade": "B_high",
+      "price_fit": "1 USDC selective Capture at award boundary; 5 USDC Preflight only for an explicit public condition.",
+      "prior_contact_search": "none_found",
+      "action": "personalized_first_contact_sent",
+      "sent_message_id": "1a0bc2789818e045",
+      "next_action": "Advance only on explicit reply with one real RFQ/public URL."
+    },
+    {
+      "target": "Likwid ERP",
+      "official_contact": "contact@likwid.co.in",
+      "official_source": "https://likwid.in/procurement-ai",
+      "use_case": "Independent public supplier/product/policy evidence immediately before autonomous vendor-selection or PO-generation action.",
+      "commercial_demand_grade": "C_no_explicit_DELTA_interest_yet",
+      "technical_fit_grade": "B_high",
+      "price_fit": "1 USDC Capture at selected PO execution boundaries, not every procurement operation.",
+      "prior_contact_search": "none_found",
+      "action": "personalized_first_contact_sent",
+      "sent_message_id": "1a0bc27a30ec6f2e",
+      "next_action": "Advance only on explicit reply with a real buyer workflow and representative public URL."
+    }
+  ],
+  "delivery_readback": {
+    "immediate_hard_bounces_observed_for_new_eight": 0,
+    "human_or_actionable_replies_observed_for_new_eight": 0,
+    "note": "Absence of an immediate bounce is not buyer interest or confirmed delivery. Do not send another first contact or chase silence."
+  },
+  "explicit_interest_threads": {
+    "robauto_agenthub": "Previously answered; waiting for real workflow/public URL. Do not chase.",
+    "a2alist": "Operator explicitly invited no-wallet retry; fresh retry still hit Cloudflare HTTP 403 and sanitized evidence was already returned in-thread. Waiting for operator-side rule correction; do not hammer.",
+    "outlast_ai": "Blocked by recipient requirement for a genuine company-domain sender; do not spoof or guess identity."
+  },
+  "suppression_and_delivery_notes": {
+    "fresh_hard_or_blocked_routes_observed_in_gmail": [
+      "info@rshift.co",
+      "support@commercepulse.io",
+      "rebecca@dragonsourcingai.com",
+      "hello@vectus.ai",
+      "hello@deliverearly.com",
+      "hello@brainform.ai",
+      "partnerships@inngest.com",
+      "hello@4wardforge.com",
+      "hello@skyhq.ai",
+      "contact@tomex.ai"
+    ],
+    "temporary_delays_not_hard_suppressed": [
+      "demo@expert-supply.com",
+      "hello@prefero.me",
+      "hello@paielectronics.com",
+      "hello@alvrion.com",
+      "hello@agenthubcommerce.com",
+      "hello@nayeb.ai",
+      "hello@agentlancer.io",
+      "hello@horecai.ai",
+      "hello@quotesagent.com"
+    ],
+    "rule": "Do not retry hard/blocked routes or guess alternatives. Leave temporary delays alone while Gmail retries."
+  },
+  "financial_and_identity_boundary": {
+    "cash_or_credits_spent": 0,
+    "wallet_signature_or_message": false,
+    "asset_movement": false,
+    "paid_test": false,
+    "kyc_or_identity_attestation": false,
+    "new_seller_identity": false,
+    "production_deployment": false,
+    "private_key_exposed": false
+  },
+  "coordination": {
+    "canonical_sibling_operator_workspace": "not_accessible_in_this_runtime_not_modified",
+    "duplicate_growth_loop_created": false,
+    "this_scheduler_instruction_counted_as_external_evidence": false
+  }
+}
