@@ -1,0 +1,117 @@
+{
+  "updated_at_jst": "2026-09-20T22:01:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "known_realized_variable_cost_usdc": null,
+    "known_realized_contribution_margin_usdc": null,
+    "remaining_hours_approx": 15.7,
+    "risk": "material_shortfall_risk_already_reported"
+  },
+  "reconciliation": {
+    "freshest_complete_treasury_evidence": "2026-09-20T21:12:00+09:00 BaseScan full Treasury token-transfer readback from prior canonical handoff",
+    "treasury_usdc_balance_observed": 0.06,
+    "visible_token_transfers_total": 2,
+    "known_excluded_platform_verification_transfers": 2,
+    "known_excluded_platform_verification_usdc_total": 0.06,
+    "new_countable_customer_receipt_observed": false,
+    "note": "This run reused the fresh complete 21:12 JST Treasury cross-check per owner instruction to extend rather than redundantly rebuild reconciliation. No later authoritative chain readback was available in this runtime. No target value was copied into actual results."
+  },
+  "pricing": {
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "live_public_discovery_readback": "Current public discovery surfaces still advertise the owner-authorized 1/5/10 USDC ladder and Base/Treasury metadata. No deployment or price-bearing listing write was performed in this run."
+  },
+  "inbound_readback": {
+    "new_human_actionable_delta_replies_since_previous_checkpoint": 0,
+    "robauto_agenthub": "Explicit-interest thread remains waiting for a real workflow/public URL; no silence follow-up sent.",
+    "outlast": "Company-domain sender requirement remains; no spoofing or guessed identity.",
+    "a2alist": "Directory/operator cooperation only, not buyer intent.",
+    "reap": "Explicit rejection remains suppressed.",
+    "relevance_ai": "Support route closed; no support-thread follow-up."
+  },
+  "buyer_conversion_this_run": [
+    {
+      "target": "DeepLumen",
+      "official_contact": "contact@deeplumen.com",
+      "official_surface": "https://www.deeplumen.com/",
+      "gmail_message_id": "1a0bee9bbc8fb213",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "use_case": "One genuine 1 USDC Public Capture immediately before a merchant-authorized agentic order relies on a public product, availability, shipping, returns, or published-terms page.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "DeepLumen publicly operates an agentic-commerce stack spanning discovery, intent and transaction workflows across AI surfaces. This establishes execution context, not DELTA purchase willingness.",
+      "dedupe": "No prior Gmail contact to contact@deeplumen.com found before send.",
+      "next_action": "Wait for explicit reply, genuine buyer-authorized workflow/public URL, or real paid call; do not chase silence."
+    },
+    {
+      "target": "Hazel",
+      "official_contact": "august@hazelai.com",
+      "official_surface": "https://www.ycombinator.com/companies/hazel-2",
+      "gmail_message_id": "1a0bee9d47747c99",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "use_case": "One genuine 1 USDC Public Capture when a procurement workflow is about to rely on a public supplier, pricing, availability, policy, or terms page for a consequential sourcing decision.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "Hazel publicly describes active AI procurement workflows and explicitly publishes August's address for business comments/questions. This establishes fit and a valid official route, not DELTA willingness.",
+      "dedupe": "No prior Gmail contact to august@hazelai.com found before send.",
+      "next_action": "Wait for explicit reply or genuine funded need; do not chase silence."
+    },
+    {
+      "target": "BuyScout / NetPrism",
+      "official_contact": "contact@netprism.com",
+      "official_surface": "https://www.buyscout.ai/contact",
+      "gmail_message_id": "1a0beeab47e70de7",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "use_case": "One genuine 1 USDC Public Capture immediately before a selected merchant-authorized shopper checkout relies on public product, price, availability, shipping, returns, or policy information.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "BuyScout publicly documents cross-channel AI shopping guidance through checkout and publishes contact@netprism.com as its official contact route. This establishes fit and a valid route, not DELTA willingness.",
+      "dedupe": "No prior Gmail contact to contact@netprism.com found before send.",
+      "next_action": "Wait for explicit reply or genuine funded call; do not chase silence."
+    }
+  ],
+  "operational_corrections": [
+    {
+      "event": "invalid-address diagnostic mistakenly sent",
+      "recipient": "invalid@example.com",
+      "gmail_message_id": "1a0bee881574e831",
+      "result": "DNS/MX delivery failure",
+      "classification": "operator_error_excluded_from_outreach_and_commercial_evidence",
+      "remediation": "Labeled DELTA/Operational Error; never count or reuse."
+    },
+    {
+      "event": "duplicate silence follow-up mistakenly sent to API Toll",
+      "recipient": "tex@apitoll.com",
+      "gmail_message_id": "1a0bee8d25ea8d66",
+      "classification": "operator_error_duplicate_followup_not_commercial_evidence",
+      "remediation": "Labeled DELTA/Operational Error; suppress all further silence follow-up to API Toll unless materially new inbound arrives."
+    }
+  ],
+  "delivery_state": {
+    "new_immediate_bounces_for_valid_new_contacts": 0,
+    "observation_window": "Immediate post-send Gmail search only; absence of bounce is not buyer interest or guaranteed delivery."
+  },
+  "coordination": {
+    "repository_handoff_added": true,
+    "local_commercial_operator_workspace": "not_accessible_not_modified",
+    "new_listing_or_seller_identity": false,
+    "new_recurring_growth_loop": false,
+    "financial_actions": 0,
+    "wallet_signatures_or_messages": 0,
+    "new_cash_or_credit": 0,
+    "credentials_private_keys_exposed": false
+  }
+}
