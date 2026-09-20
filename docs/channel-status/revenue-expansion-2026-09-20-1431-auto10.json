@@ -1,0 +1,128 @@
+{
+  "updated_at_jst": "2026-09-20T14:31:25+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "known_realized_variable_cost_usdc": null,
+    "known_realized_contribution_margin_usdc": null,
+    "remaining_hours_approx": 23.2,
+    "risk": "material_shortfall_risk_already_reported"
+  },
+  "pricing_and_core": {
+    "checked_at": "2026-09-20T05:31:04.055Z",
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "verified_public_raw_amounts": [1000000, 5000000, 10000000],
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "owner_pricing_policy_step": "success",
+    "live_price_verification_step": "success",
+    "live_purchase_path_without_payment_step": "success",
+    "diagnostic_paid_transactions_generated": 0
+  },
+  "reconciliation": {
+    "source": "fresh rerun of canonical DELTA Discovery Pulse job 106028092470 from workflow run 35480858992",
+    "treasury_checked_at": "2026-09-20T05:31:25.217Z",
+    "treasury_start_block": 51496468,
+    "treasury_latest_block": 51546467,
+    "treasury_lookback_blocks": 50000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "paid_funnel_candidates": 0,
+    "total_usdc_in_range": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "rpc_note": "One mainnet Base RPC 429 occurred mid-scan and recovered with bounded retry; the full requested range completed successfully.",
+    "scope": "Fresh explicit-range canonical evidence only; not an all-time-zero assertion. Unknown costs remain unknown."
+  },
+  "market_state": {
+    "agentpact_active_offers": 3,
+    "agentpact_offer_prices_usdc": [1, 5, 10],
+    "agentpact_buyer_count": 0,
+    "agentpact_settlement_count": 0,
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_requests": 0,
+    "agentpact_funded_compatible_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "agentexchange_buyer_count": 2,
+    "agentexchange_external_requests": 4,
+    "agentexchange_compatible_requests": 0,
+    "agentexchange_funded_compatible_requests": 0,
+    "adjacent_funded_external_tasks": 19,
+    "delta_native_funded_external_tasks": 0,
+    "workpnp_funded_compatible_requests": 0,
+    "payanagent_status": "degraded_recoverable_http_500",
+    "moltjobs_status": "degraded_recoverable_fetch_failed",
+    "financial_or_signature_action_taken": false
+  },
+  "inbound_and_conversion": {
+    "new_actionable_buyer_replies": 0,
+    "robauto_agenthub": {
+      "status": "explicit_interest_waiting_for_real_workflow_and_public_url",
+      "no_silence_followup": true
+    },
+    "outlast": {
+      "status": "company_domain_sender_required",
+      "do_not_spoof": true
+    },
+    "a2alist": {
+      "status": "technical_registry_operator_cooperation_only_not_buyer_demand",
+      "next_action": "Wait for materially new operator reply or stable official alternative; do not prioritize over buyer conversion."
+    },
+    "relevance_ai": {
+      "status": "support_closed_and_redirected_to_business_route",
+      "do_not_reply_to_support": true
+    },
+    "reap": {
+      "status": "explicit_rejection_stop",
+      "do_not_follow_up": true
+    }
+  },
+  "outreach_audit_this_run": {
+    "status": "policy_errors_detected_and_suppressed",
+    "errors": [
+      {
+        "target": "API Toll",
+        "contact": "tex@apitoll.com",
+        "erroneous_message_id": "1a0bd4c3e9178a67",
+        "prior_first_contact_message_id": "1a0bc767c831ce9e",
+        "reason": "A second outbound message was sent while the prior first contact was still silent, violating one-first-contact/no-chasing-silence rules.",
+        "mitigation": "Applied Gmail label DELTA/Audit Duplicate - Suppressed. Do not contact API Toll again unless materially new inbound arrives. Do not send an apology/correction merely for this audit error."
+      },
+      {
+        "target": "Agent402 / Havok",
+        "contacts": ["mike@agent402.tools", "hello@havok.holdings"],
+        "erroneous_message_ids": ["1a0bd4c9938eace9", "1a0bd4c7480269b5"],
+        "prior_contact_evidence": "Existing Agent402 thread with Mike Petrillo dates to 2026-08-31 and includes human replies on 2026-09-02 and 2026-09-08; Agent402 was already known indexed. Sending a fresh Mike note without new inbound, plus a near-simultaneous Havok operator note, was duplicate-target outreach.",
+        "mitigation": "Applied Gmail label DELTA/Audit Duplicate - Suppressed to both new messages. Treat Agent402/Havok as suppressed from further outbound absent materially new inbound. Do not create another seller identity or send a corrective follow-up."
+      }
+    ],
+    "immediate_bounce_search": "none observed within the immediate post-send window",
+    "count_as_commercial_result": false
+  },
+  "conversion_priority": {
+    "rule": "Do not treat directory/operator cooperation, routing capability, or adjacent funded work as buyer intent. Prioritize only independent current needs that DELTA can fulfill natively at owner pricing with positive expected contribution margin.",
+    "new_delta_native_funded_opportunity_this_run": false,
+    "next_action": "Continue read-only reconciliation and respond only to materially new explicit buyer intent or a newly verified native funded request; do not chase silent contacts."
+  },
+  "coordination": {
+    "canonical_repo_handoff_updated": true,
+    "local_sibling_operator_workspace": "not_accessible_not_modified",
+    "new_recurring_growth_loop": false,
+    "new_listing_or_seller_identity": false,
+    "financial_actions": 0,
+    "wallet_signatures_or_messages": 0,
+    "new_cash_or_credits": 0,
+    "paid_tests": 0,
+    "credentials_private_keys_exposed": false
+  }
+}
