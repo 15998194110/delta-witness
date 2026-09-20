@@ -1,6 +1,6 @@
 {
-  "updated_at_jst": "2026-09-20T17:57:00+09:00",
-  "latest_handoff": "docs/channel-status/revenue-expansion-2026-09-20-1757-auto13.json",
+  "updated_at_jst": "2026-09-20T18:40:29+09:00",
+  "latest_handoff": "docs/channel-status/revenue-expansion-2026-09-20-1840-auto14.json",
   "instruction": "Read latest_handoff first for current sprint state, buyer contacts, suppressions and fresh reconciliation. This pointer is coordination evidence only; it does not replace 运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json or data/pipeline.json and must never be treated as synchronization with inaccessible stores.",
   "sprint_counted_customer_transactions": 0,
   "unique_verified_independent_buyers": 0,
