@@ -1,0 +1,17 @@
+{
+  "supersedes_field_in": "docs/channel-status/revenue-expansion-2026-09-20-0920.json",
+  "target": "Likwid ERP",
+  "sent_message_id": "1a0bc27a30ec6f2e",
+  "official_route_used": "contact@likwid.co.in",
+  "delivery_status": "hard_bounce_address_not_found",
+  "bounce_message_id": "1a0bc27a95be6f4a",
+  "commercial_demand_grade": "C_no_explicit_DELTA_interest",
+  "transaction_or_revenue": false,
+  "suppression": "Suppress Likwid from further first-contact outreach. Do not switch to another address even if another official address exists, because the one-first-contact-per-target rule has already been consumed. Do not guess or retry private alternatives.",
+  "corrected_run_delivery_summary": {
+    "new_targets_attempted": 8,
+    "immediate_hard_bounces": 1,
+    "no_immediate_hard_bounce_observed": 7,
+    "human_or_actionable_replies": 0
+  }
+}
