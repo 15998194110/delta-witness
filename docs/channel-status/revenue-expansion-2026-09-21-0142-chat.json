@@ -1,0 +1,121 @@
+{
+  "updated_at_jst": "2026-09-21T01:42:00+09:00",
+  "source": "ChatGPT scheduled revenue-first operator run",
+  "sprint": {
+    "start_jst": "2026-09-14T13:43:28+09:00",
+    "deadline_jst": "2026-09-21T13:43:28+09:00",
+    "target_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_buyers": 0,
+    "repeat_verified_buyer_transactions": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "status": "material_risk"
+  },
+  "fresh_evidence": {
+    "checked_at_utc": "2026-09-20T16:37:07.318Z",
+    "pricing": {
+      "status": "verified",
+      "capture_usdc": 1,
+      "public_preflight_usdc": 5,
+      "guarded_action_pilot_usdc": 10,
+      "raw_amounts": ["1000000", "5000000", "10000000"],
+      "network": "eip155:8453",
+      "canonical_usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+      "paid_transactions_generated_by_diagnostic": 0
+    },
+    "treasury": {
+      "evidence_quality": "A_direct_canonical_USDC_log",
+      "start_block": 51556440,
+      "latest_block": 51566439,
+      "lookback_blocks": 10000,
+      "treasury_received_candidates": 0,
+      "total_usdc": 0,
+      "known_non_customer_usdc": 0,
+      "unclassified_usdc": 0,
+      "counted_customer_transactions": 0
+    },
+    "paid_funnel": {
+      "candidate_rows": 0
+    },
+    "agentpact": {
+      "listing_status": "present",
+      "offer_prices_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 16,
+      "delta_native_requests": 0,
+      "intents_402": 0,
+      "paid_settlements": 0,
+      "treasury_received": 0,
+      "funded_compatible_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "external_funded_demand": {
+      "channels_checked": ["bountybook", "riner", "agent_bounties", "taskmarket", "clawlancer"],
+      "total_adjacent_funded_requests": 18,
+      "total_delta_native_raw_requests": 0,
+      "total_delta_native_price_incompatible_requests": 0,
+      "total_delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false
+    },
+    "economics": {
+      "variable_cost": null,
+      "realized_contribution_margin": null,
+      "note": "Unknown whole-product fulfillment cost remains unknown; channel telemetry zeros must not be promoted to realized unit economics."
+    }
+  },
+  "buyer_conversion_actions": [
+    {
+      "target": "Agent Exchange",
+      "official_route": "riley@agentexchange.work",
+      "dedupe": "Gmail exact contact/domain search returned no prior contact; repository search returned no prior first-contact record",
+      "evidence_grade": "B_technical_fit_C_commercial_demand",
+      "commercial_evidence": "Official company site states self-funded operation, a live paid AI-visibility report product, and payable x402 API infrastructure on Base; no explicit DELTA intent yet.",
+      "offer": "One buyer-authorized live report/query with a consequential public URL -> existing Public Capture at exactly 1 USDC; no partnership or custom integration required.",
+      "gmail_message_id": "1a0bfae5104c2cca",
+      "counted_as_sale": false
+    },
+    {
+      "target": "Orthogonal",
+      "official_route": "hello@orthogonal.com",
+      "dedupe": "Gmail exact contact/domain search returned no prior contact",
+      "evidence_grade": "B_technical_fit_C_commercial_demand",
+      "commercial_evidence": "Official site/docs show agents discover/call/pay for premium APIs, direct x402 USDC on Base, live paid provider access, and the official x402 contact route; no explicit DELTA intent yet.",
+      "offer": "One buyer-authorized consequential source-dependent API/web workflow -> existing Public Capture at exactly 1 USDC; no partnership or custom integration required.",
+      "gmail_message_id": "1a0bfaf2549f6f10",
+      "counted_as_sale": false
+    }
+  ],
+  "inbox_and_delivery_state": {
+    "actionable_new_buyer_replies": 0,
+    "new_hard_or_final_route_failures_suppress": [
+      "support@sellonika.com",
+      "hello@bloomsenz.com",
+      "hello@bridleai.com",
+      "hello@getagentic.io",
+      "services@jateetech.com",
+      "info@takeyoursgoods.co.uk",
+      "contact@likwid.co.in",
+      "hello@agentlancer.io"
+    ],
+    "temporary_delivery_delays_do_not_resend": [
+      "hello@paielectronics.com",
+      "hello@agenthubcommerce.com",
+      "hello@alvrion.com",
+      "hello@steelbridge.in",
+      "hello@horecai.ai",
+      "hello@foragerlabs.com",
+      "hello@nayeb.ai",
+      "hello@nulogic.ai",
+      "hello@carrierbridge.com",
+      "hello@quotesagent.com"
+    ],
+    "note": "Delivery state is not buyer intent. Preserve all prior rejections and suppressions; do not guess alternative private addresses."
+  },
+  "workspace_coordination": {
+    "repository": "15998194110/delta-witness",
+    "local_operator_workspace": "运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json and data/pipeline.json were not accessible in this runtime; no synchronization is claimed."
+  },
+  "next_conversion_action": "Inspect explicit replies and Treasury first. If none, continue only with newly qualified unique buyers that have a verified official business route, current payer/task/payment readiness and a native DELTA use case. Do not add catalogs for their own sake; do not chase silence."
+}
