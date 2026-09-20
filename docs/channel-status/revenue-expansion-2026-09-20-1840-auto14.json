@@ -1,0 +1,99 @@
+{
+  "updated_at_jst": "2026-09-20T18:40:29+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "known_realized_variable_cost_usdc": null,
+    "known_realized_contribution_margin_usdc": null,
+    "risk": "material_shortfall_risk_already_reported"
+  },
+  "pricing_and_core": {
+    "verification_source": "DELTA Discovery Pulse run 35480858992 / job 106044794817",
+    "verified_at": "2026-09-20T07:54:17.822Z",
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "verified_public_raw_amounts": [1000000, 5000000, 10000000],
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "live_price_verification": "passed",
+    "diagnostic_paid_transactions_generated": 0
+  },
+  "reconciliation": {
+    "checked_at": "2026-09-20T07:54:40.927Z",
+    "treasury_start_block": 51500765,
+    "treasury_latest_block": 51550764,
+    "treasury_lookback_blocks": 50000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "paid_funnel_candidates": 0,
+    "total_usdc_in_range": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "scope": "Fresh explicit-range canonical evidence only; not an all-time-zero assertion. Two temporary Base RPC 429 responses were recovered through bounded fallback and the scan completed successfully. Unknown costs remain unknown."
+  },
+  "market_state": {
+    "agentpact_active_offers": 3,
+    "agentpact_offer_prices_usdc": [1, 5, 10],
+    "agentpact_buyer_count": 0,
+    "agentpact_settlement_count": 0,
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_requests": 0,
+    "agentpact_funded_compatible_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "agentexchange_buyer_count": 2,
+    "agentexchange_external_requests": 4,
+    "agentexchange_funded_compatible_requests": 0,
+    "adjacent_funded_external_tasks": 18,
+    "delta_native_funded_external_tasks": 0,
+    "financial_or_signature_action_taken": false
+  },
+  "inbound_review": {
+    "new_actionable_buyer_reply": false,
+    "a2alist": "existing technical registry cooperation only; not buyer intent",
+    "relevance_ai": "existing support closure; no new commercial reply",
+    "robauto_agenthub": "existing explicit interest; waiting for buyer-provided real workflow/public URL; no silence follow-up",
+    "outlast": "existing company-domain sender requirement; no spoofing"
+  },
+  "buyer_expansion_this_run": [
+    {
+      "target": "Gophr",
+      "official_contact": "hello@gophr.ai",
+      "official_surface": "https://gophr.ai/ and https://gophr.ai/contact",
+      "official_contact_evidence": "Gophr's current official contact page publishes hello@gophr.ai for general inquiries. The product site describes an AI procurement agent for site services with vendor search/scoring, vendor database creation and request/order workflows.",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "gmail_message_id": "1a0be32b5d86e053",
+      "use_case": "One genuine buyer-authorized 1 USDC DELTA Public Capture of a public vendor, price, availability or terms page immediately before a consequential shortlist, service request or order action, preserving the timestamped source-state proof with the procurement record.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "Gophr exposes a concrete buyer-action procurement workflow that can depend on public vendor information. This demonstrates technical and workflow fit only; no independent evidence yet shows willingness or budget to buy DELTA.",
+      "dedupe": "Gmail search found no prior Gophr/gophr.ai contact before send.",
+      "next_action": "Wait for explicit reply or genuine externally funded paid call; do not chase silence or repeat first contact."
+    }
+  ],
+  "delivery_state": {
+    "new_immediate_bounces_for_this_run_contacts": 0,
+    "observation_window": "Immediate post-send Gmail search only; absence of bounce is not buyer interest or guaranteed delivery."
+  },
+  "coordination": {
+    "canonical_repo_handoff_created": true,
+    "local_sibling_operator_workspace": "not_accessible_not_modified",
+    "new_recurring_growth_loop": false,
+    "new_listing_or_seller_identity": false,
+    "financial_actions": 0,
+    "wallet_signatures_or_messages": 0,
+    "new_cash_or_credits": 0,
+    "paid_tests": 0,
+    "credentials_private_keys_exposed": false
+  }
+}
