@@ -1,0 +1,95 @@
+{
+  "updated_at_jst": "2026-09-21T00:35:00+09:00",
+  "evidence_cutoff_utc": "2026-09-20T15:32:34.656Z",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "status": "material_risk"
+  },
+  "fresh_reconciliation": {
+    "live_public_pricing": {
+      "status": "healthy",
+      "capture_usdc": 1,
+      "preflight_usdc": 5,
+      "guarded_action_pilot_usdc": 10,
+      "raw_amounts": ["1000000", "5000000", "10000000"],
+      "network": "eip155:8453",
+      "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+    },
+    "treasury": {
+      "evidence_quality": "A_direct_canonical_USDC_log",
+      "start_block": 51554504,
+      "latest_block": 51564503,
+      "treasury_received_candidates": 0,
+      "new_canonical_usdc_received_usdc": 0,
+      "unclassified_usdc": 0,
+      "new_transfers": []
+    },
+    "paid_funnel": {
+      "candidate_rows": 0
+    },
+    "agentpact": {
+      "canonical_seller_present": true,
+      "active_offer_prices_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "delta_native_funded_requests": 0,
+      "buyer_funded_deals": 0
+    },
+    "external_funded_demand": {
+      "channels_checked": ["bountybook", "riner", "agent_bounties", "taskmarket", "clawlancer"],
+      "delta_native_funded_requests": 0,
+      "adjacent_funded_requests": 19,
+      "financial_or_signature_action_taken": false,
+      "note": "Adjacent funded requests were excluded because they were generic research/custom code, below owner pricing, or required identity/wallet/signature actions and were not native DELTA Capture/Preflight/Watch/Pilot demand."
+    }
+  },
+  "buyer_conversion_actions_this_run": [
+    {
+      "target": "AurasPay",
+      "route": "support@auraspay.com",
+      "gmail_message_id": "1a0bf76f2fddbd99",
+      "action": "deduplicated personalized first contact sent",
+      "commercial_thesis": "one genuine buyer-authorized Base/USDC Agent Checkout can add a 1 USDC Public Capture immediately before checkout to preserve public source evidence",
+      "counted_as_transaction": false
+    },
+    {
+      "target": "GhostCart / Brain&Bots",
+      "route": "info@brainandbots.com",
+      "gmail_message_id": "1a0bf7766b0e1d85",
+      "action": "deduplicated personalized first contact sent",
+      "commercial_thesis": "one genuine GhostCart product/store purchase can add a 1 USDC Public Capture immediately before x402 payment to preserve the source used for the buying decision",
+      "counted_as_transaction": false
+    }
+  ],
+  "inbox_state": {
+    "new_actionable_buyer_reply_this_run": false,
+    "notes": [
+      "A2A List remains directory/operator cooperation, not buyer intent.",
+      "Reap rejection and Relevance AI support-route closure remain suppressed.",
+      "Outlast remains blocked on company-domain sender request; no evasion attempted.",
+      "No silence-chasing or duplicate first contacts were sent."
+    ]
+  },
+  "boundaries": {
+    "wallet_signature": false,
+    "asset_movement": false,
+    "fee_or_topup": false,
+    "paid_test": false,
+    "kyc_or_identity_attestation": false,
+    "listing_padding": false
+  },
+  "coordination": {
+    "canonical_repo": "15998194110/delta-witness",
+    "local_commercial_operator_workspace_accessible": false,
+    "local_sprint_pipeline_sync_claimed": false,
+    "note": "This handoff is repository coordination evidence only. The local 运营/RUPHUS_OPERATOR_2026-09-05 data/sprint.json and data/pipeline.json were not accessible in this runtime and are not claimed synchronized."
+  },
+  "next_conversion_priority": "Advance any genuine buyer reply immediately; otherwise continue qualified unique buyer-side checkout/procurement/agent-commerce targets with verified official business routes, one first contact each, while reconciling Treasury and paid-funnel state every run. Do not add catalogs without an evidenced routing opportunity."
+}
