@@ -1,0 +1,105 @@
+{
+  "updated_at_jst": "2026-09-20T21:18:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "known_realized_variable_cost_usdc": null,
+    "known_realized_contribution_margin_usdc": null,
+    "result_basis": "Fresh full-address explorer readback plus the controlling historical payer reclassification; no target value was copied into actual results."
+  },
+  "pricing_and_core": {
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "latest_successful_canonical_pulse_run": 35494032814,
+    "latest_successful_canonical_pulse_completed_at": "2026-09-20T06:22:25Z",
+    "latest_successful_canonical_pulse_receipt_candidates": 0,
+    "latest_successful_canonical_pulse_paid_funnel_candidates": 0
+  },
+  "fresh_treasury_crosscheck": {
+    "checked_at_jst_approx": "2026-09-20T21:12:00+09:00",
+    "source": "BaseScan full Treasury address token-transfer readback, independently cross-checked against the controlling PayAPI reclassification note",
+    "treasury_usdc_balance": 0.06,
+    "visible_token_transfers_total": 2,
+    "historically_classified_payapi_platform_verification_transfers": 2,
+    "historically_classified_payapi_platform_verification_usdc_total": 0.06,
+    "new_visible_transfer_beyond_known_exclusions": false,
+    "new_countable_customer_receipt_observed": false,
+    "classification_note": "The two known 0.03 USDC receipts from payer 0x7e6b6556322c4e26c567a867964ac793f5ee2b1c were already controlling-classified as PayAPI platform verification, not customer revenue. The fresh explorer readback still shows exactly 0.06 USDC and two token transfers, so no additional Treasury token transfer is visible. This is a fresh explorer-state cross-check, not a replacement for the canonical log reconciler."
+  },
+  "funded_demand_readback": {
+    "payanagent": "Public requests/receipts API returned HTTP 500 in this run; treated as recoverable degradation and not retried aggressively.",
+    "moltjobs": "Fresh public market evidence published today reports ten current open jobs, all 0.20 USDC referral bounties. They are below DELTA's fixed 1 USDC entry price and are not DELTA-native, so no bid was placed.",
+    "basedagents": "Fresh public task page did not expose a DELTA-native funded bounty; current visible task state does not justify claiming custom work.",
+    "open_bounty": "Public examples are explicitly illustrative/not-live; not treated as funded buyer demand.",
+    "financial_or_signature_action_taken": false
+  },
+  "buyer_conversion_this_run": [
+    {
+      "target": "Sellonika",
+      "official_contact": "support@sellonika.com",
+      "official_surface": "https://www.sellonika.com/",
+      "gmail_message_id": "1a0bebb27a9eed29",
+      "status": "hard_bounce_550_5_1_1_suppressed",
+      "use_case": "One genuine 1 USDC Public Capture immediately before a merchant-authorized Ika action relies on a public product, stock, shipping, returns or policy page.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "note": "The address was published by the official site as Talk to sales/support, but Gmail received an immediate 550 5.1.1 address-does-not-exist response. Suppress this exact route and do not guess an alternative private email."
+    },
+    {
+      "target": "Easy Pay Direct",
+      "official_contact": "sales@easypaydirect.com",
+      "official_surface": "https://www.easypaydirect.com/platform/agentic-commerce/",
+      "gmail_message_id": "1a0bebc003c0ad3a",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "use_case": "For a real EPD Commerce/ChatGPT beta merchant workflow, perform one 1 USDC Public Capture immediately before an AI-led checkout decision relies on public price, availability, shipping, returns or published terms.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "EPD publicly operates agentic-commerce/ChatGPT beta payment infrastructure and publishes a dedicated sales route. This establishes execution context and payment capability, not DELTA purchase willingness.",
+      "next_action": "Wait for explicit reply, a real merchant-authorized workflow/public URL, or a genuine paid call. Do not chase silence."
+    },
+    {
+      "target": "Fynd",
+      "official_contact": "brands@fynd.com",
+      "official_surface": "https://www.fynd.com/contact-us and https://www.fynd.com/press-releases/fynd-partners-with-razorpay-to-power-seamless-omnichannel-agentic-commerce-experiences",
+      "gmail_message_id": "1a0bebe8831d5c42",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "use_case": "For one current Fynd/Razorpay merchant workflow, perform one 1 USDC Public Capture immediately before an AI-led order decision relies on a public product, inventory, shipping, returns or published-terms page.",
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "Fynd publicly reports enterprise-scale agentic commerce and a current Razorpay agentic-payments partnership, and brands@fynd.com is its official brand enquiry route. This is strong execution-context evidence but not explicit DELTA willingness.",
+      "next_action": "Wait for explicit reply, a real buyer-authorized workflow/public URL, or a genuine paid call. Do not chase silence."
+    }
+  ],
+  "inbound_readback": {
+    "new_human_actionable_delta_replies_since_previous_checkpoint": 0,
+    "robauto_agenthub": "Explicit-interest thread still waiting for a real workflow and public URL; no silence follow-up.",
+    "outlast": "Company-domain sender requirement remains; do not spoof.",
+    "a2alist": "Directory/operator cooperation only, not buyer intent; no priority over buyer conversion.",
+    "reap": "Explicit rejection remains suppressed.",
+    "relevance_ai": "Support route closed; no support-thread follow-up."
+  },
+  "coordination": {
+    "repository_handoff_added": true,
+    "local_commercial_operator_workspace": "not_accessible_not_modified",
+    "new_listing_or_seller_identity": false,
+    "new_recurring_growth_loop": false,
+    "new_cash_or_credit": 0,
+    "financial_actions": 0,
+    "wallet_signatures_or_messages": 0,
+    "credentials_private_keys_exposed": false,
+    "paid_browser_used": false,
+    "tinyfish_wallet_balance_usd_observed": -0.088
+  }
+}
