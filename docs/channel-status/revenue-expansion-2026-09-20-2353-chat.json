@@ -1,0 +1,104 @@
+{
+  "updated_at_jst": "2026-09-20T23:53:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "note": "No target value copied into actual results. Latest complete Treasury reconciliation remains the 2026-09-20 21:12 JST readback until a newer authoritative chain reconciliation succeeds."
+  },
+  "treasury_reconciliation": {
+    "freshest_complete_authoritative_readback_jst": "2026-09-20T21:12:00+09:00",
+    "observed_treasury_usdc_balance": 0.06,
+    "visible_token_transfers_total": 2,
+    "excluded_platform_verification_transfers": 2,
+    "excluded_platform_verification_usdc": 0.06,
+    "countable_customer_receipts_in_that_readback": 0,
+    "post_2112_state": "unknown_no_newer_authoritative_chain_readback_completed_in_this_chat_run"
+  },
+  "live_machine_discovery": {
+    "checked_at_jst": "2026-09-20T23:52:54+09:00",
+    "endpoint": "https://delta-witness-api.ruphussten.workers.dev/.well-known/x402",
+    "x402_version": 2,
+    "network": "eip155:8453",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "public_capture_raw": "1000000",
+    "public_preflight_raw": "5000000",
+    "guarded_action_pilot_raw": "10000000",
+    "capture_bazaar_extension": true,
+    "preflight_bazaar_extension": true,
+    "guarded_action_pilot_present": true,
+    "current_facilitator_from_repo": "https://facilitator.payai.network",
+    "agentic_market_status": "not_claimed_current",
+    "agentic_market_note": "Current Agentic Market docs say Bazaar cataloging is tied to CDP-facilitator verify/settle. A current web search did not surface DELTA on Agentic Market. A stale external Agenstry snapshot previously attributed two DELTA resources to cdp_discovery at obsolete 0.03 pricing, so do not infer current Agentic Market presence from that snapshot."
+  },
+  "expansion_this_run": [
+    {
+      "target": "three.ws",
+      "official_contact": "support@three.ws",
+      "gmail_message_id": "1a0bf47928a38d50",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "commercial_path": "Ask for one genuine buyer-authorized 1 USDC Public Capture inside an existing paid-skill/MCP/A2A workflow, then canonical paid-skill discovery if validated.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "dedupe": "No prior Gmail or repository contact found before send."
+    },
+    {
+      "target": "AgentHotspot",
+      "official_contact": "support@agenthotspot.com",
+      "gmail_message_id": "1a0bf4a0b5e30d93",
+      "status": "partnership_listing_contact_sent_no_immediate_bounce_observed",
+      "commercial_path": "Buyer-facing remote connector for checkout/procurement/browser-agent evidence; preserve existing canonical DELTA identity.",
+      "dedupe": "No prior Gmail or repository contact found before send."
+    },
+    {
+      "target": "MCP Marketplace",
+      "official_contact": "support@mcp-marketplace.io",
+      "gmail_message_id": "1a0bf4a18c4409d8",
+      "status": "submission_path_request_sent_no_immediate_bounce_observed",
+      "commercial_path": "Index existing paid remote MCP/x402 service once, without duplicate seller identity or changing canonical settlement.",
+      "dedupe": "No prior Gmail or repository contact found before send."
+    },
+    {
+      "target": "RelAI",
+      "official_contact_attempted": "contact@relai.fi",
+      "gmail_message_id": "1a0bf4d073ceecfa",
+      "status": "hard_bounce_suppressed",
+      "bounce": "550 5.1.10 recipient not found",
+      "next_action": "Do not retry another address or guess a private contact. Reopen only on materially new official route."
+    }
+  ],
+  "dedupe_and_defer": [
+    {
+      "target": "Nevermined",
+      "status": "existing_first_contact_found_no_duplicate_sent",
+      "prior_gmail_message_id": "1a0acf1075aa06e9",
+      "prior_date": "2026-09-16"
+    },
+    {
+      "target": "Smithery",
+      "status": "no_verified_public_business_email_and_publish_route_auth_gated",
+      "next_action": "Defer rather than guess an address or create a redundant identity."
+    }
+  ],
+  "current_visibility": {
+    "evidence": [
+      "DELTA is publicly visible on multiple existing MCP/A2A/API discovery surfaces.",
+      "Live canonical x402 discovery metadata is readable and currently advertises the owner-authorized 1/5/10 USDC ladder."
+    ],
+    "caution": "Visibility/listing is not counted as sprint revenue. Only genuine independent paid fulfillment plus matched canonical Treasury receipt counts."
+  },
+  "boundaries": {
+    "new_cash_or_credit": 0,
+    "listing_or_signup_fees_paid": 0,
+    "wallet_signatures_or_messages": 0,
+    "asset_movement": 0,
+    "kyc_or_identity_attestation": false,
+    "duplicate_seller_identity_created": false,
+    "private_keys_exposed": false
+  }
+}
