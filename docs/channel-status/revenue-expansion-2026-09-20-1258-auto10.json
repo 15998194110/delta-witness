@@ -1,0 +1,155 @@
+{
+  "updated_at_jst": "2026-09-20T12:58:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "known_realized_variable_cost_usdc": null,
+    "known_realized_contribution_margin_usdc": null,
+    "risk": "material_shortfall_risk_already_reported"
+  },
+  "pricing_and_core": {
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "latest_canonical_pulse_run": 35480858992,
+    "latest_canonical_pulse_attempt": 2,
+    "latest_canonical_pulse_completed_at": "2026-09-20T02:50:20Z",
+    "owner_pricing_policy_step": "success",
+    "live_price_verification_step": "success",
+    "live_purchase_path_without_payment_step": "success",
+    "verified_public_raw_amounts": [1000000, 5000000, 10000000]
+  },
+  "reconciliation": {
+    "canonical_pulse_run": 35480858992,
+    "treasury_checked_at": "2026-09-20T02:50:15.972Z",
+    "treasury_start_block": 51491632,
+    "treasury_latest_block": 51541631,
+    "treasury_lookback_blocks": 50000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "paid_funnel_candidates": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "rpc_note": "One mainnet Base RPC 429 was recovered with bounded fallback to base-rpc.publicnode.com; the full requested range completed successfully.",
+    "scope": "Fresh explicit-range canonical evidence only; not an all-time-zero assertion. Unknown costs remain unknown."
+  },
+  "market_state": {
+    "agentpact_active_offers": 3,
+    "agentpact_offer_prices_usdc": [1, 5, 10],
+    "agentpact_buyer_count": 0,
+    "agentpact_settlement_count": 0,
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_funded_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "agentexchange_buyer_count": 2,
+    "agentexchange_external_requests": 4,
+    "agentexchange_compatible_requests": 0,
+    "agentexchange_funded_compatible_requests": 0,
+    "adjacent_funded_external_tasks": 18,
+    "delta_native_funded_external_tasks": 0,
+    "payanagent_status": "degraded_recoverable_http_500",
+    "moltjobs_status": "degraded_recoverable_fetch_failed",
+    "workpnp_funded_compatible_requests": 0,
+    "financial_or_signature_action_taken": false
+  },
+  "inbound_and_conversion": {
+    "new_actionable_buyer_replies": 0,
+    "robauto_agenthub": {
+      "status": "explicit_interest_waiting_for_real_workflow_and_public_url",
+      "no_silence_followup": true
+    },
+    "outlast": {
+      "status": "company_domain_sender_required",
+      "do_not_spoof": true
+    },
+    "a2alist": {
+      "status": "technical_registry_operator_cooperation_only_not_buyer_demand",
+      "next_action": "Wait for materially new operator reply or stable official alternative; do not prioritize over buyer conversion."
+    },
+    "relevance_ai": {
+      "status": "support_closed_and_redirected_to_business_route",
+      "do_not_reply_to_support": true
+    },
+    "reap": {
+      "status": "explicit_rejection_stop",
+      "do_not_follow_up": true
+    }
+  },
+  "buyer_expansion_this_run": [
+    {
+      "target": "AgentBuy",
+      "official_contact": "admin@agentbuy.shop",
+      "official_surface": "https://www.agentbuy.shop/",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "gmail_message_id": "1a0bcf0183baff1e",
+      "use_case": "A genuine AgentBuy buyer preserves the public asset listing or license-terms source immediately before committing to a paid purchase, using one DELTA Public Capture.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "AgentBuy publicly exposes a Buyer MCP and an autonomous search/evaluate/payment/license flow with a visible paid asset purchase example. Its current paid license flow appears Solana-based, so Base-USDC compatibility for a real buyer is not assumed and willingness to buy DELTA is unverified.",
+      "dedupe": "No prior Gmail contact to AgentBuy or agentbuy.shop was found before send.",
+      "next_action": "Wait for explicit reply or a genuine externally funded Base-USDC buyer call; do not chase silence or repeat first contact."
+    },
+    {
+      "target": "GetAgentic",
+      "official_contact": "hello@getagentic.io",
+      "official_surface": "https://getagentic.io/",
+      "status": "delivery_failed_hard_bounce_550_recipient_not_found_suppressed",
+      "gmail_message_id": "1a0bcf3a6e761ce2",
+      "bounce_message_id": "1a0bcf3b8ccae256",
+      "use_case": "A genuine buyer job invokes one DELTA Public Capture as an external x402 dependency before a consequential sourcing, recommendation, purchase, approval or security decision.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "A",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "GetAgentic publicly presents buyer jobs under 100 USDC settling with x402 on Base, which establishes adjacent buyer/payment capability but not willingness to buy DELTA.",
+      "dedupe": "No prior Gmail contact to getagentic.io was found before send.",
+      "next_action": "Suppress hello@getagentic.io. Do not guess another private address or use another route merely to bypass the failed recipient."
+    }
+  ],
+  "channel_evaluation": {
+    "proxagora": {
+      "status": "price_cap_incompatible_low_priority",
+      "observed_price_range_usdc": "$0.001-$0.10 per call",
+      "delta_entry_price_usdc": 1,
+      "action": "No repricing and no listing write."
+    },
+    "agent402": {
+      "status": "existing_identity_known_indexed_do_not_duplicate",
+      "buyer_surface": "router/index exists and has prior evidence of DELTA being listed/routable, but current routability was not re-established in this run",
+      "action": "Do not re-register or infer current routing from listing/health alone."
+    },
+    "tollbooth": {
+      "status": "current_verification_path_requires_paid_replay_or_wallet_boundary",
+      "action": "No paid verification, wallet signature or project-funded test."
+    }
+  },
+  "delivery_state": {
+    "agentbuy_immediate_bounce_observed": false,
+    "getagentic_hard_bounce": true,
+    "getagentic_bounce_reason": "550 5.1.0 Recipient not found",
+    "absence_of_bounce_is_not_buyer_interest_or_guaranteed_delivery": true
+  },
+  "coordination": {
+    "canonical_repo_handoff_updated": true,
+    "local_sibling_operator_workspace": "not_accessible_not_modified",
+    "new_recurring_growth_loop": false,
+    "new_listing_or_seller_identity": false,
+    "financial_actions": 0,
+    "wallet_signatures_or_messages": 0,
+    "new_cash_or_credits": 0,
+    "paid_tests": 0,
+    "credentials_private_keys_exposed": false
+  }
+}
