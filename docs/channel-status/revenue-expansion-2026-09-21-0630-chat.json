@@ -1,0 +1,162 @@
+{
+  "checked_at_jst": "2026-09-21T06:30:13+09:00",
+  "sprint": {
+    "window_start": "2026-09-14T13:43:28+09:00",
+    "window_end": "2026-09-21T13:43:28+09:00",
+    "target_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_real_purchases": 0,
+    "fulfilled_paid_uses": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "status": "material_risk"
+  },
+  "pricing": {
+    "policy": "owner-2026-09-10-1-5-10",
+    "capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "live_public_402": {
+      "checked_at_utc": "2026-09-20T21:30:09.781Z",
+      "capture_raw": "1000000",
+      "preflight_raw": "5000000",
+      "guarded_action_pilot_raw": "10000000",
+      "network": "eip155:8453",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+      "status": "verified",
+      "paid_transactions_generated": 0
+    },
+    "partner_runtime_check": "not_checked_scoped_secret_not_provided"
+  },
+  "treasury_reconciliation": {
+    "checked_at_utc": "2026-09-20T21:30:13.385Z",
+    "evidence_run_id": 35538887015,
+    "artifact_id": 10614111206,
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "start_block": 51565233,
+    "latest_block": 51575232,
+    "lookback_blocks": 10000,
+    "treasury_received_candidates": 0,
+    "total_raw": "0",
+    "total_usdc": 0,
+    "known_non_customer_raw": "0",
+    "known_non_customer_usdc": 0,
+    "unclassified_raw": "0",
+    "unclassified_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "paid_funnel": {
+    "candidate_rows": 0,
+    "payment_authorized": 0,
+    "settlement_confirmed": 0,
+    "treasury_received": 0,
+    "counted_customer_transactions": 0
+  },
+  "funded_demand": {
+    "agentpact": {
+      "listing_status": "present",
+      "offer_prices_usdc": [1, 5, 10],
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "delta_native_funded_requests": 0,
+      "external_requests_seen": 16
+    },
+    "external_scan": {
+      "total_adjacent_funded_requests": 19,
+      "total_delta_native_raw_requests": 0,
+      "total_delta_native_price_incompatible_requests": 0,
+      "total_delta_native_funded_requests": 0,
+      "financial_or_signature_action_taken": false
+    }
+  },
+  "inbound": {
+    "fresh_genuine_customer_treasury_receipts": 0,
+    "fresh_external_paid_settlements": 0,
+    "fresh_actionable_human_buyer_replies": 0,
+    "preserved_suppressions": [
+      "Relevance AI support closure",
+      "Reap rejection",
+      "all prior exact-route hard bounces"
+    ],
+    "newly_observed_bad_routes": [
+      "agentpay@agentworld.me — hard bounce 550 5.1.1",
+      "hello@pingpay.xyz — DNS/MX failure",
+      "hello@orthogonal.com — hard bounce/address not found",
+      "support@sellonika.com — hard bounce 550 5.1.1",
+      "hello@bloomsenz.com — hard bounce 550 5.1.1",
+      "hello@bridleai.com — DNS/MX failure",
+      "hello@getagentic.io — hard bounce/recipient not found"
+    ],
+    "non_buyer_thread_classification": {
+      "a2a_list": "directory/operator cooperation only; not buyer intent",
+      "mero": "delivery delay only; no resend or buyer-intent inference"
+    }
+  },
+  "commercial_actions": {
+    "new_first_contacts": [
+      {
+        "target": "x402Nova",
+        "route": "hello@x402nova.com",
+        "route_basis": "official Contact Sales address on x402Nova; platform states paid plans sponsor downstream API calls and expose an MCP marketplace",
+        "gmail_message_id": "1a0c0b93f437b7b0",
+        "ask": "use one current genuinely funded buyer workflow that needs public-source evidence to purchase existing 1 USDC DELTA Public Capture",
+        "counted_as_sale": false
+      },
+      {
+        "target": "Ax402 / AxLabs GmbH",
+        "route": "contact@axlabs.com",
+        "route_basis": "official Ax402 contact page explicitly accepts partnerships/product integration inquiries; platform exposes buyer pay-and-fetch tooling",
+        "gmail_message_id": "1a0c0b9576ed137f",
+        "ask": "use one current funded buyer-side workflow that needs public-source evidence to purchase existing 1 USDC DELTA Public Capture",
+        "counted_as_sale": false
+      }
+    ],
+    "outreach_policy": "one personalized first contact per target; exact-domain Gmail dedupe was clear before send; no follow-up to silence",
+    "financial_or_signature_action_taken": false,
+    "discount_or_repricing": false,
+    "catalog_growth": false
+  },
+  "prospect_evidence": {
+    "x402Nova": {
+      "technical_fit": "high",
+      "commercial_evidence": "adjacent paid buyer credits and sponsored downstream API calls; not proof of DELTA-specific budget",
+      "buyer_intent": "unconfirmed",
+      "evidence_quality": "B_official_public_product_and_sales_route"
+    },
+    "Ax402": {
+      "technical_fit": "high",
+      "commercial_evidence": "official site shows buyer pay-and-fetch tooling and current settlement analytics; not proof of DELTA-specific budget",
+      "buyer_intent": "unconfirmed",
+      "evidence_quality": "B_official_public_product_and_partnership_route"
+    }
+  },
+  "economics": {
+    "revenue_usdc": 0,
+    "variable_cost": "unknown",
+    "contribution_margin": "unknown",
+    "note": "No new transaction occurred. Outreach referenced only the existing owner-priced production purchase path; no discount, custom paid bid, fee, deposit, wallet signature, or asset movement was authorized or performed."
+  },
+  "operator_coordination": {
+    "canonical_repo_updated": true,
+    "local_commercial_operator_paths": [
+      "运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json",
+      "运营/RUPHUS_OPERATOR_2026-09-05/data/pipeline.json"
+    ],
+    "local_paths_accessible_in_this_run": false,
+    "local_state_claimed_synchronized": false,
+    "temporary_read_only_evidence_workflow": {
+      "run_id": 35538887015,
+      "artifact_id": 10614111206,
+      "removed_after_readback": true,
+      "removal_commit": "ec0e8d0defe73848b50334447adacbadda0c8d72"
+    }
+  },
+  "next_conversion_action": "Continue buyer-side conversion only: inspect replies and Treasury first; if no inbound, qualify additional unique targets with explicit funded agent/API purchasing rails and official business routes. Do not add catalogs absent concrete buyer routing. Do not chase silent threads.",
+  "notification_decision": "No owner notification this run: no genuine Treasury receipt, external paid settlement, actionable explicit buyer intent, funded compatible request, core failure, unavoidable new user-action blocker, high-value buyer-facing listing completion, or deadline outcome."
+}
