@@ -1,0 +1,129 @@
+{
+  "updated_at_jst": "2026-09-20T20:22:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "known_realized_variable_cost_usdc": null,
+    "known_realized_contribution_margin_usdc": null,
+    "evidence_scope_note": "Actual sprint result remains zero on the latest successful canonical pulse and current Gmail readback; this is not an all-time-zero claim."
+  },
+  "pricing_and_core": {
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "latest_canonical_pulse_run": 35494032814,
+    "latest_canonical_pulse_completed_at": "2026-09-20T06:22:25Z",
+    "owner_pricing_policy_step": "success",
+    "live_price_verification_step": "success",
+    "live_public_challenge_raw_amounts": [1000000, 5000000, 10000000],
+    "live_purchase_path_without_payment_step": "success"
+  },
+  "reconciliation": {
+    "canonical_pulse_run": 35494032814,
+    "treasury_checked_at": "2026-09-20T06:22:20.753Z",
+    "treasury_start_block": 51497995,
+    "treasury_latest_block": 51547994,
+    "treasury_lookback_blocks": 50000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "paid_funnel_candidates": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "scope": "Fresh explicit-range canonical evidence only; not an all-time-zero assertion. Unknown costs remain unknown."
+  },
+  "market_state": {
+    "agentpact_active_offers": 3,
+    "agentpact_offer_prices_usdc": [1, 5, 10],
+    "agentpact_buyer_count": 0,
+    "agentpact_settlement_count": 0,
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_funded_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "agentexchange_buyer_count": 2,
+    "agentexchange_external_requests": 4,
+    "agentexchange_compatible_requests": 0,
+    "agentexchange_funded_compatible_requests": 0,
+    "adjacent_funded_external_tasks": 19,
+    "delta_native_funded_external_tasks": 0,
+    "financial_or_signature_action_taken": false
+  },
+  "buyer_conversion_this_run": [
+    {
+      "target": "Encargo",
+      "official_contact": "contact@encargo.ai",
+      "official_surface": "https://encargo.ai/about",
+      "gmail_message_id": "1a0be8b4aa24b287",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "use_case": "Immediately before a buyer awards a supplier or acts on a quote because of a public supplier/product page, capture the public price, availability or published terms as a deterministic evidence artifact.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "Encargo publicly presents an operational AI procurement workflow spanning supplier discovery, RFQs, quote comparison and award. This supports execution-context fit but is not evidence of a DELTA budget or purchase willingness.",
+      "dedupe": "Gmail search found no prior Encargo contact; repository code search returned no Encargo record before send, with GitHub search marked incomplete and therefore not treated as exhaustive local-operator proof.",
+      "next_action": "Wait for explicit reply, a real buyer-authorized workflow/public URL, or a genuine paid call. Do not chase silence or send another first contact."
+    },
+    {
+      "target": "CloudSurf",
+      "official_contact": "hello@cloudsurf.ai",
+      "official_surface": "https://chromewebstore.google.com/detail/cloudsurf-browser-agent/gcelmghkopoeedfdnkegljogpbdcfplm",
+      "gmail_message_id": "1a0be8b7b9d9d4bf",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "use_case": "Immediately before a user-authorized consequential browser shopping step that depends on public price, availability, shipping or returns information, capture the public source as evidence.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "CloudSurf publicly offers paid usage after a free trial and automates comparison, clicks, typing and web workflows. Its Chrome Web Store footprint is small, so this is payment-capable adjacent usage evidence, not DELTA demand.",
+      "dedupe": "Gmail search found no prior CloudSurf contact; repository code search returned no CloudSurf record before send, with GitHub search marked incomplete and therefore not treated as exhaustive local-operator proof.",
+      "next_action": "Wait for explicit reply or a genuine paid-user workflow. Do not chase silence or send another first contact."
+    }
+  ],
+  "inbound_readback": {
+    "new_human_actionable_delta_replies_since_last_checkpoint": 0,
+    "a2alist": "Operator/directory cooperation only; not buyer intent. No new material inbound after the previously reported Cloudflare 403 retry result.",
+    "robauto_agenthub": "Explicit-interest thread remains waiting for a real workflow and public URL; no silence follow-up.",
+    "outlast": "Still requires a genuine company-domain sender; do not spoof.",
+    "relevance_ai": "Support channel closed and redirected to a business route; no support-thread follow-up.",
+    "reap": "Explicit rejection remains suppressed."
+  },
+  "delivery_corrections": {
+    "hard_or_route_failures_observed": [
+      "hello@bloomsenz.com",
+      "hello@bridleai.com",
+      "hello@agentlancer.io",
+      "hello@getagentic.io",
+      "services@jateetech.com",
+      "info@takeyoursgoods.co.uk",
+      "contact@likwid.co.in"
+    ],
+    "temporary_delays_do_not_retry_manually": [
+      "hello@foragerlabs.com",
+      "hello@nayeb.ai",
+      "hello@nulogic.ai",
+      "hello@carrierbridge.com",
+      "hello@quotesagent.com"
+    ],
+    "new_immediate_bounces_for_this_run_contacts": 0,
+    "note": "Suppress hard-failed exact routes; do not guess private alternatives. Temporary delivery delays are left to Gmail and are not manually retried."
+  },
+  "coordination": {
+    "repository_handoff_added": true,
+    "local_commercial_operator_workspace": "not_accessible_not_modified",
+    "new_listing_or_seller_identity": false,
+    "new_recurring_growth_loop": false,
+    "financial_actions": 0,
+    "wallet_signatures_or_messages": 0,
+    "credentials_private_keys_exposed": false
+  }
+}
