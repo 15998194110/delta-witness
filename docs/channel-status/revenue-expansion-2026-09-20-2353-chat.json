@@ -1,5 +1,5 @@
 {
-  "updated_at_jst": "2026-09-20T23:53:00+09:00",
+  "updated_at_jst": "2026-09-21T00:00:00+09:00",
   "sprint": {
     "start": "2026-09-14T13:43:28+09:00",
     "deadline": "2026-09-21T13:43:28+09:00",
@@ -70,6 +70,28 @@
       "status": "hard_bounce_suppressed",
       "bounce": "550 5.1.10 recipient not found",
       "next_action": "Do not retry another address or guess a private contact. Reopen only on materially new official route."
+    },
+    {
+      "target": "x402node",
+      "official_contact": "support@x402node.dev",
+      "gmail_message_id": "1a0bf51be49018aa",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "commercial_path": "One genuine 1 USDC Public Capture after an existing paid shopping/search/browser workflow identifies a public source controlling a consequential action; ask for free partner/discovery path only.",
+      "technical_fit_grade": "A",
+      "commercial_evidence": "Existing x402node services show real paid calls/payers on Agentic Market; this is adjacent buyer traffic, not yet DELTA willingness.",
+      "dedupe": "No prior Gmail or repository contact found before send.",
+      "next_action": "Wait for explicit reply or genuine paid invocation; no silence follow-up."
+    },
+    {
+      "target": "MAKO / Pollinate Research",
+      "official_contact": "chris@pollinatetrading.com",
+      "gmail_message_id": "1a0bf51c54a802c2",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "commercial_path": "Compose DELTA public-source witness proof with MAKO x402 payment/delivery assurance in one real buyer-funded workflow.",
+      "technical_fit_grade": "A",
+      "commercial_demand_grade": "C",
+      "dedupe": "No prior Gmail or repository contact found before send.",
+      "next_action": "Wait for explicit reply or one genuine buyer-funded composition request; do not buy MAKO audit or chase silence."
     }
   ],
   "dedupe_and_defer": [
