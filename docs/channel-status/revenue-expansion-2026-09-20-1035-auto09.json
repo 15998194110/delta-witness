@@ -1,0 +1,140 @@
+{
+  "updated_at_jst": "2026-09-20T10:35:10+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "known_realized_variable_cost_usdc": null,
+    "known_realized_contribution_margin_usdc": null,
+    "remaining_hours_approx": 27.1,
+    "risk": "material_shortfall_risk_already_reported"
+  },
+  "pricing_and_core": {
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "latest_canonical_pulse_run": 35480858992,
+    "latest_canonical_pulse_completed_at": "2026-09-20T01:14:38Z",
+    "owner_pricing_policy_step": "success",
+    "live_price_verification_step": "success",
+    "live_purchase_path_without_payment_step": "success"
+  },
+  "reconciliation": {
+    "canonical_pulse_run": 35480858992,
+    "treasury_checked_at": "2026-09-20T01:14:35.631Z",
+    "treasury_start_block": 51488763,
+    "treasury_latest_block": 51538762,
+    "treasury_lookback_blocks": 50000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "paid_funnel_candidates": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "scope": "Fresh explicit-range canonical evidence only; not an all-time-zero assertion. Unknown costs remain unknown."
+  },
+  "market_state": {
+    "agentpact_active_offers": 3,
+    "agentpact_offer_prices_usdc": [1, 5, 10],
+    "agentpact_buyer_count": 0,
+    "agentpact_settlement_count": 0,
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_funded_requests": 0,
+    "agentpact_buyer_funded_deals": 0,
+    "agentexchange_buyer_count": 2,
+    "agentexchange_external_requests": 4,
+    "agentexchange_compatible_requests": 0,
+    "agentexchange_funded_compatible_requests": 0,
+    "adjacent_funded_external_tasks": 19,
+    "delta_native_funded_external_tasks": 0,
+    "financial_or_signature_action_taken": false
+  },
+  "inbound_and_conversion": {
+    "a2alist": {
+      "status": "actionable_explicit_integration_intent_waiting_on_external_machine_path_fix",
+      "latest_thread_readback": "Operator asked for one fresh no-wallet tasks/send retry after claiming the Cloudflare rule was corrected. DELTA retried once from an independent runner; the request still received the Cloudflare managed challenge, then reported the HTTP 403/ray back in the original thread. No further retry is authorized until materially new inbound instruction.",
+      "next_action": "Wait for materially new operator reply or stable official alternative. Do not hammer, use paid browser submission or resend payment authorization."
+    },
+    "relevance_ai": {
+      "status": "support_closed_and_redirected_to_official_business_route",
+      "commercial_demand_grade": "C",
+      "next_action": "Do not reply to support. Business/partner form remains the official route when an allowed no-new-cash browser/form execution path is available."
+    },
+    "robauto_agenthub": {
+      "status": "explicit_interest_waiting_for_real_workflow_and_public_url",
+      "no_silence_followup": true
+    },
+    "outlast": {
+      "status": "company_domain_sender_required",
+      "do_not_spoof": true
+    }
+  },
+  "buyer_expansion_this_run": [
+    {
+      "target": "API Toll",
+      "official_contact": "tex@apitoll.com",
+      "official_surface": "https://apitoll.com/",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "gmail_message_id": "1a0bc767c831ce9e",
+      "use_case": "A funded API Toll buyer agent that relies on a public vendor/price/availability/policy page performs one genuine DELTA Public Capture immediately before a consequential action and stores the proof alongside its own transaction record.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "A",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "API Toll publicly documents live Base/Solana USDC x402 settlement, buyer SDK wallets, agent budgets/policies, API discovery and real mainnet transactions. This proves buyer-side rail capability, not willingness to buy DELTA.",
+      "dedupe": "No prior Gmail or repository contact record found before send.",
+      "next_action": "Wait for explicit reply or genuine externally funded call; do not chase silence or repeat first contact."
+    },
+    {
+      "target": "Surplus Intelligence",
+      "official_contact": "support@surplusintelligence.ai",
+      "official_surface": "https://www.surplusintelligence.ai/buy and https://preview.surplusintelligence.ai/docs/getting-started/agent-quickstart",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "gmail_message_id": "1a0bc76997ab4b85",
+      "use_case": "A genuine funded Surplus buyer/agent performs one 1 USDC DELTA Capture when it needs to preserve a public vendor/price/availability/policy source before a consequential action outside the inference market.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "A",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "Surplus publicly documents buyer funding/budgets, x402 USDC-on-Base per-request payments and live recent market trades. This establishes actual adjacent paid buyer activity, not explicit DELTA demand.",
+      "dedupe": "No prior Gmail or repository contact record found before send.",
+      "next_action": "Wait for explicit reply or genuine externally funded call; do not chase silence or repeat first contact."
+    },
+    {
+      "target": "Omnix",
+      "official_contact": "hello@getomnix.dev",
+      "official_surface": "https://getomnix.dev/",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "gmail_message_id": "1a0bc76bb59f660f",
+      "use_case": "For selected audit-sensitive/high-value UCP shopping-agent orders, perform one 1 USDC DELTA Capture of the public product, availability, shipping or returns-policy source immediately before checkout commitment.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "Omnix publicly exposes live Magento/Shopware/Shopify adapters and agent shopping/checkout flows and is onboarding merchants/developers. No independent DELTA budget or willingness is yet verified.",
+      "dedupe": "No prior Gmail or repository contact record found before send.",
+      "next_action": "Wait for explicit reply or genuine externally funded call; do not chase silence or repeat first contact."
+    }
+  ],
+  "delivery_state": {
+    "new_immediate_bounces_for_this_run_contacts": 0,
+    "observation_window": "Immediate post-send Gmail search only; absence of bounce is not buyer interest or guaranteed delivery."
+  },
+  "coordination": {
+    "canonical_repo_handoff_updated": true,
+    "local_sibling_operator_workspace": "not_accessible_not_modified",
+    "new_recurring_growth_loop": false,
+    "new_listing_or_seller_identity": false,
+    "financial_actions": 0,
+    "wallet_signatures_or_messages": 0,
+    "credentials_private_keys_exposed": false
+  }
+}
