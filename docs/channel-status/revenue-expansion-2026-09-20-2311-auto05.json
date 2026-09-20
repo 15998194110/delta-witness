@@ -1,0 +1,104 @@
+{
+  "updated_at_jst": "2026-09-20T23:11:00+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "known_realized_variable_cost_usdc": null,
+    "known_realized_contribution_margin_usdc": null,
+    "remaining_hours_approx": 14.5,
+    "risk": "material_shortfall_risk_already_reported"
+  },
+  "reconciliation": {
+    "freshest_complete_authoritative_treasury_evidence_jst": "2026-09-20T21:12:00+09:00",
+    "treasury_usdc_balance_observed": 0.06,
+    "visible_token_transfers_total": 2,
+    "known_excluded_platform_verification_transfers": 2,
+    "known_excluded_platform_verification_usdc_total": 0.06,
+    "new_countable_customer_receipt_in_freshest_complete_readback": false,
+    "post_2112_treasury_state": "unknown_no_later_authoritative_chain_readback_available_in_this_runtime",
+    "note": "Do not interpret this as an all-time-zero or current-wallet-zero assertion. The 0.06 USDC consists of two known excluded platform-verification transfers. Actual sprint count remains zero on the latest reconciled evidence; any later receipt requires settlement, fulfillment and independent-customer reconciliation before counting."
+  },
+  "pricing": {
+    "public_capture_usdc": 1,
+    "partner_capture_usdc": 1,
+    "partner_preflight_usdc": 1,
+    "watch_check_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "current_readme_purchase_path": "POST https://delta-witness-api.ruphussten.workers.dev/v1/capture; x402 settlement occurs before fulfillment",
+    "price_bearing_external_write_this_run": false,
+    "deployment_this_run": false
+  },
+  "inbound_readback": {
+    "gmail_window": "newer_than:2h excluding sent/spam/trash",
+    "new_human_actionable_delta_replies": 0,
+    "delivery_updates_only": true,
+    "robauto_agenthub": "Explicit-interest thread remains waiting for a real workflow/public URL; no silence follow-up sent.",
+    "outlast": "Company-domain sender requirement remains; no spoofing or guessed identity.",
+    "a2alist": "Directory/operator cooperation only, not buyer intent.",
+    "reap": "Explicit rejection remains suppressed.",
+    "relevance_ai": "Support route closed; no support-thread follow-up."
+  },
+  "buyer_conversion_this_run": [
+    {
+      "target": "SellerAI / SellerClaw",
+      "official_contact": "hello@sellerai.com",
+      "official_surface": "https://sellerai.com/",
+      "gmail_message_id": "1a0bf2a7fee00cae",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "use_case": "One genuine 1 USDC Public Capture immediately before a buyer-authorized sourcing/restock action relies on a public supplier, price, availability, shipping, returns or published-terms page.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "SellerClaw publicly describes product sourcing, supplier ranking, API/browser workflows and order execution. This establishes execution context, not willingness to buy DELTA.",
+      "dedupe": "Gmail search found no prior SellerAI contact before send.",
+      "next_action": "Wait for explicit reply, genuine buyer-authorized workflow/public URL or real paid call; do not chase silence."
+    },
+    {
+      "target": "Spendflo / Flo",
+      "official_contact": "siddharth@spendflo.com",
+      "official_surface": "https://spendflo.com/",
+      "gmail_message_id": "1a0bf2a9e12a4f8b",
+      "status": "first_contact_sent_no_immediate_bounce_observed",
+      "use_case": "One genuine 1 USDC Public Capture when a buyer-authorized procurement flow is about to rely on a public supplier, pricing, availability, shipping, policy or terms page before shortlist, vendor substitution, PO or approval.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "B",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "Spendflo publicly describes Flo procurement workflows spanning intake, vendor, PO, invoice and payment and publishes Siddharth's address for business conversation. This establishes fit and an official route, not DELTA purchase willingness.",
+      "dedupe": "Gmail search found no prior Spendflo-domain contact before send.",
+      "next_action": "Wait for explicit reply, genuine funded need or real paid call; do not chase silence."
+    }
+  ],
+  "delivery_state": {
+    "new_immediate_bounces_for_this_run_contacts": 0,
+    "observation_window": "Immediate post-send Gmail bounce search only; absence of a bounce is not buyer interest or guaranteed delivery.",
+    "unrelated_existing_delivery_updates": [
+      "hello@alvrion.com temporary delay",
+      "support@sellonika.com hard failure"
+    ]
+  },
+  "blocked_or_deprioritized": {
+    "agora402": "Buyer-routing capability observed, but registration path requires a paid listing fee; no fee paid under financial boundary.",
+    "metered_browser_forms": "No new cash/credit or browser top-up authorized; do not treat unavailable paid form execution as a reason to violate financial boundary."
+  },
+  "coordination": {
+    "repository_handoff_added": true,
+    "local_commercial_operator_workspace": "not_accessible_not_modified",
+    "new_listing_or_seller_identity": false,
+    "new_recurring_growth_loop": false,
+    "financial_actions": 0,
+    "wallet_signatures_or_messages": 0,
+    "new_cash_or_credit": 0,
+    "credentials_private_keys_exposed": false
+  }
+}
