@@ -1,0 +1,112 @@
+{
+  "updated_at_jst": "2026-09-20T13:28:39+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_buyers": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "risk": "material_shortfall_risk_already_reported"
+  },
+  "pricing_and_core": {
+    "verified_at": "2026-09-20T02:49:51.293Z",
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": ["1000000", "5000000", "10000000"],
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "live_price_verification": "passed",
+    "paid_transactions_generated_by_diagnostic": 0
+  },
+  "reconciliation": {
+    "source_run_id": 35480858992,
+    "source_run_attempt": 2,
+    "treasury_checked_at": "2026-09-20T02:50:15.972Z",
+    "treasury_start_block": 51491632,
+    "treasury_latest_block": 51541631,
+    "treasury_lookback_blocks": 50000,
+    "canonical_usdc_receipt_candidates": 0,
+    "unclassified_receipts": 0,
+    "paid_funnel_candidates": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "rpc_note": "mainnet.base.org briefly returned HTTP 429 during one chunk; bounded fallback to base-rpc.publicnode.com succeeded and the full explicit range reconciled successfully.",
+    "scope": "Fresh explicit-range evidence only; not an all-time-zero assertion."
+  },
+  "funded_demand": {
+    "agentpact_active_offers": 3,
+    "agentpact_buyer_count": 0,
+    "agentpact_settlement_count": 0,
+    "agentpact_external_requests": 16,
+    "agentpact_delta_native_funded_requests": 0,
+    "agentexchange_buyer_count": 2,
+    "agentexchange_external_requests": 4,
+    "agentexchange_funded_compatible_requests": 0,
+    "adjacent_funded_external_tasks": 18,
+    "delta_native_funded_external_tasks": 0,
+    "payanagent_status": "degraded_recoverable_http_500",
+    "moltjobs_status": "degraded_recoverable_fetch_failed",
+    "financial_or_signature_action_taken": false
+  },
+  "buyer_conversion_this_run": [
+    {
+      "target": "Agent Cafe / 402.coffee",
+      "official_contact": "hello@402.coffee",
+      "official_contact_evidence": "https://api.402.coffee/privacy",
+      "official_surface": "https://402.coffee/",
+      "status": "first_contact_sent",
+      "gmail_message_id": "1a0bd144c3f5f654",
+      "use_case": "One genuine 1 USDC DELTA Public Capture preserves a public vendor/product/availability/policy source immediately before an escrow release/refund decision when that public-page state is part of the claim evidence; Agent Cafe retains its own arbiter policy and decision authority.",
+      "product": "Public Capture",
+      "price_usdc": 1,
+      "technical_fit_grade": "A",
+      "commercial_demand_grade": "C",
+      "ability_or_willingness_evidence": "Agent Cafe publicly operates Base-mainnet x402 services with real USDC settlement, including escrow and paid arbiter verdicts. This demonstrates adjacent buyer/payment capability, not willingness to purchase DELTA.",
+      "dedupe": "Exact Gmail search for 402.coffee and hello@402.coffee returned no prior contact before send.",
+      "next_action": "Wait for explicit reply or genuine externally funded call; do not chase silence or repeat first contact."
+    }
+  ],
+  "delivery_corrections": [
+    {
+      "route": "hello@getagentic.io",
+      "status": "hard_bounce_550_recipient_not_found",
+      "action": "suppress_exact_route_do_not_retry_or_guess_private_alternative"
+    },
+    {
+      "route": "services@jateetech.com",
+      "status": "hard_bounce_550_relay_not_permitted",
+      "action": "suppress_exact_route_do_not_retry_or_guess_private_alternative"
+    },
+    {
+      "route": "info@takeyoursgoods.co.uk",
+      "status": "hard_bounce_domain_mx_not_found",
+      "action": "suppress_exact_route_do_not_retry_or_guess_private_alternative"
+    },
+    {
+      "route": "hello@carrierbridge.com",
+      "status": "temporary_delivery_delay_dns_mx",
+      "action": "leave_alone_allow_gmail_retry_no_hammer"
+    },
+    {
+      "route": "hello@quotesagent.com",
+      "status": "temporary_delivery_delay_recipient_server_connection",
+      "action": "leave_alone_allow_gmail_retry_no_hammer"
+    }
+  ],
+  "inbound": {
+    "new_actionable_buyer_reply_found": false,
+    "note": "Fresh Gmail scan after 2026-09-20 found only delivery notices and unrelated mail; no new explicit DELTA buyer intent or payment evidence."
+  },
+  "coordination": {
+    "canonical_repo_handoff_extended": true,
+    "local_commercial_operator_workspace": "not_accessible_not_modified",
+    "new_recurring_growth_loop": false,
+    "new_listing_or_seller_identity": false,
+    "new_cash_or_credits": 0,
+    "wallet_signatures_or_messages": 0,
+    "credentials_private_keys_exposed": false
+  }
+}
