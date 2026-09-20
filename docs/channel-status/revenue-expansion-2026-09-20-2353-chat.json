@@ -1,5 +1,5 @@
 {
-  "updated_at_jst": "2026-09-21T00:00:00+09:00",
+  "updated_at_jst": "2026-09-21T00:02:00+09:00",
   "sprint": {
     "start": "2026-09-14T13:43:28+09:00",
     "deadline": "2026-09-21T13:43:28+09:00",
@@ -92,6 +92,20 @@
       "commercial_demand_grade": "C",
       "dedupe": "No prior Gmail or repository contact found before send.",
       "next_action": "Wait for explicit reply or one genuine buyer-funded composition request; do not buy MAKO audit or chase silence."
+    },
+    {
+      "target": "X402Scan / AgentCash discovery",
+      "official_surface": "https://github.com/Merit-Systems/x402scan/issues/1216",
+      "status": "official_registration_issue_opened",
+      "issue_number": 1216,
+      "route_reason": "Public Add API UI is no-account, while REST registry requires SIWX. Operator runtime lacks a free interactive browser, so the official open-source issue route was used without wallet signature, fee, or duplicate identity.",
+      "commercial_path": "Index DELTA's existing canonical x402 resources so AgentCash/X402Scan agents can discover and pay the original Base-USDC endpoints directly.",
+      "price_usdc": [
+        1,
+        5,
+        10
+      ],
+      "next_action": "Monitor issue for maintainer registration/readback or a no-wallet programmatic path; do not create duplicate listing."
     }
   ],
   "dedupe_and_defer": [
