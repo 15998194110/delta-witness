@@ -1,0 +1,47 @@
+name: TMP DELTA revenue reconcile 20260921 0135 JST
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/tmp-chat-revenue-reconcile-20260921-0135.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Owner pricing source check
+        run: node scripts/check-owner-pricing.mjs
+      - name: Live public 402 pricing check without payment
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Paid funnel candidates
+        continue-on-error: true
+        run: node scripts/query-revenue-candidates.mjs
+      - name: AgentPact funded-compatible demand
+        continue-on-error: true
+        run: node scripts/scan-agentpact-demand.mjs
+      - name: External funded-compatible demand
+        continue-on-error: true
+        run: node scripts/scan-external-funded-demand.mjs
+      - name: Canonical Base USDC Treasury reconciliation
+        env:
+          DELTA_TREASURY_LOOKBACK_BLOCKS: '10000'
+          DELTA_TREASURY_CHUNK_BLOCKS: '1900'
+        run: node scripts/reconcile-treasury.mjs
+      - name: State safety boundary
+        if: always()
+        run: echo 'Read-only pricing, paid-funnel, funded-demand and canonical-USDC Treasury reconciliation only; no wallet, signature, payment, asset movement, KYC, deployment, listing write, claim, bid or customer action occurred.' >> "$GITHUB_STEP_SUMMARY"
