@@ -61,9 +61,10 @@
     }
   },
   "inbound": {
-    "gmail_window": "newer_than:2h at this run",
-    "new_inbox_messages": 0,
-    "new_delivery_failures": 0,
+    "gmail_window": "newer_than:2h at this run plus immediate post-send delivery readback",
+    "new_inbox_messages_before_outreach": 0,
+    "new_delivery_failures": 1,
+    "delivery_failure_detail": "MCPize sales@mcpize.com returned 530 Authentication required; treat as failed route, not buyer rejection or interest",
     "actionable_explicit_integration_intent": 0,
     "genuine_customer_receipt": 0,
     "external_paid_settlement": 0
@@ -77,6 +78,7 @@
       "offer": "one genuine buyer-authorized Public Capture at 1 USDC before a consequential public-solicitation bid/no-bid decision",
       "commercial_evidence": "C_no_explicit_DELTA_budget_or_interest",
       "technical_fit": "A_public_source_state_before_bid_decision",
+      "delivery_status": "sent_no_immediate_failure_observed",
       "count_as_sale": false
     },
     {
@@ -87,16 +89,21 @@
       "offer": "one genuine paid Gateway workflow with a public-source verification need through one 1 USDC Public Capture; no catalog/listing request",
       "commercial_evidence": "C_no_explicit_DELTA_budget_or_interest",
       "technical_fit": "A_unified_gateway_and_paid_tool_workflow",
+      "delivery_status": "failed_530_authentication_required",
+      "delivery_failure_message_id": "1a0c12c0b9c6e99a",
+      "genuine_first_contact_delivered": false,
+      "next_action": "do not count and do not repeat same-target outreach in this run; preserve failed route as suppression evidence",
       "count_as_sale": false
     }
   ],
   "deduplication": {
     "aegisgov": "no prior Gmail or canonical-repo operator-record hit found before send",
-    "mcpize": "no prior Gmail or canonical-repo operator-record hit found before send",
+    "mcpize": "no prior Gmail or canonical-repo operator-record hit found before send; sales route failed after send and is now suppressed",
     "suppression_preserved": [
       "Relevance AI support closure",
       "Reap rejection",
       "hard bounces/DNS failures",
+      "MCPize sales@mcpize.com 530 Authentication required failure",
       "A2A List registry-path reply is directory cooperation only",
       "all prior first-contact targets remain no-repeat absent explicit reply/materially new inbound"
     ]
