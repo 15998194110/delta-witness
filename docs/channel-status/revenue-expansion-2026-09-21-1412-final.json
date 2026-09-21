@@ -1,0 +1,128 @@
+{
+  "run_evidence_at_jst": "2026-09-21T14:12:29+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "status": "closed_at_fixed_deadline_target_not_met",
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_independent_buyers": 0,
+    "fulfilled_paid_uses": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "deadline_extended": false,
+    "deadline_reset": false
+  },
+  "final_exact_sprint_treasury_reconciliation": {
+    "checked_at_utc": "2026-09-21T05:12:28.746Z",
+    "sprint_start_utc": "2026-09-14T04:43:28Z",
+    "sprint_end_utc": "2026-09-21T04:43:28Z",
+    "start_block": 51285831,
+    "start_block_timestamp": "2026-09-14T04:43:29.000Z",
+    "end_block": 51588230,
+    "end_block_timestamp": "2026-09-21T04:43:27.000Z",
+    "blocks_scanned": 302400,
+    "canonical_usdc_treasury_receipts": 0,
+    "treasury_received_usdc": 0,
+    "countable_customer_receipts": 0,
+    "receipts": [],
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "method": "exact fixed-window canonical USDC Transfer-log scan to Treasury using Base block timestamps",
+    "evidence_quality": "A_direct_full_sprint_canonical_USDC_log"
+  },
+  "deadline_boundary_crosscheck": {
+    "checked_at_utc": "2026-09-21T05:10:50.593Z",
+    "deadline_block": 51588230,
+    "deadline_block_timestamp": "2026-09-21T04:43:27.000Z",
+    "first_post_deadline_block": 51588231,
+    "first_post_deadline_timestamp": "2026-09-21T04:43:29.000Z",
+    "latest_block_checked": 51589051,
+    "pre_deadline_gap_receipts": 0,
+    "post_deadline_receipts_observed": 0,
+    "note": "Post-deadline receipts would not count toward this sprint even if observed later."
+  },
+  "final_live_runtime": {
+    "checked_at_utc": "2026-09-21T05:10:46.160Z",
+    "owner_pricing_source_ok": true,
+    "public_capture_usdc": 1,
+    "public_capture_raw": "1000000",
+    "public_preflight_usdc": 5,
+    "public_preflight_raw": "5000000",
+    "guarded_action_pilot_usdc": 10,
+    "guarded_action_pilot_raw": "10000000",
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_transactions_generated_by_check": 0,
+    "customer_revenue_generated_by_check": 0,
+    "diagnostic_only": true
+  },
+  "final_paid_funnel": {
+    "checked_at_utc": "2026-09-21T05:10:46Z",
+    "candidate_rows": 0,
+    "payment_authorized": 0,
+    "settlement_confirmed": 0,
+    "paid_settlements": 0,
+    "treasury_received": 0,
+    "fulfilled_paid_uses": 0,
+    "counted_customer_transactions": 0
+  },
+  "final_agentpact": {
+    "listing_present": true,
+    "discovery_present": true,
+    "active_offers": [
+      {"name": "Capture", "price_usdc": 1},
+      {"name": "PublicPreflight", "price_usdc": 5},
+      {"name": "GuardedPilot", "price_usdc": 10}
+    ],
+    "buyer_count": 0,
+    "settlement_count": 0,
+    "external_requests": 16,
+    "delta_native_requests": 0,
+    "intents_402": 0,
+    "paid_settlements": 0,
+    "treasury_received": 0,
+    "funded_compatible_requests": []
+  },
+  "explicit_interest_and_inbox": {
+    "fresh_inbox_checked_after_prior_handoff": true,
+    "new_actionable_buyer_replies_after_2026_09_21_1325_jst": 0,
+    "new_external_paid_settlements_observed": 0,
+    "coppice": "Explicit no-purchase-from-outbound response received before deadline; path remains stopped.",
+    "robauto": "No newer buyer reply observed; silence not chased.",
+    "agent402": "Technical routing-state evidence only; not buyer intent or revenue.",
+    "reap": "Prior rejection preserved.",
+    "relevance_ai": "Prior support-route closure preserved."
+  },
+  "economics": {
+    "variable_cost": "unknown",
+    "contribution_margin": "unknown_without_actual_customer_fulfillment_cost"
+  },
+  "safety": {
+    "post_deadline_outreach_sent": false,
+    "wallet_signature_or_message": false,
+    "asset_movement": false,
+    "paid_test": false,
+    "cash_or_credit_added": false,
+    "kyc_or_identity_attestation": false,
+    "legal_commitment": false,
+    "artificial_or_reimbursed_demand": false
+  },
+  "workspace_coordination": {
+    "canonical_repo_final_handoff_written": true,
+    "local_commercial_operator_state_accessible": false,
+    "local_sprint_json_synchronized": false,
+    "local_pipeline_json_synchronized": false,
+    "note": "Fresh Library search did not locate 运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json or data/pipeline.json. No synchronization is claimed."
+  },
+  "evidence_execution": {
+    "final_runtime_and_boundary_run_id": 35563615899,
+    "final_runtime_artifact_id": 10623112861,
+    "full_sprint_treasury_run_id": 35563677070,
+    "full_sprint_treasury_artifact_id": 10623073370,
+    "temporary_workflows_are_evidence_only": true
+  },
+  "post_deadline_rule": "The sprint is closed. A later reconciliation may correct the historical sprint only if it discovers a qualifying transaction whose actual settlement and fulfillment occurred within the original fixed window. Any purchase occurring after 2026-09-21T13:43:28+09:00 is excluded from this sprint."
+}
