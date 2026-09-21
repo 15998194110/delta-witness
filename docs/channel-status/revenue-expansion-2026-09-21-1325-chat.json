@@ -1,0 +1,149 @@
+{
+  "run_evidence_at_jst": "2026-09-21T13:25:01+09:00",
+  "sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "target_counted_customer_transactions": 50,
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "repeat_verified_independent_buyers": 0,
+    "fulfilled_paid_uses": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "deadline_extended": false,
+    "risk": "material_sprint_risk"
+  },
+  "pricing_and_live_402": {
+    "source_policy_ok": true,
+    "live_checked_at_utc": "2026-09-21T04:24:57.237Z",
+    "capture_usdc": 1,
+    "capture_raw": "1000000",
+    "public_preflight_usdc": 5,
+    "public_preflight_raw": "5000000",
+    "guarded_action_pilot_usdc": 10,
+    "guarded_action_pilot_raw": "10000000",
+    "network": "eip155:8453",
+    "usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "paid_transactions_generated_by_check": 0,
+    "customer_revenue_generated_by_check": 0,
+    "diagnostic_only": true
+  },
+  "treasury_reconciliation": {
+    "checked_at_utc": "2026-09-21T04:25:01.062Z",
+    "base_block_start": 51575677,
+    "base_block_end": 51587676,
+    "canonical_usdc_transfer_candidates": 0,
+    "treasury_received_usdc": 0,
+    "known_non_customer_transfers": 0,
+    "unclassified_transfers": 0,
+    "countable_customer_receipts": 0,
+    "method": "direct canonical USDC Transfer log scan",
+    "evidence_quality": "A_direct_canonical_USDC_log"
+  },
+  "paid_funnel": {
+    "candidate_rows": 0,
+    "paid_settlements": 0,
+    "settlement_confirmed": 0,
+    "treasury_received": 0,
+    "counted_customer_transactions": 0
+  },
+  "agentpact": {
+    "listing_present": true,
+    "active_offers": [
+      {"name": "GuardedPilot", "price_usdc": 10},
+      {"name": "PublicPreflight", "price_usdc": 5},
+      {"name": "Capture", "price_usdc": 1}
+    ],
+    "buyer_count": 0,
+    "settlement_count": 0,
+    "external_requests": 16,
+    "delta_native_requests": 0,
+    "intents_402": 0,
+    "paid_settlements": 0,
+    "treasury_received": 0,
+    "revenue_usdc": 0,
+    "funded_compatible_requests": []
+  },
+  "external_funded_demand": {
+    "checked_at_utc": "2026-09-21T04:24:59.677Z",
+    "channels": {
+      "bountybook_adjacent_funded": 13,
+      "riner_adjacent_funded": 0,
+      "agent_bounties_adjacent_funded": 0,
+      "taskmarket_adjacent_funded": 4,
+      "clawlancer_adjacent_funded": 2
+    },
+    "delta_native_raw_requests": 0,
+    "delta_native_price_incompatible_requests": 0,
+    "delta_native_funded_requests": 0,
+    "adjacent_funded_requests": 19,
+    "bid_or_claim_actions": 0,
+    "financial_or_signature_action_taken": false,
+    "reason_no_bid": "No scanned request was DELTA-native, owner-price-compatible and safely executable without violating fit, signature, stake or pay-to-work constraints."
+  },
+  "explicit_interest_and_inbox": {
+    "new_actionable_buyer_replies": 0,
+    "new_external_paid_settlements": 0,
+    "coppice": {
+      "received_at_jst": "2026-09-21T13:03:55+09:00",
+      "status": "explicit_no_purchase_from_outbound_mail",
+      "summary": "Coppice stated that under its co-signed spending rule a purchase must originate from its own plan and an email asking it to pay cannot originate a purchase. This is not a product rejection, but it is a stop for this outbound conversion path; do not follow up unless Coppice later initiates a materially new request.",
+      "countable": false
+    },
+    "robauto": "Prior verification-interest thread already advanced; no newer human reply observed; do not chase silence.",
+    "agent402": "Technical routing-state only; not buyer intent or revenue.",
+    "relevance_ai": "Support route closed for business proposals; suppression preserved.",
+    "reap": "Rejection preserved; do not re-contact.",
+    "delivery_delays": ["tex@apitoll.com", "demo@expert-supply.com"]
+  },
+  "conversion_discovery_after_reconciliation": {
+    "new_first_contacts_sent_this_run": 0,
+    "reason": "With less than 20 minutes remaining at fresh reconciliation time, no newly evidenced target met all gates simultaneously: identifiable paying party, concrete immediate DELTA-native task, existing payment readiness, native deliverable and expected positive contribution margin. Commercial gaps were not filled with assumptions.",
+    "fresh_public_checks": [
+      {
+        "target": "Frantic",
+        "status": "no_current_bounty",
+        "evidence": "Public board stated there was nothing open at the current crawl and showed zero settled bounty revenue; no executable funded DELTA-native task was available."
+      },
+      {
+        "target": "Open Bounty",
+        "status": "illustrative_unfunded_examples",
+        "evidence": "Displayed source-check examples are illustrative and publication is not prefunded; not evidence of a funded buyer request."
+      }
+    ]
+  },
+  "buyer_path": {
+    "capture_endpoint": "https://delta-witness-api.ruphussten.workers.dev/v1/capture",
+    "docs": "https://delta-witness-api.ruphussten.workers.dev/docs",
+    "supported_output": "Timestamped observation and proof hash for a public HTTP(S) source; DELTA does not claim the source is truthful.",
+    "smallest_complete_purchase_usdc": 1
+  },
+  "economics": {
+    "variable_cost": "unknown",
+    "contribution_margin": "unknown_without_actual_customer_fulfillment_cost"
+  },
+  "safety": {
+    "wallet_signature_or_message": false,
+    "asset_movement": false,
+    "paid_test": false,
+    "cash_or_credit_added": false,
+    "kyc_or_identity_attestation": false,
+    "legal_commitment": false,
+    "artificial_or_reimbursed_demand": false
+  },
+  "workspace_coordination": {
+    "canonical_repo_handoff_written": true,
+    "local_commercial_operator_state_accessible": false,
+    "local_sprint_json_synchronized": false,
+    "local_pipeline_json_synchronized": false,
+    "library_search_attempted": true,
+    "note": "A fresh Library search did not locate 运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json or data/pipeline.json. No synchronization is claimed."
+  },
+  "evidence_execution": {
+    "github_actions_run_id": 35556664723,
+    "github_actions_attempt": 2,
+    "evidence_artifact_id": 10621783652,
+    "rerun_completed": true
+  },
+  "next_conversion_action": "Until the fixed deadline, act only on a genuinely new buyer-initiated request or funded DELTA-native need. At or after 2026-09-21T13:43:28+09:00, perform a final Treasury plus fulfillment reconciliation and report the actual sprint outcome; never count purchases occurring after the deadline toward this sprint."
+}
