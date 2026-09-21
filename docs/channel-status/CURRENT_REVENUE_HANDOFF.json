@@ -1,8 +1,12 @@
 {
-  "updated_at_jst": "2026-09-21T13:25:01+09:00",
-  "latest_handoff": "docs/channel-status/revenue-expansion-2026-09-21-1325-chat.json",
-  "instruction": "Read latest_handoff first for current sprint state, buyer contacts, suppressions and freshest reconciliation coverage. This pointer is coordination evidence only; it does not replace 运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json or data/pipeline.json and must never be treated as synchronization with inaccessible stores.",
+  "updated_at_jst": "2026-09-21T14:12:29+09:00",
+  "latest_handoff": "docs/channel-status/revenue-expansion-2026-09-21-1412-final.json",
+  "instruction": "The fixed revenue sprint is closed. Read latest_handoff for the final verified outcome and exact full-window Treasury reconciliation. This pointer is coordination evidence only; it does not replace 运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json or data/pipeline.json and must never be treated as synchronization with inaccessible stores.",
+  "sprint_status": "closed_at_fixed_deadline_target_not_met",
   "sprint_counted_customer_transactions": 0,
   "unique_verified_independent_buyers": 0,
-  "deadline": "2026-09-21T13:43:28+09:00"
+  "fulfilled_paid_uses": 0,
+  "recognized_customer_revenue_usdc": 0,
+  "deadline": "2026-09-21T13:43:28+09:00",
+  "deadline_extended": false
 }
