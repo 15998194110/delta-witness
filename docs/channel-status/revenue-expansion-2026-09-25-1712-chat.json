@@ -1,0 +1,59 @@
+{
+  "run_evidence_at_cst": "2026-09-25T17:12:00+08:00",
+  "historical_sprint": {
+    "status": "closed_at_fixed_deadline_target_not_met",
+    "counted_customer_transactions": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "amended_this_run": false
+  },
+  "current_run": {
+    "new_countable_customer_receipts_observed": 0,
+    "new_external_paid_settlements_observed": 0,
+    "new_paid_fulfillments_observed": 0,
+    "new_actionable_buyer_replies_observed": 0,
+    "funded_delta_native_requests_found": 0,
+    "outreach_sent": 0
+  },
+  "treasury_check": {
+    "source": "Base Blockscout API v2 canonical-USDC transfers to canonical Treasury",
+    "returned_transfers": 2,
+    "newest_timestamp_utc": "2026-09-09T16:43:31Z",
+    "classification": "existing PayAPI platform verification receipts; not independent customer revenue",
+    "new_post_deadline_customer_receipts": 0
+  },
+  "runtime_check": {
+    "health_ok": true,
+    "version": "0.7.0",
+    "network": "eip155:8453",
+    "public_capture_usdc": 1,
+    "public_preflight_usdc": 5,
+    "guarded_action_pilot_usdc": 10,
+    "raw_amounts": [
+      "1000000",
+      "5000000",
+      "10000000"
+    ],
+    "diagnostic_generated_payment": false
+  },
+  "buyer_threads": {
+    "xyncpay": "no payment-path integration; any possible use described as interop test only",
+    "saifuro": "technical fit acknowledged; deferred until end of October; no current purchase commitment",
+    "coppice": "prior outbound path closure preserved",
+    "reap": "prior rejection preserved",
+    "relevance_ai": "prior support-route closure preserved"
+  },
+  "workspace_coordination": {
+    "local_operator_exact_files_found": false,
+    "local_operator_sync_claimed": false
+  },
+  "safety": {
+    "wallet_signature_or_message": false,
+    "asset_movement": false,
+    "paid_test": false,
+    "cash_or_credit_added": false,
+    "kyc_or_identity_attestation": false,
+    "legal_commitment": false,
+    "artificial_demand": false
+  },
+  "next_action": "Continue Treasury and inbound first, then qualify new current buyer-side workflows; only send after Gmail and operator dedupe plus pricing/write gate."
+}
