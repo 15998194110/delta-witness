@@ -1,0 +1,128 @@
+{
+  "recorded_at_cst": "2026-09-26T01:45:02+08:00",
+  "operation": "ongoing_revenue_first_existing_hourly_task",
+  "task_id": "6a9699b9f8308191a104d805bfa57c43",
+  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-09-25-2210-chat.json",
+  "previous_pointer_target": "docs/channel-status/revenue-expansion-2026-09-25-1712-chat.json",
+  "historical_sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "status": "closed_at_fixed_deadline_target_not_met",
+    "recorded_counted_customer_transactions": 0,
+    "amended_this_run": false
+  },
+  "ongoing_post_deadline": {
+    "last_recorded_as_of_cst": "2026-09-25T22:10:00+08:00",
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "fulfilled_paid_uses": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "value_status": "carried_forward_from_previous_handoff_not_a_fresh_full_period_reconciliation",
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "target_milestone": 50
+  },
+  "this_run_actions": {
+    "owner_policy_files_read": ["AGENTS.md", "docs/pricing-policy-2026-09-10.md", "ACQUISITION_ENGINE.md"],
+    "latest_actual_handoff_read": true,
+    "gmail_targeted_searches_completed": true,
+    "new_actionable_buyer_replies_found_in_targeted_searches": 0,
+    "new_countable_transactions_verified": 0,
+    "outreach_sent": 0,
+    "bids_or_claims_submitted": 0,
+    "paid_fulfillments_performed": 0,
+    "new_listings_or_identities_created": 0,
+    "deployment_or_workflow_dispatch_performed": false
+  },
+  "treasury_evidence": {
+    "fresh_direct_reconciliation_completed_this_run": false,
+    "current_unreconciled_receipt_count": null,
+    "current_unreconciled_receipt_amount_usdc": null,
+    "limitation": "Direct current-time explorer/runtime reads were unsuccessful in this execution environment; TinyFish extraction did not supply usable response bodies. Access failure is neither a zero-balance result nor evidence of a product outage.",
+    "existing_canonical_pulse_logs_read_this_run": {
+      "run_id": 36143872909,
+      "job_id": 108100028486,
+      "run_url": "https://github.com/15998194110/delta-witness/actions/runs/36143872909",
+      "treasury_checked_at_utc": "2026-09-25T13:54:03.719Z",
+      "network": "eip155:8453",
+      "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+      "from_block": 51727545,
+      "to_block": 51777544,
+      "receipt_candidates_in_that_range": 0,
+      "unclassified_receipts_in_that_range": 0,
+      "paid_funnel_candidate_rows_at_that_checkpoint": 0,
+      "scope_note": "Existing dated evidence, not a newly executed scan, not all-time zero, and not continuous coverage through this handoff timestamp."
+    },
+    "later_operator_report": {
+      "path": "docs/channel-status/revenue-expansion-2026-09-25-2210-chat.json",
+      "reported_at_cst": "2026-09-25T22:10:00+08:00",
+      "reported_explorer_transfers": 2,
+      "reported_newest_transfer_timestamp_utc": "2026-09-09T16:43:31Z",
+      "classification": "Both previously excluded platform-verification receipts; no reclassification performed.",
+      "verification_level_this_run": "read_existing_report_not_independently_repeated"
+    }
+  },
+  "buyer_conversion": {
+    "priority": "Current independently funded native needs and explicit inbound intent before new prospecting; do not ask infrastructure providers to manufacture paid tests.",
+    "gmail_scope": "Targeted DELTA/x402/USDC and priority-thread searches, including incoming mail after 2026-09-25; not an all-mailbox absence claim.",
+    "existing_reply_rules": "Preserve all rejections, support closures and deferrals. No silent Robauto follow-up. XyncPay interoperability testing is not customer buying intent; Saifuro remains deferred until late October unless it initiates a new request.",
+    "dated_funded_demand_evidence": "The recovered canonical pulse had 22 adjacent funded requests but no funded DELTA-native request. The later 22:10 handoff also reported no funded price-compatible native request. These are dated snapshots, not current platform-wide zero assertions.",
+    "prospect_screening": [
+      {
+        "target": "GovSignals / procurement workflow segment",
+        "status": "research_only_no_offer",
+        "commercial_evidence_grade": "C",
+        "gaps": ["immediate paying task", "payment readiness", "reliable operator dedupe", "verified suitable contact route"]
+      },
+      {
+        "target": "CoSkip",
+        "official_source": "https://coskip.com/contact",
+        "status": "research_only_no_offer",
+        "technical_fit": "Unproven narrow hypothesis around public warranty terms; private manuals and physical field-work proof are not current DELTA Capture deliverables.",
+        "commercial_evidence_grade": "C",
+        "gaps": ["current independently paid need", "payment readiness", "reliable full contact history"]
+      },
+      {
+        "target": "EximDataHub",
+        "official_source": "https://eximdatahub.com/contact-us",
+        "status": "research_only_no_offer",
+        "technical_fit": "Possible public supplier-page record only; do not claim certificate, supplier-identity or shipment authenticity verification.",
+        "commercial_evidence_grade": "C",
+        "gaps": ["independent commercial evidence beyond marketing claims", "exact business-contact verification", "payment readiness", "reliable full contact history"]
+      }
+    ]
+  },
+  "deduplication_integrity": {
+    "github_index_search_reliable_this_run": false,
+    "calibration": "Search for Reap returned no results despite Reap appearing in directly fetched acquisition notes. Direct GitHub code-search response stated incomplete_results=true.",
+    "rule": "Do not interpret empty indexed results as absence of prior contact. Block affected new first contacts until Gmail and directly accessible canonical contact records provide reliable dedupe; do not restore any numerical daily quota.",
+    "repository_tree_read": true,
+    "tree_truncated": false,
+    "tree_sha": "2901bb10b7306f2cc12e05732d03999ecbed3346",
+    "tree_limit": "A file tree locates evidence; it does not itself search file contents or complete contact deduplication."
+  },
+  "pricing_gate": {
+    "current_policy_read": true,
+    "exact_check_script_executed_this_run": false,
+    "fresh_live_402_reprobed_this_run": false,
+    "recovered_pulse_public_402_checkpoint_utc": "2026-09-25T13:53:43.528Z",
+    "price_bearing_external_write_performed": false,
+    "partner_live_configuration_verified_this_run": false,
+    "rule": "Require current owner checks and live public challenges before any affected price-bearing write or deployment; historical successful probes are not fresh verification."
+  },
+  "workspace_coordination": {
+    "repository_handoff_written_by_this_action": true,
+    "local_operator_exact_files_accessed_this_run": false,
+    "local_operator_sync_claimed": false,
+    "other_stores_synchronized": false
+  },
+  "safety": {
+    "new_cash_or_credits": false,
+    "wallet_signature_or_asset_movement": false,
+    "fees_or_paid_tests": false,
+    "identity_or_legal_commitments": false,
+    "artificial_demand": false
+  },
+  "next_conversion_action": "First refresh independent Treasury receipt coverage and explicit inbound intent. For new outbound, use directly fetched canonical contact records or a complete accessible corpus rather than the incomplete search index, then qualify one current native buyer task and existing payment readiness before a commercial offer. Do not add catalogs or chase silence to substitute for conversion."
+}
