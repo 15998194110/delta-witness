@@ -1,0 +1,80 @@
+{
+  "run_evidence_at_cst": "2026-09-25T22:10:00+08:00",
+  "historical_sprint": {
+    "status": "closed_at_fixed_deadline_target_not_met",
+    "counted_customer_transactions": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "amended_this_run": false
+  },
+  "ongoing_post_deadline": {
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "fulfilled_paid_uses": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "target_milestone": 50
+  },
+  "current_run": {
+    "new_countable_customer_receipts_observed": 0,
+    "new_external_paid_settlements_observed": 0,
+    "new_paid_fulfillments_observed": 0,
+    "new_actionable_buyer_replies_observed": 0,
+    "funded_delta_native_requests_found": 0,
+    "outreach_sent": 0
+  },
+  "treasury_check": {
+    "checked_fresh_this_run": true,
+    "returned_transfers": 2,
+    "newest_timestamp_utc": "2026-09-09T16:43:31Z",
+    "classification": "both existing platform-verification receipts already excluded from customer revenue",
+    "new_post_deadline_customer_receipts": 0
+  },
+  "gmail_check": {
+    "checked_fresh_this_run": true,
+    "new_actionable_buyer_replies_observed": 0,
+    "scope_note": "Targeted DELTA/x402/USDC and priority-thread searches only; not an all-mailbox absence claim."
+  },
+  "agentpact_check": {
+    "checked_fresh_this_run": true,
+    "canonical_offer_count": 3,
+    "canonical_offer_prices_usdc": [1, 5, 10],
+    "canonical_offer_completed_deal_counts": [0, 0, 0],
+    "needs_scanned": 100,
+    "adjacent_requests": 39,
+    "delta_native_requests_after_fit_exclusions": 1,
+    "funded_price_compatible_delta_native_requests": 0,
+    "note": "The public deals endpoint returned broad platform rows; no DELTA settlement claim is made from that response."
+  },
+  "funded_demand_scan": {
+    "checked_fresh_this_run": true,
+    "channels": {
+      "moltjobs": {"adjacent_funded": 0, "delta_native_funded": 0},
+      "bountybook": {"adjacent_funded": 13, "delta_native_funded": 0},
+      "riner": {"adjacent_funded": 0, "delta_native_funded": 0},
+      "agent_bounties": {"adjacent_funded": 0, "delta_native_funded": 0},
+      "taskmarket": {"adjacent_funded": 3, "delta_native_funded": 0},
+      "clawlancer": {"adjacent_funded": 6, "delta_native_funded": 0},
+      "workpnp": {"delta_native_funded": 0, "parse_note": "board checked; row-count parse incomplete, so no all-board zero claim"}
+    }
+  },
+  "pricing_write_gate": {
+    "source_policy_read": true,
+    "source_check_script_read": true,
+    "exact_node_script_executed_this_run": false,
+    "live_402_reprobed_this_run": false,
+    "price_bearing_external_write_attempted": false,
+    "result": "not required because no price-bearing external write or deployment was executed"
+  },
+  "workspace_coordination": {
+    "local_operator_exact_files_accessed": false,
+    "local_operator_sync_claimed": false
+  },
+  "safety": {
+    "financial_or_signature_action_taken": false,
+    "identity_or_legal_commitment_taken": false,
+    "artificial_demand_created": false,
+    "bid_or_claim_submitted": false
+  },
+  "next_action": "Continue Treasury and inbound first; keep scanning funded native buyer demand; do not bid adjacent mismatched requests; send only after dedupe and required pricing/write gate."
+}
