@@ -1,0 +1,101 @@
+{
+  "recorded_at_cst": "2026-09-26T07:20:21+08:00",
+  "operation": "ongoing_revenue_first_existing_hourly_task",
+  "historical_sprint": {
+    "status": "closed_at_fixed_deadline_target_not_met",
+    "counted_customer_transactions": 0,
+    "amended_this_run": false
+  },
+  "ongoing_post_deadline": {
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "fulfilled_paid_uses": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "target_milestone": 50,
+    "verification_note": "No new countable transaction was evidenced by the latest canonical paid-funnel/Treasury checkpoint or targeted inbound search. Current time remains later than the latest chain checkpoint; do not interpret this as continuous zero through 07:20 CST."
+  },
+  "canonical_pulse_readback": {
+    "run_id": 36196700495,
+    "job_id": 108274063706,
+    "completed_successfully": true,
+    "pricing_checked_at_utc": "2026-09-25T22:26:31.119Z",
+    "pricing": {
+      "capture_usdc": 1,
+      "public_preflight_usdc": 5,
+      "guarded_action_pilot_usdc": 10,
+      "raw_amounts": [
+        "1000000",
+        "5000000",
+        "10000000"
+      ],
+      "network": "eip155:8453",
+      "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+    },
+    "paid_funnel_candidate_rows": 0,
+    "treasury_checked_at_utc": "2026-09-25T22:26:49.482Z",
+    "treasury_block_range": {
+      "from": 51742928,
+      "to": 51792927,
+      "lookback_blocks": 50000
+    },
+    "treasury_received_candidates": 0,
+    "treasury_total_usdc": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log_from_canonical_pulse",
+    "continuity": {
+      "previous_run_id": 36174990384,
+      "previous_treasury_block_range": {
+        "from": 51736174,
+        "to": 51786173
+      },
+      "overlap_verified": true,
+      "note": "Run 195 and run 196 ranges overlap, so no block-range gap exists between those two canonical reconciliations."
+    }
+  },
+  "buyer_demand": {
+    "agentexchange": {
+      "buyer_count": 2,
+      "external_requests": 4,
+      "intents_402": 0,
+      "paid_settlements": 0,
+      "funded_compatible_requests": 0
+    },
+    "agentpact": {
+      "buyer_count": 0,
+      "settlement_count": 0,
+      "external_requests": 15,
+      "intents_402": 0,
+      "paid_settlements": 0,
+      "funded_compatible_requests": 0
+    },
+    "external_funded_scan": {
+      "adjacent_funded_requests": 22,
+      "delta_native_funded_requests": 0
+    },
+    "interpretation": "Adjacent funded work remains non-native or otherwise incompatible with current DELTA fulfillment. No bid/claim was submitted."
+  },
+  "gmail_check": {
+    "query": "after:2026/09/25 -from:me {DELTA x402 USDC Witness AgentPact Agent402} -in:spam -in:trash",
+    "results": 0,
+    "new_actionable_buyer_replies_observed": 0,
+    "scope_note": "Targeted search only; not an all-mailbox absence claim."
+  },
+  "actions": {
+    "outreach_sent": 0,
+    "bids_or_claims_submitted": 0,
+    "paid_fulfillments_performed": 0,
+    "new_listings_or_identities_created": 0,
+    "wallet_signature_or_asset_movement": false,
+    "paid_test": false,
+    "cash_or_credit_added": false,
+    "identity_or_legal_commitment": false
+  },
+  "workspace_coordination": {
+    "repository_handoff_write_attempted": true,
+    "local_operator_exact_files_accessed": false,
+    "local_operator_sync_claimed": false
+  },
+  "next_action": "Continue with Treasury/inbound first. On the next run, reconcile from the latest verified block with safe overlap, then act only on a newly funded DELTA-native request or explicit buyer intent. Do not substitute adjacent bounties, directories, or technical acknowledgements for conversion."
+}
