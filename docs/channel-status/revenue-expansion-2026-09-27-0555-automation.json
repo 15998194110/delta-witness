@@ -1,0 +1,51 @@
+{
+  "recorded_at_cst": "2026-09-27T05:55:14+08:00",
+  "task_id": "6a9699b9f8308191a104d805bfa57c43",
+  "previous_handoff": "docs/channel-status/revenue-expansion-2026-09-27-0136-chat.json",
+  "status": {
+    "historical_sprint_counted_customer_transactions": 0,
+    "ongoing_counted_customer_transactions": 0,
+    "ongoing_unique_verified_independent_buyers": 0,
+    "ongoing_fulfilled_paid_uses": 0,
+    "ongoing_recognized_customer_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null
+  },
+  "inbound": {
+    "new_actionable_buyer_reply": false,
+    "known_delivery_notices_only": true
+  },
+  "treasury": {
+    "fresh_read_only_transfer_history_checked": true,
+    "complete_result_no_pagination": true,
+    "new_transfer_after_prior_checkpoint_observed": false,
+    "prior_checkpoint_block": 51826755,
+    "prior_checkpoint_preserved": true,
+    "historical_known_verification_receipts_only": true,
+    "recognized_customer_revenue_added_usdc": 0
+  },
+  "core": {
+    "health_ok": true,
+    "version": "0.7.0",
+    "network": "eip155:8453",
+    "public_capture_quote_usdc": 1,
+    "runtime_expected_variable_cost_usd": 0.0028825,
+    "runtime_estimated_contribution_margin_usd": 0.9971175,
+    "realized_margin_claimed": false
+  },
+  "conversion": {
+    "new_first_contacts_sent": 0,
+    "new_actionable_purchase_intents": 0,
+    "priced_offers_sent": 0,
+    "payment_requests_sent": 0,
+    "two_outbound_attempts_not_sent_due_to_tool_safety": true,
+    "duplicate_outreach_prevented": true
+  },
+  "coordination": {
+    "task_or_schedule_changed": false,
+    "duplicate_loop_created": false,
+    "financial_or_identity_action_taken": false,
+    "local_operator_synchronization_claimed": false
+  },
+  "next_action": "Reconcile receipts and inspect real buyer replies first; advance only explicit qualified intent; continue unique-target qualification through current official business routes without retrying blocked or duplicate outreach."
+}
