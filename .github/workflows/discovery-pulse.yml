@@ -1,5 +1,5 @@
-# Canonical revenue-first pulse. Buyer/settlement checks run every pulse; directory maintenance is throttled to once daily.
-# Manual revenue reconciliation trigger: 2026-09-17T20:57+09:00
+# Canonical revenue-first pulse. Reuse this workflow; never create a parallel growth loop.
+# Operator evidence export added for read-only reconciliation and complete repository-contact dedupe.
 name: DELTA Discovery Pulse
 on:
   schedule:
@@ -14,9 +14,17 @@ on:
       - "scripts/scan-workpnp-demand.mjs"
       - "scripts/scan-agentpact-demand.mjs"
 
+permissions:
+  contents: read
+
+concurrency:
+  group: delta-canonical-revenue-pulse
+  cancel-in-progress: false
+
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       DELTA_INDEXNOW_ADMIN_SECRET: ${{ secrets.DELTA_INDEXNOW_ADMIN_SECRET }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -27,58 +35,86 @@ jobs:
       - uses: actions/setup-node@v5
         with: { node-version: '22' }
 
-      # Core integrity and settlement evidence always run. These are not distribution work.
+      # Fail-fast core integrity; explicitly retain diagnostic results without generating payments.
       - name: Check current owner pricing policy
-        run: node scripts/check-owner-pricing.mjs
+        shell: bash
+        run: node scripts/check-owner-pricing.mjs | tee /tmp/delta-owner-pricing-source.json
       - name: Verify current owner live prices without payment
-        run: node scripts/verify-owner-pricing-live.mjs
+        shell: bash
+        run: node scripts/verify-owner-pricing-live.mjs | tee /tmp/delta-owner-pricing-live.json
       - name: Verify live purchase path without payment
+        shell: bash
         run: |
           set -e
           BASE=https://delta-witness-api.ruphussten.workers.dev
-          curl -fsS "$BASE/health"
-          curl -fsS "$BASE/.well-known/x402" >/dev/null
-          curl -fsS "$BASE/openapi.json" >/dev/null
-          curl -fsS "$BASE/SKILL.md" >/dev/null
-          curl -fsS "$BASE/.well-known/mcp/server.json" >/dev/null
-          curl -fsS https://delta-witness-app.pages.dev/ >/dev/null
-          STATUS=$(curl -sS -o /tmp/delta-preflight.json -D /tmp/delta-preflight.headers -w '%{http_code}' -X POST "$BASE/v1/preflight" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
+          curl -fsS --connect-timeout 10 --max-time 25 "$BASE/health" | tee /tmp/delta-health.json
+          curl -fsS --connect-timeout 10 --max-time 25 "$BASE/.well-known/x402" >/dev/null
+          curl -fsS --connect-timeout 10 --max-time 25 "$BASE/openapi.json" >/dev/null
+          curl -fsS --connect-timeout 10 --max-time 25 "$BASE/SKILL.md" >/dev/null
+          curl -fsS --connect-timeout 10 --max-time 25 "$BASE/.well-known/mcp/server.json" >/dev/null
+          curl -fsS --connect-timeout 10 --max-time 25 https://delta-witness-app.pages.dev/ >/dev/null
+          STATUS=$(curl -sS --connect-timeout 10 --max-time 25 -o /tmp/delta-preflight.json -D /tmp/delta-preflight.headers -w '%{http_code}' -X POST "$BASE/v1/preflight" -H 'content-type: application/json' -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}')
           test "$STATUS" = "402"
           grep -qi '^payment-required:' /tmp/delta-preflight.headers
+
+      # Treasury and paid fulfillment evidence precede external prospect/directory scans.
+      - name: Reconcile Base Treasury
+        id: treasury
+        continue-on-error: true
+        shell: bash
+        run: node scripts/reconcile-treasury.mjs | tee /tmp/delta-treasury.json
+      - name: Audit paid funnel candidates
+        shell: bash
+        run: node scripts/query-revenue-candidates.mjs | tee /tmp/delta-revenue-candidates.json
 
       # Revenue-first: buyer demand and settlement run on every pulse.
       - name: Scan PayanAgent funded buyer demand
         continue-on-error: true
+        shell: bash
         run: node scripts/scan-payan-demand.mjs | tee /tmp/delta-payan-demand.json
       - name: Scan Agent Exchange funded buyer demand
         continue-on-error: true
+        shell: bash
         run: node scripts/scan-agentexchange-demand.mjs | tee /tmp/delta-agentexchange-demand.json
       - name: Scan AgentPact seller and funded buyer demand
         continue-on-error: true
+        shell: bash
         run: node scripts/scan-agentpact-demand.mjs | tee /tmp/delta-agentpact-demand.json
+      - name: Retain current public AgentPact buyer requirements without mutation
+        continue-on-error: true
+        shell: bash
+        run: |
+          curl -fsS --connect-timeout 8 --max-time 20 --retry 1 --retry-delay 1 -H 'accept: application/json' 'https://api.agentpact.xyz/api/needs?limit=100' -o /tmp/delta-agentpact-needs-raw.json
+          curl -fsS --connect-timeout 8 --max-time 20 --retry 1 --retry-delay 1 -H 'accept: application/json' 'https://api.agentpact.xyz/api/offers?query=DELTA%20Witness&limit=100' -o /tmp/delta-agentpact-offers-raw.json
       - name: Scan additional escrow-backed buyer demand
         continue-on-error: true
+        shell: bash
         run: node scripts/scan-external-funded-demand.mjs | tee /tmp/delta-external-funded-demand.json
       - name: Scan MoltJobs funded buyer demand
         continue-on-error: true
+        shell: bash
         run: node scripts/scan-moltjobs-demand.mjs | tee /tmp/delta-moltjobs-demand.json
       - name: Scan WorkPnP escrow-funded buyer demand
         continue-on-error: true
+        shell: bash
         run: node scripts/scan-workpnp-demand.mjs | tee /tmp/delta-workpnp-demand.json
-      - name: Audit paid funnel candidates
-        run: node scripts/query-revenue-candidates.mjs | tee /tmp/delta-revenue-candidates.json
-      - name: Reconcile Base Treasury
-        id: treasury
-        continue-on-error: true
-        run: node scripts/reconcile-treasury.mjs | tee /tmp/delta-treasury.json
 
-      # Maintenance/distribution is deliberately throttled. This prevents hourly catalog churn from
-      # competing with buyer conversion while retaining one bounded refresh window per UTC day.
+      # Existing public repository records, not secrets or the inaccessible local operator workspace.
+      # Export permits exact offline contact/domain searches when GitHub's code index is incomplete.
+      - name: Export tracked repository operator evidence for buyer-contact deduplication
+        if: always()
+        shell: bash
+        run: |
+          git archive --format=zip HEAD AGENTS.md ACQUISITION_ENGINE.md docs distribution/evidence > /tmp/delta-operator-records.zip
+          git rev-parse HEAD > /tmp/delta-operator-records-commit.txt
+          sha256sum /tmp/delta-operator-records.zip > /tmp/delta-operator-records-sha256.txt
+
+      # Maintenance is allowed only in the existing daily scheduled window, never on manual/push audits.
       - name: Decide distribution maintenance window
         id: maintenance
         shell: bash
         run: |
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] || [ "$(date -u +%H)" = "03" ]; then
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ] && [ "$(date -u +%H)" = "03" ]; then
             echo 'run=true' >> "$GITHUB_OUTPUT"
             echo 'DISTRIBUTION_MAINTENANCE run=true'
           else
@@ -159,7 +195,7 @@ jobs:
             echo "- Treasury RPC reconciliation: \`$TREASURY_OUTCOME\`"
             echo "- Distribution maintenance this pulse: \`${MAINTENANCE_RUN:-false}\`"
             echo ''
-            echo 'Buyer-demand, paid-funnel and Treasury checks run every pulse. Directory/index maintenance is throttled to one daily window so external outages and catalog work do not consume the revenue program.'
+            echo 'Treasury and paid-funnel checks precede buyer-demand scans. Public repository evidence is exported for exact contact deduplication, not as a replacement for inaccessible local operator state. No purchase or customer revenue is generated by this diagnostic.'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload canonical pulse evidence
         if: always()
@@ -167,13 +203,21 @@ jobs:
         with:
           name: delta-pulse-state-${{ github.run_id }}
           path: |
+            /tmp/delta-owner-pricing-source.json
+            /tmp/delta-owner-pricing-live.json
+            /tmp/delta-health.json
             /tmp/delta-payan-demand.json
             /tmp/delta-agentexchange-demand.json
             /tmp/delta-agentpact-demand.json
+            /tmp/delta-agentpact-needs-raw.json
+            /tmp/delta-agentpact-offers-raw.json
             /tmp/delta-external-funded-demand.json
             /tmp/delta-moltjobs-demand.json
             /tmp/delta-workpnp-demand.json
             /tmp/delta-revenue-candidates.json
             /tmp/delta-treasury.json
+            /tmp/delta-operator-records.zip
+            /tmp/delta-operator-records-commit.txt
+            /tmp/delta-operator-records-sha256.txt
           if-no-files-found: warn
           retention-days: 7
