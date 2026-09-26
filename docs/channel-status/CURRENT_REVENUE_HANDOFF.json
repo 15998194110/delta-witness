@@ -1,7 +1,7 @@
 {
-  "updated_at_cst": "2026-09-26T16:50:22+08:00",
-  "latest_handoff": "docs/channel-status/revenue-expansion-2026-09-26-1306-auto06.json",
-  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-09-26-0720-auto06.json",
+  "updated_at_cst": "2026-09-26T21:20:00+08:00",
+  "latest_handoff": "docs/channel-status/revenue-expansion-2026-09-26-1805-auto06.json",
+  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-09-26-1306-auto06.json",
   "instruction": "Ongoing post-deadline revenue-first operation. Read latest_handoff first. The original 2026-09-14 through 2026-09-21 sprint remains closed and is not reset or extended. This pointer is repository coordination only and does not imply synchronization with inaccessible local Commercial Operator state.",
   "historical_sprint_status": "closed_at_fixed_deadline_target_not_met",
   "historical_sprint_counted_customer_transactions": 0,
@@ -9,7 +9,7 @@
   "ongoing_unique_verified_independent_buyers": 0,
   "ongoing_fulfilled_paid_uses": 0,
   "ongoing_recognized_customer_revenue_usdc": 0,
-  "ongoing_counts_last_recorded_as_of_cst": "2026-09-26T13:06:17+08:00",
-  "latest_fresh_treasury_read_at_cst": "2026-09-26T16:50:22+08:00",
+  "ongoing_counts_last_recorded_as_of_cst": "2026-09-26T18:05:23+08:00",
+  "latest_fresh_treasury_read_at_cst": "2026-09-26T21:18:06+08:00",
   "target_milestone": 50
 }
