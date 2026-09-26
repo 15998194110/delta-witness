@@ -1,0 +1,105 @@
+{
+  "recorded_at_cst": "2026-09-26T13:06:17+08:00",
+  "operation": "ongoing_revenue_first_existing_hourly_task",
+  "historical_sprint": {
+    "status": "closed_at_fixed_deadline_target_not_met",
+    "counted_customer_transactions": 0,
+    "amended_this_run": false
+  },
+  "ongoing_post_deadline": {
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "fulfilled_paid_uses": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "target_milestone": 50
+  },
+  "treasury_check": {
+    "fresh_read": true,
+    "source": "Base Blockscout canonical USDC transfers to canonical Treasury",
+    "returned_transfer_count": 2,
+    "newest_transfer_timestamp_utc": "2026-09-09T16:43:31Z",
+    "classification": "both are existing platform-verification receipts already excluded from customer revenue",
+    "new_countable_customer_receipts": 0
+  },
+  "runtime_check": {
+    "health_ok": true,
+    "version": "0.7.0",
+    "checked_at_utc": "2026-09-26T05:08:22Z",
+    "public_prices_usdc": [
+      1,
+      5,
+      10
+    ],
+    "raw_amounts": [
+      "1000000",
+      "5000000",
+      "10000000"
+    ],
+    "read_only": true
+  },
+  "canonical_pulse": {
+    "run_id": 36209078496,
+    "job_id": 108311695872,
+    "treasury_checked_at_utc": "2026-09-26T01:38:25.703Z",
+    "block_range": [
+      51748676,
+      51798675
+    ],
+    "treasury_received_candidates": 0,
+    "paid_funnel_candidate_rows": 0,
+    "delta_native_funded_requests": 0,
+    "adjacent_funded_requests": 21
+  },
+  "agentpact": {
+    "offers_active": [
+      {
+        "price_usdc": 1,
+        "completed_deal_count": 0
+      },
+      {
+        "price_usdc": 5,
+        "completed_deal_count": 0
+      },
+      {
+        "price_usdc": 10,
+        "completed_deal_count": 0
+      }
+    ],
+    "needs_scanned": 100,
+    "one_native_need_found": {
+      "id": "967813a5-88f2-4cea-908e-cf6c917d3a60",
+      "budget_usdc": 0.01,
+      "price_compatible": false
+    },
+    "funded_price_compatible_delta_native_requests": 0
+  },
+  "funded_demand": {
+    "fresh_zero_native_channels": [
+      "riner",
+      "clawlancer",
+      "moltjobs"
+    ],
+    "current_read_degraded_channels": [
+      "bountybook",
+      "agent_bounties",
+      "taskmarket",
+      "workpnp"
+    ],
+    "fallback": "latest canonical pulse reported zero DELTA-native funded requests across scanned channels"
+  },
+  "gmail": {
+    "targeted_revenue_thread_search_results": 0,
+    "new_actionable_buyer_replies": 0
+  },
+  "actions": {
+    "outreach_sent": 0,
+    "bids_or_claims_submitted": 0,
+    "paid_fulfillments_performed": 0,
+    "new_listings_or_identities_created": 0
+  },
+  "workspace_coordination": {
+    "local_operator_exact_files_accessed": false,
+    "local_operator_sync_claimed": false
+  },
+  "next_action": "Continue Treasury and explicit inbound first; prioritize only genuinely funded, price-compatible DELTA-native page-state evidence or preflight needs. No catalog expansion in place of buyer conversion."
+}
