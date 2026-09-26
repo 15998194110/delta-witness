@@ -1,0 +1,148 @@
+{
+  "recorded_at_cst": "2026-09-27T00:22:31+08:00",
+  "operation": "ongoing_revenue_first_existing_hourly_task",
+  "task_id": "6a9699b9f8308191a104d805bfa57c43",
+  "previous_handoff": "docs/channel-status/revenue-expansion-2026-09-26-1805-auto06.json",
+  "historical_sprint": {
+    "start": "2026-09-14T13:43:28+09:00",
+    "deadline": "2026-09-21T13:43:28+09:00",
+    "status": "closed_at_fixed_deadline_target_not_met",
+    "recorded_counted_customer_transactions": 0,
+    "amended_this_run": false
+  },
+  "ongoing_post_deadline": {
+    "recorded_counted_customer_transactions": 0,
+    "recorded_unique_verified_independent_buyers": 0,
+    "recorded_fulfilled_paid_uses": 0,
+    "recorded_recognized_customer_revenue_usdc": 0,
+    "new_countable_customer_transactions_verified_this_run": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null,
+    "target_milestone": 50,
+    "scope": "Prior cumulative record retained with no newly verified additions. Fresh evidence below is an overlapping 50,000-block check plus paid-funnel query, not a newly repeated full-history audit."
+  },
+  "fresh_canonical_execution": {
+    "run_id": 36254801981,
+    "run_url": "https://github.com/15998194110/delta-witness/actions/runs/36254801981",
+    "source_commit": "bbac60f53b8fb3ea579cc1ad0bb56e03fcc5873c",
+    "event": "push_to_existing_canonical_workflow",
+    "conclusion": "success",
+    "completed_at_utc": "2026-09-26T16:15:52Z",
+    "artifact_id": 10909404515,
+    "artifact_sha256": "67a015d30d4f3d60336083ac1604ab813d43d18f1f2e5b7d1308ba21ffa44d1f",
+    "artifact_downloaded_hash_verified_and_read_this_run": true
+  },
+  "treasury": {
+    "fresh_direct_reconciliation_completed_this_run": true,
+    "checked_at_utc": "2026-09-26T16:15:37.283Z",
+    "checked_at_cst": "2026-09-27T00:15:37.283+08:00",
+    "network": "eip155:8453",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "from_block": 51774993,
+    "to_block": 51824992,
+    "blocks_checked": 50000,
+    "receipt_candidates_in_checked_range": 0,
+    "unclassified_receipts_in_checked_range": 0,
+    "received_usdc_in_checked_range": 0,
+    "evidence_quality": "A_direct_canonical_USDC_log",
+    "previous_pulse_read_this_run": {
+      "run_id": 36244274556,
+      "checked_at_utc": "2026-09-26T13:11:04.096Z",
+      "from_block": 51769457,
+      "to_block": 51819456,
+      "receipt_candidates": 0
+    },
+    "coverage": "The fresh range overlaps the preceding pulse and extends it to block 51824992. No claim is made about blocks after that checkpoint. Two historically excluded PayAPI platform-verification receipts remain excluded."
+  },
+  "paid_funnel": {
+    "fresh_query_in_same_canonical_execution": true,
+    "ok": true,
+    "candidate_rows": 0,
+    "new_external_paid_settlements_verified": 0,
+    "paid_fulfillments_performed_this_run": 0
+  },
+  "core_and_pricing": {
+    "owner_source_check_executed": true,
+    "owner_source_check_ok": true,
+    "live_public_402_checked_at_utc": "2026-09-26T16:15:30.362Z",
+    "live_public_402_ok": true,
+    "public_raw_amounts": ["1000000", "5000000", "10000000"],
+    "network_asset_pay_to_and_header_body_match": true,
+    "partner_pricing_status": "not_checked_scoped_secret_not_provided",
+    "health_ok": true,
+    "health_version": "0.7.0",
+    "health_timestamp_utc": "2026-09-26T16:15:30.564Z",
+    "diagnostic_paid_transactions_generated": 0
+  },
+  "repository_contact_deduplication": {
+    "prior_incomplete_code_search_dependency_removed": true,
+    "method": "git archive of existing tracked AGENTS.md, ACQUISITION_ENGINE.md, docs and distribution/evidence; downloaded with the canonical pulse artifact and searched as full text",
+    "tracked_files_in_export": 282,
+    "source_commit": "bbac60f53b8fb3ea579cc1ad0bb56e03fcc5873c",
+    "scope": "Complete for these tracked paths at this commit only. Not deleted Git history, Gmail, another operator store, or inaccessible local workspace. Gmail and current repository changes must still be checked before each send.",
+    "screened_terms": ["basedagents.ai", "govsignals", "govsignal.co", "govdash", "govly"],
+    "absence_of_repository_match_is_not_buyer_qualification": true
+  },
+  "buyer_demand": {
+    "agentpact_raw_open_needs_reviewed": 100,
+    "agentpact_funded_price_compatible_genuine_native_requests_verified_in_reviewed_rows": 0,
+    "agentpact_raw_schema_warning": "Actual records use description_md, budget_min, budget_max, agent_id and created_at. The existing scanner does not fully normalize these fields. Its null budgets/descriptions and reduced candidate counts must not be interpreted as complete board evidence; review retained raw rows. USDC accepted-payment metadata is not funded escrow. Funded deals are not necessarily paid settlements, and platform-wide deal rows must be matched to the canonical DELTA seller/offer.",
+    "existing_external_scanner_adjacent_funded_requests": 17,
+    "existing_external_scanner_delta_native_funded_requests": 0,
+    "basedagents": {
+      "source": "https://api.basedagents.ai/v1/status",
+      "checked_at_utc": "2026-09-26T16:17:01.066Z",
+      "open_tasks_reported": 0,
+      "platform_paid_task_count_reported": 8,
+      "platform_paid_usdc_total_reported": "4.90",
+      "payment_and_custodial_escrow_rails_reported_enabled": true,
+      "commercial_evidence_grade": "C_no_current_open_DELTA_native_buyer_request",
+      "caution": "Platform-reported payouts are not DELTA demand, independently classified customer revenue, or proof of an available budget. No registration, signature, claim or offer performed."
+    },
+    "clawslist": {
+      "canonical_origin": "https://clawslist.dev/api",
+      "readback_status": "current_fetch_no_usable_result",
+      "existing_identity_and_listings_preserved": true,
+      "duplicate_created": false
+    },
+    "new_end_user_screen": {
+      "targets": ["Govly", "GovDash", "GovSignals", "GovSignal.co"],
+      "hypothesized_use_case": "Preserve a public solicitation page state at a consequential procurement or bid/no-bid decision; no private, controlled or classified inputs",
+      "qualification_gaps": "No independently evidenced current DELTA purchase requirement, approved Base-USDC payment readiness, or budget. Some official business routes are forms; support, accounting and media addresses are not substituted for business-proposal routes.",
+      "commercial_grade": "C_unqualified",
+      "outreach_sent": 0,
+      "priced_offers_or_bids_sent": 0
+    }
+  },
+  "gmail": {
+    "fresh_targeted_delta_x402_usdc_search_after_2026_09_25": true,
+    "new_actionable_buyer_replies_found": 0,
+    "broader_after_2026_09_21_search": "first 50 rows read; additional page exists, so this is not an all-mailbox absence claim",
+    "no_silent_or_rejected_thread_chased": true,
+    "failed_routes_reobserved_and_not_retried": ["hello@x402nova.com", "hello@aggario.com", "tex@apitoll.com", "contact@rail402.app", "hello@merohq.com", "hello@foragerlabs.com", "hello@steelbridge.in", "hello@nulogic.ai", "hello@carrierbridge.com", "hello@quotesagent.com", "hello@prefero.me", "hello@paielectronics.com", "hello@agenthubcommerce.com", "hello@alvrion.com", "hello@horecai.ai", "hello@nayeb.ai"],
+    "prior_suppressions_preserved": ["Reap rejection", "Relevance AI support closure", "Coppice outbound path closed", "XyncPay no payment-path integration; interop testing is not customer demand", "Saifuro deferred until end of October", "Crossmint prior message withdrawn; acknowledgement is not buyer interest"]
+  },
+  "workflow_changes": {
+    "existing_file": ".github/workflows/discovery-pulse.yml",
+    "write_and_readback_completed": true,
+    "same_hourly_cron_preserved": true,
+    "changes": ["retain source/live pricing and health evidence", "Treasury and paid funnel before external scans", "retain raw public AgentPact requirements", "export existing public repository operator notes for exact dedupe", "explicit read-only GitHub permissions, bounded timeout and serialized canonical pulse", "manual/push reconciliation never triggers directory maintenance"],
+    "production_deployment": false,
+    "new_growth_loop": false,
+    "customer_acquisition_or_revenue_claimed_for_this_work": false
+  },
+  "local_operator_workspace": {
+    "exact_local_sprint_or_pipeline_files_accessed": false,
+    "synchronization_claimed": false
+  },
+  "safety": {
+    "payment_topup_fee_or_new_cash": false,
+    "wallet_signature_or_asset_movement": false,
+    "kyc_identity_or_legal_commitment": false,
+    "synthetic_or_reimbursed_demand": false,
+    "new_seller_identity_or_listing": false,
+    "paid_browser_automation_used": false
+  },
+  "next_conversion_action": "Reconcile from the overlapping verified Treasury checkpoint; inspect explicit buyer replies first. Use retained full operator records plus Gmail for send-level dedupe. Qualify an immediate native customer task and existing payment readiness before an offer; do not request paid tests or revive rejected threads. Inspect raw AgentPact snake_case fields rather than trusting incomplete scanner nulls. Keep BasedAgents as a read-only buyer-task source, not a catalog or purchase commitment."
+}
