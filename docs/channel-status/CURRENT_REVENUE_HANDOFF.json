@@ -1,9 +1,9 @@
 {
-  "updated_at_cst": "2026-09-28T05:45:40+08:00",
+  "updated_at_cst": "2026-09-28T06:48:00+08:00",
   "latest_handoff": "docs/channel-status/revenue-expansion-2026-09-27-2221-chat.json",
-  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-09-27-2122-chat.json",
+  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-09-27-2221-chat.json",
   "owner_delegation_document": "docs/owner-delegation-2026-09-27.md",
-  "instruction": "Continue the same autonomous revenue-first operation. Treasury and explicit buyer replies remain first. A fresh same-loop canonical pulse completed successfully in this run; no new receipt candidates, paid-funnel candidates, actionable buyer intent, or funded DELTA-native request were verified. Historical sprint remains closed; later receipts belong to ongoing results. Preserve dedupe, suppressions, pricing, and reserved financial/identity/legal boundaries. No local Commercial Operator synchronization is implied.",
+  "instruction": "Continue Treasury and genuine inbound review first. Fresh direct Base-USDC reconciliation through block 51879954 found no inbound canonical-USDC receipt candidates. No actionable buyer intent or funded DELTA-native request was verified. Historical sprint remains closed and ongoing counts are unchanged.",
   "task_id": "6a9699b9f8308191a104d805bfa57c43",
   "historical_sprint_status": "closed_at_fixed_deadline_target_not_met",
   "historical_sprint_counted_customer_transactions": 0,
@@ -14,13 +14,13 @@
   "ongoing_variable_cost_usdc": null,
   "ongoing_contribution_margin_usdc": null,
   "ongoing_counts_scope": "Previous cumulative record retained with no newly verified additions; current evidence is exact overlapping incremental block coverage, not a full-history rerun.",
-  "fresh_canonical_execution_triggered_this_run": true,
+  "fresh_canonical_execution_triggered_this_run": false,
   "fresh_direct_treasury_reconciliation_completed_this_run": true,
-  "latest_fresh_treasury_read_at_cst": "2026-09-28T05:45:22.785+08:00",
-  "latest_verified_treasury_block": 51878084,
+  "latest_fresh_treasury_read_at_cst": "2026-09-28T06:47:35+08:00",
+  "latest_verified_treasury_block": 51879954,
   "latest_checked_range": [
-    51828085,
-    51878084
+    51877000,
+    51879954
   ],
   "latest_range_receipt_candidates": 0,
   "latest_paid_funnel_candidates": 0,
