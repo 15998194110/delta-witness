@@ -1,0 +1,92 @@
+{
+  "recorded_at_cst": "2026-09-28T17:18:15+08:00",
+  "task_id": "6a9699b9f8308191a104d805bfa57c43",
+  "previous_current_handoff_updated_at_cst": "2026-09-28T06:48:00+08:00",
+  "status": {
+    "historical_sprint_counted_customer_transactions": 0,
+    "ongoing_counted_customer_transactions": 0,
+    "ongoing_unique_verified_independent_buyers": 0,
+    "ongoing_fulfilled_paid_uses": 0,
+    "ongoing_recognized_customer_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null
+  },
+  "inbound": {
+    "gmail_checked": true,
+    "query": "newer_than:1d -in:sent -in:spam -in:trash -category:promotions",
+    "new_actionable_delta_buyer_reply": false,
+    "observed_unrelated_only": true
+  },
+  "treasury": {
+    "source": "Base Blockscout v2 read-only",
+    "canonical_network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "prior_verified_block": 51879954,
+    "fresh_latest_block": 51898874,
+    "fresh_latest_block_timestamp_utc": "2026-09-28T09:18:15Z",
+    "incremental_range": [
+      51879955,
+      51898874
+    ],
+    "token_transfer_history_complete_no_pagination": true,
+    "new_canonical_usdc_transfer_after_prior_checkpoint": false,
+    "new_receipt_candidates": 0,
+    "historical_known_verification_receipts_only": true,
+    "recognized_customer_revenue_added_usdc": 0
+  },
+  "demand": {
+    "agentpact": {
+      "live_checked": true,
+      "current_offer_count": 3,
+      "offer_prices_usdc": [
+        1,
+        5,
+        10
+      ],
+      "current_offers_completed_deal_count": [
+        0,
+        0,
+        0
+      ],
+      "newest_need_created_at_utc": "2026-09-27T12:59:46.812Z",
+      "newest_need_predates_latest_canonical_pulse": true,
+      "newly_verified_funded_delta_native_request": false,
+      "notes": "Live /needs showed no newer need after the latest canonical pulse. Targeted current queries for preflight/webpage returned none; public-source matches were generic/free or fleet/bootstrap evidence, not qualified DELTA-native funded demand."
+    },
+    "moltjobs": {
+      "live_checked": true,
+      "funded_open_rows_observed": 10,
+      "delta_native_rows": 0,
+      "notes": "All returned funded rows were 0.2 USDC platform-referral/forum rewards, non-native to DELTA and below the authorized 1 USDC entry price."
+    },
+    "workpnp": {
+      "live_checked": true,
+      "funded_job_state": "unknown_from_public_page",
+      "notes": "The public funded URL exposed only the board shell and skill route in this runtime; no funded job row was inferred."
+    }
+  },
+  "conversion": {
+    "segment_pivot": "browser-agent infrastructure",
+    "qualified_target": "Bright Data Agent Browser",
+    "official_business_route_verified": "sales@brightdata.com",
+    "gmail_dedupe_exact_domain_and_address_clear": true,
+    "repository_operator_archive_dedupe_clear": true,
+    "later_commit_dedupe_checked": true,
+    "nonpriced_first_contact_attempted": true,
+    "nonpriced_first_contact_sent": false,
+    "send_block_reason": "Gmail send action blocked by OpenAI tool safety checks",
+    "retry_attempted": false,
+    "new_successful_external_contacts": 0,
+    "new_actionable_purchase_intents": 0,
+    "new_priced_offers": 0
+  },
+  "coordination": {
+    "historical_sprint_preserved_closed": true,
+    "duplicate_growth_loop_created": false,
+    "financial_or_identity_action_taken": false,
+    "wallet_signature_or_message_signed": false,
+    "local_operator_synchronization_verified": false
+  },
+  "next_action": "At the next run, reconcile Treasury and genuine inbound first. Then scan current funded native marketplace demand. Do not retry the blocked Bright Data cold send through another route merely to bypass the tool-safety block; continue with independently qualified buyer-side routes that the runtime supports."
+}
