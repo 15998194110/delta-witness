@@ -1,6 +1,6 @@
 {
-  "updated_at_cst": "2026-09-28T06:48:00+08:00",
-  "latest_handoff": "docs/channel-status/revenue-expansion-2026-09-27-2221-chat.json",
+  "updated_at_cst": "2026-09-28T18:25:49+08:00",
+  "latest_handoff": "docs/channel-status/revenue-expansion-2026-09-28-1825-automation.json",
   "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-09-27-2221-chat.json",
   "owner_delegation_document": "docs/owner-delegation-2026-09-27.md",
   "instruction": "Continue Treasury and genuine inbound review first. Fresh direct Base-USDC reconciliation through block 51879954 found no inbound canonical-USDC receipt candidates. No actionable buyer intent or funded DELTA-native request was verified. Historical sprint remains closed and ongoing counts are unchanged.",
