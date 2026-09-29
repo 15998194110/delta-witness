@@ -1,0 +1,57 @@
+{
+  "recorded_at_cst": "2026-09-29T20:30:50+08:00",
+  "task_id": "6a9699b9f8308191a104d805bfa57c43",
+  "task_title": "全力冲刺50000usdc",
+  "primary_target_customer_revenue_usdc": 50000,
+  "historical_sprint_status": "closed_at_fixed_deadline_target_not_met",
+  "ongoing": {
+    "counted_customer_transactions": 0,
+    "unique_verified_independent_buyers": 0,
+    "fulfilled_paid_uses": 0,
+    "recognized_customer_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null
+  },
+  "treasury": {
+    "fresh_read_only_check_completed": true,
+    "method": "canonical Base-USDC Treasury address transfer history",
+    "complete_response_no_pagination": true,
+    "new_transfer_observed": false,
+    "returned_only_known_excluded_verification_receipts": true,
+    "exact_log_range_checkpoint_advanced": false,
+    "prior_checkpoint_block": 51879954
+  },
+  "inbound": {
+    "fresh_gmail_review_completed": true,
+    "new_actionable_buyer_reply": false,
+    "new_payment_reply": false
+  },
+  "demand": {
+    "fresh_moltjobs_funded_feed_checked": true,
+    "fresh_workpnp_funded_board_checked": true,
+    "workpnp_funded_rows": 0,
+    "funded_delta_native_request": false
+  },
+  "conversion": {
+    "unique_nonpriced_qualification_attempts": 3,
+    "transmitted": 0,
+    "blocked_before_transmission": 3,
+    "priced_offers_sent": 0,
+    "note": "Do not retry blocked targets through alternate routes or changed wording."
+  },
+  "pricing": {
+    "changed": false,
+    "live_reverified_this_run": false,
+    "latest_verified_raw_amounts": [
+      "1000000",
+      "5000000",
+      "10000000"
+    ]
+  },
+  "coordination": {
+    "duplicate_growth_loop_created": false,
+    "financial_or_identity_action_taken": false,
+    "local_operator_synchronization_verified": false
+  },
+  "next_action": "Reconcile Treasury and genuine inbound first next run, then pursue a different qualified buyer segment or independently funded native request. Preserve suppressions and do not chase silence."
+}
