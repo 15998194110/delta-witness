@@ -33,7 +33,7 @@ function asJson<T>(text: string): T {
 
 function friendlyError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
-  if (/rejected|denied|4001/i.test(message)) return "Wallet request was declined. No payment was made.";
+  if (/rejected|denied|4001/i.test(message)) return "Wallet request was declined. If a payment request was already submitted, verify its settlement status before retrying.";
   if (/insufficient/i.test(message)) return "The connected wallet needs enough Base USDC to pay the displayed quote.";
   return message.replace(/^Error:\s*/i, "").slice(0, 240);
 }
@@ -50,7 +50,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [walletAddress, setWalletAddress] = useState<Address | null>(null);
 
-  const productName = product === "preflight" ? "Guard" : "Capture";
+  const productName = product === "preflight" ? "Preflight" : "Capture";
 
   const loadQuote = useCallback(async () => {
     setQuoteError("");
@@ -185,7 +185,7 @@ export default function App() {
                 <span className="radio-dot" aria-hidden="true" /> Capture · 1 USDC
               </button>
               <button className={product === "preflight" ? "selected" : ""} role="radio" aria-checked={product === "preflight"} onClick={() => setProduct("preflight")}>
-                <span className="radio-dot" aria-hidden="true" /> Guard · 5 USDC
+                <span className="radio-dot" aria-hidden="true" /> Preflight · 5 USDC
               </button>
             </div>
 
@@ -229,12 +229,27 @@ export default function App() {
               <div className="empty-result">
                 <p>Your result will appear here after settlement and observation complete.</p>
                 <span>No capture work starts before payment is verified.</span>
+                <div className="sample-proof" aria-label="Illustrative DELTA record">
+                  <strong>Illustrative example — not a live capture</strong>
+                  <dl>
+                    <div><dt>Source</dt><dd>public.example/terms</dd></div>
+                    <div><dt>Observed</dt><dd>2030-01-15 09:30 UTC</dd></div>
+                    <div><dt>Proof ref</dt><dd>SAMPLE-RECORD</dd></div>
+                    <div><dt>Fingerprint</dt><dd>illustrative-only</dd></div>
+                  </dl>
+                  <p>A DELTA record helps you verify what DELTA observed and when. It does not certify that the source is true, safe, or legally admissible.</p>
+                </div>
               </div>
             )}
           </aside>
         </div>
 
-        <p className="safety-note">Public pages only. DELTA proves observation and change — not truth.</p>
+        <section className="use-cases" aria-label="When DELTA can help">
+          <article><h2>Before a supplier recommendation</h2><p>Record the public terms that informed a consequential sourcing or procurement decision.</p></article>
+          <article><h2>Before citing a public source</h2><p>Attach an observation reference to the public page state you relied on.</p></article>
+          <article><h2>Before an enforcement handoff</h2><p>Record an observable public page before it changes or disappears.</p></article>
+        </section>
+        <p className="safety-note">Public pages only. DELTA records observations and condition checks — not truth, safety, or legal admissibility.</p>
       </main>
 
       <footer>Base mainnet <span>·</span> x402 v2 <span>·</span> No custody</footer>
