@@ -251,6 +251,37 @@ input:focus { border: 2px solid var(--cobalt); padding: 11px 15px; box-shadow: 0
 .empty-result p { max-width: 270px; margin: 0 0 14px; color: var(--ink); font-size: 18px; line-height: 1.5; }
 .empty-result span { font-size: 14px; line-height: 1.5; }
 
+.sample-proof {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.sample-proof strong {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--ink);
+  font-size: 13px;
+  letter-spacing: .01em;
+}
+.sample-proof dl { margin: 0; }
+.sample-proof dl div { padding: 10px 0; }
+.sample-proof dt { margin-bottom: 4px; color: var(--muted); font-size: 12px; }
+.sample-proof dd { font: 13px/1.45 "SFMono-Regular", Consolas, monospace; }
+.sample-proof p { margin: 14px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+.use-cases {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  margin-top: 34px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.use-cases article { padding: 24px 28px 26px 0; }
+.use-cases article + article { padding-left: 28px; border-left: 1px solid var(--line); }
+.use-cases h2 { margin: 0 0 9px; font-size: 17px; letter-spacing: -.02em; }
+.use-cases p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+
 .safety-note { margin: 28px 0 0; color: #314057; font-size: 16px; }
 
 footer {
@@ -274,7 +305,7 @@ footer {
   h1 { font-size: clamp(38px, 11vw, 48px); }
   .intro p br { display: none; }
   .workspace { grid-template-columns: 1fr; gap: 20px; }
-  .result-rail { min-height: 300px; }
+  .result-rail { min-height: 300px; }\n  .use-cases { grid-template-columns: 1fr; }\n  .use-cases article, .use-cases article + article { padding: 20px 0; border-left: 0; border-bottom: 1px solid var(--line); }\n  .use-cases article:last-child { border-bottom: 0; }
 }
 
 @media (max-width: 560px) {
