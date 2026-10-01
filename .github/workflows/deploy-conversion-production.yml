@@ -1,0 +1,65 @@
+name: DELTA Conversion Scoped Production Release
+
+on:
+  push:
+    branches: ["dot/delta-conversion-production-20261001"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: delta-production-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/dot/delta-conversion-production-20261001'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Require the independently reviewed source manifest
+        run: sha256sum --check docs/conversion-release-20261001.sha256
+      - name: Verify source and unsigned live pricing
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+          npm ci
+          npm run verify
+      - name: Verify buyer app
+        working-directory: channels/base-app
+        run: npm ci && npm run verify
+      - name: Deploy only core and buyer app using existing resources
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          node scripts/verify-owner-pricing-live.mjs
+          npx --no-install wrangler deployments status --json > /tmp/delta-core-before.json
+          npx --no-install wrangler pages deployment list --project-name delta-witness-app --environment production --json > /tmp/delta-pages-before.json
+          test "$(git ls-remote https://github.com/15998194110/delta-witness.git refs/heads/master | cut -f1)" = "00b8afdc976368cb58a4f9958ce788f6344da0ee"
+          node -e 'const d=JSON.parse(require("fs").readFileSync("/tmp/delta-pages-before.json"))[0]; if(d?.Environment!=="Production" || d.Branch!=="master" || d.Source!=="00b8afd") throw new Error("Production Pages changed; stop and reconcile")'
+          node scripts/verify-conversion-core-config.mjs
+          npx --no-install wrangler deploy --config /tmp/delta-conversion-wrangler.jsonc --keep-vars --strict --tag "conversion-${GITHUB_SHA:0:12}" --message "DELTA reviewed conversion release ${GITHUB_SHA}"
+          npx --no-install wrangler deployments status --json > /tmp/delta-core-after.json
+          npx --no-install wrangler versions list --json > /tmp/delta-core-versions.json
+          node scripts/verify-conversion-production.mjs core
+          npx --no-install wrangler pages deploy channels/base-app/dist --project-name delta-witness-app --branch master --commit-hash "$GITHUB_SHA" --commit-dirty=false
+          npx --no-install wrangler pages deployment list --project-name delta-witness-app --environment production --json > /tmp/delta-pages-after.json
+          node scripts/verify-conversion-production.mjs pages
+      - name: Verify live routes, CORS and canonical public prices without payment
+        run: |
+          node scripts/verify-conversion-production.mjs public
+          node scripts/verify-owner-pricing-live.mjs
+      - name: State release boundary
+        if: always()
+        run: echo 'Scoped Core/Pages release only. No secret updates, migrations, gateway deploy, registry publication, wallet interaction or real payment. Real settlement and paid fulfillment remain untested.' >> "$GITHUB_STEP_SUMMARY"
