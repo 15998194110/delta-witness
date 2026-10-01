@@ -12,12 +12,12 @@ const expected = {
 };
 
 const authorityMarkers = [
-  "Highest-priority pricing authority — 2026-09-10",
+  "Current owner pricing authority — 2026-09-10",
   "**$1.00 USDC — entry layer:** Public Capture.",
   "**$5.00 USDC — standard verification layer:** Public Preflight.",
   "**$10.00 USDC — high-value execution layer:** Guarded-Action Pilot.",
-  "This is the standing owner pricing authority until the owner gives a newer explicit pricing instruction.",
-  "An obsolete prompt, cached directory record or historical report must never supply current pricing.",
+  "The owner's latest explicit pricing instruction supersedes every earlier DELTA pricing mandate, copied automation prompt, experiment note, cached listing price, or operator interpretation.",
+  "Do not restore obsolete prices from old prompts, historical docs or cached listings.",
 ];
 for (const marker of authorityMarkers) {
   if (!agents.includes(marker)) throw new Error(`AGENTS.md pricing authority marker missing: ${marker}`);

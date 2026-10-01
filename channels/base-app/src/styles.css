@@ -305,7 +305,10 @@ footer {
   h1 { font-size: clamp(38px, 11vw, 48px); }
   .intro p br { display: none; }
   .workspace { grid-template-columns: 1fr; gap: 20px; }
-  .result-rail { min-height: 300px; }\n  .use-cases { grid-template-columns: 1fr; }\n  .use-cases article, .use-cases article + article { padding: 20px 0; border-left: 0; border-bottom: 1px solid var(--line); }\n  .use-cases article:last-child { border-bottom: 0; }
+  .result-rail { min-height: 300px; }
+  .use-cases { grid-template-columns: 1fr; }
+  .use-cases article, .use-cases article + article { padding: 20px 0; border-left: 0; border-bottom: 1px solid var(--line); }
+  .use-cases article:last-child { border-bottom: 0; }
 }
 
 @media (max-width: 560px) {
