@@ -50,6 +50,7 @@ jobs:
           node -e 'const d=JSON.parse(require("fs").readFileSync("/tmp/delta-pages-before.json"))[0]; if(d?.Environment!=="Production" || d.Branch!=="master" || d.Source!=="00b8afd") throw new Error("Production Pages changed; stop and reconcile")'
           node scripts/verify-conversion-core-config.mjs
           npx --no-install wrangler deploy --config /tmp/delta-conversion-wrangler.jsonc --keep-vars --strict --tag "conversion-${GITHUB_SHA:0:12}" --message "DELTA reviewed conversion release ${GITHUB_SHA}"
+          node scripts/verify-conversion-core-config.mjs
           npx --no-install wrangler deployments status --json > /tmp/delta-core-after.json
           npx --no-install wrangler versions list --json > /tmp/delta-core-versions.json
           node scripts/verify-conversion-production.mjs core

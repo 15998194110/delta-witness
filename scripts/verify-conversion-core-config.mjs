@@ -65,7 +65,10 @@ function observability(value) {
   return fill(value, defaults);
 }
 const liveObservability = observability(script.observability);
-const expectedObservability = observability(config.observability);
+// This API field is absent from the pinned CLI schema. Preserve the verified
+// live false value explicitly; a concurrent privacy-setting change must block.
+check(script.observability?.redact_query_string === false, 'query redaction state');
+const expectedObservability = observability({ ...config.observability, redact_query_string: false });
 if (!isDeepStrictEqual(liveObservability, expectedObservability)) {
   const safeValue = (value) => value === undefined ? 'unset' : value === null || typeof value === 'boolean' || typeof value === 'number' ? value : Array.isArray(value) ? `array(${value.length})` : typeof value;
   const differences = [];
@@ -85,6 +88,6 @@ check(!script.tail_consumers || script.tail_consumers.length === 0, 'tail consum
 check(!script.logpush, 'logpush');
 if (errors.length) throw new Error(`Production configuration drift; no deployment authorized by this check: ${errors.join(', ')}`);
 // Explicitly preserve the live Version URL setting, rather than Wrangler's implicit default.
-const runtimeConfig = { ...config, main: resolve(config.main), $schema: resolve(config.$schema), preview_urls: subdomain.previews_enabled };
+const runtimeConfig = { ...config, main: resolve(config.main), $schema: resolve(config.$schema), preview_urls: subdomain.previews_enabled, observability: { ...config.observability, redact_query_string: false } };
 writeFileSync('/tmp/delta-conversion-wrangler.jsonc', JSON.stringify(runtimeConfig, null, 2) + '\n');
 console.log(JSON.stringify({ worker: config.name, existing_configuration_matches: true, resource_binding_names: resources.map((b) => b.name), crons_unchanged: true, preview_urls_preserved: subdomain.previews_enabled }));
