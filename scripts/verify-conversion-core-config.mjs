@@ -64,7 +64,21 @@ function observability(value) {
   };
   return fill(value, defaults);
 }
-check(isDeepStrictEqual(observability(script.observability), observability(config.observability)), 'observability');
+const liveObservability = observability(script.observability);
+const expectedObservability = observability(config.observability);
+if (!isDeepStrictEqual(liveObservability, expectedObservability)) {
+  const safeValue = (value) => value === undefined ? 'unset' : value === null || typeof value === 'boolean' || typeof value === 'number' ? value : Array.isArray(value) ? `array(${value.length})` : typeof value;
+  const differences = [];
+  const compare = (live, expected, path) => {
+    if (isDeepStrictEqual(live, expected)) return;
+    if (live && expected && typeof live === 'object' && typeof expected === 'object' && !Array.isArray(live) && !Array.isArray(expected)) {
+      for (const key of new Set([...Object.keys(live), ...Object.keys(expected)])) compare(live[key], expected[key], `${path}.${key}`);
+    } else differences.push({ field: path, live: safeValue(live), expected: safeValue(expected) });
+  };
+  compare(liveObservability, expectedObservability, 'observability');
+  console.log(JSON.stringify({ configuration_drift_diagnostic: differences }));
+}
+check(isDeepStrictEqual(liveObservability, expectedObservability), 'observability');
 check(!script.placement_mode || script.placement_mode === 'off', 'placement');
 check(!script.limits || Object.keys(script.limits).length === 0, 'limits');
 check(!script.tail_consumers || script.tail_consumers.length === 0, 'tail consumers');
