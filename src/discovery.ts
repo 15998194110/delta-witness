@@ -1,3 +1,4 @@
+import { conversionLandingHtml, conversionDocsHtml } from "./conversion-pages";
 import type { PricingQuote } from "./pricing";
 
 export const CAPTURE_INPUT_SCHEMA = {
@@ -221,20 +222,11 @@ Read \`${origin}/openapi.json\` for exact schemas and \`${origin}/docs\` for cli
 }
 
 export function landingHtml(origin: string, version: string): string {
-  return `<!doctype html><html lang="en" itemscope itemtype="https://schema.org/SoftwareApplication"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DELTA Witness — Trust Layer for Autonomous Actions</title><meta name="description" content="Paid, machine-verifiable capture and preflight checks for public web sources."><meta itemprop="applicationCategory" content="DeveloperApplication"><meta itemprop="operatingSystem" content="Web API"><link rel="canonical" href="${origin}/"><link rel="icon" href="/favicon.ico"><style>body{max-width:760px;margin:4rem auto;padding:0 1.25rem;font:17px/1.55 system-ui;color:#132238}code,pre{background:#eef2f6;border-radius:6px}code{padding:.12rem .3rem}pre{padding:1rem;overflow:auto}a{color:#0759c7}.tag{color:#53657a}</style></head><body><p class="tag">DELTA Witness v${version}</p><h1 itemprop="name">Trust Layer for Autonomous Actions</h1><p itemprop="description">Observe a public source immediately before software takes a consequential action. DELTA returns timestamped content hashes and a public verifier while keeping raw capture artifacts private.</p><h2>Capture</h2><p>Preserve what a public page says now through <code>POST /v1/capture</code>.</p><h2>Guard / Preflight</h2><p>Compare a fresh observation with a prior DELTA proof, expected hashes, or explicit text rules through <code>POST /v1/preflight</code>. “Safe” means the supplied deterministic checks matched; it is not a truth claim.</p><pre>curl -i ${origin}/v1/preflight \\
-  -H "content-type: application/json" \\
-  -d '{"url":"https://example.com","expected":{"contains":["Example Domain"]}}'</pre><p>The HTTP 402 response contains x402 v2 payment requirements for Base mainnet USDC.</p><p><a href="/docs">API guide</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/.well-known/x402">Machine discovery</a> · <a href="/v1/demo">Example proof</a></p></body></html>`;
+  return conversionLandingHtml(origin, version);
 }
 
 export function docsHtml(origin: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DELTA Witness API</title><meta name="robots" content="index,follow"><style>body{max-width:820px;margin:3rem auto;padding:0 1.25rem;font:16px/1.55 system-ui;color:#14243a}code,pre{background:#eef2f6;border-radius:6px}code{padding:.12rem .3rem}pre{padding:1rem;overflow:auto}a{color:#0759c7}</style></head><body><h1>DELTA Witness API</h1><p>One core service exposes Capture, Guard, and a $10 Guarded-Action Pilot. All accept JSON, issue an x402 v2 challenge, settle USDC on Base mainnet before Browser Run, and return proof metadata.</p><h2>$10 Guarded-Action Pilot</h2><p>Submit 1-3 public HTTPS URLs and optionally one deterministic preflight rule. A single exact $10 USDC payment returns a bounded evidence bundle with independent proof references for every URL. No subscription.</p><h2>Guard request</h2><pre>{
-  "url": "https://example.com/terms",
-  "prior_proof_id": "optional UUID",
-  "expected": {
-    "contains": ["Refund window: 30 days"],
-    "excludes": ["Final sale"]
-  }
-}</pre><p>Use the returned <code>safe</code>, <code>changed</code>, <code>reason</code>, and <code>diff</code> fields as a deterministic gate. A proof reference is always returned for a completed paid observation.</p><h2>Safety and privacy</h2><p>Only public HTTP(S) targets on ports 80/443 are accepted. Local, private, link-local, metadata, credential-bearing, unsafe redirect, and private-DNS targets are rejected. Raw HTML, Markdown, and screenshots remain private; verifier routes publish metadata and hashes.</p><h2>Recurring Watch</h2><p>Watch is available through authenticated marketplace/reseller gateways as prepaid finite quota. Checks run no more often than every 15 minutes, pause when the prepaid unit price falls below DELTA's live cost floor, and can deliver HMAC-signed webhooks.</p><p><a href="${origin}/openapi.json">OpenAPI 3.1</a> · <a href="${origin}/SKILL.md">Agent skill</a> · <a href="${origin}/postman.json">Postman collection</a> · <a href="${origin}/distribution.json">Distribution manifest</a></p></body></html>`;
+  return conversionDocsHtml(origin);
 }
 
 export const USE_CASE_SLUGS = [
@@ -309,3 +301,4 @@ export function postmanCollection(origin: string): Record<string, unknown> {
     ],
   };
 }
+

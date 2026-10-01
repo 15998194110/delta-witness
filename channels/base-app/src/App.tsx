@@ -1,16 +1,29 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Address, EIP1193Provider, Hex } from "viem";
 import {
   API_ORIGIN,
+  assertPaymentStorageAvailable,
   BASE_NETWORK,
+  clearPaymentAttempt,
   compactProof,
+  isHttpSourceUrl,
+  markSignedPaymentRequest,
   maxPaymentUsd,
+  PAYMENT_ATTEMPT_KEY,
+  PAYMENT_LOCK_NAME,
+  PAYMENT_RECOVERY_WARNING,
   parsePurchaseParams,
+  paymentNeedsRecovery,
   paymentPolicy,
+  prepareBrowserPaymentRequest,
+  purchaseOutcome,
   requestBody,
+  readPaymentAttempt,
   updatePurchaseSearch,
   validateQuote,
+  writePaymentAttempt,
   type Delivery,
+  type PaymentAttempt,
   type Product,
   type Quote,
 } from "./domain";
@@ -21,7 +34,7 @@ declare global {
   }
 }
 
-type RunState = "idle" | "connecting" | "paying" | "complete" | "error";
+type RunState = "idle" | "connecting" | "paying" | "processing" | "retryable_failure" | "uncertain" | "complete" | "error";
 
 function asJson<T>(text: string): T {
   try {
@@ -49,11 +62,53 @@ export default function App() {
   const [delivery, setDelivery] = useState<Delivery | null>(null);
   const [error, setError] = useState("");
   const [walletAddress, setWalletAddress] = useState<Address | null>(null);
+  const [savedAttempt, setSavedAttempt] = useState<PaymentAttempt | null>(null);
+  const [recoveryBlocked, setRecoveryBlocked] = useState(false);
+  const runInFlight = useRef(false);
+  const recoveryRequired = useRef(false);
+  const quoteRequest = useRef(0);
 
   const productName = product === "preflight" ? "Preflight" : "Capture";
 
+  const clearPreviousResult = () => {
+    setDelivery(null);
+    if (!recoveryRequired.current) {
+      setRunState("idle");
+      setError("");
+    }
+  };
+
+  useEffect(() => {
+    const refresh = () => {
+      try {
+        const attempt = readPaymentAttempt(window.localStorage);
+        if (attempt) {
+          setSavedAttempt(attempt);
+          setRecoveryBlocked(true);
+          recoveryRequired.current = true;
+          if (!runInFlight.current) {
+            setRunState("uncertain");
+            setError(`A previous ${attempt.product} attempt needs review. ${PAYMENT_RECOVERY_WARNING}`);
+          }
+        }
+      } catch {
+        setRecoveryBlocked(true);
+        recoveryRequired.current = true;
+        setError("Browser recovery storage is unavailable or unreadable. New paid requests are disabled to avoid duplicate payment.");
+      }
+    };
+    refresh();
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === PAYMENT_ATTEMPT_KEY || event.key === null) refresh();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   const loadQuote = useCallback(async () => {
+    const requestId = ++quoteRequest.current;
     setQuoteError("");
+    setQuote(null);
     try {
       const response = await fetch(`${API_ORIGIN}/v1/quote?product=${product}`, {
         headers: { "x-delta-channel": "base-app" },
@@ -61,15 +116,18 @@ export default function App() {
       const body = asJson<Quote & { error?: string }>(await response.text());
       if (!response.ok) throw new Error(body.error || `Quote failed with HTTP ${response.status}`);
       validateQuote(body, product);
-      setQuote(body);
+      if (requestId === quoteRequest.current) setQuote(body);
     } catch (quoteFailure) {
-      setQuote(null);
-      setQuoteError(friendlyError(quoteFailure));
+      if (requestId === quoteRequest.current) {
+        setQuote(null);
+        setQuoteError(friendlyError(quoteFailure));
+      }
     }
   }, [product]);
 
   useEffect(() => {
     void loadQuote();
+    return () => { quoteRequest.current += 1; };
   }, [loadQuote]);
 
   useEffect(() => {
@@ -79,84 +137,171 @@ export default function App() {
   }, [product, url, mustContain]);
 
   const run = async () => {
+    if (runInFlight.current || recoveryRequired.current) return;
+    runInFlight.current = true;
+    let paymentAttempted = false;
+    let attempt: PaymentAttempt | null = null;
     setError("");
     setDelivery(null);
     try {
-      const target = new URL(url);
-      if (target.protocol !== "https:" && target.protocol !== "http:") throw new Error("Enter a public HTTP or HTTPS URL");
-      if (!quote) throw new Error("A valid live quote is required before payment");
-      validateQuote(quote, product);
-      const provider = window.ethereum;
-      if (!provider) throw new Error("Install or open a Base-compatible wallet to continue. DELTA never receives your private key.");
+      if (!navigator.locks) {
+        setRecoveryBlocked(true);
+        recoveryRequired.current = true;
+        throw new Error("This browser cannot safely coordinate payments across tabs. No new signed request will be sent.");
+      }
+      await navigator.locks.request(PAYMENT_LOCK_NAME, { ifAvailable: true }, async (lock) => {
+        if (!lock) throw new Error("Another DELTA tab is handling a payment. Wait for that attempt to finish; this tab did not start a payment.");
+        try {
+          const previous = readPaymentAttempt(window.localStorage);
+          if (previous) {
+            setSavedAttempt(previous);
+            setRecoveryBlocked(true);
+            recoveryRequired.current = true;
+            throw new Error(`A previous attempt needs review. ${PAYMENT_RECOVERY_WARNING}`);
+          }
+          assertPaymentStorageAvailable(window.localStorage);
+        } catch (storageError) {
+          setRecoveryBlocked(true);
+          recoveryRequired.current = true;
+          throw storageError;
+        }
+        const target = new URL(url);
+        if (target.protocol !== "https:" && target.protocol !== "http:") throw new Error("Enter a public HTTP or HTTPS URL");
+        if (!quote) throw new Error("A valid live quote is required before payment");
+        validateQuote(quote, product);
+        const provider = window.ethereum;
+        if (!provider) throw new Error("Install or open a Base-compatible wallet to continue. DELTA never receives your private key.");
 
-      setRunState("connecting");
-      await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x2105" }] });
-      const accounts = await provider.request({ method: "eth_requestAccounts" }) as Address[];
-      const address = accounts[0];
-      if (!address) throw new Error("The wallet did not return an account");
-      setWalletAddress(address);
+        setRunState("connecting");
+        await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x2105" }] });
+        const accounts = await provider.request({ method: "eth_requestAccounts" }) as Address[];
+        const address = accounts[0];
+        if (!address) throw new Error("The wallet did not return an account");
+        setWalletAddress(address);
 
-      const [fetchSdk, evmSdk, viem, chains] = await Promise.all([
-        import("@x402/fetch"),
-        import("@x402/evm/exact/client"),
-        import("viem"),
-        import("viem/chains"),
-      ]);
-      const { x402Client, wrapFetchWithPayment } = fetchSdk;
-      const { registerExactEvmScheme } = evmSdk;
-      const { createWalletClient, custom } = viem;
-      const { base } = chains;
-      const wallet = createWalletClient({ account: address, chain: base, transport: custom(provider) });
-      const signer = {
-        address,
-        signTypedData: (message: {
-          domain: Record<string, unknown>;
-          types: Record<string, unknown>;
-          primaryType: string;
-          message: Record<string, unknown>;
-        }) => wallet.signTypedData({ ...message, account: address } as never) as Promise<Hex>,
-      };
-      const client = new x402Client();
-      client.setSpendControls({ maxAmountPerPayment: `$${maxPaymentUsd(product).toFixed(2)}` });
-      client.registerPolicy(paymentPolicy(product));
-      registerExactEvmScheme(client, { signer, networks: [BASE_NETWORK] });
+        const [fetchSdk, evmSdk, viem, chains] = await Promise.all([
+          import("@x402/fetch"),
+          import("@x402/evm/exact/client"),
+          import("viem"),
+          import("viem/chains"),
+        ]);
+        const { x402Client, wrapFetchWithPayment } = fetchSdk;
+        const { registerExactEvmScheme } = evmSdk;
+        const { createWalletClient, custom } = viem;
+        const { base } = chains;
+        const wallet = createWalletClient({ account: address, chain: base, transport: custom(provider) });
+        const signer = {
+          address,
+          signTypedData: (message: {
+            domain: Record<string, unknown>;
+            types: Record<string, unknown>;
+            primaryType: string;
+            message: Record<string, unknown>;
+          }) => wallet.signTypedData({ ...message, account: address } as never) as Promise<Hex>,
+        };
+        const client = new x402Client();
+        client.setSpendControls({ maxAmountPerPayment: `$${maxPaymentUsd(product).toFixed(2)}` });
+        client.registerPolicy(paymentPolicy(product));
+        registerExactEvmScheme(client, { signer, networks: [BASE_NETWORK] });
 
-      setRunState("paying");
-      const paidFetch = wrapFetchWithPayment(fetch, client);
-      const response = await paidFetch(`${API_ORIGIN}/v1/${product === "preflight" ? "preflight" : "capture"}`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-delta-channel": "base-app",
-          "x-delta-partner-user": address,
-        },
-        body: JSON.stringify(requestBody(product, target.toString(), mustContain)),
+        setRunState("paying");
+        const paidFetch = wrapFetchWithPayment(async (input, init) => {
+          const request = prepareBrowserPaymentRequest(input, init);
+          if (request.headers.has("payment-signature") || request.headers.has("x-payment")) {
+            try {
+              attempt = await markSignedPaymentRequest(request, window.localStorage, product);
+            } catch {
+              setRecoveryBlocked(true);
+              recoveryRequired.current = true;
+              throw new Error("The recovery marker could not be saved. This signed request was not sent; new payments are disabled until browser storage is available.");
+            }
+            if (attempt) {
+              setSavedAttempt(attempt);
+              setRecoveryBlocked(true);
+              recoveryRequired.current = true;
+              paymentAttempted = true;
+            }
+          }
+          return fetch(request);
+        }, client);
+        const response = await paidFetch(`${API_ORIGIN}/v1/${product === "preflight" ? "preflight" : "capture"}`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-delta-channel": "base-app",
+          },
+          body: JSON.stringify(requestBody(product, target.toString(), mustContain)),
+        });
+        const responseText = await response.text();
+        let responseBody: unknown = null;
+        try {
+          responseBody = JSON.parse(responseText);
+        } catch {
+          // Preserve HTTP 202/502 recovery semantics even if an intermediary sent non-JSON.
+        }
+        const outcome = purchaseOutcome(response.status, responseBody, product);
+        if (outcome.state !== "complete" && !paymentAttempted) {
+          setRunState("error");
+          setError(`DELTA returned HTTP ${response.status} before a signed payment request was sent. You can try again.`);
+          return;
+        }
+        setRunState(outcome.state);
+        if (outcome.state === "complete") {
+          setDelivery(outcome.delivery);
+          try {
+            if (attempt) clearPaymentAttempt(window.localStorage, attempt.attemptId);
+            setSavedAttempt(null);
+            setRecoveryBlocked(false);
+            recoveryRequired.current = false;
+          } catch {
+            setError("The proof was delivered, but the local recovery marker could not be cleared. Contact DELTA before making another payment.");
+          }
+        } else {
+          recoveryRequired.current = true;
+          setRecoveryBlocked(true);
+          if (attempt) {
+            const pending = { ...attempt, phase: outcome.state };
+            try { writePaymentAttempt(window.localStorage, pending); setSavedAttempt(pending); } catch { /* Keep the original signed-request marker. */ }
+          }
+          setError(outcome.message);
+        }
       });
-      const body = asJson<Delivery & { error?: string }>(await response.text());
-      if (!response.ok) throw new Error(body.error || `DELTA failed with HTTP ${response.status}`);
-      setDelivery(body);
-      setRunState("complete");
     } catch (runError) {
-      setRunState("error");
-      setError(friendlyError(runError));
+      if (paymentAttempted) {
+        recoveryRequired.current = true;
+        setRunState("uncertain");
+        setError(`The paid request did not return a confirmed result. ${PAYMENT_RECOVERY_WARNING}`);
+      } else {
+        setRunState("error");
+        setError(friendlyError(runError));
+      }
+    } finally {
+      runInFlight.current = false;
     }
   };
 
   const resultStatus = useMemo(() => {
+    if (runState === "processing") return { label: "PROCESSING", className: "neutral" };
+    if (runState === "retryable_failure") return { label: "NOT DELIVERED", className: "neutral" };
+    if (runState === "uncertain") return { label: "UNCONFIRMED", className: "neutral" };
     if (!delivery) return { label: runState === "error" ? "NOT RUN" : "READY", className: "neutral" };
     if (delivery.product === "preflight") {
-      if (delivery.safe === true) return { label: "SAFE", className: "safe" };
-      if (delivery.safe === false) return { label: "CHANGED", className: "changed" };
+      if (delivery.safe === true) return { label: "CHECKS MATCHED", className: "safe" };
+      if (delivery.safe === false) return { label: "CHECKS NOT MET", className: "changed" };
+      return { label: "NO CRITERIA", className: "neutral" };
     }
     return { label: "CAPTURED", className: "safe" };
   }, [delivery, runState]);
 
   const busy = runState === "connecting" || runState === "paying";
+  const locked = busy || recoveryBlocked || paymentNeedsRecovery(runState);
   const actionLabel = runState === "connecting"
     ? "Connecting wallet…"
     : runState === "paying"
       ? `Approve ${quote?.price ?? "payment"} & run ${productName}…`
-      : `Connect wallet & run ${productName}`;
+      : recoveryBlocked || paymentNeedsRecovery(runState)
+        ? "Check original attempt before paying again"
+        : `Connect wallet & run ${productName}`;
 
   return (
     <div className="app-shell">
@@ -168,7 +313,7 @@ export default function App() {
         <nav aria-label="Primary">
           <a href={`${API_ORIGIN}/openapi.json`}>API</a>
           <a href={`${API_ORIGIN}/docs`}>Docs</a>
-          <a href={`${API_ORIGIN}/v1/demo`}>Proof verifier</a>
+          <a href={`${API_ORIGIN}/v1/demo`}>Historical proof example</a>
         </nav>
       </header>
 
@@ -181,23 +326,25 @@ export default function App() {
         <div className="workspace">
           <section className="form-region" aria-label="DELTA request">
             <div className="mode-switch" role="radiogroup" aria-label="Product">
-              <button className={product === "capture" ? "selected" : ""} role="radio" aria-checked={product === "capture"} onClick={() => setProduct("capture")}>
+              <button className={product === "capture" ? "selected" : ""} role="radio" aria-checked={product === "capture"} onClick={() => { clearPreviousResult(); setProduct("capture"); }} disabled={locked}>
                 <span className="radio-dot" aria-hidden="true" /> Capture · 1 USDC
               </button>
-              <button className={product === "preflight" ? "selected" : ""} role="radio" aria-checked={product === "preflight"} onClick={() => setProduct("preflight")}>
+              <button className={product === "preflight" ? "selected" : ""} role="radio" aria-checked={product === "preflight"} onClick={() => { clearPreviousResult(); setProduct("preflight"); }} disabled={locked}>
                 <span className="radio-dot" aria-hidden="true" /> Preflight · 5 USDC
               </button>
             </div>
 
             <label>
               <span>Public URL</span>
-              <input type="url" inputMode="url" value={url} onChange={(event) => setUrl(event.target.value)} autoComplete="url" />
+              <input type="url" inputMode="url" value={url} onChange={(event) => { clearPreviousResult(); setUrl(event.target.value); }} placeholder="Paste a public HTTP(S) source URL" autoComplete="url" disabled={locked} />
             </label>
+            <p className="wallet-address">Supply your own public source URL that you’re authorized to capture.</p>
+            <p className="wallet-address">Your source URL and rule may appear in this page’s URL. Do not paste credentials, session tokens, private links or personal data.</p>
 
             {product === "preflight" && (
               <label>
                 <span>Must contain</span>
-                <input value={mustContain} onChange={(event) => setMustContain(event.target.value)} maxLength={200} />
+                <input value={mustContain} onChange={(event) => { clearPreviousResult(); setMustContain(event.target.value); }} placeholder="Exact text to check (optional)" maxLength={200} disabled={locked} />
               </label>
             )}
 
@@ -207,12 +354,15 @@ export default function App() {
               <div><dt>Settlement</dt><dd>Before work · x402</dd></div>
             </dl>
 
-            {quoteError && <p className="inline-error" role="alert">Quote unavailable: {quoteError} <button onClick={() => void loadQuote()}>Retry</button></p>}
+            {quoteError && <p className="inline-error" role="alert">Quote unavailable: {quoteError} <button onClick={() => void loadQuote()} disabled={locked}>Retry</button></p>}
             {error && <p className="inline-error" role="alert">{error}</p>}
+            {savedAttempt && <p className="wallet-address">Attempt started: {savedAttempt.startedAt}<br />Reference: <code style={{ overflowWrap: "anywhere" }}>{savedAttempt.attemptId}</code></p>}
+            {recoveryBlocked && <p className="wallet-address">No automatic recovery is available. <a href="mailto:ruphussten@163.com">Contact DELTA</a> to review the original attempt. Reloading or changing tabs does not resolve a pending payment.</p>}
 
-            <button className="primary-action" onClick={() => void run()} disabled={busy || !quote}>
+            <button className="primary-action" onClick={() => void run()} disabled={locked || !quote || !isHttpSourceUrl(url)}>
               {actionLabel}
             </button>
+            <p className="wallet-address">Public proofs show metadata and hashes only. Raw HTML, Markdown and screenshots remain private.</p>
             <p className="wallet-address">The current product and target stay in this page URL, so an integration can link directly to a ready-to-pay request.</p>
             {walletAddress && <p className="wallet-address">Connected: {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}</p>}
           </section>
@@ -220,25 +370,27 @@ export default function App() {
           <aside className="result-rail" aria-live="polite" aria-label="Result">
             <div className={`result-status ${resultStatus.className}`}>{resultStatus.label}</div>
             {delivery ? (
-              <dl>
+              <dl className="completed-result">
                 <div><dt>Observed</dt><dd>{new Date(delivery.observed_at).toISOString().replace("T", " ").replace(".000Z", " UTC")}</dd></div>
                 <div><dt>Proof</dt><dd><a href={delivery.public_proof_url}>{compactProof(delivery.proof_id)}</a></dd></div>
                 <div><dt>Reason</dt><dd className="reason">{delivery.reason ?? "OBSERVATION_RECORDED"}</dd></div>
               </dl>
             ) : (
               <div className="empty-result">
-                <p>Your result will appear here after settlement and observation complete.</p>
-                <span>No capture work starts before payment is verified.</span>
-                <div className="sample-proof" aria-label="Illustrative DELTA record">
-                  <strong>Illustrative example — not a live capture</strong>
-                  <dl>
-                    <div><dt>Source</dt><dd>public.example/terms</dd></div>
-                    <div><dt>Observed</dt><dd>2030-01-15 09:30 UTC</dd></div>
-                    <div><dt>Proof ref</dt><dd>SAMPLE-RECORD</dd></div>
-                    <div><dt>Fingerprint</dt><dd>illustrative-only</dd></div>
-                  </dl>
-                  <p>A DELTA record helps you verify what DELTA observed and when. It does not certify that the source is true, safe, or legally admissible.</p>
-                </div>
+                <p>{paymentNeedsRecovery(runState) ? "No completed proof is available for this attempt." : "Your result will appear here after settlement and observation complete."}</p>
+                <span>{paymentNeedsRecovery(runState) ? "Do not approve a fresh payment to retry this request." : "No capture work starts before payment is verified."}</span>
+                {runState === "idle" && !recoveryBlocked && (
+                  <div className="sample-proof" aria-label="Illustrative DELTA record">
+                    <strong>Illustrative example — not a live capture</strong>
+                    <dl>
+                      <div><dt>Source</dt><dd>public.example/terms</dd></div>
+                      <div><dt>Observed</dt><dd>2030-01-15 09:30 UTC</dd></div>
+                      <div><dt>Proof ref</dt><dd>SAMPLE-RECORD</dd></div>
+                      <div><dt>Fingerprint</dt><dd>illustrative-only</dd></div>
+                    </dl>
+                    <p>This fictional record illustrates observation metadata and hashes only. It is not evidence of a capture and does not certify truth, safety or legal admissibility.</p>
+                  </div>
+                )}
               </div>
             )}
           </aside>

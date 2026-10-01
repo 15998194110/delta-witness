@@ -491,6 +491,8 @@ app.use("*", async (c, next) => {
   c.header("content-security-policy", "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'");
   if (c.req.path.startsWith("/v1/") || c.req.path.endsWith(".json")) {
     c.header("access-control-allow-origin", "*");
+    // x402 v2 clients must read the challenge and settlement headers in a browser.
+    c.header("access-control-expose-headers", "PAYMENT-REQUIRED, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE");
   }
 });
 

@@ -1,0 +1,54 @@
+name: DELTA Conversion Isolated Preview
+
+on:
+  push:
+    branches: ["dot/delta-conversion-20261001"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: delta-conversion-preview-20261001
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    if: github.ref == 'refs/heads/dot/delta-conversion-20261001'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify current source and unsigned public pricing
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/verify-owner-pricing-live.mjs
+      - name: Verify core
+        run: npm ci && npm run verify
+      - name: Verify buyer app
+        working-directory: channels/base-app
+        run: npm ci && npm run verify
+      - name: Export read-only landing and docs beside buyer app
+        run: node --experimental-strip-types scripts/export-conversion-preview.mjs
+      - name: Publish only to the existing Pages preview branch
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --no-install wrangler pages deployment list --project-name delta-witness-app --environment production --json > /tmp/delta-production-before.json
+          node scripts/verify-conversion-preview.mjs before
+          npx --no-install wrangler pages deploy conversion-preview --project-name delta-witness-app --branch dot/delta-conversion-20261001 --commit-hash "$GITHUB_SHA" --commit-dirty=false
+          npx --no-install wrangler pages deployment list --project-name delta-witness-app --environment production --json > /tmp/delta-production-after.json
+          npx --no-install wrangler pages deployment list --project-name delta-witness-app --environment preview --json > /tmp/delta-previews.json
+          node scripts/verify-conversion-preview.mjs after
+      - name: State preview verification boundary
+        if: always()
+        run: echo 'Static Pages preview only. Core Worker unchanged. No new credentials, permissions, resources, secrets, migrations, packages, wallet signatures or paid requests. Browser desktop/mobile review and later production approval gate are separate.' >> "$GITHUB_STEP_SUMMARY"

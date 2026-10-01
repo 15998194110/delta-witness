@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RuntimeEnv } from "../src/env";
 import { parseWatchRegistration, registerWatch, runDueWatches, type WatchRecord } from "../src/watch";
+
+afterEach(() => vi.unstubAllGlobals());
 
 class MemoryBucket {
   values = new Map<string, { text: string; etag: string }>();
@@ -80,6 +82,22 @@ describe("prepaid Watch", () => {
   it("grandfathers an already prepaid watch instead of repricing it to the current list price", async () => {
     const bucket = new MemoryBucket();
     const env = runtime(bucket);
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.startsWith("https://cloudflare-dns.com/dns-query?")) {
+        const query = new URL(url).searchParams;
+        if (query.get("name") !== "example.com") throw new Error(`Unexpected DNS target: ${url}`);
+        return Response.json(query.get("type") === "A"
+          ? { Status: 0, Answer: [{ type: 1, data: "93.184.216.34" }] }
+          : { Status: 0, Answer: [] });
+      }
+      if (url === "https://example.com/") return new Response("", { status: 200 });
+      throw new Error(`Unexpected external request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    // Exercise the real DNS/redirect validation and reach capture deterministically.
+    // A capture failure isolates grandfathering from the separate actual-margin pause.
+    vi.mocked(env.BROWSER.quickAction).mockRejectedValue(new Error("deterministic_capture_failure"));
     const record: WatchRecord = {
       schema: "delta-watch/v1",
       watch_id: "7d9d12f7-8f91-5f41-9f0c-5ef257d9ea5d",
@@ -105,5 +123,8 @@ describe("prepaid Watch", () => {
     expect(value.checks_attempted).toBe(1);
     expect(value.checks_remaining).toBe(1);
     expect(value.last_result?.reason).not.toBe("current_price_floor_exceeds_prepaid_check_price");
+    expect(value.last_result?.reason).toBe("deterministic_capture_failure");
+    expect(env.BROWSER.quickAction).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });
