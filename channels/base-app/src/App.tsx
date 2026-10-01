@@ -320,7 +320,7 @@ export default function App() {
       <main>
         <section className="intro" aria-labelledby="page-title">
           <h1 id="page-title">Verify the source before you act.</h1>
-          <p>Capture a public page for 1 USDC.<br />Guard a critical check for 5 USDC.</p>
+          <p>Capture a public page for 1 USDC.{" "}<br />Check a condition with Preflight for 5 USDC.</p>
         </section>
 
         <div className="workspace">

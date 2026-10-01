@@ -98,6 +98,7 @@ describe("Base app incomplete paid requests", () => {
     expect(container.querySelector(".sample-proof")!.textContent).toContain("It is not evidence of a capture");
     expect(container.querySelector(".sample-proof a, .sample-proof button")).toBeNull();
     expect(container.querySelectorAll(".use-cases article")).toHaveLength(3);
+    expect(container.querySelector(".intro p")!.textContent).toBe("Capture a public page for 1 USDC. Check a condition with Preflight for 5 USDC.");
     expect(container.querySelectorAll<HTMLButtonElement>("[role=radio]")[1].textContent).toContain("Preflight · 5 USDC");
     expect(walletRequest).not.toHaveBeenCalled();
     expect(paidFetch).not.toHaveBeenCalled();
