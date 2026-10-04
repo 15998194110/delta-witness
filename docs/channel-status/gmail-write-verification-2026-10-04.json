@@ -1,0 +1,47 @@
+{
+  "verified_at_cst": "2026-10-04T08:18:40+08:00",
+  "scope": "Current interactive Work session only; draft creation and self-send/readback. Not scheduled-run, customer-delivery, attachments or permanent safety-override certification.",
+  "account": "ruphussten85@gmail.com",
+  "permissions": {
+    "app_specific": "Allow all actions",
+    "global_default": "Allow low-risk actions",
+    "changed": false
+  },
+  "profile_read_verified": true,
+  "draft": {
+    "draft_id": "r-109535431726474409",
+    "message_id": "1a10446aada0111f",
+    "create_success": true,
+    "readback_labels": [
+      "DRAFT"
+    ],
+    "cleanup_to_trash_success": true
+  },
+  "send": {
+    "message_id": "1a10446f13ea8071",
+    "thread_id": "1a10446f13ea8071",
+    "subject": "Gmail 发送能力验证｜2026-10-04",
+    "to": "account self",
+    "send_success": true,
+    "readback_success": true,
+    "readback_labels": [
+      "UNREAD",
+      "SENT",
+      "INBOX"
+    ],
+    "internal_date_ms": "1791073120000",
+    "no_customer_content": true,
+    "no_attachments": true,
+    "no_external_links": true
+  },
+  "current_safety_rejection_observed": false,
+  "historical_action_holds_cleared": false,
+  "provider_oauth_scope_inspected": false,
+  "task_health_sync_intended_ids": [
+    "6a9699b9f8308191a104d805bfa57c43",
+    "6a942c6b30a88191ba1bb85e26681f7e",
+    "6a94d97202cc8191aa1466fb12418161",
+    "6a683357c8108191bf7b9a1d21792c45",
+    "6abf9cf73acc8191ab39fd950dfd122b"
+  ]
+}
