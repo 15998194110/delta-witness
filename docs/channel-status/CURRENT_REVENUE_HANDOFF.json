@@ -1,11 +1,11 @@
 {
-  "updated_at_cst": "2026-10-04T20:11:47+08:00",
-  "updated_at_scope": "Fresh read-only production/Treasury reconciliation, scoped DELTA inbound review, one deduped qualified first contact in a systematic-review workflow, and evidence-pointer update; not a paid fulfillment, deployment, or local buyer-assurance test run.",
-  "latest_handoff": "docs/channel-status/revenue-expansion-2026-10-04-2011-automation.json",
-  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-10-04-1502-automation.json",
+  "updated_at_cst": "2026-10-05T01:09:52+08:00",
+  "updated_at_scope": "Fresh read-only production/Treasury reconciliation, scoped DELTA inbound review, a buyer-segment shift to enforcement handoffs, one deduped qualified first contact, and evidence-pointer update; not a paid fulfillment, deployment, or local buyer-assurance test run.",
+  "latest_handoff": "docs/channel-status/revenue-expansion-2026-10-05-0109-automation.json",
+  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-10-04-2011-automation.json",
   "previous_pointer_handoff": "docs/channel-status/revenue-expansion-2026-09-29-1316-chat.json",
   "owner_delegation_document": "docs/owner-delegation-2026-09-27.md",
-  "instruction": "Continue the SAME DELTA operation every FIVE HOURS. Read the latest revenue handoff first. This run completed a full incoming canonical-USDC Treasury history read with next_page_params=null and again found only the two known historical 0.03 USDC transfers; no new customer receipt or revenue was added. Production read-only /health and the correct GET /v1/quote?product=... routes succeeded at version 0.7.0 with Base eip155:8453, canonical Treasury and public 1/5/10 USDC quotes. Initial obsolete per-product quote paths returned 404 and were corrected from current OpenAPI; raw 402 challenge amounts and presence of the local 35-file buyer-assurance patch were not verified. No new actionable DELTA buyer/payment reply was found. A single nonpriced first contact to Rayyan was sent only after Gmail plus canonical operator-archive/current-repository dedupe, and read back with SENT and qualification labels. Await an explicit reply; do not chase silence. Preserve all prior suppressions and action-specific safety holds. Received Codex handoff; this cloud run did not directly read local buyer-assurance logs or run the reported 337 tests.",
+  "instruction": "Continue the SAME DELTA operation every FIVE HOURS. Read the latest revenue handoff first. This run completed a full incoming canonical-USDC Treasury history read with next_page_params=null and again found only the two known historical 0.03 USDC transfers; no new customer receipt or revenue was added. Production read-only /health and GET /v1/quote?product=... succeeded at version 0.7.0 with Base eip155:8453, canonical Treasury and public 1/5/10 USDC quotes; raw 402 challenge amounts and presence of the local 35-file buyer-assurance patch were not verified. Rayyan issued automated ticket receipt #64661, but no human reply or actionable buyer intent was received. After changing the segment to public attack-page evidence before enforcement/takedown handoff, one nonpriced first contact to Netcraft was sent only after Gmail plus canonical operator-archive/current-repository dedupe, and read back with SENT and qualification labels. Await explicit replies; do not chase silence. Preserve all prior suppressions and action-specific safety holds. Received Codex handoff; this cloud run did not directly read local buyer-assurance logs or run the reported 337 tests.",
   "execution_recovery": {
     "record_commit_sha": "23bc42433b0110fed6e26ea71f58a8241ab71545",
     "record_blob_sha_read_back": "fd950173afb509c018dfd26ff8d286e8b76c0546",
@@ -35,10 +35,10 @@
   "ongoing_recognized_customer_revenue_usdc": 0,
   "ongoing_variable_cost_usdc": null,
   "ongoing_contribution_margin_usdc": null,
-  "ongoing_counts_scope": "Previously verified accumulated actuals retained, not reset. A fresh full incoming canonical-USDC transfer-list read completed at 2026-10-04T12:08:53.082Z with next_page_params=null and contained only the two known historical 0.03 USDC transfers; neither is reclassified as customer revenue. No new receipt candidate or reconciliation gap was found in that complete list at read time. This does not turn unrelated or excluded transfers into customer revenue.",
+  "ongoing_counts_scope": "Previously verified accumulated actuals retained, not reset. A fresh full incoming canonical-USDC transfer-list read completed at 2026-10-04T17:08:52.615Z with next_page_params=null and contained only the two known historical 0.03 USDC transfers; neither is reclassified as customer revenue. No new receipt candidate or reconciliation gap was found in that complete list at read time. This does not turn unrelated or excluded transfers into customer revenue.",
   "fresh_canonical_execution_triggered_this_run": false,
   "fresh_direct_treasury_reconciliation_completed_this_run": true,
-  "latest_fresh_treasury_read_at_cst": "2026-10-04T20:08:53+08:00",
+  "latest_fresh_treasury_read_at_cst": "2026-10-05T01:08:52+08:00",
   "latest_treasury_evidence_origin": "Fresh Base Blockscout v2 full incoming ERC-20 transfer list for the canonical Treasury; next_page_params=null; exactly two known historical canonical-USDC items.",
   "latest_verified_treasury_block": 52016113,
   "latest_checked_range": [
@@ -63,7 +63,7 @@
   ],
   "live_pricing_reverified_this_run": false,
   "latest_actionable_buyer_intent": false,
-  "latest_actionable_buyer_intent_scope": "No new actionable DELTA reply in the scoped Gmail review. The Rayyan qualification inquiry is not confirmed interest, funded demand, recipient delivery, or revenue.",
+  "latest_actionable_buyer_intent_scope": "No human actionable DELTA reply was found. Rayyan's automated ticket receipt #64661 confirms intake only; it is not buyer interest, funded demand, recipient evaluation, or revenue. The Netcraft qualification inquiry is likewise not confirmed interest or delivery.",
   "latest_verified_funded_native_request": false,
   "latest_verified_funded_native_request_scope": "No new funded compatible request was verified in this run.",
   "latest_run_new_external_listings_confirmed": 0,
@@ -89,7 +89,7 @@
     "historical_safety_holds_cleared": false
   },
   "latest_full_incoming_token_transfer_read": {
-    "checked_at_utc": "2026-10-04T12:08:53.082Z",
+    "checked_at_utc": "2026-10-04T17:08:52.615Z",
     "source": "base.blockscout.com api/v2 address token-transfers type=ERC-20 filter=to",
     "items": 2,
     "canonical_usdc_items": 2,
@@ -98,14 +98,14 @@
   },
   "latest_run_new_verified_customer_revenue_usdc": 0,
   "latest_run_record": {
-    "path": "docs/channel-status/revenue-expansion-2026-10-04-2011-automation.json",
-    "commit_sha": "fa2a2466b36f1f6cd00c88241845f345b974f8d8",
-    "blob_sha": "669ed254ef9e8da668d5686325d907d087687f6b",
-    "target": "Rayyan",
-    "gmail_message_id": "1a106d3d1247c764"
+    "path": "docs/channel-status/revenue-expansion-2026-10-05-0109-automation.json",
+    "commit_sha": "2336aebf7b46b5c109f78246566a2f4be6fd0a98",
+    "blob_sha": "259da70719243765c6a48e0b8e407b5b3f87d0c5",
+    "target": "Netcraft",
+    "gmail_message_id": "1a107e4b944ae0d1"
   },
   "latest_production_readonly": {
-    "checked_at_utc": "2026-10-04T12:08:53.082Z",
+    "checked_at_utc": "2026-10-04T17:08:52.615Z",
     "health_ok": true,
     "version": "0.7.0",
     "network": "eip155:8453",
@@ -116,7 +116,6 @@
     },
     "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
     "quote_route": "GET /v1/quote?product=<product>",
-    "initial_obsolete_per_product_paths_status": 404,
     "raw_402_amounts_verified": false,
     "local_buyer_assurance_patch_online_verified": false
   },
