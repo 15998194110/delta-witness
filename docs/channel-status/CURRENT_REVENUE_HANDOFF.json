@@ -5,7 +5,7 @@
   "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-10-01-1214-chat.json",
   "previous_pointer_handoff": "docs/channel-status/revenue-expansion-2026-09-29-1316-chat.json",
   "owner_delegation_document": "docs/owner-delegation-2026-09-27.md",
-  "instruction": "Continue the SAME DELTA operation every FIVE HOURS. Read the execution-recovery handoff first. Current Gmail and GitHub app permissions read Allow all actions; they are not provider OAuth scopes or safety overrides. A new qualified Debriefing first contact was successfully sent and read back. The recovery record was written to master at commit 23bc42433b0110fed6e26ea71f58a8241ab71545 and fully read back, proving this normal record-write path works. Do not infer a blanket email/GitHub outage from earlier action-specific refusals. Preserve holds on Cepro, ResearchAO, ResolveBots and the search/share metadata write/PR; their raw prior error causes remain unverified and none was cleared or bypassed. Do not create more metadata branches/PRs or alternate outbound routes to probe these holds. Continue unrelated independently qualified new targets and genuine buyer/paid fulfillment work. DialogDrive and Debriefing have already received one first contact each; await explicit replies and do not chase silence. Preserve all pricing, funding, suppression, historical-sprint and notification rules. No fresh complete Treasury read was obtained in this troubleshooting turn. Retain the existing verified revenue checkpoint and actual counts without claiming current/all-time zero. Local Commercial Operator synchronization remains unverified.",
+  "instruction": "Continue the SAME DELTA operation every FIVE HOURS. Read the execution-recovery handoff first. Current Gmail and GitHub app permissions read Allow all actions; they are not provider OAuth scopes or safety overrides. A new qualified Debriefing first contact was successfully sent and read back. The recovery record was written to master at commit 23bc42433b0110fed6e26ea71f58a8241ab71545 and fully read back, proving this normal record-write path works. Do not infer a blanket email/GitHub outage from earlier action-specific refusals. Preserve holds on Cepro, ResearchAO, ResolveBots and the search/share metadata write/PR; their raw prior error causes remain unverified and none was cleared or bypassed. Do not create more metadata branches/PRs or alternate outbound routes to probe these holds. Continue unrelated independently qualified new targets and genuine buyer/paid fulfillment work. DialogDrive and Debriefing have already received one first contact each; await explicit replies and do not chase silence. Preserve all pricing, funding, suppression, historical-sprint and notification rules. No fresh complete Treasury read was obtained in this troubleshooting turn. Retain the existing verified revenue checkpoint and actual counts without claiming current/all-time zero. Local Commercial Operator synchronization remains unverified. Additional current Gmail evidence: read gmail_write_verification.record. On 2026-10-04 the current interactive Work session successfully created/read/cleaned a draft and sent/read back a self-addressed test with SENT and INBOX. Do not inherit a blanket Gmail write outage; this does not certify scheduled runs, customer delivery or clear any historical action-specific safety hold. Record exact new errors per action and preserve all prior suppressions. No new Treasury scan or production health verification is claimed by this Gmail record.",
   "execution_recovery": {
     "record_commit_sha": "23bc42433b0110fed6e26ea71f58a8241ab71545",
     "record_blob_sha_read_back": "fd950173afb509c018dfd26ff8d286e8b76c0546",
@@ -41,7 +41,10 @@
   "latest_fresh_treasury_read_at_cst": "2026-10-01T10:26:21.078+08:00",
   "latest_treasury_evidence_origin": "Existing canonical pulse 36793555789 attempt 2; not a scan newly executed by this troubleshooting turn.",
   "latest_verified_treasury_block": 52016113,
-  "latest_checked_range": [51966114, 52016113],
+  "latest_checked_range": [
+    51966114,
+    52016113
+  ],
   "latest_range_receipt_candidates": 0,
   "latest_paid_funnel_candidates": 0,
   "unreconciled_receipts_after_latest_block": null,
@@ -53,7 +56,11 @@
   "latest_canonical_artifact_id": 11137825972,
   "latest_canonical_artifact_sha256": "a626bcbb2dbfb4e8908a6950fd234b4edc8aef28ea3af51805a73b98bc8f744c",
   "latest_public_pricing_verified_at_utc": "2026-09-29T08:38:09.786Z",
-  "latest_public_raw_amounts": ["1000000", "5000000", "10000000"],
+  "latest_public_raw_amounts": [
+    "1000000",
+    "5000000",
+    "10000000"
+  ],
   "live_pricing_reverified_this_run": false,
   "latest_actionable_buyer_intent": false,
   "latest_actionable_buyer_intent_scope": "No new actionable reply in the scoped Gmail search; the new Debriefing qualification inquiry is not confirmed interest or demand.",
@@ -70,5 +77,15 @@
   "repository_operator_records_dedupe_checked_through_commit": "9b218fef99acc511fea60cf90c2601aefb143995",
   "local_operator_synchronization_verified": false,
   "target_milestone": 50,
-  "target_milestone_unit": "legacy_customer_transaction_count_separate_from_primary_USDC_revenue_target"
+  "target_milestone_unit": "legacy_customer_transaction_count_separate_from_primary_USDC_revenue_target",
+  "gmail_write_verification": {
+    "record": "docs/channel-status/gmail-write-verification-2026-10-04.json",
+    "recorded_at_cst": "2026-10-04T08:18:40+08:00",
+    "evidence_commit_sha": "9a1596b5bb8f0df14dc755776d384988804dc49e",
+    "scope": "Interactive Work session draft and self-send/readback; scheduled runs and target-specific safety holds are unverified.",
+    "status": "interactive_draft_and_self_send_verified",
+    "message_id": "1a10446f13ea8071",
+    "permissions_changed": false,
+    "historical_safety_holds_cleared": false
+  }
 }
