@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "recorded_at_cst": "2026-10-05T06:05:51+08:00",
+  "scope": "One scheduled DELTA revenue-operation iteration: required-source refresh, read-only production and Treasury reconciliation, scoped buyer/payment inbox review, and one deduplicated nonpriced qualification inquiry. No payment, signing, deployment, price-bearing write, or task-setting change.",
+  "required_reads": {
+    "AGENTS.md": "f62c53a83e51f8d304d791d164fa8f7cd045fe06",
+    "docs/pricing-policy-2026-09-10.md": "aa3315b0c2c66f784f60adabf374ec35954e297c",
+    "docs/channel-status/CURRENT_REVENUE_HANDOFF.json": "ca6e70c4b1956570b3190a6d013fedaa6ae1f0cb",
+    "docs/conversion-system-2026-10-01.md": "3799e09aecc969e3b12a5ac495ed65e365da45b2",
+    "docs/channel-status/conversion-workstream-2026-10-01.json": "54566cf898834f02d027cecd9c27306138a3fd6b"
+  },
+  "engineering_handoff": {
+    "received": true,
+    "cloud_run_directly_read_local_buyer_assurance_logs": false,
+    "cloud_run_executed_reported_337_tests": false,
+    "claimed_deployed": false,
+    "note": "Received Codex handoff; the local reliability candidate remains distinct from the deployed production version."
+  },
+  "inbox_reconciliation": {
+    "human_actionable_buyer_replies": 0,
+    "payment_or_fulfillment_requests": 0,
+    "rayyan": {
+      "automated_receipts_only": true,
+      "ticket": "#64661",
+      "human_interest": false
+    },
+    "netcraft_human_reply": false,
+    "chase_sent": false
+  },
+  "production_readonly": {
+    "checked_at_utc": "2026-10-04T22:04:02.720Z",
+    "health_ok": true,
+    "version": "0.7.0",
+    "network": "eip155:8453",
+    "quote_route": "GET /v1/quote?product=<product>",
+    "quotes": {
+      "capture": {
+        "price_usdc": 1,
+        "estimated_contribution_margin_usdc": 0.9971175
+      },
+      "preflight": {
+        "price_usdc": 5,
+        "estimated_contribution_margin_usdc": 4.9971175
+      },
+      "guarded_action_pilot": {
+        "price_usdc": 10,
+        "estimated_contribution_margin_usdc": 9.9955525
+      }
+    },
+    "asset": "USDC",
+    "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "raw_402_amounts_verified": false,
+    "local_buyer_assurance_patch_online_verified": false
+  },
+  "treasury_reconciliation": {
+    "checked_at_utc": "2026-10-04T22:04:02.720Z",
+    "chain": "Base eip155:8453",
+    "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "source": "Base Blockscout v2 full incoming ERC-20 token-transfer list",
+    "next_page_params": null,
+    "items": 2,
+    "canonical_usdc_items": 2,
+    "new_items_after_prior_history": 0,
+    "known_items": [
+      {
+        "tx_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+        "block": 51091432,
+        "log_index": 86,
+        "timestamp_utc": "2026-09-09T16:43:31Z",
+        "amount_usdc": 0.03
+      },
+      {
+        "tx_hash": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3",
+        "block": 50985188,
+        "log_index": 437,
+        "timestamp_utc": "2026-09-07T05:42:03Z",
+        "amount_usdc": 0.03
+      }
+    ],
+    "new_customer_receipts": 0,
+    "new_counted_customer_transactions": 0,
+    "new_verified_customer_revenue_usdc": 0,
+    "note": "The two historical transfers are retained as known non-revenue items and were not reclassified."
+  },
+  "qualified_outreach": {
+    "target": "ZeroFox",
+    "segment": "public-page observation before enforcement/takedown handoff",
+    "official_route": "sales@zerofox.com",
+    "route_evidence": [
+      "https://www.zerofox.com/platform/disrupt/",
+      "https://www.zerofox.com/solutions/protection/enforcement-and-takedowns/",
+      "https://www.zerofox.com/use-cases/mobilize-threat-intelligence/",
+      "https://www.zerofox.com/demo/"
+    ],
+    "current_workflow_evidence": "ZeroFox currently documents analyst-validated evidence packaging, API-triggered takedowns, disruption lifecycle tracking, and verified-removal evidence.",
+    "technical_fit_grade": "A",
+    "commercial_evidence_grade": "C",
+    "commercial_evidence_reason": "The official workflow is current and technically adjacent, but no DELTA budget, approved buyer, payment readiness, or funded request is evidenced.",
+    "dedupe": {
+      "gmail_query": "in:anywhere {\"sales@zerofox.com\" \"zerofox.com\" \"ZeroFox\"}",
+      "gmail_matches": 0,
+      "github_exact_email_matches": 0,
+      "github_domain_matches": 0,
+      "github_name_matches": 0,
+      "canonical_pulse_archive_matches": 0,
+      "prior_suppression_or_safety_hold_found": false
+    },
+    "message": {
+      "type": "single personalized nonpriced qualification inquiry",
+      "message_id": "1a108f3b2db5dd05",
+      "thread_id": "1a108f3b2db5dd05",
+      "internal_date_ms": 1791151551000,
+      "sent_at_cst": "2026-10-05T06:05:51+08:00",
+      "to": "sales@zerofox.com",
+      "from": "RUPHUS STEN <ruphussten85@gmail.com>",
+      "subject": "Question: preserving public-page state before a takedown",
+      "label_ids_at_send_readback": [
+        "SENT"
+      ],
+      "labels_applied": [
+        "DELTA/Buyer Qualification",
+        "DELTA/Awaiting Reply"
+      ],
+      "attachments": 0,
+      "recipient_delivery_confirmed": false,
+      "qualified_interest_confirmed": false,
+      "priced_offer_made": false
+    },
+    "claims_and_limits": {
+      "maliciousness_or_truth_verdict_claimed": false,
+      "screenshot_or_source_text_export_claimed": false,
+      "permanent_archive_claimed": false,
+      "public_proof_scope": "metadata and hashes only",
+      "public_pages_only": true
+    },
+    "next_step": "Wait for an explicit human reply in the same thread; do not chase silence. If ZeroFox confirms a current gap and approved Base-USDC/x402 pilot readiness, provide only the verified existing purchase path and current supported output."
+  },
+  "actual_results": {
+    "latest_actionable_buyer_intent": false,
+    "latest_verified_funded_native_request": false,
+    "latest_run_successful_external_contacts": 1,
+    "latest_run_priced_offers": 0,
+    "latest_run_new_counted_customer_transactions": 0,
+    "latest_run_new_verified_customer_revenue_usdc": 0
+  },
+  "safety_and_scope": {
+    "prior_suppressions_preserved": true,
+    "prior_action_specific_safety_holds_cleared": false,
+    "permissions_changed": false,
+    "task_schedule_or_notification_changed": false,
+    "payment_or_wallet_action_taken": false,
+    "deployment_or_publication_performed": false,
+    "unknown_send_retried": false
+  }
+}
