@@ -1,0 +1,168 @@
+{
+  "recorded_at_utc": "2026-10-04T12:11:47.000Z",
+  "recorded_at_cst": "2026-10-04T20:11:47+08:00",
+  "record_type": "scheduled_revenue_iteration_reconciliation_and_qualified_outreach",
+  "task_id": "6a9699b9f8308191a104d805bfa57c43",
+  "task_title": "全力冲刺50000usdc",
+  "health_handoff_scope": "Received Codex handoff; this cloud run did not directly read the local buyer-assurance logs and did not run the reported 337 tests.",
+  "reconciliation": {
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "source": "https://base.blockscout.com/api/v2/addresses/0x1990e21bc219696ff7fbc26527dbaed335ac6367/token-transfers?type=ERC-20&filter=to",
+    "checked_at_utc": "2026-10-04T12:08:53.082Z",
+    "read_completed": true,
+    "pagination_complete": true,
+    "next_page_params": null,
+    "incoming_canonical_usdc_items": [
+      {
+        "transaction_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+        "block_number": 51091432,
+        "log_index": 86,
+        "timestamp": "2026-09-09T16:43:31Z",
+        "raw_value": "30000",
+        "usdc": 0.03,
+        "from": "0x7E6b6556322c4e26c567a867964aC793f5eE2b1c"
+      },
+      {
+        "transaction_hash": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3",
+        "block_number": 50985188,
+        "log_index": 437,
+        "timestamp": "2026-09-07T05:42:03Z",
+        "raw_value": "30000",
+        "usdc": 0.03,
+        "from": "0x7E6b6556322c4e26c567a867964aC793f5eE2b1c"
+      }
+    ],
+    "new_items_since_prior_full_history_read": 0,
+    "new_verified_customer_receipts": 0,
+    "revenue_added_usdc": 0,
+    "note": "Full incoming ERC-20 response again contained only the two known historical 0.03 USDC transfers. Neither is reclassified as customer revenue."
+  },
+  "production_readonly": {
+    "checked_at_utc": "2026-10-04T12:08:53.082Z",
+    "health": {
+      "ok": true,
+      "version": "0.7.0",
+      "network": "eip155:8453"
+    },
+    "quotes": {
+      "capture": {
+        "price": "$1",
+        "gross_price_usd": 1,
+        "estimated_contribution_margin_usd": 0.9971175
+      },
+      "preflight": {
+        "price": "$5",
+        "gross_price_usd": 5,
+        "estimated_contribution_margin_usd": 4.9971175
+      },
+      "guarded_action_pilot": {
+        "price": "$10",
+        "gross_price_usd": 10,
+        "estimated_contribution_margin_usd": 9.9955525
+      }
+    },
+    "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "canonical_asset": "USDC",
+    "correct_quote_route": "GET /v1/quote?product=<capture|preflight|guarded-action-pilot>",
+    "initial_obsolete_per_product_quote_paths_status": 404,
+    "initial_path_error_class": "caller_route_mismatch_resolved_from_current_openapi",
+    "raw_402_challenge_amounts_verified": false,
+    "deployment_or_buyer_assurance_patch_presence_inferred": false
+  },
+  "buyer_experience_readonly": {
+    "api_home_and_base_app_read": true,
+    "public_illustrative_supplier_example_visible": true,
+    "illustrative_label_visible": true,
+    "no_live_capture_or_payment_claim_visible": true,
+    "supported_public_output_described": "application-recorded capture time, proof reference, content hashes and bundle-root hash",
+    "limits_visible": [
+      "public proof exposes metadata and hashes, not original HTML, Markdown or screenshots",
+      "a hash cannot reconstruct source text",
+      "capture time is not independently anchored",
+      "DELTA does not certify truth, supplier endorsement, safety or legal admissibility"
+    ],
+    "deployment_changed_this_run": false
+  },
+  "inbound": {
+    "broad_recent_inbox_review_completed": true,
+    "scoped_delta_query_completed": true,
+    "answerthis_thread_only_existing_sent_message": true,
+    "leanlinking_thread_only_existing_sent_message": true,
+    "new_actionable_delta_buyer_reply": false,
+    "new_payment_or_fulfillment_request": false,
+    "unrelated_inbox_messages_ignored": true
+  },
+  "segment_decision": {
+    "current_segment": "mutable public trial-registry or living-guideline source before systematic-review screening/export",
+    "prior_adjacent_target": "AnswerThis",
+    "reason": "Continued the public-source-before-publication hypothesis in a distinct evidence-synthesis workflow without chasing prior silent targets."
+  },
+  "qualified_outreach": {
+    "target": "Rayyan",
+    "official_workflow_sources": [
+      "https://www.rayyan.ai/",
+      "https://trust.rayyan.ai/"
+    ],
+    "official_business_contact": "sales@rayyan.ai",
+    "official_contact_evidence": "Rayyan's first-party Trust Center directs research teams needing a compliant subscription to a Sales Director at sales@rayyan.ai; the main site exposes Customer Sales and Request a Demo.",
+    "workflow": "Systematic-review teams import and organize references, screen titles/abstracts and full text, extract data, assess bias, then export publication-ready results with complete audit trails.",
+    "hypothesis": "When a team adds a mutable public source outside a bibliographic database, such as a trial-registry or living-guideline page, it may need a separately inspectable point-in-time observation attached before screening or export.",
+    "immediate_unmet_need_confirmed": false,
+    "independent_paying_party_confirmed": false,
+    "payment_readiness_confirmed": false,
+    "technical_fit_grade": "B",
+    "commercial_evidence_grade": "C",
+    "budget_usdc": null,
+    "expected_contribution_margin_usdc": null,
+    "gmail_dedupe_query": "in:anywhere {\"sales@rayyan.ai\" \"rayyan.ai\" \"Rayyan\"}",
+    "gmail_matches_before_send": 0,
+    "operator_archive_artifact_id": 11137825972,
+    "operator_archive_alias_matches_before_send": 0,
+    "operator_archive_search_terms": [
+      "rayyan",
+      "sales@rayyan.ai"
+    ],
+    "current_default_branch_github_code_search_alias_matches_before_send": 0,
+    "action": "personalized_nonpriced_first_contact_sent_and_read_back",
+    "subject": "Rayyan review exports: a point-in-time record for mutable public sources?",
+    "gmail_message_id": "1a106d3d1247c764",
+    "gmail_thread_id": "1a106d3d1247c764",
+    "gmail_internal_date_ms": "1791115907000",
+    "sent_label_read_back": true,
+    "labels_read_back": [
+      "DELTA/Buyer Qualification",
+      "DELTA/Awaiting Reply",
+      "SENT"
+    ],
+    "scheduled_run_external_send_verified": true,
+    "recipient_delivery_confirmed": false,
+    "buyer_interest_confirmed": false,
+    "priced_offer_sent": false,
+    "purchase_path_shared": "https://delta-witness-app.pages.dev/",
+    "limits_disclosed": "Observation is not truth certification; public proof exposes metadata and hashes only; a fingerprint cannot reconstruct original text; it is not a buyer-downloadable raw-page archive.",
+    "next_action": "Wait for an explicit reply or materially new inbound request. Do not chase silence or repeat first contact. If interest arrives, qualify the specific public-source workflow, paying party, supported deliverable, Base-USDC/x402 readiness and contribution margin before a priced offer."
+  },
+  "results_this_run": {
+    "successful_unique_target_first_contacts": 1,
+    "new_qualified_buyer_intents": 0,
+    "new_priced_offers": 0,
+    "new_paid_fulfillments": 0,
+    "new_verified_customer_transactions": 0,
+    "new_verified_customer_revenue_usdc": 0,
+    "variable_cost_usdc": null,
+    "contribution_margin_usdc": null
+  },
+  "safety_and_scope": {
+    "gmail_send_safety_rejection_this_run": false,
+    "scheduled_run_external_gmail_send_successfully_read_back": true,
+    "github_write_attempted_for_recording": true,
+    "prior_target_specific_safety_holds_cleared": false,
+    "accounts_tasks_permissions_or_schedules_changed": false,
+    "production_code_or_deployment_changed": false,
+    "wallet_signature_payment_topup_fee_or_asset_movement": false,
+    "owner_email_sent": false,
+    "chisa_aow_touched": false
+  }
+}
