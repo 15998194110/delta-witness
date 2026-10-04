@@ -1,11 +1,11 @@
 {
-  "updated_at_cst": "2026-10-01T17:25:14+08:00",
-  "updated_at_scope": "Execution-recovery coordination and evidence-pointer update; not a fresh Treasury scan timestamp.",
-  "latest_handoff": "docs/channel-status/execution-recovery-2026-10-01.json",
-  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-10-01-1214-chat.json",
+  "updated_at_cst": "2026-10-04T10:06:31+08:00",
+  "updated_at_scope": "Fresh read-only production/Treasury reconciliation, scoped DELTA inbound review, one deduped qualified first contact, and evidence-pointer update; not a paid fulfillment, deployment, or local buyer-assurance test run.",
+  "latest_handoff": "docs/channel-status/revenue-expansion-2026-10-04-1006-automation.json",
+  "previous_latest_actual_handoff": "docs/channel-status/execution-recovery-2026-10-01.json",
   "previous_pointer_handoff": "docs/channel-status/revenue-expansion-2026-09-29-1316-chat.json",
   "owner_delegation_document": "docs/owner-delegation-2026-09-27.md",
-  "instruction": "Continue the SAME DELTA operation every FIVE HOURS. Read the execution-recovery handoff first. Current Gmail and GitHub app permissions read Allow all actions; they are not provider OAuth scopes or safety overrides. A new qualified Debriefing first contact was successfully sent and read back. The recovery record was written to master at commit 23bc42433b0110fed6e26ea71f58a8241ab71545 and fully read back, proving this normal record-write path works. Do not infer a blanket email/GitHub outage from earlier action-specific refusals. Preserve holds on Cepro, ResearchAO, ResolveBots and the search/share metadata write/PR; their raw prior error causes remain unverified and none was cleared or bypassed. Do not create more metadata branches/PRs or alternate outbound routes to probe these holds. Continue unrelated independently qualified new targets and genuine buyer/paid fulfillment work. DialogDrive and Debriefing have already received one first contact each; await explicit replies and do not chase silence. Preserve all pricing, funding, suppression, historical-sprint and notification rules. No fresh complete Treasury read was obtained in this troubleshooting turn. Retain the existing verified revenue checkpoint and actual counts without claiming current/all-time zero. Local Commercial Operator synchronization remains unverified. Additional current Gmail evidence: read gmail_write_verification.record. On 2026-10-04 the current interactive Work session successfully created/read/cleaned a draft and sent/read back a self-addressed test with SENT and INBOX. Do not inherit a blanket Gmail write outage; this does not certify scheduled runs, customer delivery or clear any historical action-specific safety hold. Record exact new errors per action and preserve all prior suppressions. No new Treasury scan or production health verification is claimed by this Gmail record.",
+  "instruction": "Continue the SAME DELTA operation every FIVE HOURS. Read the latest revenue handoff first. This run completed a full incoming canonical-USDC Treasury history read with next_page_params=null and found only the two known historical 0.03 USDC transfers; no new customer receipt or revenue was added. Production read-only /health and quote GETs succeeded at version 0.7.0 with Base eip155:8453 and public 1/5/10 USDC quotes, but raw 402 challenge amounts and presence of the local 35-file buyer-assurance patch were not verified. No new actionable DELTA buyer/payment reply was found. A single nonpriced first contact to LeanLinking was sent only after Gmail plus canonical operator-archive/commit dedupe, and read back with SENT and qualification labels. Await an explicit reply; do not chase silence. Preserve all prior suppressions and action-specific safety holds. Received Codex handoff; this cloud run did not directly read local buyer-assurance logs or run the reported 337 tests.",
   "execution_recovery": {
     "record_commit_sha": "23bc42433b0110fed6e26ea71f58a8241ab71545",
     "record_blob_sha_read_back": "fd950173afb509c018dfd26ff8d286e8b76c0546",
@@ -37,9 +37,9 @@
   "ongoing_contribution_margin_usdc": null,
   "ongoing_counts_scope": "Previously verified accumulated actuals retained, not reset. A prior canonical pulse checked blocks 51966114-52016113 at 2026-10-01T02:26:21.078Z and found zero candidates. This troubleshooting turn downloaded and hash-verified that dated artifact for operator-record recovery. Current-turn Treasury reads were incomplete; receipts after the retained checkpoint remain unverified. This is not a fresh all-time-zero assertion.",
   "fresh_canonical_execution_triggered_this_run": false,
-  "fresh_direct_treasury_reconciliation_completed_this_run": false,
-  "latest_fresh_treasury_read_at_cst": "2026-10-01T10:26:21.078+08:00",
-  "latest_treasury_evidence_origin": "Existing canonical pulse 36793555789 attempt 2; not a scan newly executed by this troubleshooting turn.",
+  "fresh_direct_treasury_reconciliation_completed_this_run": true,
+  "latest_fresh_treasury_read_at_cst": "2026-10-04T10:02:30+08:00",
+  "latest_treasury_evidence_origin": "Fresh Base Blockscout v2 full incoming ERC-20 transfer list for the canonical Treasury; next_page_params=null.",
   "latest_verified_treasury_block": 52016113,
   "latest_checked_range": [
     51966114,
@@ -47,7 +47,7 @@
   ],
   "latest_range_receipt_candidates": 0,
   "latest_paid_funnel_candidates": 0,
-  "unreconciled_receipts_after_latest_block": null,
+  "unreconciled_receipts_after_latest_block": 0,
   "latest_prior_explorer_observation_head_block": 51900901,
   "latest_prior_explorer_observation_at_utc": "2026-09-28T10:25:49Z",
   "latest_prior_explorer_observation_source": "docs/channel-status/revenue-expansion-2026-09-28-1825-automation.json",
@@ -63,9 +63,9 @@
   ],
   "live_pricing_reverified_this_run": false,
   "latest_actionable_buyer_intent": false,
-  "latest_actionable_buyer_intent_scope": "No new actionable reply in the scoped Gmail search; the new Debriefing qualification inquiry is not confirmed interest or demand.",
+  "latest_actionable_buyer_intent_scope": "No new actionable DELTA reply in the scoped Gmail review. The new LeanLinking qualification inquiry is not confirmed interest, funded demand, recipient delivery, or revenue.",
   "latest_verified_funded_native_request": false,
-  "latest_verified_funded_native_request_scope": "Historical verified state retained; no new funded request verified by this turn.",
+  "latest_verified_funded_native_request_scope": "No new funded compatible request was verified in this run.",
   "latest_run_new_external_listings_confirmed": 0,
   "latest_run_published_buyer_integration_guides": 0,
   "latest_run_successful_external_contacts": 1,
@@ -87,5 +87,35 @@
     "message_id": "1a10446f13ea8071",
     "permissions_changed": false,
     "historical_safety_holds_cleared": false
+  },
+  "latest_full_incoming_token_transfer_read": {
+    "checked_at_utc": "2026-10-04T02:02:30.725Z",
+    "source": "base.blockscout.com api/v2 address token-transfers type=ERC-20 filter=to",
+    "items": 2,
+    "canonical_usdc_items": 2,
+    "next_page_params": null,
+    "new_items_after_prior_history": 0
+  },
+  "latest_run_new_verified_customer_revenue_usdc": 0,
+  "latest_run_record": {
+    "path": "docs/channel-status/revenue-expansion-2026-10-04-1006-automation.json",
+    "commit_sha": "669aa688ea6066f4270159163c5566b3b6b00279",
+    "blob_sha": "fbe449bfe0a6dae43a63272649d7da801b1fa531",
+    "target": "LeanLinking",
+    "gmail_message_id": "1a104a9aed3d5c73"
+  },
+  "latest_production_readonly": {
+    "checked_at_utc": "2026-10-04T02:02:30.725Z",
+    "health_ok": true,
+    "version": "0.7.0",
+    "network": "eip155:8453",
+    "quote_prices_usdc": {
+      "capture": 1,
+      "preflight": 5,
+      "guarded_action_pilot": 10
+    },
+    "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "raw_402_amounts_verified": false,
+    "local_buyer_assurance_patch_online_verified": false
   }
 }
