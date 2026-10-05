@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "recorded_at_cst": "2026-10-05T11:09:03+08:00",
+  "scope": "One scheduled DELTA revenue-operation iteration: required-source refresh, uncached read-only production/Treasury reconciliation, scoped buyer/payment inbox review, a buyer-segment change to agent citation handoffs, and one deduplicated nonpriced qualification inquiry. No payment, signing, deployment, price-bearing write, or task-setting change.",
+  "required_reads": {
+    "AGENTS.md": "f62c53a83e51f8d304d791d164fa8f7cd045fe06",
+    "docs/pricing-policy-2026-09-10.md": "aa3315b0c2c66f784f60adabf374ec35954e297c",
+    "ACQUISITION_ENGINE.md": "6be51f68f504a6c8f8fcfc8d8322bc6e4e494241",
+    "docs/owner-delegation-2026-09-27.md": "2ae6ed3218a23a6c8a98bd5df62a15f65a4f41fe",
+    "docs/channel-status/CURRENT_REVENUE_HANDOFF.json": "f814bd097d3b1ad0f112e7dae0d3bfa6721063db",
+    "docs/channel-status/revenue-expansion-2026-10-05-0605-automation.json": "06ad5b5151b99bf4ee2eff98e0e3a50ea41575fc",
+    "docs/conversion-system-2026-10-01.md": "3799e09cc6cde77797c78038b96d1dc2fb2f9564",
+    "docs/channel-status/conversion-workstream-2026-10-01.json": "54566c432fd607b9bbd7dd17c94b08e3b724d2cc"
+  },
+  "engineering_handoff": {
+    "received": true,
+    "cloud_run_directly_read_local_buyer_assurance_logs": false,
+    "cloud_run_executed_reported_337_tests": false,
+    "claimed_deployed": false,
+    "note": "Received Codex handoff; the local reliability candidate remains distinct from the deployed production version."
+  },
+  "inbox_reconciliation": {
+    "human_actionable_buyer_replies": 0,
+    "payment_or_fulfillment_requests": 0,
+    "rayyan": {
+      "automated_receipts_only": true,
+      "ticket": "#64661",
+      "human_interest": false
+    },
+    "netcraft_human_reply": false,
+    "zerofox_human_reply": false,
+    "chase_sent": false
+  },
+  "production_readonly": {
+    "health_checked_at_utc": "2026-10-05T03:06:43.424Z",
+    "quotes_checked_at_utc": "2026-10-05T03:09:03Z",
+    "uncached_requests": true,
+    "health_ok": true,
+    "version": "0.7.0",
+    "network": "eip155:8453",
+    "quote_route": "GET /v1/quote?product=<product>",
+    "quotes": {
+      "capture": {
+        "price_usdc": 1,
+        "estimated_contribution_margin_usdc": 0.9971175
+      },
+      "preflight": {
+        "price_usdc": 5,
+        "estimated_contribution_margin_usdc": 4.9971175
+      },
+      "guarded_action_pilot": {
+        "price_usdc": 10,
+        "estimated_contribution_margin_usdc": 9.9955525
+      }
+    },
+    "asset": "USDC",
+    "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "raw_402_amounts_verified": false,
+    "local_buyer_assurance_patch_online_verified": false
+  },
+  "treasury_reconciliation": {
+    "checked_at_utc": "2026-10-05T03:06:47Z",
+    "chain": "Base eip155:8453",
+    "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "source": "Base Blockscout v2 full incoming ERC-20 token-transfer list, uncached fetch",
+    "next_page_params": null,
+    "items": 2,
+    "canonical_usdc_items": 2,
+    "new_items_after_prior_history": 0,
+    "known_items": [
+      {
+        "tx_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+        "block": 51091432,
+        "log_index": 86,
+        "timestamp_utc": "2026-09-09T16:43:31Z",
+        "amount_usdc": 0.03
+      },
+      {
+        "tx_hash": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3",
+        "block": 50985188,
+        "log_index": 437,
+        "timestamp_utc": "2026-09-07T05:42:03Z",
+        "amount_usdc": 0.03
+      }
+    ],
+    "new_customer_receipts": 0,
+    "new_counted_customer_transactions": 0,
+    "new_verified_customer_revenue_usdc": 0,
+    "note": "The two historical transfers are retained as known non-revenue items and were not reclassified."
+  },
+  "segment_decision": {
+    "prior_segment": "public-page observation before enforcement/takedown handoff",
+    "current_segment": "public-source state before cited agent output or action",
+    "reason": "No verified conversion progress arrived from the preceding buyer segments; the immediate use case was changed rather than repricing or chasing silence.",
+    "main_experiment": "scenario-matched entry"
+  },
+  "qualified_outreach": {
+    "target": "Brave Search API",
+    "segment": "public-source state before cited agent output or action",
+    "official_route": "api-sales@brave.com",
+    "route_evidence": [
+      "https://api-dashboard.search.brave.com/documentation/resources/help-feedback",
+      "https://brave.com/search/api/",
+      "https://api-dashboard.search.brave.com/api-reference/ai/llm_context/post",
+      "https://api-dashboard.search.brave.com/documentation/guides/authentication"
+    ],
+    "current_workflow_evidence": "Brave publicly documents citation-backed Answers, LLM Context for AI agents, enterprise API deployments, and a stablecoin-micropayment authentication path for agents.",
+    "technical_fit_grade": "A",
+    "commercial_evidence_grade": "C",
+    "commercial_evidence_reason": "The agent-facing citation and stablecoin-payment surfaces are current, but no DELTA budget, approved buyer, funded request, or partner-protocol compatibility is yet evidenced.",
+    "dedupe": {
+      "gmail_query": "in:anywhere {\"api-sales@brave.com\" \"bizdev@brave.com\" \"brave.com\" \"Brave Search\"}",
+      "gmail_matches": 0,
+      "github_api_sales_matches": 0,
+      "github_bizdev_matches": 0,
+      "github_name_matches": 0,
+      "canonical_pulse_archive_matches": 0,
+      "prior_suppression_or_safety_hold_found": false
+    },
+    "first_send_attempt": {
+      "tool": "Gmail send_email",
+      "result": "ordinary connector/internal error",
+      "raw_error": "tool call error: tool call failed for `codex_apps/gmail.send_email`\\n\\nCaused by:\\n    Mcp error: -32603: Internal error",
+      "safety_refusal": false,
+      "google_oauth_or_permission_denial": false,
+      "sent_result_unknown_initially": true,
+      "uncertainty_check": "Exact Gmail search for recipient and subject returned zero messages.",
+      "retried": true,
+      "retry_scope": "One bounded retry with the identical recipient, subject and body after confirming no prior send."
+    },
+    "message": {
+      "type": "single personalized nonpriced qualification inquiry",
+      "message_id": "1a10a08f790c9021",
+      "thread_id": "1a10a08f790c9021",
+      "internal_date_ms": 1791169722000,
+      "sent_at_cst": "2026-10-05T11:08:42+08:00",
+      "to": "api-sales@brave.com",
+      "from": "RUPHUS STEN <ruphussten85@gmail.com>",
+      "subject": "Brave Search citations: a source-state reference before agent action?",
+      "label_ids_at_send_readback": [
+        "SENT"
+      ],
+      "labels_applied": [
+        "DELTA/Buyer Qualification",
+        "DELTA/Awaiting Reply"
+      ],
+      "attachments": 0,
+      "recipient_delivery_confirmed": false,
+      "qualified_interest_confirmed": false,
+      "priced_offer_made": false
+    },
+    "claims_and_limits": {
+      "source_truth_or_safety_verdict_claimed": false,
+      "screenshot_or_source_text_export_claimed": false,
+      "permanent_archive_claimed": false,
+      "public_proof_scope": "metadata and hashes only",
+      "public_pages_only": true
+    },
+    "next_step": "Wait for an explicit human reply in the same thread; do not chase silence. If Brave confirms a current gap and compatible approved partner-payment path, provide only the verified existing purchase path, precise current price and supported output after the required price gates."
+  },
+  "actual_results": {
+    "latest_actionable_buyer_intent": false,
+    "latest_verified_funded_native_request": false,
+    "latest_run_successful_external_contacts": 1,
+    "latest_run_priced_offers": 0,
+    "latest_run_new_counted_customer_transactions": 0,
+    "latest_run_new_verified_customer_revenue_usdc": 0
+  },
+  "safety_and_scope": {
+    "prior_suppressions_preserved": true,
+    "prior_action_specific_safety_holds_cleared": false,
+    "permissions_changed": false,
+    "task_schedule_or_notification_changed": false,
+    "payment_or_wallet_action_taken": false,
+    "deployment_or_publication_performed": false,
+    "duplicate_send_prevented": true
+  }
+}
