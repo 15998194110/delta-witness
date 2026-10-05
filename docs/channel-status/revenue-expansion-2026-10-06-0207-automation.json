@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "recorded_at_cst": "2026-10-06T02:06:46+08:00",
+  "scope": "One scheduled DELTA revenue-operation iteration: required-source refresh already completed, fresh buyer/payment-thread no-chase reconciliation, fresh full incoming canonical-USDC Treasury reconciliation, MCP Marketplace listing confirmation and package-risk check, Gmail state update, and canonical evidence write. No payment, signature, wallet action, deployment, duplicate listing, marketplace ownership claim, price-bearing external write, outbound email, or task-setting change.",
+  "required_reads": {
+    "AGENTS.md": "f62c53a83e51f8d304d791d164fa8f7cd045fe06",
+    "docs/pricing-policy-2026-09-10.md": "aa3315b0c2c66f784f60adabf374ec35954e297c",
+    "ACQUISITION_ENGINE.md": "6be51f68f504a6c8f8fcfc8d8322bc6e4e494241",
+    "docs/owner-delegation-2026-09-27.md": "2ae6ed3218a23a6c8a98bd5df62a15f65a4f41fe",
+    "docs/channel-status/CURRENT_REVENUE_HANDOFF.json": "24cf2d8e531d1ff1687fa351becc3bc6a9aee2bf",
+    "docs/channel-status/revenue-expansion-2026-10-05-2131-automation.json": "8c43a2c25d5d6a4630f570e949f9f721637cd09b",
+    "docs/conversion-system-2026-10-01.md": "3799e09cc6cde77797c78038b96d1dc2fb2f9564",
+    "docs/channel-status/conversion-workstream-2026-10-01.json": "54566c432fd607b9bbd7dd17c94b08e3b724d2cc"
+  },
+  "engineering_handoff": {
+    "received": true,
+    "cloud_run_directly_read_local_buyer_assurance_logs": false,
+    "cloud_run_executed_reported_337_tests": false,
+    "claimed_deployed": false,
+    "note": "Received Codex handoff; this run did not directly read the local buyer-assurance directory, run the reported 337 tests, deploy the candidate patch, or claim it is live."
+  },
+  "inbox_reconciliation": {
+    "invoica_kognai": {
+      "gmail_thread_id": "1a0ba420b6bcc766",
+      "messages_at_read": 3,
+      "new_inbound_after_2026_10_05_1628_reply": false,
+      "proof_id_or_nonsecret_error_received": false,
+      "followup_sent": false,
+      "next_step": "Wait for buyer-executed proof_id or non-secret error; do not chase silence."
+    },
+    "payagentic": {
+      "gmail_thread_id": "1a0b818a528f575b",
+      "messages_at_read": 3,
+      "new_inbound_after_2026_10_05_2131_reply": false,
+      "representative_public_url_or_decision_boundary_received": false,
+      "followup_sent": false,
+      "next_step": "Wait for the requested representative public URL and decision boundary; do not chase silence."
+    },
+    "mcp_marketplace": {
+      "inbound_message_id": "1a10c9db4b095354",
+      "gmail_thread_id": "1a0bf4a18c4409d8",
+      "received_at_cst": "2026-10-05T23:10:24+08:00",
+      "from": "MCP Marketplace <support@mcp-marketplace.io>",
+      "authentication": {
+        "dkim": "pass",
+        "spf": "pass",
+        "dmarc": "pass"
+      },
+      "verified_reply": true,
+      "summary": "MCP Marketplace confirmed DELTA Witness was already imported from the Official MCP Registry and that exactly one entry exists; no duplicate should be created. Ownership can later be attached by signing up with the repository owner's GitHub account, with manual support only if attachment fails.",
+      "paid_badge_limit": "The marketplace does not yet label servers that are paid outside the marketplace, so the entry may appear free. It permits pricing and purchase-path details in the description.",
+      "reply_sent": false,
+      "claim_attempted": false,
+      "reason_no_reply_or_claim": "The public entry is already accurate and useful; no failure or missing attachment requires a support reply, and ownership claiming was not necessary for this iteration."
+    }
+  },
+  "mcp_marketplace_listing": {
+    "url": "https://mcp-marketplace.io/server/io-github-15998194110-delta-witness",
+    "state": "publicly listed and indexable",
+    "identity_source": "Official MCP Registry",
+    "duplicate_entries_to_create": 0,
+    "install_command": "npx -y delta-witness-mcp",
+    "server_data_notice_visible": true,
+    "current_readme_documentation_visible": true,
+    "pricing_and_purchase_path_visible": true,
+    "prices_visible_usdc": {
+      "public_capture": 1,
+      "public_preflight": 5,
+      "guarded_action_pilot": 10
+    },
+    "new_high_value_buyer_facing_publication_confirmed": true,
+    "revenue_or_buyer_intent": false,
+    "third_party_scanner_warning": {
+      "displayed": true,
+      "text_summary": "Marketplace displayed 5 known CVEs and a warning that the package registry links to a different repository than the scanned source.",
+      "status": "unresolved third-party scanner discrepancy; not accepted as a verified DELTA vulnerability or repository mismatch",
+      "reason": "Current npm package metadata points to the canonical GitHub repository, and a fresh npm audit of the published 0.7.1 production dependency graph returned zero known vulnerabilities."
+    }
+  },
+  "published_package_check": {
+    "package": "delta-witness-mcp@0.7.1",
+    "npm_registry_version_published_at_utc": "2026-09-15T23:16:29.691Z",
+    "npm_git_head": "6e99bf682d0c109553494e15295cd562952a5eef",
+    "repository": "git+https://github.com/15998194110/delta-witness.git",
+    "trusted_github_actions_publisher_and_attestation_present": true,
+    "package_dry_run": {
+      "shasum": "ab367d4fb6677b0150bd3bb715bb9b51fd3deff8",
+      "integrity": "sha512-/wioHDFDc17hq3PDiXtKQV8AW3sklhy0Va7Y86Nj9+jQYxqeMkO88KOWLEf6bl9RNWFbRSE2xXRaAbPMmM6gbg==",
+      "files": 7,
+      "unpacked_size_bytes": 14441
+    },
+    "npm_audit": {
+      "command": "npm install --package-lock-only --ignore-scripts delta-witness-mcp@0.7.1; npm audit --omit=dev --json",
+      "checked_at_utc": "2026-10-05T18:04:00Z",
+      "production_dependencies_reported": 114,
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "scope_limit": "npm audit covers advisories recognized by the current npm registry for the resolved production dependency graph; it does not independently prove absence of every possible vulnerability."
+    },
+    "source_package_json_blob": "e65f46c17fa0e73e01cdd368492f9ef4ee35bd80",
+    "root_package_json_blob": "3baa0473809c26f0ef5492b87e0671a6f33003aa",
+    "package_lock_blob": "2ce44989407fdea9530d5d3a4f18700172567c4d",
+    "publication_or_package_change_performed": false
+  },
+  "treasury_reconciliation": {
+    "source": "Fresh Base Blockscout v2 full incoming ERC-20 transfer list",
+    "result": "success",
+    "next_page_params": null,
+    "chain": "Base eip155:8453",
+    "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "items": 2,
+    "canonical_usdc_items": 2,
+    "known_items": [
+      {
+        "tx_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+        "block": 51091432,
+        "log_index": 86,
+        "timestamp_utc": "2026-09-09T16:43:31Z",
+        "amount_usdc": 0.03
+      },
+      {
+        "tx_hash": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3",
+        "block": 50985188,
+        "log_index": 437,
+        "timestamp_utc": "2026-09-07T05:42:03Z",
+        "amount_usdc": 0.03
+      }
+    ],
+    "new_items_after_prior_history": 0,
+    "new_customer_receipts": 0,
+    "new_counted_customer_transactions": 0,
+    "new_verified_customer_revenue_usdc": 0
+  },
+  "gmail_execution": {
+    "inbound_unread_removed": true,
+    "label_added": "DELTA/Distribution Confirmed",
+    "post_change_message_id": "1a10c9db4b095354",
+    "post_change_label_ids": [
+      "IMPORTANT",
+      "Label_31",
+      "CATEGORY_PERSONAL",
+      "INBOX"
+    ],
+    "outbound_email_sent": false,
+    "google_oauth_or_permission_denial": null,
+    "platform_safety_refusal": null
+  },
+  "price_gates": {
+    "price_bearing_external_write_performed": false,
+    "live_402_recheck_required_this_run": false,
+    "latest_verified_live_raw_amounts_preserved": [
+      "1000000",
+      "5000000",
+      "10000000"
+    ],
+    "latest_verified_network_token_treasury_preserved": true
+  },
+  "actual_results": {
+    "latest_run_new_external_listings_confirmed": 1,
+    "latest_run_new_counted_customer_transactions": 0,
+    "latest_run_new_verified_customer_revenue_usdc": 0,
+    "latest_verified_funded_native_request": false,
+    "latest_actionable_buyer_intent_new_this_run": false
+  },
+  "safety_and_scope": {
+    "prior_suppressions_preserved": true,
+    "prior_action_specific_safety_holds_cleared": false,
+    "permissions_changed": false,
+    "task_schedule_or_notification_changed": false,
+    "payment_or_wallet_action_taken": false,
+    "deployment_or_package_publication_performed": false,
+    "duplicate_listing_prevented": true,
+    "silence_not_chased": true
+  },
+  "next_executable_action": "Monitor only for a new buyer/payment reply, marketplace ownership-attachment failure, or an exact marketplace scanner finding. Do not create another listing or send a thank-you/follow-up. If exact CVE IDs or scan details become available, reconcile them against the published package graph before changing source or making a security claim."
+}
