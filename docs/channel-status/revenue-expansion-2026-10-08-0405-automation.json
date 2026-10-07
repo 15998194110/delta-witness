@@ -1,0 +1,89 @@
+{
+  "recorded_at_cst": "2026-10-08T04:05:00+08:00",
+  "operation": "DELTA Witness autonomous revenue operation",
+  "scope": "Fresh Treasury reconciliation, seven active buyer-thread reviews, and one new nonpriced Korrway qualification contact. No payment, deployment, repricing, task change or safety-hold change.",
+  "required_sources_read": {
+    "AGENTS.md": "f62c53a83e51f8d304d791d164fa8f7cd045fe06",
+    "docs/pricing-policy-2026-09-10.md": "aa3315b0c2c66f784f60adabf374ec35954e297c",
+    "ACQUISITION_ENGINE.md": "6be51f68f504a6c8f8fcfc8d8322bc6e4e494241",
+    "docs/owner-delegation-2026-09-27.md": "2ae6ed3218a23a6c8a98bd5df62a15f65a4f41fe",
+    "docs/channel-status/CURRENT_REVENUE_HANDOFF.json": "3a0571e779ba20eb22347b9859a43c2d94cf1699",
+    "docs/conversion-system-2026-10-01.md": "3799e09cc6cde77797c78038b96d1dc2fb2f9564",
+    "docs/channel-status/conversion-workstream-2026-10-01.json": "54566c432fd607b9bbd7dd17c94b08e3b724d2cc",
+    "latest_handoff": "524dcccd84dc79ee5c77c7391410e7397188f894"
+  },
+  "treasury": {
+    "network": "eip155:8453",
+    "canonical_usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "checked_at_cst": "2026-10-08T04:01:00+08:00",
+    "source": "Fresh BaseScan address-filtered Token Transfers page plus cache-busted Base blocks page",
+    "previous_checkpoint": 52289146,
+    "safe_overlap_start": 52289046,
+    "observed_head_block": 52307000,
+    "verified_coverage": [
+      52289046,
+      52307000
+    ],
+    "page_statement": "A total of 2 txns found",
+    "items": 2,
+    "canonical_usdc_items": 2,
+    "new_candidate_receipts": 0,
+    "known_items": [
+      {
+        "tx_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+        "block": 51091432,
+        "amount_usdc": "0.03"
+      },
+      {
+        "tx_hash": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3",
+        "block": 50985188,
+        "amount_usdc": "0.03"
+      }
+    ],
+    "counted_customer_revenue_change_usdc": 0,
+    "reconciliation_gap_status": "none_through_observed_head"
+  },
+  "buyer_thread_review": {
+    "checked_at_cst": "2026-10-08T04:00:00+08:00",
+    "no_new_reply_or_proof": [
+      "Invoica 1a0ba420b6bcc766",
+      "PayAgentic 1a0b818a528f575b",
+      "Blockchain0x 1a10e57fc61ee8f4",
+      "Xona 1a1107aefb506ddb",
+      "Infis 1a11189dd295b473",
+      "OceanAlt 1a11249b54432d0e",
+      "Spec AI 1a115d6133ad5627"
+    ],
+    "instruction": "Await explicit replies or paid proof; do not chase silence."
+  },
+  "new_qualification": {
+    "target": "Korrway",
+    "domain": "korrway.com",
+    "technical_fit_grade": "A",
+    "commercial_evidence_grade": "C",
+    "evidence": "Official site describes RFQ creation, supplier quote intake, comparisons, counters, approvals, awards, purchase orders and a complete timestamped audit trail; official public business route contact@korrway.com.",
+    "qualification_gap": "Whether mutable public supplier pages relied on for an award can be retrieved as their exact decision-time observed state, beyond submitted quotes and activity logs.",
+    "gmail_dedupe": "No korrway, contact@korrway.com or Vykorr Gmail history found.",
+    "canonical_record_dedupe": "No korrway, contact@korrway.com or Vykorr default-branch record match found.",
+    "outbound_email": {
+      "to": "contact@korrway.com",
+      "message_id": "1a117f68d904d493",
+      "thread_id": "1a117f68d904d493",
+      "label_ids": [
+        "SENT"
+      ],
+      "readback_verified": true
+    },
+    "pricing": "No price quoted; no payment requested.",
+    "status": "qualification_sent_awaiting_reply_not_buyer_intent"
+  },
+  "revenue": {
+    "new_counted_customer_transactions": 0,
+    "new_verified_customer_revenue_usdc": 0,
+    "ongoing_counted_customer_transactions": 0,
+    "ongoing_recognized_customer_revenue_usdc": 0
+  },
+  "engineering_handoff_boundary": "Received Codex handoff; this run did not directly read local buyer-assurance logs, rerun the 337 tests, publish the candidate, or verify the local patch online.",
+  "next_executable_action": "Resume from block 52307000 with safe overlap; inspect active threads including Korrway; fulfill genuine paid orders first. Do not resend to silent prior targets."
+}
