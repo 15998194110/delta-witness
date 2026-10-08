@@ -1,14 +1,14 @@
 {
-  "updated_at_cst": "2026-10-08T14:10:00+08:00",
-  "updated_at_scope": "Fresh complete Treasury reconciliation through Base block 52325143, priority buyer/payment-thread review, and one newly qualified, fully deduped, nonpriced TradeForm first contact sent and read back. No new customer receipt, fulfillment, deployment or social publication.",
-  "latest_handoff": "docs/channel-status/revenue-expansion-2026-10-08-1410-automation.json",
-  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-10-08-0906-automation.json",
+  "updated_at_cst": "2026-10-08T19:10:00+08:00",
+  "updated_at_scope": "Fresh complete Treasury reconciliation through Base block 52334126, priority buyer/payment-thread review, Eluvium prior hard-bounce suppression confirmation, and one newly qualified, fully deduped, nonpriced Gripp first contact sent and read back. No new customer receipt, fulfillment, deployment or social publication.",
+  "latest_handoff": "docs/channel-status/revenue-expansion-2026-10-08-1910-automation.json",
+  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-10-08-1410-automation.json",
   "previous_pointer_handoff": "docs/channel-status/revenue-expansion-2026-09-29-1316-chat.json",
   "owner_delegation_document": "docs/owner-delegation-2026-09-27.md",
-  "instruction": "Continue the SAME DELTA operation every FIVE HOURS. Read the latest handoff first. Fresh BaseScan evidence is complete through block 52325143 with safe overlap from 52315947; the Treasury-address-filtered canonical USDC view still contains exactly the two known historical 0.03 USDC test/platform-excluded items, so no new customer receipt or revenue was added. No new actionable buyer reply, payment proof or fulfillment need was found in the priority threads. TradeForm was independently qualified for its supervised procurement approval/evidence workflow; Gmail and canonical-repository dedupe were empty, and one nonpriced first contact was sent to the verified public business route team@trade-form.com. The initial Gmail call failed with transient project-level RATE_LIMIT_EXCEEDED; SENT search was empty, then one bounded retry succeeded. Message/thread 1a11a211159425cd was read back with To team@trade-form.com and SENT. No matching DSN is currently present, but SENT does not prove delivery or interest. Do not chase silence or switch channels. DigitalCrew and Korrway remain hard-bounce suppressed; all other earlier suppressions and holds remain. Invoica and PayAgentic prior actionable context is unchanged. No social post, price-bearing write, payment, signature, deployment, task or permission change occurred. Received Codex handoff; this run did not read local buyer-assurance logs, run 337 tests or publish the candidate.",
+  "instruction": "Continue the SAME DELTA operation every FIVE HOURS. Read the latest handoff first. Fresh BaseScan evidence is complete through block 52334126 with safe overlap from 52325043; the Treasury-address-filtered canonical USDC view still contains exactly the two known historical 0.03 USDC test/platform-excluded items, so no new customer receipt or revenue was added. No new actionable buyer reply, payment proof or fulfillment need was found in the priority threads. TradeForm remains SENT-only. Eluvium was rejected as a new target after Gmail dedupe exposed its prior first contact and recipient-unknown hard bounce; keep the target suppressed and do not switch to its alternate public addresses. Gripp was independently qualified for its buyer request, supplier-catalog matching, approval and PO workflow. Gmail and canonical-repository dedupe were empty, and one nonpriced first contact was sent to the verified public business route hello@gripp.run. Message/thread 1a11b33411e8d0eb was fully read back with To hello@gripp.run and SENT. No matching DSN is currently present, but SENT does not prove delivery or interest. Do not chase silence or switch channels. DigitalCrew and Korrway remain hard-bounce suppressed; all earlier suppressions and holds remain. Invoica and PayAgentic prior actionable context is unchanged. No social post, price-bearing write, payment, signature, deployment, task or permission change occurred. Received Codex handoff; this run did not read local buyer-assurance logs, run 337 tests or publish the candidate.",
   "execution_recovery": {
-    "record_commit_sha": "127b5ff9f68f46dc2dbb7ca4864d31cdd42806cc",
-    "record_blob_sha_read_back": "278617fb7c41b14f0d4960b2a49289762086a603",
+    "record_commit_sha": "6a73f95e85f77d9246b6aea93461d8dd4ba04702",
+    "record_blob_sha_read_back": "02df759a153a499db5b6c9983e03a6625a20db58",
     "repository_record_write_and_full_readback_verified": true,
     "gmail_label_and_read_state_write_and_readback_verified": false,
     "gmail_same_thread_send_and_readback_verified": true,
@@ -16,20 +16,20 @@
     "latest_inbound_received_at_cst": null,
     "latest_inbound_target": null,
     "outbound_email_sent_this_run": true,
-    "outbound_email_message_id": "1a11a211159425cd",
-    "outbound_email_thread_id": "1a11a211159425cd",
-    "outbound_email_to": "team@trade-form.com",
+    "outbound_email_message_id": "1a11b33411e8d0eb",
+    "outbound_email_thread_id": "1a11b33411e8d0eb",
+    "outbound_email_to": "hello@gripp.run",
     "outbound_email_sent_readback_verified": true,
     "outbound_email_count": 1,
     "outbound_email_message_ids": [
-      "1a11a211159425cd"
+      "1a11b33411e8d0eb"
     ],
     "hard_bounce_message_id": "1a118ec1c754ddd0",
     "hard_bounce_target": "crew@digitalcrew.ai",
     "hard_bounce_status": "5.1.10 administrator-published Null MX; domain does not receive email",
     "google_oauth_or_permission_denial": null,
     "platform_safety_refusal": null,
-    "gmail_provider_error": "First send attempt: HTTP 403 with Gmail API project-level RATE_LIMIT_EXCEEDED. Exact SENT search was empty; one bounded retry succeeded. This was not diagnosed as OAuth loss or a platform safety refusal.",
+    "gmail_provider_error": null,
     "treasury_error": null,
     "treasury_primary_api_access_error": null,
     "production_code_or_metadata_deployed_this_turn": false,
@@ -37,7 +37,7 @@
     "payment_or_wallet_action_taken": false,
     "permissions_changed": false,
     "old_safety_holds_cleared": false,
-    "error_handling": "Unknown send result was checked in SENT before retry. Only one bounded retry was made. The successful message was fully read back. No alternate recipient, channel or tool was used to bypass a refusal."
+    "error_handling": "Eluvium prior contact and hard-bounce evidence was found during dedupe, so no alternate address or channel was used. Gripp send succeeded once and was fully read back; no retry or bypass occurred."
   },
   "task_id": "6a9699b9f8308191a104d805bfa57c43",
   "task_title": "全力冲刺50000usdc",
@@ -56,15 +56,15 @@
   "ongoing_recognized_customer_revenue_usdc": 0,
   "ongoing_variable_cost_usdc": null,
   "ongoing_contribution_margin_usdc": null,
-  "ongoing_counts_scope": "Previously verified accumulated actuals retained without reset. Fresh BaseScan evidence at 2026-10-08 14:07 CST covered safe overlap 52315947 through observed head 52325143; the Treasury-address-filtered canonical USDC page still showed exactly the two known historical 0.03 USDC test/platform-excluded items and no new candidate receipt. No new settlement, fulfillment or counted customer transaction.",
+  "ongoing_counts_scope": "Previously verified accumulated actuals retained without reset. Fresh BaseScan evidence at 2026-10-08 19:07 CST covered safe overlap 52325043 through observed head 52334126; the Treasury-address-filtered canonical USDC page still showed exactly the two known historical 0.03 USDC test/platform-excluded items and no new candidate receipt. No new settlement, fulfillment or counted customer transaction.",
   "fresh_canonical_execution_triggered_this_run": false,
   "fresh_direct_treasury_reconciliation_completed_this_run": true,
-  "latest_fresh_treasury_read_at_cst": "2026-10-08T14:07:00+08:00",
-  "latest_treasury_evidence_origin": "Fresh cache-busted BaseScan blocks page showed head 52325143; fresh Treasury-address-filtered Token Transfers page stated 'A total of 2 txns found' and displayed exactly the two known historical 0.03 USDC incoming transfers.",
-  "latest_verified_treasury_block": 52325143,
+  "latest_fresh_treasury_read_at_cst": "2026-10-08T19:07:30+08:00",
+  "latest_treasury_evidence_origin": "Fresh cache-busted BaseScan blocks page showed head 52334126; fresh Treasury-address-filtered Token Transfers page stated 'A total of 2 txns found' and displayed exactly the two known historical 0.03 USDC incoming transfers.",
+  "latest_verified_treasury_block": 52334126,
   "latest_checked_range": [
-    52315947,
-    52325143
+    52325043,
+    52334126
   ],
   "latest_range_receipt_candidates": 0,
   "latest_paid_funnel_candidates": 2,
@@ -84,7 +84,7 @@
   ],
   "live_pricing_reverified_this_run": false,
   "latest_actionable_buyer_intent": true,
-  "latest_actionable_buyer_intent_scope": "Prior Invoica and PayAgentic intent retained; no new actionable reply, payment proof or fulfillment need. TradeForm received one nonpriced qualification inquiry after full dedupe; no reply, delivery proof or buying intent is yet established.",
+  "latest_actionable_buyer_intent_scope": "Prior Invoica and PayAgentic intent retained; no new actionable reply, payment proof or fulfillment need. Gripp received one nonpriced qualification inquiry after full dedupe; no reply, delivery proof or buying intent is yet established.",
   "latest_verified_funded_native_request": false,
   "latest_verified_funded_native_request_scope": "No new funded request or payment proof found in the scoped Gmail review or fresh Treasury reconciliation.",
   "latest_run_new_external_listings_confirmed": 0,
@@ -95,7 +95,7 @@
   "repository_operator_records_export_files": 317,
   "repository_operator_records_source_commit": "d299a1fb68fdfd192c30d755982226caadd07c50",
   "repository_operator_records_sha256": "c417c4006220f7c2764052e43a7c315b771735931f37be364b1627c63c242649",
-  "repository_operator_records_dedupe_checked_through_commit": "127b5ff9f68f46dc2dbb7ca4864d31cdd42806cc",
+  "repository_operator_records_dedupe_checked_through_commit": "6a73f95e85f77d9246b6aea93461d8dd4ba04702",
   "local_operator_synchronization_verified": false,
   "target_milestone": 50,
   "target_milestone_unit": "legacy_customer_transaction_count_separate_from_primary_USDC_revenue_target",
@@ -110,9 +110,9 @@
     "historical_safety_holds_cleared": false
   },
   "latest_full_incoming_token_transfer_read": {
-    "checked_at_utc": "2026-10-08T06:07:00Z",
+    "checked_at_utc": "2026-10-08T11:07:30Z",
     "source": "Fresh BaseScan Treasury-address-filtered Token Transfers page",
-    "observed_head_block": 52325143,
+    "observed_head_block": 52334126,
     "items": 2,
     "canonical_usdc_items": 2,
     "next_page_params": null,
@@ -120,19 +120,19 @@
   },
   "latest_run_new_verified_customer_revenue_usdc": 0,
   "latest_run_record": {
-    "path": "docs/channel-status/revenue-expansion-2026-10-08-1410-automation.json",
-    "commit_sha": "127b5ff9f68f46dc2dbb7ca4864d31cdd42806cc",
-    "blob_sha": "278617fb7c41b14f0d4960b2a49289762086a603",
-    "target": "Treasury reconciliation, priority buyer-thread review and TradeForm qualification first contact",
+    "path": "docs/channel-status/revenue-expansion-2026-10-08-1910-automation.json",
+    "commit_sha": "6a73f95e85f77d9246b6aea93461d8dd4ba04702",
+    "blob_sha": "02df759a153a499db5b6c9983e03a6625a20db58",
+    "target": "Treasury reconciliation, priority buyer-thread review and Gripp qualification first contact",
     "inbound_gmail_message_id": null,
     "inbound_scope": "No new buyer reply",
-    "gmail_thread_id": "1a11a211159425cd",
+    "gmail_thread_id": "1a11b33411e8d0eb",
     "outbound_email_sent": true,
-    "outbound_email_message_id": "1a11a211159425cd",
+    "outbound_email_message_id": "1a11b33411e8d0eb",
     "outbound_email_message_ids": [
-      "1a11a211159425cd"
+      "1a11b33411e8d0eb"
     ],
-    "outbound_email_to": "team@trade-form.com",
+    "outbound_email_to": "hello@gripp.run",
     "outbound_email_sent_readback_verified": true,
     "delivery_confirmed": false,
     "immediate_matching_dsn_found": false
@@ -206,27 +206,27 @@
     "status": "complete_to_observed_head",
     "checkpoint_not_advanced": false,
     "safe_overlap_range": [
-      52315947,
-      52325143
+      52325043,
+      52334126
     ],
     "safe_overlap_range_scope": "Fresh public explorer overlap from the prior checkpoint through the observed head.",
     "verified_raw_log_range": null,
-    "fresh_explorer_head": 52325143,
+    "fresh_explorer_head": 52334126,
     "fresh_complete_treasury_read": true,
     "new_candidate_receipts": 0,
-    "supporting_record": "docs/channel-status/revenue-expansion-2026-10-08-1410-automation.json"
+    "supporting_record": "docs/channel-status/revenue-expansion-2026-10-08-1910-automation.json"
   },
   "latest_promotion_scope": {
     "existing_example_shared": "https://delta-witness-api.ruphussten.workers.dev/#supplier-example",
     "unique_nonpriced_first_contacts_sent_and_read_back": 1,
-    "latest_target": "TradeForm",
-    "latest_target_message_id": "1a11a211159425cd",
+    "latest_target": "Gripp",
+    "latest_target_message_id": "1a11b33411e8d0eb",
     "latest_target_state": "SENT and read back; delivery and interest unconfirmed",
     "social_posts_published": 0,
     "new_catalog_entries": 0,
     "sample_engagement_or_conversion_lift": null,
     "social_connection": "No new social connection, account, paid tracking, campaign or schedule.",
-    "new_targets_next": "Read explicit replies or payment proof first; do not chase TradeForm silence; keep Korrway and DigitalCrew suppressed; only then qualify another unique buyer or supported non-email route."
+    "new_targets_next": "Read explicit replies or payment proof first; do not chase Gripp or TradeForm silence; keep Eluvium, Korrway and DigitalCrew suppressed; only then qualify another unique buyer or supported non-email route."
   },
   "legacy_pointer_scope": "Older latest_canonical_run, production, distribution and task_next_scheduled_start fields are retained dated snapshots, not newly executed checks or a current next-run calculation. Newer promotion evidence is in latest_handoff. The historical pulse's overall success does not override its failed Treasury step. No evidence here establishes the local buyer-assurance patch is deployed."
 }
