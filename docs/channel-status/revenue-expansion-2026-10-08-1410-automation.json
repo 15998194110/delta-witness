@@ -1,0 +1,160 @@
+{
+  "recorded_at_cst": "2026-10-08T14:10:00+08:00",
+  "run_scope": "Fresh complete Treasury reconciliation through observed Base head 52325143; priority Gmail buyer/payment review; one newly qualified, deduped, nonpriced TradeForm first contact sent and read back.",
+  "source_reads": {
+    "required_repo_files_read": [
+      "AGENTS.md",
+      "docs/pricing-policy-2026-09-10.md",
+      "ACQUISITION_ENGINE.md",
+      "docs/owner-delegation-2026-09-27.md",
+      "docs/channel-status/CURRENT_REVENUE_HANDOFF.json",
+      "docs/channel-status/revenue-expansion-2026-10-08-0906-automation.json",
+      "docs/conversion-system-2026-10-01.md",
+      "docs/channel-status/conversion-workstream-2026-10-01.json"
+    ],
+    "local_operator_files_accessed": false,
+    "local_operator_sync_claimed": false,
+    "local_buyer_assurance_logs_directly_read": false,
+    "received_codex_handoff_only": true
+  },
+  "treasury_reconciliation": {
+    "completed": true,
+    "checked_at_cst": "2026-10-08T14:07:00+08:00",
+    "source": "Fresh cache-busted BaseScan blocks page plus fresh Treasury-address-filtered canonical USDC Token Transfers page",
+    "chain": "eip155:8453",
+    "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "safe_overlap_range": [
+      52315947,
+      52325143
+    ],
+    "observed_head_block": 52325143,
+    "address_filtered_total_items": 2,
+    "known_historical_items": [
+      {
+        "tx_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+        "block": 51091432,
+        "amount_usdc": 0.03,
+        "counted_customer_revenue": false,
+        "exclusion": "known test/platform-excluded item"
+      },
+      {
+        "tx_hash": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3",
+        "block": 50985188,
+        "amount_usdc": 0.03,
+        "counted_customer_revenue": false,
+        "exclusion": "known test/platform-excluded item"
+      }
+    ],
+    "new_candidate_receipts": 0,
+    "new_counted_customer_transactions": 0,
+    "new_verified_customer_revenue_usdc": 0,
+    "reconciliation_status": "complete_to_observed_head"
+  },
+  "buyer_reply_review": {
+    "scoped_inbound_query": "newer_than:1d excluding sent/drafts/spam/trash for DELTA Witness, Invoica, KognAI, PayAgentic, AndesProtocol, Veldravo, USEPEC, DigitalCrew",
+    "priority_threads_read": [
+      {
+        "target": "Invoica",
+        "thread_id": "1a0ba420b6bcc766",
+        "new_actionable_reply": false
+      },
+      {
+        "target": "PayAgentic",
+        "thread_id": "1a0b818a528f575b",
+        "new_actionable_reply": false
+      },
+      {
+        "target": "AndesProtocol",
+        "thread_id": "1a118ec520f98a72",
+        "new_actionable_reply": false,
+        "state": "SENT-only"
+      },
+      {
+        "target": "Veldravo",
+        "thread_id": "1a118ece581b83a4",
+        "new_actionable_reply": false,
+        "state": "SENT-only"
+      }
+    ],
+    "new_buyer_replies": 0,
+    "new_payment_proofs": 0,
+    "new_fulfillment_needs": 0,
+    "digitalcrew_dsn_retained": {
+      "message_id": "1a118ec1c754ddd0",
+      "status": "5.1.10 administrator-published Null MX",
+      "route_suppressed": true
+    }
+  },
+  "acquisition_action": {
+    "target": "TradeForm",
+    "official_site": "https://trade-form.com/",
+    "official_contact_page": "https://trade-form.com/contact",
+    "public_business_route": "team@trade-form.com",
+    "route_evidence": "TradeForm public company posts and business listings publish team@trade-form.com; official site contact page exposes the corresponding company mail route.",
+    "observed_current_workflow": "Supervised procurement agents spanning supplier discovery, RFQ, quote/risk normalization, purchase approval and evidence/decision history.",
+    "qualification_hypothesis": "A separately inspectable observation record may fill a narrow gap when an approval depends on a mutable public supplier, tariff or commercial-terms page.",
+    "technical_fit_grade": "B",
+    "commercial_evidence_grade": "B/C",
+    "qualification_limits": "No DELTA budget, approved payment route, or current external-observation gap is assumed. The email asks for these facts.",
+    "gmail_dedupe": {
+      "exact_domain_query_empty": true,
+      "alias_query_empty": true,
+      "people_query_empty": true
+    },
+    "canonical_repo_dedupe": {
+      "trade_form_domain_results": 0,
+      "tradeform_name_results": 0,
+      "recipient_results": 0
+    },
+    "action_type": "single nonpriced qualification first contact",
+    "subject": "TradeForm approval records: one external observation gap?",
+    "first_send_attempt": {
+      "result": "not_sent",
+      "provider_error": "HTTP 403 with Gmail API project per-minute quota; RATE_LIMIT_EXCEEDED",
+      "retryable_classification": "transient provider quota, not OAuth loss and not platform safety refusal",
+      "sent_search_before_retry_empty": true
+    },
+    "bounded_retry": {
+      "attempted": true,
+      "result": "sent",
+      "message_id": "1a11a211159425cd",
+      "thread_id": "1a11a211159425cd",
+      "to": "team@trade-form.com",
+      "label_ids": [
+        "SENT"
+      ],
+      "send_and_full_readback_verified": true,
+      "attachment_count": 0,
+      "linked_example": "https://delta-witness-api.ruphussten.workers.dev/#supplier-example",
+      "pricing_demand_in_message": false,
+      "payment_or_wallet_action_taken": false
+    },
+    "immediate_dsn_search": {
+      "matching_bounce_found": false,
+      "delivery_confirmed": false,
+      "note": "SENT does not prove recipient delivery or buyer intent."
+    },
+    "next_step": "Wait for an explicit reply or independent payment proof; do not chase silence or switch channels."
+  },
+  "pricing_and_risk": {
+    "price_bearing_external_write": false,
+    "live_price_gate_required_this_run": false,
+    "prices_changed": false,
+    "payment_or_wallet_action_taken": false,
+    "deployment_or_publish_action_taken": false,
+    "permissions_changed": false,
+    "safety_holds_cleared": false,
+    "platform_safety_refusal": null,
+    "google_oauth_denial": null
+  },
+  "results": {
+    "new_verified_customer_revenue_usdc": 0,
+    "new_counted_customer_transactions": 0,
+    "new_funded_native_requests": 0,
+    "new_actionable_buyer_replies": 0,
+    "successful_unique_nonpriced_first_contacts": 1,
+    "social_publications": 0,
+    "deployments": 0
+  }
+}
