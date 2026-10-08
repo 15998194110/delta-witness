@@ -1,0 +1,180 @@
+{
+  "recorded_at_cst": "2026-10-09T00:11:00+08:00",
+  "run_scope": "Fresh complete Treasury reconciliation through observed Base head 52343165; priority buyer/payment review; Gripp hard-bounce suppression; one newly qualified, fully deduped, nonpriced Flowie integration first contact sent and read back.",
+  "source_reads": {
+    "required_repo_files_read": [
+      "AGENTS.md",
+      "docs/pricing-policy-2026-09-10.md",
+      "ACQUISITION_ENGINE.md",
+      "docs/owner-delegation-2026-09-27.md",
+      "docs/channel-status/CURRENT_REVENUE_HANDOFF.json",
+      "docs/channel-status/revenue-expansion-2026-10-08-1910-automation.json",
+      "docs/conversion-system-2026-10-01.md",
+      "docs/channel-status/conversion-workstream-2026-10-01.json"
+    ],
+    "local_operator_files_accessed": false,
+    "local_operator_sync_claimed": false,
+    "local_buyer_assurance_logs_directly_read": false,
+    "received_codex_handoff_only": true
+  },
+  "treasury_reconciliation": {
+    "completed": true,
+    "checked_at_cst": "2026-10-09T00:08:30+08:00",
+    "source": "Fresh cache-busted BaseScan blocks page plus fresh Treasury-address-filtered canonical USDC Token Transfers page",
+    "chain": "eip155:8453",
+    "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "safe_overlap_range": [
+      52334026,
+      52343165
+    ],
+    "observed_head_block": 52343165,
+    "address_filtered_total_items": 2,
+    "known_historical_items": [
+      {
+        "tx_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+        "block": 51091432,
+        "amount_usdc": 0.03,
+        "counted_customer_revenue": false,
+        "exclusion": "known test/platform-excluded item"
+      },
+      {
+        "tx_hash": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3",
+        "block": 50985188,
+        "amount_usdc": 0.03,
+        "counted_customer_revenue": false,
+        "exclusion": "known test/platform-excluded item"
+      }
+    ],
+    "new_candidate_receipts": 0,
+    "new_counted_customer_transactions": 0,
+    "new_verified_customer_revenue_usdc": 0,
+    "reconciliation_status": "complete_to_observed_head"
+  },
+  "buyer_reply_review": {
+    "scoped_inbound_query": "newer_than:1d excluding sent/drafts/spam/trash for DELTA Witness, Invoica, PayAgentic, TradeForm, Gripp, AndesProtocol, Veldravo and DigitalCrew; separate settlement/payment terms query",
+    "priority_threads_read": [
+      {
+        "target": "Invoica",
+        "thread_id": "1a0ba420b6bcc766",
+        "new_actionable_reply": false
+      },
+      {
+        "target": "PayAgentic",
+        "thread_id": "1a0b818a528f575b",
+        "new_actionable_reply": false
+      },
+      {
+        "target": "TradeForm",
+        "thread_id": "1a11a211159425cd",
+        "new_actionable_reply": false,
+        "state": "SENT-only"
+      },
+      {
+        "target": "Gripp",
+        "thread_id": "1a11b33411e8d0eb",
+        "new_actionable_reply": false,
+        "state": "hard bounce"
+      }
+    ],
+    "new_buyer_replies": 0,
+    "new_payment_proofs": 0,
+    "new_fulfillment_needs": 0,
+    "gripp_dsn": {
+      "message_id": "1a11b3351f5459d5",
+      "status": "SMTP 550 Requested action not taken: mailbox unavailable; Status 5.7.0",
+      "failed_recipient": "hello@gripp.run",
+      "route_suppressed": true,
+      "alternate_route_attempted": false
+    },
+    "digitalcrew_dsn_retained": {
+      "message_id": "1a118ec1c754ddd0",
+      "status": "DNS Null MX / domain does not receive email",
+      "route_suppressed": true
+    }
+  },
+  "acquisition_research": {
+    "prior_contact_rejections": [
+      {
+        "target": "ProcureAINow",
+        "public_route": "sales@procureainow.com",
+        "prior_message_id": "1a0af202d780f0d6",
+        "result": "Prior first contact found in Gmail; no resend."
+      },
+      {
+        "target": "Agent Commerce Exchange",
+        "public_route": "agent.commerce.exchange@gmail.com",
+        "prior_thread_id": "1a10f61066857293",
+        "prior_dsn_message_id": "1a10f61113073ced",
+        "result": "Prior first contact and 550 5.1.1 nonexistent-account hard bounce found; target remains suppressed."
+      }
+    ],
+    "flowie": {
+      "official_developer_hub": "https://www.get-flowie.com/developers",
+      "official_contact_source": "https://docs.get-flowie.com/contact",
+      "public_business_route": "support@flowie.fr",
+      "route_scope": "Official technical support route explicitly designated for integration questions, unexpected API behaviour, delivery failures and country-rule questions.",
+      "observed_workflow": "Agentic finance and procurement orchestration with sourcing, supplier approvals, reasoning trace/source data, API/MCP surfaces, purchase-order lifecycle and audit trails.",
+      "qualification_hypothesis": "A separately inspectable observation can fill a narrow boundary only when a consequential approval relies on a mutable public supplier certification, lead-time, catalog-condition or commercial-terms page outside Flowie.",
+      "technical_fit_grade": "A/B",
+      "commercial_evidence_grade": "B",
+      "qualification_limits": "No current workflow gap, DELTA budget, Base-USDC/x402 approval, delivery or buying intent is assumed.",
+      "gmail_dedupe": {
+        "broad_name_domain_alias_query_empty": true,
+        "exact_recipient_query_empty": true
+      },
+      "canonical_repo_dedupe": {
+        "flowie_name_results": 0,
+        "domain_results": 0,
+        "recipient_results": 0
+      }
+    }
+  },
+  "acquisition_action": {
+    "target": "Flowie",
+    "action_type": "single nonpriced qualification first contact",
+    "subject": "Flowie approvals: is external public source state preserved?",
+    "sent": {
+      "result": "sent",
+      "message_id": "1a11c4795f20e664",
+      "thread_id": "1a11c4795f20e664",
+      "to": "support@flowie.fr",
+      "label_ids": [
+        "SENT"
+      ],
+      "send_and_full_readback_verified": true,
+      "attachment_count": 0,
+      "pricing_demand_in_message": false,
+      "payment_or_wallet_action_taken": false,
+      "no_private_customer_or_supplier_data_requested": true
+    },
+    "immediate_dsn_search": {
+      "matching_bounce_found": false,
+      "delivery_confirmed": false,
+      "note": "SENT does not prove recipient delivery or buyer intent."
+    },
+    "next_step": "Wait for an explicit reply or independent payment proof; do not chase silence or switch channels."
+  },
+  "pricing_and_risk": {
+    "price_bearing_external_write": false,
+    "live_price_gate_required_this_run": false,
+    "prices_changed": false,
+    "payment_or_wallet_action_taken": false,
+    "deployment_or_publish_action_taken": false,
+    "permissions_changed": false,
+    "safety_holds_cleared": false,
+    "platform_safety_refusal": null,
+    "google_oauth_denial": null,
+    "gmail_provider_error": null
+  },
+  "results": {
+    "new_verified_customer_revenue_usdc": 0,
+    "new_counted_customer_transactions": 0,
+    "new_funded_native_requests": 0,
+    "new_actionable_buyer_replies": 0,
+    "successful_unique_nonpriced_first_contacts": 1,
+    "newly_suppressed_hard_bounce_routes": 1,
+    "social_publications": 0,
+    "deployments": 0
+  }
+}
