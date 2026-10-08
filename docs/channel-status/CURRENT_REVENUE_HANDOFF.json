@@ -1,14 +1,14 @@
 {
-  "updated_at_cst": "2026-10-09T00:11:00+08:00",
-  "updated_at_scope": "Fresh complete Treasury reconciliation through Base block 52343165, priority buyer/payment-thread review, Gripp hard-bounce suppression, and one newly qualified, fully deduped, nonpriced Flowie integration first contact sent and read back. No new customer receipt, fulfillment, deployment or social publication.",
-  "latest_handoff": "docs/channel-status/revenue-expansion-2026-10-09-0011-automation.json",
-  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-10-08-1910-automation.json",
+  "updated_at_cst": "2026-10-09T05:05:00+08:00",
+  "updated_at_scope": "Fresh complete Treasury reconciliation through Base block 52352038, priority buyer/payment-thread review, and one newly qualified, fully deduped, nonpriced Gainfront first contact sent and read back. No new customer receipt, fulfillment, deployment or social publication.",
+  "latest_handoff": "docs/channel-status/revenue-expansion-2026-10-09-0505-automation.json",
+  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-10-09-0011-automation.json",
   "previous_pointer_handoff": "docs/channel-status/revenue-expansion-2026-09-29-1316-chat.json",
   "owner_delegation_document": "docs/owner-delegation-2026-09-27.md",
-  "instruction": "Continue the SAME DELTA operation every FIVE HOURS. Read the latest handoff first. Fresh BaseScan evidence is complete through block 52343165 with safe overlap from 52334026; the Treasury-address-filtered canonical USDC view still contains exactly the two known historical 0.03 USDC test/platform-excluded items, so no new customer receipt or revenue was added. No new actionable buyer reply, payment proof or fulfillment need was found in the priority threads. TradeForm remains SENT-only. Gripp returned a permanent 550 mailbox-unavailable DSN (message 1a11b3351f5459d5); suppress the route and do not switch address or channel. ProcureAINow and Agent Commerce Exchange were rejected as new targets after Gmail dedupe exposed prior first contacts; AGCX also retains its prior 550 5.1.1 hard bounce. Flowie was independently qualified from current official developer and contact documentation for procurement-agent approvals, reasoning trace/source data, API/MCP and integration support. Gmail and canonical-repository dedupe were empty, and one nonpriced first contact was sent to the official integration route support@flowie.fr. Message/thread 1a11c4795f20e664 was fully read back with To support@flowie.fr and SENT. No matching DSN is currently present, but SENT does not prove delivery or interest. Do not chase silence or switch channels. DigitalCrew, Korrway, Eluvium and all earlier suppressions remain. Invoica and PayAgentic prior actionable context is unchanged. No social post, price-bearing write, payment, signature, deployment, task or permission change occurred. Received Codex handoff; this run did not read local buyer-assurance logs, run 337 tests or publish the candidate.",
+  "instruction": "Continue the SAME DELTA operation every FIVE HOURS. Read the latest handoff first. Fresh BaseScan evidence is complete through block 52352038 with safe overlap from 52343065; the Treasury-address-filtered canonical USDC view still contains exactly the two known historical 0.03 USDC test/platform-excluded items, so no new customer receipt or revenue was added. No new actionable buyer reply, payment proof or fulfillment need was found in the priority threads. Flowie and TradeForm remain SENT-only with no matching DSN; do not chase silence. Gainfront was independently qualified from current official AgentFlow, compliance and contact pages for procurement intake, approvals, supplier processes, audit-ready evidence and an explicit sales route. Gmail and canonical-repository dedupe were empty, and one nonpriced first contact was sent to sales@gainfront.com. Message/thread 1a11d550afa31a0f was fully read back with To sales@gainfront.com and SENT. No matching DSN is currently present, but SENT does not prove delivery or interest. Gripp, AGCX, Eluvium, DigitalCrew, Korrway and all earlier suppressions remain; do not switch addresses or channels. Invoica and PayAgentic prior actionable context is unchanged. No social post, price-bearing write, payment, signature, deployment, task or permission change occurred. Received Codex handoff; this run did not read local buyer-assurance logs, run 337 tests or publish the candidate.",
   "execution_recovery": {
-    "record_commit_sha": "5a99d387951dea59af14d55b8717b3020542f742",
-    "record_blob_sha_read_back": "c2ec06b5a9ed48fcc3117e5917327732c8ecf181",
+    "record_commit_sha": "e0198881ba6a4a220d8cbb72f0360d0c685474f9",
+    "record_blob_sha_read_back": "a7d4ff504cf5e5d76422a5e3d3feae8ef34c654c",
     "repository_record_write_and_full_readback_verified": true,
     "gmail_label_and_read_state_write_and_readback_verified": false,
     "gmail_same_thread_send_and_readback_verified": true,
@@ -16,13 +16,13 @@
     "latest_inbound_received_at_cst": null,
     "latest_inbound_target": null,
     "outbound_email_sent_this_run": true,
-    "outbound_email_message_id": "1a11c4795f20e664",
-    "outbound_email_thread_id": "1a11c4795f20e664",
-    "outbound_email_to": "support@flowie.fr",
+    "outbound_email_message_id": "1a11d550afa31a0f",
+    "outbound_email_thread_id": "1a11d550afa31a0f",
+    "outbound_email_to": "sales@gainfront.com",
     "outbound_email_sent_readback_verified": true,
     "outbound_email_count": 1,
     "outbound_email_message_ids": [
-      "1a11c4795f20e664"
+      "1a11d550afa31a0f"
     ],
     "hard_bounce_message_id": "1a11b3351f5459d5",
     "hard_bounce_target": "hello@gripp.run",
@@ -37,7 +37,7 @@
     "payment_or_wallet_action_taken": false,
     "permissions_changed": false,
     "old_safety_holds_cleared": false,
-    "error_handling": "Gripp's hard bounce was read directly from the DSN and only that route was suppressed; no alternate address or channel was used. ProcureAINow and AGCX were skipped after prior-contact dedupe. Flowie send succeeded once and was fully read back; no retry or bypass occurred."
+    "error_handling": "No new inbound or provider error. Gainfront send succeeded once and was fully read back; no retry, alternate route or bypass occurred. Existing hard-bounce and rejection suppressions remain unchanged."
   },
   "task_id": "6a9699b9f8308191a104d805bfa57c43",
   "task_title": "全力冲刺50000usdc",
@@ -56,15 +56,15 @@
   "ongoing_recognized_customer_revenue_usdc": 0,
   "ongoing_variable_cost_usdc": null,
   "ongoing_contribution_margin_usdc": null,
-  "ongoing_counts_scope": "Previously verified accumulated actuals retained without reset. Fresh BaseScan evidence at 2026-10-09 00:08 CST covered safe overlap 52334026 through observed head 52343165; the Treasury-address-filtered canonical USDC page still showed exactly the two known historical 0.03 USDC test/platform-excluded items and no new candidate receipt. No new settlement, fulfillment or counted customer transaction.",
+  "ongoing_counts_scope": "Previously verified accumulated actuals retained without reset. Fresh BaseScan evidence at 2026-10-09 05:04 CST covered safe overlap 52343065 through observed head 52352038; the Treasury-address-filtered canonical USDC page still showed exactly the two known historical 0.03 USDC test/platform-excluded items and no new candidate receipt. No new settlement, fulfillment or counted customer transaction.",
   "fresh_canonical_execution_triggered_this_run": false,
   "fresh_direct_treasury_reconciliation_completed_this_run": true,
-  "latest_fresh_treasury_read_at_cst": "2026-10-09T00:08:30+08:00",
-  "latest_treasury_evidence_origin": "Fresh cache-busted BaseScan blocks page showed head 52343165; fresh Treasury-address-filtered Token Transfers page stated 'A total of 2 txns found' and displayed exactly the two known historical 0.03 USDC incoming transfers.",
-  "latest_verified_treasury_block": 52343165,
+  "latest_fresh_treasury_read_at_cst": "2026-10-09T05:04:00+08:00",
+  "latest_treasury_evidence_origin": "Fresh cache-busted BaseScan blocks page showed head 52352038; fresh Treasury-address-filtered Token Transfers page stated 'A total of 2 txns found' and displayed exactly the two known historical 0.03 USDC incoming transfers.",
+  "latest_verified_treasury_block": 52352038,
   "latest_checked_range": [
-    52334026,
-    52343165
+    52343065,
+    52352038
   ],
   "latest_range_receipt_candidates": 0,
   "latest_paid_funnel_candidates": 2,
@@ -84,7 +84,7 @@
   ],
   "live_pricing_reverified_this_run": false,
   "latest_actionable_buyer_intent": true,
-  "latest_actionable_buyer_intent_scope": "Prior Invoica and PayAgentic intent retained; no new actionable reply, payment proof or fulfillment need. Flowie received one nonpriced qualification inquiry after full dedupe; no reply, delivery proof or buying intent is yet established.",
+  "latest_actionable_buyer_intent_scope": "Prior Invoica and PayAgentic intent retained; no new actionable reply, payment proof or fulfillment need. Gainfront received one nonpriced qualification inquiry after full dedupe; no reply, delivery proof or buying intent is yet established.",
   "latest_verified_funded_native_request": false,
   "latest_verified_funded_native_request_scope": "No new funded request or payment proof found in the scoped Gmail review or fresh Treasury reconciliation.",
   "latest_run_new_external_listings_confirmed": 0,
@@ -95,7 +95,7 @@
   "repository_operator_records_export_files": 317,
   "repository_operator_records_source_commit": "d299a1fb68fdfd192c30d755982226caadd07c50",
   "repository_operator_records_sha256": "c417c4006220f7c2764052e43a7c315b771735931f37be364b1627c63c242649",
-  "repository_operator_records_dedupe_checked_through_commit": "5a99d387951dea59af14d55b8717b3020542f742",
+  "repository_operator_records_dedupe_checked_through_commit": "e0198881ba6a4a220d8cbb72f0360d0c685474f9",
   "local_operator_synchronization_verified": false,
   "target_milestone": 50,
   "target_milestone_unit": "legacy_customer_transaction_count_separate_from_primary_USDC_revenue_target",
@@ -110,9 +110,9 @@
     "historical_safety_holds_cleared": false
   },
   "latest_full_incoming_token_transfer_read": {
-    "checked_at_utc": "2026-10-08T16:08:30Z",
+    "checked_at_utc": "2026-10-08T21:04:00Z",
     "source": "Fresh BaseScan Treasury-address-filtered Token Transfers page",
-    "observed_head_block": 52343165,
+    "observed_head_block": 52352038,
     "items": 2,
     "canonical_usdc_items": 2,
     "next_page_params": null,
@@ -120,19 +120,19 @@
   },
   "latest_run_new_verified_customer_revenue_usdc": 0,
   "latest_run_record": {
-    "path": "docs/channel-status/revenue-expansion-2026-10-09-0011-automation.json",
-    "commit_sha": "5a99d387951dea59af14d55b8717b3020542f742",
-    "blob_sha": "c2ec06b5a9ed48fcc3117e5917327732c8ecf181",
-    "target": "Treasury reconciliation, priority buyer-thread review, Gripp hard-bounce suppression and Flowie qualification first contact",
+    "path": "docs/channel-status/revenue-expansion-2026-10-09-0505-automation.json",
+    "commit_sha": "e0198881ba6a4a220d8cbb72f0360d0c685474f9",
+    "blob_sha": "a7d4ff504cf5e5d76422a5e3d3feae8ef34c654c",
+    "target": "Treasury reconciliation, priority buyer-thread review and Gainfront qualification first contact",
     "inbound_gmail_message_id": null,
     "inbound_scope": "No new buyer reply",
-    "gmail_thread_id": "1a11c4795f20e664",
+    "gmail_thread_id": "1a11d550afa31a0f",
     "outbound_email_sent": true,
-    "outbound_email_message_id": "1a11c4795f20e664",
+    "outbound_email_message_id": "1a11d550afa31a0f",
     "outbound_email_message_ids": [
-      "1a11c4795f20e664"
+      "1a11d550afa31a0f"
     ],
-    "outbound_email_to": "support@flowie.fr",
+    "outbound_email_to": "sales@gainfront.com",
     "outbound_email_sent_readback_verified": true,
     "delivery_confirmed": false,
     "immediate_matching_dsn_found": false
@@ -206,27 +206,27 @@
     "status": "complete_to_observed_head",
     "checkpoint_not_advanced": false,
     "safe_overlap_range": [
-      52334026,
-      52343165
+      52343065,
+      52352038
     ],
     "safe_overlap_range_scope": "Fresh public explorer overlap from the prior checkpoint through the observed head.",
     "verified_raw_log_range": null,
-    "fresh_explorer_head": 52343165,
+    "fresh_explorer_head": 52352038,
     "fresh_complete_treasury_read": true,
     "new_candidate_receipts": 0,
-    "supporting_record": "docs/channel-status/revenue-expansion-2026-10-09-0011-automation.json"
+    "supporting_record": "docs/channel-status/revenue-expansion-2026-10-09-0505-automation.json"
   },
   "latest_promotion_scope": {
     "existing_example_shared": null,
     "unique_nonpriced_first_contacts_sent_and_read_back": 1,
-    "latest_target": "Flowie",
-    "latest_target_message_id": "1a11c4795f20e664",
+    "latest_target": "Gainfront",
+    "latest_target_message_id": "1a11d550afa31a0f",
     "latest_target_state": "SENT and read back; delivery and interest unconfirmed",
     "social_posts_published": 0,
     "new_catalog_entries": 0,
     "sample_engagement_or_conversion_lift": null,
     "social_connection": "No new social connection, account, paid tracking, campaign or schedule.",
-    "new_targets_next": "Read explicit replies or payment proof first; do not chase Flowie or TradeForm silence; keep Gripp, AGCX, Eluvium, Korrway and DigitalCrew suppressed; only then qualify another unique buyer or supported route."
+    "new_targets_next": "Read explicit replies or payment proof first; do not chase Gainfront, Flowie or TradeForm silence; preserve every rejection and hard-bounce suppression; only then qualify another unique buyer or supported route."
   },
   "legacy_pointer_scope": "Older latest_canonical_run, production, distribution and task_next_scheduled_start fields are retained dated snapshots, not newly executed checks or a current next-run calculation. Newer promotion evidence is in latest_handoff. The historical pulse's overall success does not override its failed Treasury step. No evidence here establishes the local buyer-assurance patch is deployed."
 }
