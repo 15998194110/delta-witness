@@ -3,7 +3,7 @@
   "recorded_at_cst": "2026-10-11T12:09:03+08:00",
   "task_id": "6a9699b9f8308191a104d805bfa57c43",
   "task_title": "全力冲刺50000usdc",
-  "scope": "One scheduled continuation: required policy and latest handoff read, fresh BaseScan Treasury read through head 52451151, scoped Gmail buyer/payment review, Veldravo delivery-delay update, current Proco AI qualification, one nonpriced first contact with full Gmail readback, and canonical record. No payment, wallet, signature, price-bearing write, deployment, listing mutation, permission or task-setting change.",
+  "scope": "One scheduled continuation: required policy and latest handoff read, fresh BaseScan Treasury read through head 52451151, scoped Gmail buyer/payment review, Veldravo delivery-delay update, Proco AI research, one outbound whose recipient did not match the independently verified official route, and canonical correction. No resend, payment, wallet, signature, price-bearing write, deployment, listing mutation, permission or task-setting change.",
   "sources": {
     "required_documents": [
       "AGENTS.md",
@@ -87,7 +87,7 @@
       "repository_query": "procoai OR \"Proco AI\" OR info@procoai.com",
       "repository_matches_before_send": 0
     },
-    "action": "single personalized nonpriced qualification inquiry",
+    "action": "Outbound attempted once, but recipient selection failed official-route verification.",
     "subject": "Proco approvals: preserve public source state?",
     "message_id": "1a129261ee07a0e0",
     "thread_id": "1a129261ee07a0e0",
@@ -100,7 +100,10 @@
     "immediate_matching_dsn_found": false,
     "delivery_confirmed": false,
     "buying_intent_confirmed": false,
-    "next_action": "Await explicit reply in the original thread. Confirm real gap, buyer and approved payment rail before any priced offer; do not chase silence."
+    "next_action": "Do not resend to info@procoai.com or use another channel. Preserve the error and only resume if Proco AI explicitly initiates a materially relevant reply.",
+    "recipient_route_verified_before_send": false,
+    "recipient_mismatch": "Official pages independently exposed info@procoai.com, but the sent message went to sales@procoai.com. This address was not independently verified. Treat the send as an operator error, suppress both further outreach to this target and do not retry the official route to avoid duplicate/route switching.",
+    "valid_qualified_contact_count": 0
   },
   "risk": {
     "price_bearing_external_write": false,
@@ -112,7 +115,8 @@
     "safety_holds_cleared": false,
     "gmail_provider_error": null,
     "platform_safety_refusal": null,
-    "engineering": "收到Codex交接，未直接读取本地日志；未运行337项测试，未发布候选版或核验本地补丁在线生效。"
+    "engineering": "收到Codex交接，未直接读取本地日志；未运行337项测试，未发布候选版或核验本地补丁在线生效。",
+    "new_outreach_quality_error": "Recipient sales@procoai.com did not match verified official route info@procoai.com. No resend or evasion attempted."
   },
   "next_execution": "Paid orders and explicit buyer replies first. Inspect Proco AI and prior priority threads without reminders; if no actionable inbound, continue with one new independently qualified official business route and current public-source workflow. Preserve all suppressions and price/risk boundaries."
 }
