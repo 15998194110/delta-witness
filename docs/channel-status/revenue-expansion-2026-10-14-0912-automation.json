@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "recorded_at_cst": "2026-10-14T09:12:00+08:00",
+  "task_id": "6a9699b9f8308191a104d805bfa57c43",
+  "task_title": "全力冲刺50000usdc",
+  "current_owner_cadence": "daily",
+  "cadence_evidence": "Latest owner instruction changed the same task to once daily; this run did not modify schedule, title, enablement or notifications.",
+  "scope": "Fresh buyer/payment inbox review, complete Treasury read with checkpoint advance, and one new fully deduped nonpriced Factiverse qualification. No payment, signature, deployment, listing mutation, task change or safety-hold release.",
+  "buyer_review": {
+    "checked_after_cst": "2026-10-14T00:00:00+08:00",
+    "priority_threads": [
+      "Invoica 1a0ba420b6bcc766",
+      "PayAgentic 1a0b818a528f575b",
+      "UpGuard 1a12a778eaf49c4d",
+      "Fluence 1a136021503c92b9"
+    ],
+    "new_actionable_reply_or_paid_result": false,
+    "silence_followups": 0,
+    "fluence_state": "SENT only; no reply, delivery confirmation or matching DSN",
+    "upguard_state": "SENT only; no reply or delivery confirmation"
+  },
+  "treasury": {
+    "network": "eip155:8453",
+    "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "source": "Fresh BaseScan Treasury-address-filtered Token Transfers page plus refreshed BaseScan Blocks page in browser",
+    "checked_at_utc": "2026-10-14T01:07:00Z",
+    "prior_checkpoint": 52559017,
+    "safe_overlap_start": 52558017,
+    "observed_head_block": 52575382,
+    "checked_range": [
+      52558017,
+      52575382
+    ],
+    "address_page_total_items": 2,
+    "canonical_usdc_items": 2,
+    "historical_items": [
+      {
+        "tx_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+        "block": 51091432,
+        "amount_usdc": 0.03,
+        "classification": "known project test; excluded"
+      },
+      {
+        "tx_hash": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3",
+        "block": 50985188,
+        "amount_usdc": 0.03,
+        "classification": "known project test; excluded"
+      }
+    ],
+    "new_candidate_receipts": 0,
+    "new_verified_customer_receipts": 0,
+    "checkpoint_advanced": true,
+    "receipts_after_checkpoint_unknown": false
+  },
+  "acquisition": {
+    "target": "Factiverse",
+    "segment": "publication / CMS source-verification workflow",
+    "official_current_evidence": [
+      "https://www.factiverse.ai/industry-cases-media/cms",
+      "https://api.factiverse.ai/v1/redoc",
+      "https://www.factiverse.ai/pricing"
+    ],
+    "official_business_route": "info@factiverse.ai",
+    "observed_workflow": "Factiverse integrates claim detection, source review and fact-checking into CMS/API workflows before publication; its official API documentation names info@factiverse.ai as the sales route and its public pricing shows enterprise/API purchasing.",
+    "qualification_hypothesis": "A current editor or CMS customer may need a separate observation reference for the mutable public source as it appeared at the publish decision boundary; the gap is unverified until Factiverse confirms it.",
+    "technical_fit_grade": "A",
+    "commercial_evidence_grade": "B",
+    "gmail_dedupe_matches_before_send": 0,
+    "repository_dedupe_matches_before_send": 0,
+    "action": "single personalized nonpriced qualification",
+    "message_id": "1a137f4b1441b1ad",
+    "thread_id": "1a137f4b1441b1ad",
+    "to": "info@factiverse.ai",
+    "sent_at_utc": "2026-10-14T01:09:05Z",
+    "sent_readback_verified": true,
+    "label_ids": [
+      "SENT"
+    ],
+    "immediate_matching_dsn_found": false,
+    "delivery_confirmed": false,
+    "buying_intent_confirmed": false,
+    "pricing_or_payment_requested": false,
+    "next": "Await explicit reply only; no silence follow-up."
+  },
+  "outcomes": {
+    "new_verified_customer_revenue_usdc": 0,
+    "total_ongoing_recognized_customer_revenue_usdc": 0,
+    "new_counted_customer_transactions": 0,
+    "new_unique_verified_buyers": 0,
+    "new_fulfilled_paid_uses": 0,
+    "new_actionable_buyer_intent": false,
+    "new_verified_funded_native_request": false,
+    "qualified_first_contacts_sent": 1
+  },
+  "risk_and_errors": {
+    "gmail_send_error": null,
+    "platform_safety_refusal": null,
+    "google_oauth_or_service_permission_denial": null,
+    "permissions_changed": false,
+    "task_changed": false,
+    "payments_signatures_wallet_actions": false,
+    "old_holds_cleared": false,
+    "local_operator_files_accessible": false,
+    "local_operator_paths": [
+      "运营/RUPHUS_OPERATOR_2026-09-05/data/sprint.json",
+      "运营/RUPHUS_OPERATOR_2026-09-05/data/pipeline.json"
+    ],
+    "local_operator_access_error": "GitHub API 404; synchronization not claimed.",
+    "engineering": "收到Codex交接，未直接读取本地日志；未运行337项测试，未核验本地候选版在线生效。"
+  }
+}
