@@ -1,40 +1,35 @@
 {
-  "updated_at_cst": "2026-10-16T09:08:30+08:00",
-  "updated_at_scope": "Fresh complete Treasury read advanced the checkpoint to block 52661721 with no new canonical USDC receipts; buyer/payment inbox had no new actionable reply; existing ZeroFox and Red Points contacts/safety holds prevented duplicate outreach; one deduped nonpriced Constella Intelligence qualification was sent and fully read back.",
-  "latest_handoff": "docs/channel-status/revenue-expansion-2026-10-16-0908-automation.json",
-  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-10-15-0906-automation.json",
+  "updated_at_cst": "2026-10-17T09:09:00+08:00",
+  "updated_at_scope": "Fresh BaseScan verification through block 52704908 found no new canonical USDC receipt candidates after the prior checkpoint; Gmail found no new buyer/payment reply, preserved Constella's final 5.7.133 suppression, and sent/read back one deduplicated nonpriced qualification inquiry to Factal.",
+  "latest_handoff": "docs/channel-status/revenue-expansion-2026-10-17-0909-automation.json",
+  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-10-16-0908-automation.json",
   "previous_pointer_handoff": "docs/channel-status/revenue-expansion-2026-09-29-1316-chat.json",
   "owner_delegation_document": "docs/owner-delegation-2026-09-27.md",
-  "instruction": "Continue the SAME daily DELTA operation. Read the latest handoff first. Paid orders and explicit Invoica/PayAgentic replies remain first priority; do not chase silence. Constella Intelligence received one nonpriced first contact at sales@constellaintelligence.com, message/thread 1a1424072c233f1b, fully read back as SENT; SENT is not delivery or buying intent. Supply Wisdom, Factiverse, Fluence and UpGuard remain without actionable replies. ZeroFox already had a prior first contact; Red Points remains safety-blocked; neither may be resent or rerouted. Proco AI remains final-failure suppressed. Treasury is freshly reconciled through block 52661721 with only the two known excluded 0.03 USDC project-test transfers. Preserve all prices, suppressions, safety holds, accumulated actuals, notification settings and the owner's daily cadence. Received Codex handoff; local logs were not directly read and 337 tests were not rerun.",
+  "instruction": "Continue the same daily operation. Reconcile Treasury and explicit buyer/payment replies first. Factal received one nonpriced first contact at sales@factal.com (message/thread 1a14766d12079dbd); SENT is not delivery or intent, so do not resend absent an explicit reply. Constella returned final 5.7.133 for sales@constellaintelligence.com; suppress the target and route, with no alternate address, form, or channel. Preserve all other suppressions and do not chase silence.",
   "execution_recovery": {
-    "record_commit_sha": "d6bc45fc80a0be8f3fc3e15077cc4981007e72a2",
-    "record_blob_sha_read_back": "7acd6238e2548941d49d994801844f693136bc10",
-    "repository_record_write_and_full_readback_completed": true,
-    "latest_inbound_message_id": "1a13992bfe0f20de",
-    "latest_inbound_received_at_cst": "2026-10-14T16:41:20+08:00",
-    "latest_inbound_target": "Proco AI delivery-status update",
-    "outbound_email_sent_this_run": true,
-    "outbound_email_message_id": "1a1424072c233f1b",
-    "outbound_email_thread_id": "1a1424072c233f1b",
-    "outbound_email_to": "sales@constellaintelligence.com",
-    "outbound_email_sent_readback_verified": true,
-    "outbound_email_recipient_official_route_verified": true,
-    "outbound_email_count": 1,
-    "valid_qualified_contact_count": 1,
-    "google_oauth_or_permission_denial": null,
-    "platform_safety_refusal": null,
-    "gmail_provider_error": null,
+    "record_path": "docs/channel-status/revenue-expansion-2026-10-17-0909-automation.json",
+    "record_commit_sha": "f7e11c6aa10322954143d742c5b510b86530656c",
+    "record_blob_sha": "b60dc9e0d0943fc23f570a645174817d05ee7153",
+    "repository_write_verified": true,
+    "repository_readback_verified": true,
+    "latest_inbound_message_id": "1a1424095ed3c609",
+    "latest_inbound_thread_id": "1a1424072c233f1b",
+    "latest_inbound_received_at_cst": "2026-10-16T09:08:07+08:00",
+    "latest_inbound_scope": "Constella final delivery failure 5.7.133; no buyer/payment reply",
+    "latest_outbound_target": "Factal",
+    "latest_outbound_recipient": "sales@factal.com",
+    "latest_outbound_message_id": "1a14766d12079dbd",
+    "latest_outbound_thread_id": "1a14766d12079dbd",
+    "latest_outbound_label_ids": [
+      "SENT"
+    ],
+    "latest_outbound_count": 1,
+    "github_error": null,
+    "gmail_error": null,
     "treasury_error": null,
-    "production_code_or_metadata_deployed_this_turn": false,
-    "package_published_this_turn": false,
-    "payment_or_wallet_action_taken": false,
-    "permissions_changed": false,
     "task_changed": false,
-    "old_safety_holds_cleared": false,
-    "error_handling": "Constella send succeeded once and was fully read back. Existing ZeroFox contact and Red Points safety block were honored; Bolster form was not submitted because required identity/location fields were unverified and there was no message field. No payment or held-action workaround.",
-    "treasury_primary_api_access_error": null,
-    "buyer_inbox_checked_after_cst": "2026-10-15T09:06:00+08:00",
-    "new_actionable_inbound_this_run": false
+    "prior_holds_changed": false,
+    "error_handling": "No unknown send state. Constella final NDR was read and suppressed without rerouting. Factal send was read back once; no retry or duplicate send."
   },
   "task_id": "6a9699b9f8308191a104d805bfa57c43",
   "task_title": "全力冲刺50000usdc",
@@ -53,7 +48,7 @@
   "ongoing_recognized_customer_revenue_usdc": 0,
   "ongoing_variable_cost_usdc": null,
   "ongoing_contribution_margin_usdc": null,
-  "ongoing_counts_scope": "Previously verified accumulated actuals retained without reset. Fresh Blockscout address history and head reconcile the canonical Treasury through block 52661721; the only two canonical USDC transfers remain known excluded 0.03 USDC project tests. Constella contact is not revenue.",
+  "ongoing_counts_scope": "Freshly verified through Base block 52704908. Exactly two historical 0.03 USDC canonical-token transfers remain classified as project tests and excluded; no new receipt candidate or verified customer transaction was found. Factal outreach is not revenue.",
   "fresh_canonical_execution_triggered_this_run": false,
   "fresh_direct_treasury_reconciliation_completed_this_run": true,
   "latest_fresh_treasury_read_at_cst": "2026-10-16T09:06:30+08:00",
@@ -196,32 +191,8 @@
     "source_and_live_price_checks_passed_in_that_pulse": true,
     "production_patch_presence_proven": false
   },
-  "current_reconciliation_gap": {
-    "status": "verified_through_fresh_head",
-    "checkpoint_advanced": true,
-    "retained_checkpoint": 52661721,
-    "retained_checkpoint_at_cst": "2026-10-16T09:06:30+08:00",
-    "verified_raw_log_range": [
-      52617467,
-      52661721
-    ],
-    "fresh_explorer_head": 52661721,
-    "fresh_complete_treasury_read": true,
-    "new_candidate_receipts": 0,
-    "supporting_record": "docs/channel-status/revenue-expansion-2026-10-16-0908-automation.json"
-  },
-  "latest_promotion_scope": {
-    "existing_example_shared": null,
-    "unique_nonpriced_first_contacts_sent_and_read_back": 1,
-    "valid_qualified_contacts": 1,
-    "latest_target": "Constella Intelligence",
-    "latest_target_message_id": "1a1424072c233f1b",
-    "latest_target_state": "SENT and fully read back; delivery and interest unconfirmed",
-    "social_posts_published": 0,
-    "new_catalog_entries": 0,
-    "sample_engagement_or_conversion_lift": null,
-    "new_targets_next": "Paid orders and explicit buyer replies first; otherwise independently qualified new targets only after Gmail plus canonical-record dedupe."
-  },
+  "current_reconciliation_gap": "No chain coverage gap through block 52704908. There is no unmatched new receipt candidate. Production fulfillment telemetry and live pricing were not invoked because no genuine paid order or price-bearing write was present.",
+  "latest_promotion_scope": "No public promotion or deployment this run. One qualified publication/citation-workflow inquiry was sent to Factal through its official sales route after Gmail and repository dedupe.",
   "legacy_pointer_scope": "Older latest_canonical_run, production, distribution and task_next_scheduled_start fields are retained dated snapshots, not newly executed checks or a current next-run calculation. Newer promotion evidence is in latest_handoff. The historical pulse's overall success does not override its failed Treasury step. No evidence here establishes the local buyer-assurance patch is deployed.",
   "latest_reviewed_pulse_artifact": {
     "run_id": 37873628220,
@@ -242,16 +213,75 @@
     "assistant_resent": false
   },
   "latest_delivery_failure": {
-    "target": "Proco AI",
-    "recipient": "sales@procoai.com",
-    "dsn_message_id": "1a13992bfe0f20de",
-    "thread_id": "1a129261ee07a0e0",
-    "state": "final_failure_status_4.4.1_recipient_server_connection_timeout",
+    "target": "Constella",
+    "recipient": "sales@constellaintelligence.com",
+    "ndr_message_id": "1a1424095ed3c609",
+    "ndr_thread_id": "1a1424072c233f1b",
+    "received_at_cst": "2026-10-16T09:08:07+08:00",
+    "status": "5.7.133",
+    "state": "Final failure: external sender not authenticated or allowed for Microsoft 365 sales group",
+    "target_suppressed": true,
     "assistant_resent": false,
     "alternate_route_used": false
   },
   "task_cadence_frequency": "daily",
   "task_rrule": "FREQ=DAILY",
   "task_cadence_source": "Latest owner direction after prior five-hour cadence",
-  "task_schedule_changed_this_run": false
+  "task_schedule_changed_this_run": false,
+  "treasury_checkpoint": {
+    "chain": "eip155:8453",
+    "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "checked_at_cst": "2026-10-17T09:07:00+08:00",
+    "source": "BaseScan current token-transfer and block pages",
+    "previous_checkpoint_block": 52661721,
+    "safe_overlap_from_block": 52660721,
+    "checked_through_block": 52704908,
+    "range": [
+      52660721,
+      52704908
+    ],
+    "coverage_gap": null,
+    "new_receipt_candidates": 0,
+    "verified_customer_receipts": 0
+  },
+  "latest_full_incoming_transfer_read": {
+    "checked_at_cst": "2026-10-17T09:07:00+08:00",
+    "canonical_usdc_transfer_count": 2,
+    "transfers": [
+      {
+        "tx_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+        "amount_usdc": "0.03",
+        "classification": "project_test_excluded"
+      },
+      {
+        "tx_hash": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3",
+        "amount_usdc": "0.03",
+        "classification": "project_test_excluded"
+      }
+    ],
+    "new_receipt_candidates": 0,
+    "verified_customer_receipts": 0
+  },
+  "latest_run": {
+    "path": "docs/channel-status/revenue-expansion-2026-10-17-0909-automation.json",
+    "commit_sha": "f7e11c6aa10322954143d742c5b510b86530656c",
+    "target": "Factal",
+    "inbound_scope": "No buyer/payment reply; Constella final 5.7.133 NDR read and suppressed",
+    "outbound_message_id": "1a14766d12079dbd",
+    "outbound_thread_id": "1a14766d12079dbd",
+    "state": "one deduplicated nonpriced qualification inquiry sent and read back; no delivery or intent claim"
+  },
+  "latest_actionable_intent_scope": "No new actionable buying or integration intent.",
+  "latest_verified_funded_request": false,
+  "latest_run_counts": {
+    "payment_authorized": 0,
+    "settlement_confirmed": 0,
+    "treasury_received": 0,
+    "fulfilled_paid_uses": 0,
+    "counted_customer_transactions": 0,
+    "successful_first_contacts": 1
+  },
+  "cadence": "daily",
+  "cadence_changed": false
 }
