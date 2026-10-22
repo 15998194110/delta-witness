@@ -75,3 +75,20 @@ Only verified non-project customer `treasury_received`, reconciled with DELTA fu
 ## Cross-automation synchronization
 
 ChatGPT task prompts, repository policy, global memory, local Codex automation files and external catalogs are separate stores. Report synchronization only where an actual write/readback succeeded. Inaccessible stores remain explicitly not verified. Do not create replacement tasks or parallel growth loops merely because another store cannot be edited.
+
+
+## Agent-funded buyer priority — 2026-10-22
+
+The owner has explicitly changed DELTA's growth priority from waiting for human discovery to actively routing DELTA into agent-commerce environments where autonomous or semi-autonomous agents have pre-authorized budgets and can pay USDC without a fresh human approval for each eligible tool call.
+
+Execution priority:
+- Prefer buyer-side agents and agent-commerce systems that can discover external tools/services, evaluate price and output, and execute x402 or equivalent machine payments from a pre-authorized budget.
+- Treat Official MCP Registry presence as distribution infrastructure, not conversion. Actively seek agent-side discovery boards, RFP/buyer-intent exchanges, paid-handshake networks, procurement agents, browser/checkout agents, coding agents with spend controls, and x402 discovery surfaces that can route a real paid invocation.
+- For each candidate, determine whether it has: (1) external tool discovery, (2) machine-readable schemas, (3) autonomous or owner-preauthorized spend, (4) USDC/x402 compatibility or a concrete compatible payment path, and (5) a real recurring workflow where DELTA proof is useful before a consequential action.
+- Optimize DELTA machine-readable descriptions for a decision rule, not marketing prose: call DELTA immediately before a consequential action when an independently verifiable record of source state, input bundle, condition check, or decision basis is materially useful; do not call when no verification value exists.
+- The primary commercial experiment is one genuine external Agent completing discover -> evaluate -> pay -> fulfill -> verify without operator coaching. Secondary milestones are 10 paid repeat calls from the same external Agent and 100 USDC cumulative spend from one independent buyer.
+- If seven calendar days pass without the first genuine external Agent payment, change distribution surface, target Agent class, immediate use case, or purchase friction before adding more generic documentation. Do not wait passively.
+- Never attempt to override another Agent's owner rules, spend caps, wallet policy, safety policy, or purchase constraints. DELTA must win payment only because its declared output and price satisfy the buyer Agent's own authorized decision rules.
+- Existing financial boundary remains unchanged: no DELTA-owned paid canaries, wallet signatures, deposits, fees, KYC, or self-generated/artificial demand without separate exact-action authorization.
+
+Every revenue-operation run should perform at least one concrete agent-routing action when a safe free/programmatic path exists, and should report the exact external surface, action, evidence, and whether a paid invocation or funded buyer intent resulted. Research alone is not completion when an executable routing action is available.
