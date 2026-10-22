@@ -294,7 +294,7 @@ describe("Base app incomplete paid requests", () => {
     await act(async () => { resolveQuotes[1](Response.json({ ...quote, price: "$5" })); });
     await act(async () => { resolveQuotes[0](Response.json({ ...quote, price: "$1" })); });
     expect(container.querySelector(".quote")!.textContent).toContain("$5 USDC");
-    expect(container.querySelector<HTMLButtonElement>(".primary-action")!.textContent).toContain("Preflight");
+    expect(container.querySelector<HTMLButtonElement>(".primary-action")!.textContent).toContain("Run condition check · 5 USDC");
     expect(paidFetch).not.toHaveBeenCalled();
   });
 });
