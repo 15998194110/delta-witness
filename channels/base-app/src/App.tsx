@@ -298,10 +298,23 @@ export default function App() {
   const actionLabel = runState === "connecting"
     ? "Connecting wallet…"
     : runState === "paying"
-      ? `Approve ${quote?.price ?? "payment"} & run ${productName}…`
+      ? `Approve ${quote?.price ?? "payment"} & create proof…`
       : recoveryBlocked || paymentNeedsRecovery(runState)
         ? "Check original attempt before paying again"
-        : `Connect wallet & run ${productName}`;
+        : product === "capture"
+          ? "Create timestamped proof · 1 USDC"
+          : "Run condition check · 5 USDC";
+
+  const paymentStatus = useMemo(() => {
+    if (runState === "connecting") return "Wallet connecting — no payment has been sent yet.";
+    if (runState === "paying") return "Payment authorization in progress — wait for the wallet and DELTA response.";
+    if (runState === "processing") return "Payment submitted — proof processing. Do not pay again for this request.";
+    if (runState === "retryable_failure") return "Payment may have been submitted, but no proof was delivered. Review the original attempt before retrying.";
+    if (runState === "uncertain") return "Payment status is unconfirmed. Do not approve another payment until this attempt is reviewed.";
+    if (runState === "complete") return "Paid and delivered — the proof is ready for independent verification.";
+    if (runState === "error") return "No completed proof was created. Follow the message above before trying again.";
+    return "Not paid — no capture has started.";
+  }, [runState]);
 
   return (
     <div className="app-shell">
@@ -319,18 +332,18 @@ export default function App() {
 
       <main>
         <section className="intro" aria-labelledby="page-title">
-          <h1 id="page-title">Verify the source before you act.</h1>
-          <p>Capture a public page for 1 USDC.{" "}<br />Check a condition with Preflight for 5 USDC.</p>
+          <h1 id="page-title">Prove what a public page showed at a specific moment.</h1>
+          <p>Create a timestamped, independently verifiable record for 1 USDC.{" "}<br />Or check a specific condition before acting for 5 USDC.</p>
         </section>
 
         <div className="workspace">
           <section className="form-region" aria-label="DELTA request">
             <div className="mode-switch" role="radiogroup" aria-label="Product">
               <button className={product === "capture" ? "selected" : ""} role="radio" aria-checked={product === "capture"} onClick={() => { clearPreviousResult(); setProduct("capture"); }} disabled={locked}>
-                <span className="radio-dot" aria-hidden="true" /> Capture · 1 USDC
+                <span className="radio-dot" aria-hidden="true" /> Timestamped proof · 1 USDC
               </button>
               <button className={product === "preflight" ? "selected" : ""} role="radio" aria-checked={product === "preflight"} onClick={() => { clearPreviousResult(); setProduct("preflight"); }} disabled={locked}>
-                <span className="radio-dot" aria-hidden="true" /> Preflight · 5 USDC
+                <span className="radio-dot" aria-hidden="true" /> Condition check · 5 USDC
               </button>
             </div>
 
@@ -351,8 +364,9 @@ export default function App() {
             <dl className="quote" aria-label="Live quote">
               <div><dt>Network</dt><dd>Base</dd></div>
               <div><dt>Price</dt><dd>{quote ? `${quote.price} USDC` : "—"}</dd></div>
-              <div><dt>Settlement</dt><dd>Before work · x402</dd></div>
+              <div><dt>Settlement</dt><dd>Before observation · x402</dd></div>
             </dl>
+            <p className="wallet-address"><strong>Payment status:</strong> {paymentStatus}</p>
 
             {quoteError && <p className="inline-error" role="alert">Quote unavailable: {quoteError} <button onClick={() => void loadQuote()} disabled={locked}>Retry</button></p>}
             {error && <p className="inline-error" role="alert">{error}</p>}
@@ -372,7 +386,8 @@ export default function App() {
             {delivery ? (
               <dl className="completed-result">
                 <div><dt>Observed</dt><dd>{new Date(delivery.observed_at).toISOString().replace("T", " ").replace(".000Z", " UTC")}</dd></div>
-                <div><dt>Proof</dt><dd><a href={delivery.public_proof_url}>{compactProof(delivery.proof_id)}</a></dd></div>
+                <div><dt>Proof ref</dt><dd><code>{compactProof(delivery.proof_id)}</code></dd></div>
+                <div><dt>Verification</dt><dd><a className="verify-proof" href={delivery.public_proof_url} target="_blank" rel="noreferrer">Verify public proof ↗</a></dd></div>
                 <div><dt>Reason</dt><dd className="reason">{delivery.reason ?? "OBSERVATION_RECORDED"}</dd></div>
               </dl>
             ) : (
