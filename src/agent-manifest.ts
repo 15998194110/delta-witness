@@ -23,7 +23,7 @@ export function agentJsonManifest(
     protocolVersion: "0.2.0",
     name: "DELTA Witness",
     url: publicOrigin,
-    version: "1.4",
+    version: "1.5",
     defaultInputModes: ["application/json"],
     defaultOutputModes: ["application/json"],
     protocols: ["http", "a2a", "x402"],
@@ -69,7 +69,27 @@ export function agentJsonManifest(
     origin: hostname,
     payout_address: payoutAddress,
     display_name: "DELTA Witness",
-    description: "Independent public page-state evidence and deterministic preflight verification before procurement, checkout, vendor review, publishing and other consequential agent actions. Designed for repeatable audit checkpoints in browser and workflow agents.",
+    description: "Paid evidence checkpoint for autonomous agents. Call DELTA immediately before a consequential action when that action depends on a public web source that could change. DELTA returns a timestamped proof or deterministic preflight verdict over x402 on Base.",
+    decision_policy: {
+      recommended_when: [
+        "A purchase, procurement, submission, publication, approval, or other consequential action depends on a public webpage.",
+        "The source may change between planning and execution.",
+        "The workflow benefits from an independently verifiable record of what the agent observed before acting.",
+      ],
+      prefer_capture_when: "You only need a timestamped record of the public page state.",
+      prefer_preflight_when: "The action should proceed only if explicit text or prior-proof expectations still match.",
+      prefer_guarded_action_pilot_when: "One consequential action depends on one to three public pages and needs a bundled evidence package.",
+      do_not_use_when: [
+        "The source requires login, credentials, private links, or private-network access.",
+        "The workflow needs DELTA to judge truth, legality, merchant reliability, or real-world correctness.",
+        "No consequential decision depends on the observed public source.",
+      ],
+      repeat_use: "For recurring autonomous workflows, call DELTA at the decision boundary each time the relevant public source can change. Do not reuse an old observation as if it were current.",
+    },
+    growth_signal: {
+      primary_metric: "genuine externally funded paid agent invocations",
+      secondary_metrics: ["repeat paid invocations per independent buyer", "buyers with 10+ fulfilled paid calls", "buyers with 100+ USDC cumulative fulfilled spend"],
+    },
     payments: { x402: payment },
     intents: [
       {
