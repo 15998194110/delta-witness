@@ -98,8 +98,10 @@ describe("Base app incomplete paid requests", () => {
     expect(container.querySelector(".sample-proof")!.textContent).toContain("It is not evidence of a capture");
     expect(container.querySelector(".sample-proof a, .sample-proof button")).toBeNull();
     expect(container.querySelectorAll(".use-cases article")).toHaveLength(3);
-    expect(container.querySelector(".intro p")!.textContent).toBe("Capture a public page for 1 USDC. Check a condition with Preflight for 5 USDC.");
-    expect(container.querySelectorAll<HTMLButtonElement>("[role=radio]")[1].textContent).toContain("Preflight · 5 USDC");
+    expect(container.querySelector(".intro p")!.textContent).toBe("Create a timestamped, independently verifiable record for 1 USDC. Or check a specific condition before acting for 5 USDC.");
+    expect(container.querySelectorAll<HTMLButtonElement>("[role=radio]")[0].textContent).toContain("Timestamped proof · 1 USDC");
+    expect(container.querySelectorAll<HTMLButtonElement>("[role=radio]")[1].textContent).toContain("Condition check · 5 USDC");
+    expect(container.textContent).toContain("Payment status: Not paid — no capture has started.");
     expect(walletRequest).not.toHaveBeenCalled();
     expect(paidFetch).not.toHaveBeenCalled();
   });
@@ -121,7 +123,9 @@ describe("Base app incomplete paid requests", () => {
     await renderApp();
     await startRequest();
     expect(container.querySelector(".result-status")!.textContent).toBe("CAPTURED");
-    expect(container.querySelector<HTMLAnchorElement>(".result-rail a")!.href).toBe(publicUrl);
+    expect(container.querySelector<HTMLAnchorElement>(".verify-proof")!.href).toBe(publicUrl);
+    expect(container.querySelector<HTMLAnchorElement>(".verify-proof")!.textContent).toContain("Verify public proof");
+    expect(container.textContent).toContain("Paid and delivered — the proof is ready for independent verification.");
     expect(container.textContent).toContain("2026-09-30 12:00:00 UTC");
     expect(window.localStorage.getItem(PAYMENT_ATTEMPT_KEY)).toBeNull();
     await act(async () => { container.querySelectorAll<HTMLButtonElement>("[role=radio]")[1].click(); });
