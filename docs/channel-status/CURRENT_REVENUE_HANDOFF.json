@@ -1,15 +1,15 @@
 {
-  "updated_at_cst": "2026-10-23T00:06:00+08:00",
-  "updated_at_scope": "Fresh Treasury verification through Base block 52947828 found no new canonical USDC receipt candidate. PayanAgent discovery still returned an internal error. Circle's keyless x402 Discovery API returned zero DELTA resources for both the exact Treasury merchant filter and the tested observation-record intent.",
+  "updated_at_cst": "2026-10-23T00:08:00+08:00",
+  "updated_at_scope": "Fresh Treasury verification through Base block 52947828 found no new canonical USDC receipt candidate. PayanAgent remained unavailable. Circle keyless discovery returned no DELTA route. Live DELTA x402 metadata contains correct routes, Base USDC prices, schemas, examples and Bazaar extensions; Coinbase official documentation confirms indexing still requires a genuine settled CDP-Facilitator call.",
   "latest_handoff": "docs/channel-status/revenue-expansion-2026-10-23-0005-automation.json",
   "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-10-22-1713-automation.json",
   "previous_pointer_handoff": "docs/channel-status/revenue-expansion-2026-09-29-1316-chat.json",
   "owner_delegation_document": "docs/owner-delegation-2026-09-27.md",
-  "instruction": "Continue the same operation daily. Reconcile Treasury and explicit buyer/payment replies first. Give highest priority to genuine agent-funded routing. PayanAgent remains transiently unavailable. Circle's independent keyless x402 catalog did not return DELTA by exact Treasury or tested observation-record intent; inspect official get-discovered eligibility requirements against the current DELTA x402 discovery response and complete only a free, reversible, non-price-changing canonical-source fix when a concrete schema gap is proven. Do not deploy without existing release authorization and do not self-pay or manufacture settlement history.",
+  "instruction": "Continue the same operation daily. Reconcile Treasury and explicit buyer/payment replies first. Give highest priority to genuine agent-funded routing. Seller-side metadata is present; do not spend more cycles on speculative schema edits or self-pay. Move to an external buyer agent already configured for CDP/Circle x402 payment and a real public-page decision workflow, while respecting its owner policy and spend cap. PayanAgent remains transiently unavailable; Agent402 remains blocked by settlement history.",
   "execution_recovery": {
     "record_path": "docs/channel-status/revenue-expansion-2026-10-23-0005-automation.json",
-    "record_commit_sha": "a3e3160bf8fe11844881d764bfe66839775eb8fa",
-    "record_blob_sha": "5b94da53bee9de1c5991a106177958f3892ccb5c",
+    "record_commit_sha": "75d87e5e6f20005e9f73d8eeaa65b8d3d9dcc1ee",
+    "record_blob_sha": "e0555bc2531403e0130755051baee744818efc2c",
     "repository_write_verified": true,
     "repository_readback_verified": true,
     "latest_inbound_message_id": null,
@@ -187,8 +187,8 @@
     "source_and_live_price_checks_passed_in_that_pulse": true,
     "production_patch_presence_proven": false
   },
-  "current_reconciliation_gap": "No chain coverage gap through block 52947828 and no unmatched receipt candidate. PayanAgent remains transiently unavailable; Circle's buyer-side catalog does not currently surface DELTA by exact Treasury or tested intent.",
-  "latest_promotion_scope": "Concrete agent-routing actions: bounded PayanAgent discovery retry returned Internal server error; Circle keyless x402 Discovery queries by exact merchant and observation-record intent both returned zero results. No listing mutation, payment, message, or deployment.",
+  "current_reconciliation_gap": "No chain coverage gap through block 52947828 and no unmatched receipt candidate. DELTA's discovery metadata is present, but Circle/CDP indexing requires a genuine settled facilitator call; PayanAgent is unavailable and Agent402's router requires settlement history.",
+  "latest_promotion_scope": "Concrete agent-routing actions: PayanAgent bounded retry returned Internal server error; Circle keyless x402 Discovery queries by exact merchant and observation-record intent returned zero results. Live DELTA x402 metadata was then checked and found to include routes, correct prices, schemas, examples and Bazaar extensions. Official Coinbase rules identify the remaining index trigger as a genuine CDP-Facilitator settlement. No payment, listing mutation, message or deployment occurred.",
   "legacy_pointer_scope": "Older latest_canonical_run, production, distribution and task_next_scheduled_start fields are retained dated snapshots, not newly executed checks or a current next-run calculation. Newer promotion evidence is in latest_handoff. The historical pulse's overall success does not override its failed Treasury step. No evidence here establishes the local buyer-assurance patch is deployed. 收到Codex交接，未直接读取本地日志；未运行337项测试，未核验本地候选版在线生效。",
   "latest_reviewed_pulse_artifact": {
     "run_id": 37873628220,
@@ -261,12 +261,12 @@
   },
   "latest_run": {
     "path": "docs/channel-status/revenue-expansion-2026-10-23-0005-automation.json",
-    "commit_sha": "a3e3160bf8fe11844881d764bfe66839775eb8fa",
+    "commit_sha": "75d87e5e6f20005e9f73d8eeaa65b8d3d9dcc1ee",
     "target": "Agent-funded buyer routing",
     "inbound_scope": "No new buyer/payment reply or delivery-status notice",
     "external_surface": "Circle x402 Discovery plus PayanAgent bounded retry",
     "external_action": "Exact Treasury merchant lookup and observation-record intent query",
-    "state": "Circle returned zero DELTA resources; PayanAgent returned Internal server error; no payment or fulfillment"
+    "state": "Circle returned zero DELTA resources; PayanAgent returned Internal server error; live DELTA metadata is agent-ready, but Coinbase Bazaar indexing still requires a genuine settled facilitator call. No payment or fulfillment."
   },
   "latest_actionable_intent_scope": "No new actionable buying or integration intent; previously established Invoica and PayAgentic intent remains waiting without a new result.",
   "latest_verified_funded_request": false,
@@ -327,6 +327,24 @@
     "paid_invocation": false,
     "funded_buyer_intent": false,
     "fulfillment": false,
-    "treasury_receipt": false
+    "treasury_receipt": false,
+    "live_delta_metadata": {
+      "url": "https://delta-witness-api.ruphussten.workers.dev/.well-known/x402",
+      "resources": 3,
+      "x402_version": 2,
+      "network": "eip155:8453",
+      "prices_atomic": [
+        "1000000",
+        "5000000",
+        "10000000"
+      ],
+      "correct_usdc": true,
+      "correct_treasury": true,
+      "input_schemas_present": true,
+      "examples_present": true,
+      "bazaar_extensions_present": true
+    },
+    "coinbase_bazaar_index_trigger": "Successful genuine settled payment through the CDP Facilitator; no registration form or separate listing API.",
+    "free_schema_gap_proven": false
   }
 }
