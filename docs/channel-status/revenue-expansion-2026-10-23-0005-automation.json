@@ -137,8 +137,9 @@
   },
   "blockers": [
     "PayanAgent public discover still returns a transient internal server error.",
-    "Circle's independent keyless x402 catalog returns zero DELTA resources for the exact Treasury and the tested observation-record intent, so buyer agents on that surface cannot currently discover DELTA.",
-    "Agent402 remains discoverable but auto-dispatch was previously blocked by settlement_required; no self-pay or artificial history is permitted."
+    "Circle's independent keyless x402 catalog returns zero DELTA resources for the exact Treasury and the tested observation-record intent.",
+    "Coinbase Bazaar indexing requires a successful genuine settled payment through the CDP Facilitator after valid metadata. DELTA metadata is present; self-pay, paid canaries and artificial settlement history are prohibited.",
+    "Agent402 remains discoverable but auto-dispatch was previously blocked by settlement_required."
   ],
   "engineering_scope": "收到Codex交接，未直接读取本地日志；未运行337项测试，未核验本地候选版在线生效。",
   "safety": {
@@ -149,5 +150,41 @@
     "outbound_email_sent": false,
     "suppressed_target_reopened": false
   },
-  "next_action": "Reconcile Treasury and explicit buyer replies first. Then inspect the official Coinbase/Circle get-discovered requirements against DELTA's current x402 discovery response and complete the smallest free, reversible, non-price-changing eligibility fix in the canonical source if a concrete schema gap is found; do not deploy without the existing release authorization."
+  "next_action": "Reconcile Treasury and explicit buyer replies first. Then switch from seller-side catalog work to an external buyer agent already configured for CDP/Circle x402 payment and an immediate public-page decision workflow; present the existing machine-readable DELTA route without bypassing its spend policy. Do not self-pay or create a paid canary.",
+  "live_discovery_metadata_check": {
+    "checked_at_cst": "2026-10-23T00:06:03+08:00",
+    "url": "https://delta-witness-api.ruphussten.workers.dev/.well-known/x402",
+    "x402_version": 2,
+    "service": "delta-witness",
+    "version": "0.7.0",
+    "network": "eip155:8453",
+    "payment_flow": "upfront",
+    "resources": 3,
+    "prices_atomic": [
+      "1000000",
+      "5000000",
+      "10000000"
+    ],
+    "canonical_usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "input_schemas_present": true,
+    "examples_present": true,
+    "bazaar_extensions_present": true,
+    "methods_and_paths_present": true,
+    "live_observation_only": true,
+    "deployment_changed_this_run": false
+  },
+  "official_bazaar_eligibility": {
+    "source": "Coinbase official Get discovered (Bazaar) documentation, freshly read 2026-10-23 CST",
+    "key_facts": [
+      "There is no registration form or separate API call.",
+      "Validation is free and checks 402 plus extensions.bazaar metadata.",
+      "Indexing is triggered only after a successful settled payment through the CDP Facilitator.",
+      "Metadata must pass prompt-injection screening.",
+      "Ranking uses real call volume, unique payers, recency and listing quality."
+    ],
+    "current_assessment": "DELTA's public discovery document already exposes correct route, price, schema, examples and Bazaar extension metadata. The remaining indexing trigger is a genuine independent settled call through the CDP Facilitator, not a free schema edit.",
+    "free_schema_gap_proven": false,
+    "self_pay_or_test_settlement_permitted": false
+  }
 }
