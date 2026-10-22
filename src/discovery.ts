@@ -202,13 +202,26 @@ export function openApi(origin: string, version: string, capture: PricingQuote, 
 export function skillMarkdown(origin: string): string {
   return `---
 name: delta-witness
-description: Observe public web sources and guard consequential autonomous actions with timestamped hashes.
+description: Paid evidence checkpoint for autonomous actions that depend on mutable public web sources.
 homepage: ${origin}
 ---
 
 # DELTA Witness
 
-Use DELTA when an action depends on what a public source says now.
+Use DELTA at the decision boundary: immediately before an autonomous action that depends on a public webpage which may change between planning and execution.
+
+## Agent decision rule
+
+Call DELTA when all three are true:
+1. A consequential action is about to happen (purchase, procurement, submission, publication, approval, or similar).
+2. The action depends on a public HTTP(S) source.
+3. A stale or changed source would materially alter the decision or create an audit gap.
+
+Do not call DELTA merely for browsing, discovery, or low-consequence reading. DELTA records what its capture system observed; it does not decide whether a source is truthful, legal, or trustworthy.
+
+For recurring workflows, call DELTA again at each decision boundary when the source can change. Do not treat an older proof as current evidence.
+
+## Products
 
 - Capture: \`POST ${origin}/v1/capture\` with \`{"url":"https://example.com"}\`.
 - Guard: \`POST ${origin}/v1/preflight\` with a URL plus a prior proof, expected hash, or textual expectations.
