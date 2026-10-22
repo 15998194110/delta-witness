@@ -22,11 +22,14 @@ describe("agent.json provider manifest", () => {
       quote("capture"),
       quote("preflight", 1),
     );
-    expect(doc.version).toBe("1.4");
+    expect(doc.version).toBe("1.5");
     expect(doc.origin).toBe("delta-witness-api.ruphussten.workers.dev");
     expect(doc.payout_address).toBe("0x1990e21bc219696ff7fbc26527dbaed335ac6367");
     expect(doc.identity).toBeUndefined();
     expect(doc.commitments).toBeUndefined();
+    expect(doc.decision_policy.recommended_when).toHaveLength(3);
+    expect(doc.decision_policy.repeat_use).toContain("each time");
+    expect(doc.growth_signal.primary_metric).toContain("paid agent invocations");
     expect(doc.pricing.note).toBe("Capture is 0.03 USDC per call; public preflight is 1 USDC per call; guarded-action-pilot is a separate 10 USDC bounded pilot.");
     expect(doc.payments.x402.networks[0]).toMatchObject({
       network: "base",
