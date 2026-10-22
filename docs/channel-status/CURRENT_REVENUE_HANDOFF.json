@@ -10,7 +10,7 @@
     "record_path": "docs/channel-status/revenue-expansion-2026-10-23-0508-automation.json",
     "record_commit_sha": "edae2d9f6340ff057e5cd54fd398ff7cae80dbc9",
     "repository_write_verified": true,
-    "repository_readback_verified": false,
+    "repository_readback_verified": true,
     "latest_inbound_message_id": "1a16518a517f23e3",
     "latest_inbound_thread_id": "1a08ec603167c349",
     "latest_inbound_received_at_cst": "2026-10-23T03:31:13+08:00",
@@ -24,7 +24,9 @@
     "treasury_error": null,
     "task_changed": true,
     "prior_holds_changed": false,
-    "error_handling": "No unknown send or payment state. No wallet action, signature, paid canary, duplicate listing, account creation, deployment or settlement was performed."
+    "error_handling": "No unknown send or payment state. No wallet action, signature, paid canary, duplicate listing, account creation, deployment or settlement was performed.",
+    "record_blob_sha": "c0cbfcc0bb911e1a26dd7c490ce9fd917dd97e96",
+    "pointer_previous_commit_sha": "f8f03d28c4175e6d62d84172f82d29a1846fc2e3"
   },
   "task_id": "6a9699b9f8308191a104d805bfa57c43",
   "task_title": "全力冲刺50000usdc",
