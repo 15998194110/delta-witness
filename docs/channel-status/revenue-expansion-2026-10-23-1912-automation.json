@@ -1,0 +1,146 @@
+{
+  "recorded_at_cst": "2026-10-23T19:12:12+08:00",
+  "operation": "DELTA Witness revenue operation",
+  "continuation": {
+    "previous_handoff": "docs/channel-status/revenue-expansion-2026-10-23-0508-automation.json",
+    "previous_checkpoint_block": 52956919,
+    "previous_next_action": "Inspect PayAI asynchronous refresh and route an already-funded external agent without signing or self-paying."
+  },
+  "treasury": {
+    "chain": "eip155:8453",
+    "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "source": "Fresh Blockscout v2 head and complete Treasury token-transfers history",
+    "checked_at_cst": "2026-10-23T19:11:13+08:00",
+    "safe_overlap_from_block": 52955919,
+    "checked_through_block": 52982263,
+    "coverage_gap": null,
+    "full_incoming_canonical_usdc_transfer_count": 2,
+    "historical_transfers": [
+      {
+        "tx_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+        "block_number": 51091432,
+        "amount_usdc": "0.03",
+        "classification": "project_test_excluded"
+      },
+      {
+        "tx_hash": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3",
+        "block_number": 50985188,
+        "amount_usdc": "0.03",
+        "classification": "project_test_excluded"
+      }
+    ],
+    "new_receipt_candidates": 0,
+    "verified_customer_receipts": 0
+  },
+  "live_delta_manifest": {
+    "checked_at_cst": "2026-10-23T19:11:22+08:00",
+    "resource_count": 3,
+    "network": "eip155:8453",
+    "canonical_usdc": true,
+    "canonical_treasury": true,
+    "amounts_atomic": [
+      "1000000",
+      "5000000",
+      "10000000"
+    ],
+    "machine_readable_schemas": true,
+    "bazaar_extensions_present": true
+  },
+  "platform_distribution": {
+    "payapi_market": {
+      "tier": 1,
+      "actual_action": "Queried the public agent-facing HTTP discovery interface using exact-name and task-intent searches, then fetched the listing detail; no payment or signature.",
+      "query_evidence": [
+        "GET /agent/search?q=DELTA%20Witness",
+        "GET /agent/search?q=page%20state%20proof",
+        "GET /agent/get?id=delta-witness-capture"
+      ],
+      "exact_listing": {
+        "id": "7608dde0-0625-4553-8f2a-e451a887c0ad",
+        "slug": "delta-witness-capture",
+        "status": "live",
+        "price_min_usdc": 1,
+        "price_max_usdc": 1,
+        "network": "base",
+        "base_url": "https://delta-witness-api.ruphussten.workers.dev/v1/capture",
+        "task_intent_search_match": true,
+        "task_intent_search_count": 1,
+        "searched_catalog_entries": 832,
+        "reliability_band": "unscored"
+      },
+      "historical_verification_badge": {
+        "amount_usdc": 0.03,
+        "verified_at": "2026-09-09T16:43:31+00:00",
+        "tx_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+        "classification": "platform/project verification test; not current price and not independent customer revenue"
+      },
+      "current_catalog_price_correct": true,
+      "historical_badge_price_is_current_price": false,
+      "independent_buyer_paid_invocation": false
+    },
+    "payai_bazaar": {
+      "tier": 1,
+      "actual_action": "Fresh exact-Treasury discovery readback after the existing manual remediation/suppress request; no duplicate email.",
+      "capture_catalog_amount_atomic": "30000",
+      "preflight_catalog_amount_atomic": "30000",
+      "current_live_amounts_atomic": [
+        "1000000",
+        "5000000"
+      ],
+      "stale_rows_remain": true,
+      "existing_manual_remediation_message_id": "1a16693304f499fe",
+      "thread_id": "1a08ec603167c349",
+      "new_inbound_after_request": false,
+      "independent_buyer_paid_invocation": false
+    }
+  },
+  "direct_buyers": {
+    "invoica_kognai": {
+      "historical_stage": "explicit genuine 1 USDC Capture pilot intent",
+      "existing_followup_message_id": "1a1683972397b945",
+      "followup_sent_at_cst": "2026-10-23T18:05:57+08:00",
+      "new_inbound_after_followup": false,
+      "duplicate_followup_sent_this_run": false,
+      "payment_or_proof_found": false
+    },
+    "payagentic": {
+      "historical_stage": "evaluated; substantive product and recovery questions answered",
+      "new_inbound_this_run": false,
+      "duplicate_followup_sent_this_run": false,
+      "payment_or_proof_found": false
+    }
+  },
+  "funnel": {
+    "platform_listing_discovered": 1,
+    "platform_listing_task_intent_evaluated": 1,
+    "newly_discovered_external_buyer_agents": 0,
+    "buyer_authorized_paid_invocations": 0,
+    "settlement_confirmed": 0,
+    "delta_paid_fulfillments": 0,
+    "third_party_verifications_of_new_paid_fulfillment": 0,
+    "treasury_customer_receipts": 0,
+    "new_verified_customer_revenue_usdc": 0
+  },
+  "blockers": [
+    "No independent buyer agent has yet authorized and paid for a DELTA invocation.",
+    "PayAI Bazaar still exposes stale 30000-atomic-unit Capture and Preflight rows; a manual refresh-or-suppress request is already pending.",
+    "PayAPI's current listing price is 1 USDC, but its historical verified-route badge still shows the old 0.03 USDC platform test and can be misread if treated as current pricing."
+  ],
+  "next_executable_action": {
+    "executor": "next scheduled DELTA run",
+    "action": "Recheck the existing PayAI remediation thread and exact discovery rows once; recheck the existing Invoica/Kognai thread for an independently authorized 1 USDC Capture. If still unchanged, shift the buyer route to another owner-policy-compatible agent marketplace/RFP while preserving the same live endpoint and prices.",
+    "success_condition": "Independent external agent discover→evaluate→authorize/pay→DELTA fulfill→third-party verify→Treasury receipt, or verified removal/correction of the stale PayAI rows."
+  },
+  "safety": {
+    "payment_made": false,
+    "wallet_signature": false,
+    "paid_canary": false,
+    "listing_mutation": false,
+    "duplicate_listing": false,
+    "account_creation": false,
+    "deployment": false,
+    "new_outbound_email": false
+  },
+  "native_notification_delivery_status": "unknown"
+}
