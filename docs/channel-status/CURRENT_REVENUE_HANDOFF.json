@@ -10,7 +10,7 @@
     "record_path": "docs/channel-status/revenue-expansion-2026-10-23-1912-automation.json",
     "record_commit_sha": "bcf52ef05b41fb6bd038623e8ddca77e5b5cc933",
     "repository_write_verified": true,
-    "repository_readback_verified": false,
+    "repository_readback_verified": true,
     "latest_external_agent_surface": "PayAPI Market agent HTTP discovery",
     "latest_external_agent_action": "Exact-name search, task-intent search, and listing detail fetch",
     "latest_external_agent_result": "DELTA matched the page-state-proof intent query among 832 catalog entries; current price 1 USDC, historical verification badge 0.03 USDC test",
@@ -20,7 +20,9 @@
     "treasury_error": null,
     "task_changed": false,
     "prior_holds_changed": false,
-    "error_handling": "No unknown send or payment state. No wallet action, signature, paid canary, duplicate listing, account creation, deployment or settlement was performed."
+    "error_handling": "No unknown send or payment state. No wallet action, signature, paid canary, duplicate listing, account creation, deployment or settlement was performed.",
+    "record_blob_sha": "9ae05789eddb767c7b0bbb3aebabfa804c8c1212",
+    "pointer_previous_commit_sha": "f7fdcb064a22c817ae3b89b93b5854d1dcce06d5"
   },
   "task_id": "6a9699b9f8308191a104d805bfa57c43",
   "task_title": "全力冲刺50000usdc",
