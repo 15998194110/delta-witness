@@ -1,0 +1,63 @@
+# One-shot extension of DELTA's existing distribution operation, NOT a parallel recurring growth loop.
+# Only the user-authorized canonical public x402 manifest is submitted; no wallet, payment, account or KYC.
+name: DELTA Agent Bazaar canonical manifest submission
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/delta-agent-bazaar-submit-20261026.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: delta-agent-bazaar-canonical-once
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Verify owner-authorized pricing source
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live 402 prices, network, token and Treasury without purchase
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Validate canonical public manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          origin="https://delta-witness-api.ruphussten.workers.dev"
+          curl -fSs --connect-timeout 10 --max-time 30 "$origin/.well-known/x402" -o /tmp/delta-x402.json
+          jq -e --arg origin "$origin" --arg treasury "0x1990e21bc219696ff7fbc26527dbaed335ac6367" '
+            .x402Version == 2 and
+            ( [.resources[]?] | length ) >= 3 and
+            ([.resources[]? | select(.resource == ($origin + "/v1/capture")) | .accepts[]? | select(.amount == "1000000" and .network == "eip155:8453" and (.payTo|ascii_downcase) == $treasury)] | length) > 0 and
+            ([.resources[]? | select(.resource == ($origin + "/v1/preflight")) | .accepts[]? | select(.amount == "5000000" and .network == "eip155:8453" and (.payTo|ascii_downcase) == $treasury)] | length) > 0 and
+            ([.resources[]? | select(.resource == ($origin + "/v1/guarded-action-pilot")) | .accepts[]? | select(.amount == "10000000" and .network == "eip155:8453" and (.payTo|ascii_downcase) == $treasury)] | length) > 0
+          ' /tmp/delta-x402.json >/dev/null
+          echo "Canonical DELTA x402 manifest and fixed owner prices confirmed. No payment made."
+      - name: Submit the existing canonical manifest to Agent Bazaar free discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="https://delta-witness-api.ruphussten.workers.dev/.well-known/x402"
+          payload=$(jq -nc --arg manifestUrl "$manifest" '{manifestUrl:$manifestUrl}')
+          code=$(curl -sS --connect-timeout 10 --max-time 45 --request POST \
+            'https://bazaar.saylorinnovations.com/submit' \
+            --header 'content-type: application/json' \
+            --data "$payload" \
+            --output /tmp/agent-bazaar-submit-response.json \
+            --write-out '%{http_code}')
+          echo "Agent Bazaar free canonical-manifest submission HTTP $code"
+          cat /tmp/agent-bazaar-submit-response.json
+          echo
+          case "$code" in
+            200|201|202) echo "Submission API accepted request; public search visibility requires independent readback." ;;
+            *) echo "Submission not confirmed: HTTP $code" >&2; exit 1 ;;
+          esac
