@@ -8,9 +8,9 @@
   "instruction": "Continue hourly. Reconcile Treasury and buyer/platform replies first. Read back x402mpp queue in the public index, then continue one deduped free public platform action with independent readback. Prioritize genuine independent buyer-agent conversion through 1 USDC Capture. Never self-pay, sign, KYC, create duplicate seller identities, fund canaries or manufacture demand.",
   "execution_recovery": {
     "record_path": "docs/channel-status/distribution-expansion-2026-10-26-1532.json",
-    "record_commit_sha": null,
+    "record_commit_sha": "c00fa386d19f547cafb06210093a9fbc36cb06b0",
     "repository_write_verified": true,
-    "repository_readback_verified": false,
+    "repository_readback_verified": true,
     "latest_external_agent_surface": "402 Index and x402mpp.sh",
     "latest_external_agent_action": "Refreshed/read back three live 402 Index routes and queued canonical manifest with x402mpp after dedupe",
     "latest_external_agent_result": "402 Index 3/3 active healthy x402-valid at 1/5/10 USDC; x402mpp HTTP 202 queued and not yet public",
@@ -258,7 +258,7 @@
   },
   "latest_run": {
     "path": "docs/channel-status/distribution-expansion-2026-10-26-1532.json",
-    "commit_sha": null,
+    "commit_sha": "c00fa386d19f547cafb06210093a9fbc36cb06b0",
     "target": "Saylor Agent Bazaar, OrbitX402, x402mpp.sh and 402 Index",
     "inbound_scope": "No new buyer reply, payment proof, fulfillment request or delivery-status notice",
     "external_surface": "Multi-platform x402 discovery",
