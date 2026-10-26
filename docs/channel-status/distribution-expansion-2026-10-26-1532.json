@@ -1,0 +1,199 @@
+{
+  "recorded_at_cst": "2026-10-26T15:32:00+08:00",
+  "operation": "DELTA Witness hourly revenue reconciliation plus legitimate multi-platform agent distribution",
+  "treasury_reconciliation": {
+    "chain": "eip155:8453",
+    "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "previous_checkpoint_block": 53104413,
+    "safe_overlap_from_block": 53103413,
+    "checked_through_block": 53105167,
+    "head_timestamp_utc": "2026-10-26T07:28:01Z",
+    "complete_incoming_canonical_token_transfer_count": 2,
+    "new_receipt_candidates": 0,
+    "verified_customer_receipts": 0,
+    "new_verified_customer_revenue_usdc": 0,
+    "historical_exclusions": [
+      {
+        "block": 51091432,
+        "amount_usdc": "0.03",
+        "classification": "project_test_excluded"
+      },
+      {
+        "block": 50985188,
+        "amount_usdc": "0.03",
+        "classification": "project_test_excluded"
+      }
+    ],
+    "coverage_gap": null,
+    "evidence": "Fresh Blockscout v2 head plus complete Treasury canonical-token transfer history; next_page_params null."
+  },
+  "buyer_reply_check": {
+    "gmail_query_scope": "After 2026-10-26; DELTA/x402/USDC/proof_id/Kognai/PayAgentic/PayAI/Saylor terms; incoming only",
+    "new_incoming_messages": 0,
+    "new_actionable_buyer_intent": false,
+    "duplicate_followup_sent": false
+  },
+  "pricing_gate": {
+    "source": "https://github.com/15998194110/delta-witness/actions/runs/40284276821",
+    "verified_at_cst": "2026-10-26T15:11:00+08:00",
+    "owner_pricing_check_passed": true,
+    "live_402_check_passed": true,
+    "canonical_manifest_check_passed": true,
+    "raw_amounts": [
+      "1000000",
+      "5000000",
+      "10000000"
+    ],
+    "network": "eip155:8453",
+    "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367"
+  },
+  "distribution_actions": [
+    {
+      "platform": "Agent Bazaar (Saylor Innovations)",
+      "action_time_cst": "2026-10-26T15:11:00+08:00",
+      "action": "Canonical manifest submitted once by repository workflow",
+      "result": "HTTP 200, ok=true, resourceCount=3; public search and all three detail pages independently read back",
+      "platform_count_delta": 1,
+      "public_resource_count_delta": 3,
+      "resources": [
+        {
+          "product": "Capture",
+          "price_usdc": 1,
+          "url": "https://bazaar.saylorinnovations.com/resources/73128"
+        },
+        {
+          "product": "Public Preflight",
+          "price_usdc": 5,
+          "url": "https://bazaar.saylorinnovations.com/resources/73129"
+        },
+        {
+          "product": "Guarded Action Pilot",
+          "price_usdc": 10,
+          "url": "https://bazaar.saylorinnovations.com/resources/73130"
+        }
+      ],
+      "external_agent_paid_invocations": 0,
+      "customer_revenue_usdc": 0,
+      "evidence_record": "docs/channel-status/distribution-expansion-2026-10-26-1512.json"
+    },
+    {
+      "platform": "OrbitX402",
+      "action": "Exact canonical domain lookup; duplicate registration intentionally skipped",
+      "result": "One existing automatic mirror found from x402scan with 3 resources, Base, payAI facilitator and canonical Treasury",
+      "source": "x402scan",
+      "last_probed_at_utc": "2026-10-26T05:46:20Z",
+      "catalog_transaction_count": 1,
+      "catalog_total_volume_usdc": "0.03",
+      "catalog_unique_buyers": 1,
+      "commercial_classification": "Historical project test only; excluded from customer revenue",
+      "newly_created_platform": false,
+      "newly_verified_preexisting_platform": true,
+      "duplicate_submission": false,
+      "external_agent_paid_invocations": 0,
+      "customer_revenue_usdc": 0,
+      "evidence_url": "https://api.orbitx402.com/api/servers?search=delta-witness-api.ruphussten.workers.dev&limit=100"
+    },
+    {
+      "platform": "x402mpp.sh",
+      "action": "Canonical .well-known/x402 URL submitted once after full public-index dedupe",
+      "endpoint": "https://api.x402mpp.sh/submit",
+      "submitted_url": "https://delta-witness-api.ruphussten.workers.dev/.well-known/x402",
+      "submission_http_status": 202,
+      "submission_id": "sub-b800f7e62c9ae5ae958f1c1b",
+      "result": "queued",
+      "public_index_readback_domain_mentions": 0,
+      "counted_as_public_platform": false,
+      "external_agent_paid_invocations": 0,
+      "customer_revenue_usdc": 0,
+      "evidence_url": "https://x402mpp.sh/data/search.json"
+    },
+    {
+      "platform": "402 Index",
+      "action": "Three canonical product endpoints submitted through documented free public registration API after catalog dedupe; platform probed each live 402 challenge",
+      "result": "All three returned HTTP 201 and independent public detail/API readback",
+      "registration_history_note": "Responses show registered_at on 2026-09-07 and updated_at on 2026-10-26; therefore recorded as a refreshed and newly verified pre-existing platform, not a newly created platform.",
+      "newly_created_platform": false,
+      "newly_verified_preexisting_platform": true,
+      "refreshed_active_platform": true,
+      "resources": [
+        {
+          "id": "73b990f5-02f6-4ef4-9892-645349938b63",
+          "product": "Capture",
+          "price_usdc": 1,
+          "status": "active",
+          "health_status": "healthy",
+          "x402_payment_valid": 1,
+          "probe_status": "probeable",
+          "url": "https://402index.io/service/73b990f5-02f6-4ef4-9892-645349938b63"
+        },
+        {
+          "id": "8632f21c-6981-488e-bff5-dc0d41055886",
+          "product": "Public Preflight",
+          "price_usdc": 5,
+          "status": "active",
+          "health_status": "healthy",
+          "x402_payment_valid": 1,
+          "probe_status": "probeable",
+          "url": "https://402index.io/service/8632f21c-6981-488e-bff5-dc0d41055886"
+        },
+        {
+          "id": "e98fec92-fe53-47bc-b274-fe228479fe49",
+          "product": "Guarded Action Pilot",
+          "price_usdc": 10,
+          "status": "active",
+          "health_status": "healthy",
+          "x402_payment_valid": 1,
+          "probe_status": "probeable",
+          "url": "https://402index.io/service/e98fec92-fe53-47bc-b274-fe228479fe49"
+        }
+      ],
+      "external_agent_paid_invocations": 0,
+      "customer_revenue_usdc": 0,
+      "documentation": "https://402index.io/api-docs"
+    }
+  ],
+  "counts": {
+    "newly_created_and_publicly_readable_independent_platforms_since_previous_pointer": 1,
+    "newly_public_product_resources_since_previous_pointer": 3,
+    "newly_verified_preexisting_independent_platforms_this_run": 2,
+    "refreshed_active_platforms_this_run": 1,
+    "queued_unconfirmed_platform_submissions_this_run": 1,
+    "duplicate_platform_submissions_this_run": 0,
+    "external_agent_discoveries_attributable_this_run": null,
+    "buyer_authorized_payments": 0,
+    "settlement_confirmed": 0,
+    "delta_fulfilled_paid_uses": 0,
+    "treasury_received_customer_usdc": 0,
+    "counted_customer_transactions": 0
+  },
+  "funnel": {
+    "discovered_or_publicly_indexed": "Saylor 3 resources public; OrbitX402 3-resource auto-mirror verified; 402 Index 3 resources live; x402mpp queued and absent from current public index",
+    "external_agent_evaluation_verified": false,
+    "buyer_authorized_payment_verified": false,
+    "settlement_verified": false,
+    "fulfillment_verified": false,
+    "third_party_verification_verified": false,
+    "treasury_customer_receipt_verified": false
+  },
+  "blockers": [
+    "No independent buyer-agent authorized payment or paid invocation.",
+    "x402mpp submission is queued but not yet publicly indexed.",
+    "PayAI stale 0.03 USDC cached rows remain unresolved; do not direct buyers to the stale catalog price.",
+    "Coinbase CDP Bazaar remains unindexed without a genuine independent settled call; self-pay and paid canaries remain prohibited."
+  ],
+  "next_execution": "Read back x402mpp submission in the public search index. Continue deduped, documented, free platform expansion only where the actual product endpoints can be publicly read back. In parallel, prioritize an independent buyer agent with a current supplier/price-page task and existing Base USDC authority for the 1 USDC Capture path.",
+  "safety": {
+    "usdc_spent": 0,
+    "wallet_signatures": 0,
+    "self_payments": 0,
+    "paid_canaries": 0,
+    "accounts_created": 0,
+    "kyc_actions": 0,
+    "production_deployments": 0,
+    "duplicate_seller_identities": 0,
+    "outbound_messages": 0,
+    "schedule_changed": false
+  }
+}
