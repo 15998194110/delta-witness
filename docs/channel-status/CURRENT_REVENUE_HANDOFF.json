@@ -10,7 +10,7 @@
     "record_path": "docs/channel-status/revenue-expansion-2026-10-26-1455-automation.json",
     "record_commit_sha": "feb872cc44578d64afc5de99271f57c668385d9f",
     "repository_write_verified": true,
-    "repository_readback_verified": false,
+    "repository_readback_verified": true,
     "latest_external_agent_surface": "Official MCP Registry and PayAPI Market",
     "latest_external_agent_action": "Exact canonical-name Registry query plus PayAPI task-intent search",
     "latest_external_agent_result": "Official Registry latest 0.7.1 active; PayAPI searched 932 entries and returned DELTA as the sole page-state-proof match at 1 USDC",
@@ -20,7 +20,9 @@
     "treasury_error": null,
     "task_changed": true,
     "prior_holds_changed": false,
-    "error_handling": "No unknown send or payment state. No wallet action, signature, paid canary, duplicate listing, account creation, deployment or settlement was performed."
+    "error_handling": "No unknown send or payment state. No wallet action, signature, paid canary, duplicate listing, account creation, deployment or settlement was performed.",
+    "record_blob_sha": "793500bf577eecd786ede8d986d666eeca3625d7",
+    "pointer_previous_commit_sha": "bcb8a905c8e98fd1a18d9d797b688c34c466b263"
   },
   "task_id": "6a9699b9f8308191a104d805bfa57c43",
   "task_title": "全力冲刺50000usdc",
