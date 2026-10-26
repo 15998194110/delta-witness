@@ -1,34 +1,34 @@
 {
-  "updated_at_cst": "2026-10-26T14:56:00+08:00",
-  "updated_at_scope": "Fresh Treasury verification through Base block 53104122 found no new canonical USDC receipt candidate. Official MCP Registry exact-name API readback found three active historical versions and latest 0.7.1. PayAPI task-intent search across 932 entries still returned DELTA as the sole page-state-proof match at the correct 1 USDC current price. PayAI rows remain stale at 30000 atomic units. No new buyer reply, payment, settlement, fulfillment or customer revenue. The task schedule drift to hourly was corrected back to the owner's daily cadence without changing prompt/title/notifications.",
-  "latest_handoff": "docs/channel-status/revenue-expansion-2026-10-26-1455-automation.json",
-  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-10-23-1912-automation.json",
+  "updated_at_cst": "2026-10-26T15:07:30+08:00",
+  "updated_at_scope": "Fresh Treasury verification through Base block 53104413 found no new canonical USDC receipt candidate. Coinbase CDP x402 Bazaar public merchant lookup returned zero DELTA resources and exact-name search did not match DELTA; the deployed 1 USDC Capture endpoint then passed every required official read-only validator check with HTTP 402, x402 v2 and simulation accepted, but index remained null. No new buyer reply, payment, settlement, fulfillment or customer revenue. Hourly cadence was verified and not changed.",
+  "latest_handoff": "docs/channel-status/revenue-expansion-2026-10-26-1507-automation.json",
+  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-10-26-1455-automation.json",
   "previous_pointer_handoff": "docs/channel-status/revenue-expansion-2026-09-29-1316-chat.json",
   "owner_delegation_document": "docs/owner-delegation-2026-09-27.md",
-  "instruction": "Continue the same operation daily. Reconcile Treasury and existing PayAI/Invoica/PayAgentic threads first. If there is no independently authorized payment or PayAI correction, shift the immediate use case and distribution surface to another transaction-capable agent marketplace/RFP with a real supplier/price approval task; preserve the same 1 USDC Capture endpoint and never self-pay, sign, or duplicate-list.",
+  "instruction": "Continue the same operation hourly under the latest owner direction. Reconcile Treasury and existing buyer/platform replies first. Then prioritize one real Agent routing action. Coinbase Bazaar now shows the Capture route technically valid but unindexed; seek an independent buyer agent with a live supplier/price approval task and existing Base USDC spend authority. Never self-pay, sign, duplicate-list, fund a canary, or manufacture demand.",
   "execution_recovery": {
-    "record_path": "docs/channel-status/revenue-expansion-2026-10-26-1455-automation.json",
-    "record_commit_sha": "feb872cc44578d64afc5de99271f57c668385d9f",
+    "record_path": "docs/channel-status/revenue-expansion-2026-10-26-1507-automation.json",
+    "record_commit_sha": "c35bde8bb9d4a8bfa9d2b25e365b3f6f618fe33a",
     "repository_write_verified": true,
     "repository_readback_verified": true,
-    "latest_external_agent_surface": "Official MCP Registry and PayAPI Market",
-    "latest_external_agent_action": "Exact canonical-name Registry query plus PayAPI task-intent search",
-    "latest_external_agent_result": "Official Registry latest 0.7.1 active; PayAPI searched 932 entries and returned DELTA as the sole page-state-proof match at 1 USDC",
+    "latest_external_agent_surface": "Coinbase CDP x402 Bazaar",
+    "latest_external_agent_action": "Public Treasury/name discovery checks plus official read-only Capture endpoint validation",
+    "latest_external_agent_result": "No DELTA resource indexed; deployed Capture route valid=true, HTTP 402, x402 v2, simulation accepted, correct 1 USDC/Base/canonical USDC/Treasury, index=null",
     "latest_outbound_count": 0,
     "github_error": null,
     "gmail_error": null,
     "treasury_error": null,
-    "task_changed": true,
+    "task_changed": false,
     "prior_holds_changed": false,
     "error_handling": "No unknown send or payment state. No wallet action, signature, paid canary, duplicate listing, account creation, deployment or settlement was performed.",
-    "record_blob_sha": "793500bf577eecd786ede8d986d666eeca3625d7",
-    "pointer_previous_commit_sha": "bcb8a905c8e98fd1a18d9d797b688c34c466b263"
+    "record_blob_sha": "eeeb408c6d4944590ebc531dc88b2891eb1bc7cd",
+    "pointer_previous_blob_sha": "233f31a5b15b30c50f2a7e3564eee4081a65b276"
   },
   "task_id": "6a9699b9f8308191a104d805bfa57c43",
   "task_title": "全力冲刺50000usdc",
   "task_title_update_verified_at_utc": "2026-09-29T05:10:45.732812Z",
-  "task_cadence_hours": 24,
-  "task_schedule_update_verified_at_utc": "2026-10-26T06:54:43.025136Z",
+  "task_cadence_hours": 1,
+  "task_schedule_update_verified_at_utc": "2026-10-26T06:58:55Z",
   "task_next_scheduled_start_utc": "2026-10-01T09:05:03Z",
   "task_notification_settings_changed": false,
   "primary_target_customer_revenue_usdc": 50000,
@@ -41,15 +41,15 @@
   "ongoing_recognized_customer_revenue_usdc": 0,
   "ongoing_variable_cost_usdc": null,
   "ongoing_contribution_margin_usdc": null,
-  "ongoing_counts_scope": "Freshly verified through Base block 53104122. Exactly two historical 0.03 USDC canonical-token transfers remain classified as project tests and excluded; no new receipt candidate or verified customer transaction was found.",
+  "ongoing_counts_scope": "Freshly verified through Base block 53104413. Exactly two historical 0.03 USDC canonical-token transfers remain classified as project tests and excluded; no new receipt candidate or verified customer transaction was found.",
   "fresh_canonical_execution_triggered_this_run": false,
   "fresh_direct_treasury_reconciliation_completed_this_run": true,
-  "latest_fresh_treasury_read_at_cst": "2026-10-26T14:53:11+08:00",
+  "latest_fresh_treasury_read_at_cst": "2026-10-26T15:02:53+08:00",
   "latest_treasury_evidence_origin": "Fresh Blockscout v2 head and complete Treasury token-transfers history.",
-  "latest_verified_treasury_block": 53104122,
+  "latest_verified_treasury_block": 53104413,
   "latest_checked_range": [
-    52981263,
-    53104122
+    53103122,
+    53104413
   ],
   "latest_range_receipt_candidates": 0,
   "latest_paid_funnel_candidates": 0,
@@ -95,9 +95,9 @@
     "historical_safety_holds_cleared": false
   },
   "latest_full_incoming_token_transfer_read": {
-    "checked_at_utc": "2026-10-26T06:53:11Z",
+    "checked_at_utc": "2026-10-26T07:02:53Z",
     "source": "Fresh Blockscout v2 Treasury token-transfers API",
-    "observed_head_block": 53104122,
+    "observed_head_block": 53104413,
     "items": 2,
     "canonical_usdc_items": 2,
     "next_page_params": null,
@@ -184,8 +184,8 @@
     "source_and_live_price_checks_passed_in_that_pulse": true,
     "production_patch_presence_proven": false
   },
-  "current_reconciliation_gap": "No chain coverage gap through block 53104122 and no unmatched receipt candidate. Commercial gap remains: no independent buyer-agent paid invocation. PayAI Bazaar rows remain stale and the manual refresh-or-suppress request has no new reply.",
-  "latest_promotion_scope": "Exercised the Official MCP Registry exact-name production API and PayAPI's real agent task-intent search. DELTA latest 0.7.1 remains active in the Registry and is the sole PayAPI match for page-state-proof intent at 1 USDC. npm last-week downloads were 40, which is a distribution signal only.",
+  "current_reconciliation_gap": "No chain coverage gap through block 53104413 and no unmatched receipt candidate. Commercial gap remains: no independent buyer-agent paid invocation. Coinbase Bazaar does not index the canonical Treasury even though the Capture endpoint passes the official read-only validator; indexing requires a genuine settled CDP-facilitated buyer payment.",
+  "latest_promotion_scope": "Exercised Coinbase CDP x402 Bazaar's public merchant and exact-name discovery APIs and its official read-only endpoint validator. DELTA is not indexed there; the deployed Capture route is technically accepted with correct 1 USDC Base USDC/Treasury requirements and complete Bazaar schema. No payment or index mutation occurred.",
   "legacy_pointer_scope": "Older latest_canonical_run, production, distribution and task_next_scheduled_start fields are retained dated snapshots, not newly executed checks or a current next-run calculation. Newer promotion evidence is in latest_handoff. The historical pulse's overall success does not override its failed Treasury step. No evidence here establishes the local buyer-assurance patch is deployed. 收到Codex交接，未直接读取本地日志；未运行337项测试，未核验本地候选版在线生效。",
   "latest_reviewed_pulse_artifact": {
     "run_id": 37873628220,
@@ -217,29 +217,29 @@
     "assistant_resent": false,
     "alternate_route_used": false
   },
-  "task_cadence_frequency": "daily",
-  "task_rrule": "FREQ=DAILY",
-  "task_cadence_source": "Latest owner direction requiring daily execution; schedule drift corrected on 2026-10-26.",
-  "task_schedule_changed_this_run": true,
+  "task_cadence_frequency": "hourly",
+  "task_rrule": "FREQ=HOURLY",
+  "task_cadence_source": "Latest owner direction on 2026-10-26 requiring hourly execution; verified without changing the schedule in this run.",
+  "task_schedule_changed_this_run": false,
   "treasury_checkpoint": {
     "chain": "eip155:8453",
     "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
     "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
-    "checked_at_cst": "2026-10-26T14:53:11+08:00",
+    "checked_at_cst": "2026-10-26T15:02:53+08:00",
     "source": "Fresh Blockscout v2 head and complete Treasury token-transfers history",
-    "previous_checkpoint_block": 52982263,
-    "safe_overlap_from_block": 52981263,
-    "checked_through_block": 53104122,
+    "previous_checkpoint_block": 53104122,
+    "safe_overlap_from_block": 53103122,
+    "checked_through_block": 53104413,
     "range": [
-      52981263,
-      53104122
+      53103122,
+      53104413
     ],
     "coverage_gap": null,
     "new_receipt_candidates": 0,
     "verified_customer_receipts": 0
   },
   "latest_full_incoming_transfer_read": {
-    "checked_at_cst": "2026-10-26T14:53:11+08:00",
+    "checked_at_cst": "2026-10-26T15:02:53+08:00",
     "canonical_usdc_transfer_count": 2,
     "transfers": [
       {
@@ -257,18 +257,18 @@
     "verified_customer_receipts": 0
   },
   "latest_run": {
-    "path": "docs/channel-status/revenue-expansion-2026-10-26-1455-automation.json",
-    "commit_sha": "feb872cc44578d64afc5de99271f57c668385d9f",
-    "target": "Agent-platform discovery and independently funded buyer routing",
-    "inbound_scope": "No new PayAI, Invoica/Kognai, PayAgentic, payment or fulfillment reply",
-    "external_surface": "Official MCP Registry, PayAPI Market, PayAI Bazaar",
-    "external_action": "Queried Official Registry exact-name API, exercised PayAPI task-intent search, re-read PayAI exact-Treasury discovery, live manifest and npm download signal",
-    "state": "Official Registry latest 0.7.1 active; PayAPI sole task-intent match at 1 USDC among 932 entries; PayAI two stale 0.03 rows remain; no independent paid invocation."
+    "path": "docs/channel-status/revenue-expansion-2026-10-26-1507-automation.json",
+    "commit_sha": "c35bde8bb9d4a8bfa9d2b25e365b3f6f618fe33a",
+    "target": "Coinbase CDP x402 Bazaar and independently funded buyer routing",
+    "inbound_scope": "No new DELTA/x402/payment/fulfillment buyer reply after the same-day prior run",
+    "external_surface": "Coinbase CDP x402 Bazaar",
+    "external_action": "Public merchant/name discovery checks and official read-only Capture endpoint validation",
+    "state": "No DELTA index entry; Capture valid=true, simulation accepted, correct 1 USDC route; no independent paid invocation."
   },
   "latest_actionable_intent_scope": "No new actionable intent in this run; historical Invoica/Kognai and PayAgentic stages remain pending.",
   "latest_verified_funded_request": false,
   "latest_run_counts": {
-    "platform_listings_discovered": 2,
+    "platform_listings_discovered": 0,
     "platform_entries_task_intent_evaluated": 1,
     "newly_identified_individual_external_buyer_agents": 0,
     "payment_authorized": 0,
@@ -276,11 +276,12 @@
     "treasury_received": 0,
     "fulfilled_paid_uses": 0,
     "counted_customer_transactions": 0,
-    "external_agent_routing_actions": 2,
-    "paid_agent_invocations": 0
+    "external_agent_routing_actions": 1,
+    "paid_agent_invocations": 0,
+    "routes_readonly_validated": 1
   },
-  "cadence": "daily",
-  "cadence_changed": true,
+  "cadence": "hourly",
+  "cadence_changed": false,
   "latest_direct_quote_read_at_cst": "2026-10-22T17:12:00+08:00",
   "latest_direct_quote_prices_usdc": {
     "capture": 1,
@@ -304,51 +305,28 @@
     "state": "priceConflict true; live origin quotes are current and unchanged; no external listing or price mutation attempted"
   },
   "latest_agent_routing": {
-    "checked_at_cst": "2026-10-26T14:55:10+08:00",
-    "primary_surface": "Official MCP Registry and PayAPI Market",
-    "official_mcp_registry": {
-      "canonical_name": "io.github.15998194110/delta-witness",
-      "versions": [
-        "0.6.1",
-        "0.7.0",
-        "0.7.1"
-      ],
-      "latest_version": "0.7.1",
-      "latest_active": true,
-      "package": "delta-witness-mcp@0.7.1",
-      "transport": "stdio",
-      "duplicate_identity_created": false
-    },
-    "payapi": {
-      "task_intent_search": "page state proof",
-      "task_intent_match_count": 1,
-      "searched_catalog_entries": 932,
-      "listing_id": "7608dde0-0625-4553-8f2a-e451a887c0ad",
-      "slug": "delta-witness-capture",
-      "status": "live",
-      "current_price_usdc": 1,
-      "base_url": "https://delta-witness-api.ruphussten.workers.dev/v1/capture",
-      "reliability_band": "unscored",
-      "historical_verified_route_amount_usdc": 0.03,
-      "historical_verified_route_classification": "platform/project verification test; not current price or customer revenue"
-    },
-    "payai": {
-      "capture_catalog_amount_atomic": "30000",
-      "preflight_catalog_amount_atomic": "30000",
-      "stale_rows_remain": true,
-      "existing_manual_remediation_message_id": "1a16693304f499fe",
-      "new_inbound_after_request": false
-    },
-    "npm": {
-      "package": "delta-witness-mcp",
-      "interval": "2026-10-16/2026-10-22",
-      "downloads": 40,
-      "classification": "distribution signal only"
+    "checked_at_cst": "2026-10-26T15:07:30+08:00",
+    "primary_surface": "Coinbase CDP x402 Bazaar",
+    "coinbase_bazaar": {
+      "canonical_treasury_resources": 0,
+      "exact_name_delta_match": false,
+      "capture_validation": {
+        "valid": true,
+        "endpoint_status": 402,
+        "x402Version": 2,
+        "simulation_outcome": "accepted",
+        "index": null,
+        "amount_atomic": "1000000",
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "payTo": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+        "input_schema_present": true,
+        "output_example_present": true
+      },
+      "indexing_requirement": "A successful settled payment through the CDP Facilitator; no self-pay or paid canary performed."
     },
     "direct_buyer_threads": {
-      "invoica_kognai_existing_followup_message_id": "1a1683972397b945",
-      "invoica_kognai_new_inbound": false,
-      "payagentic_new_inbound": false,
+      "new_inbound": false,
       "duplicate_followup_sent": false
     },
     "funded_buyer_intent": false,
@@ -388,6 +366,21 @@
       "external_agent_paid_invocation": false,
       "delta_fulfillment": false,
       "treasury_receipt": false
+    },
+    "coinbase_x402_bazaar": {
+      "public_merchant_query_completed": true,
+      "exact_treasury_listing_found": false,
+      "exact_name_search_match_found": false,
+      "live_capture_validation_passed": true,
+      "accurate_current_listing_price_usdc": null,
+      "accurate_live_route_price_usdc": 1,
+      "machine_readable_schema": true,
+      "index_status": null,
+      "external_agent_discovery_verified": false,
+      "external_agent_paid_invocation": false,
+      "delta_fulfillment": false,
+      "treasury_receipt": false,
+      "issue": "Technically valid route is not indexed; genuine settled CDP-facilitated buyer payment is required to trigger indexing."
     }
   }
 }
