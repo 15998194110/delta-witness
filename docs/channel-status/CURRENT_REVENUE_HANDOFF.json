@@ -1,34 +1,32 @@
 {
-  "updated_at_cst": "2026-10-23T19:13:00+08:00",
-  "updated_at_scope": "Fresh Treasury verification through Base block 52982263 found no new canonical USDC receipt candidate. PayAPI agent-facing discovery was exercised with exact-name and task-intent queries: DELTA is live and discoverable at 1 USDC, while its historical verified-route badge remains a 0.03 USDC platform test. PayAI exact-Treasury discovery still exposes two stale 0.03 USDC rows; an existing manual refresh-or-suppress request is pending. No new buyer reply, payment, settlement, fulfillment or customer revenue.",
-  "latest_handoff": "docs/channel-status/revenue-expansion-2026-10-23-1912-automation.json",
-  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-10-23-0508-automation.json",
+  "updated_at_cst": "2026-10-26T14:56:00+08:00",
+  "updated_at_scope": "Fresh Treasury verification through Base block 53104122 found no new canonical USDC receipt candidate. Official MCP Registry exact-name API readback found three active historical versions and latest 0.7.1. PayAPI task-intent search across 932 entries still returned DELTA as the sole page-state-proof match at the correct 1 USDC current price. PayAI rows remain stale at 30000 atomic units. No new buyer reply, payment, settlement, fulfillment or customer revenue. The task schedule drift to hourly was corrected back to the owner's daily cadence without changing prompt/title/notifications.",
+  "latest_handoff": "docs/channel-status/revenue-expansion-2026-10-26-1455-automation.json",
+  "previous_latest_actual_handoff": "docs/channel-status/revenue-expansion-2026-10-23-1912-automation.json",
   "previous_pointer_handoff": "docs/channel-status/revenue-expansion-2026-09-29-1316-chat.json",
   "owner_delegation_document": "docs/owner-delegation-2026-09-27.md",
-  "instruction": "Continue the same operation daily. Reconcile Treasury and explicit buyer/payment replies first. On the next run, inspect the existing PayAI remediation thread and exact discovery rows once, then inspect the existing Invoica/Kognai thread for an independently authorized 1 USDC Capture. If unchanged, shift to another owner-policy-compatible agent marketplace/RFP; do not sign, self-pay, send a paid canary or duplicate-list.",
+  "instruction": "Continue the same operation daily. Reconcile Treasury and existing PayAI/Invoica/PayAgentic threads first. If there is no independently authorized payment or PayAI correction, shift the immediate use case and distribution surface to another transaction-capable agent marketplace/RFP with a real supplier/price approval task; preserve the same 1 USDC Capture endpoint and never self-pay, sign, or duplicate-list.",
   "execution_recovery": {
-    "record_path": "docs/channel-status/revenue-expansion-2026-10-23-1912-automation.json",
-    "record_commit_sha": "bcf52ef05b41fb6bd038623e8ddca77e5b5cc933",
+    "record_path": "docs/channel-status/revenue-expansion-2026-10-26-1455-automation.json",
+    "record_commit_sha": "feb872cc44578d64afc5de99271f57c668385d9f",
     "repository_write_verified": true,
-    "repository_readback_verified": true,
-    "latest_external_agent_surface": "PayAPI Market agent HTTP discovery",
-    "latest_external_agent_action": "Exact-name search, task-intent search, and listing detail fetch",
-    "latest_external_agent_result": "DELTA matched the page-state-proof intent query among 832 catalog entries; current price 1 USDC, historical verification badge 0.03 USDC test",
+    "repository_readback_verified": false,
+    "latest_external_agent_surface": "Official MCP Registry and PayAPI Market",
+    "latest_external_agent_action": "Exact canonical-name Registry query plus PayAPI task-intent search",
+    "latest_external_agent_result": "Official Registry latest 0.7.1 active; PayAPI searched 932 entries and returned DELTA as the sole page-state-proof match at 1 USDC",
     "latest_outbound_count": 0,
     "github_error": null,
     "gmail_error": null,
     "treasury_error": null,
-    "task_changed": false,
+    "task_changed": true,
     "prior_holds_changed": false,
-    "error_handling": "No unknown send or payment state. No wallet action, signature, paid canary, duplicate listing, account creation, deployment or settlement was performed.",
-    "record_blob_sha": "9ae05789eddb767c7b0bbb3aebabfa804c8c1212",
-    "pointer_previous_commit_sha": "f7fdcb064a22c817ae3b89b93b5854d1dcce06d5"
+    "error_handling": "No unknown send or payment state. No wallet action, signature, paid canary, duplicate listing, account creation, deployment or settlement was performed."
   },
   "task_id": "6a9699b9f8308191a104d805bfa57c43",
   "task_title": "全力冲刺50000usdc",
   "task_title_update_verified_at_utc": "2026-09-29T05:10:45.732812Z",
   "task_cadence_hours": 24,
-  "task_schedule_update_verified_at_utc": "2026-10-22T21:03:49.310044Z",
+  "task_schedule_update_verified_at_utc": "2026-10-26T06:54:43.025136Z",
   "task_next_scheduled_start_utc": "2026-10-01T09:05:03Z",
   "task_notification_settings_changed": false,
   "primary_target_customer_revenue_usdc": 50000,
@@ -41,15 +39,15 @@
   "ongoing_recognized_customer_revenue_usdc": 0,
   "ongoing_variable_cost_usdc": null,
   "ongoing_contribution_margin_usdc": null,
-  "ongoing_counts_scope": "Freshly verified through Base block 52982263. Exactly two historical 0.03 USDC canonical-token transfers remain classified as project tests and excluded; no new receipt candidate or verified customer transaction was found.",
+  "ongoing_counts_scope": "Freshly verified through Base block 53104122. Exactly two historical 0.03 USDC canonical-token transfers remain classified as project tests and excluded; no new receipt candidate or verified customer transaction was found.",
   "fresh_canonical_execution_triggered_this_run": false,
   "fresh_direct_treasury_reconciliation_completed_this_run": true,
-  "latest_fresh_treasury_read_at_cst": "2026-10-23T19:11:13+08:00",
+  "latest_fresh_treasury_read_at_cst": "2026-10-26T14:53:11+08:00",
   "latest_treasury_evidence_origin": "Fresh Blockscout v2 head and complete Treasury token-transfers history.",
-  "latest_verified_treasury_block": 52982263,
+  "latest_verified_treasury_block": 53104122,
   "latest_checked_range": [
-    52955919,
-    52982263
+    52981263,
+    53104122
   ],
   "latest_range_receipt_candidates": 0,
   "latest_paid_funnel_candidates": 0,
@@ -69,9 +67,9 @@
   ],
   "live_pricing_reverified_this_run": true,
   "latest_actionable_buyer_intent": false,
-  "latest_actionable_buyer_intent_scope": "No new reply this run. Historical Invoica/Kognai pilot intent remains pending after one existing same-thread follow-up; PayAgentic remains evaluated without a new reply.",
+  "latest_actionable_buyer_intent_scope": "No new inbound reply since 2026-10-23 across DELTA/x402/payment terms. Invoica/Kognai and PayAgentic historical intent remains pending without payment or proof.",
   "latest_verified_funded_native_request": false,
-  "latest_verified_funded_native_request_scope": "No independently funded, buyer-authorized paid invocation was established.",
+  "latest_verified_funded_native_request_scope": "No independent funded request or buyer-authorized paid invocation was established.",
   "latest_run_new_external_listings_confirmed": 0,
   "latest_run_published_buyer_integration_guides": 0,
   "latest_run_successful_external_contacts": 0,
@@ -95,9 +93,9 @@
     "historical_safety_holds_cleared": false
   },
   "latest_full_incoming_token_transfer_read": {
-    "checked_at_utc": "2026-10-23T11:11:13Z",
+    "checked_at_utc": "2026-10-26T06:53:11Z",
     "source": "Fresh Blockscout v2 Treasury token-transfers API",
-    "observed_head_block": 52982263,
+    "observed_head_block": 53104122,
     "items": 2,
     "canonical_usdc_items": 2,
     "next_page_params": null,
@@ -184,8 +182,8 @@
     "source_and_live_price_checks_passed_in_that_pulse": true,
     "production_patch_presence_proven": false
   },
-  "current_reconciliation_gap": "No chain coverage gap through block 52982263 and no unmatched receipt candidate. Commercial gap remains: no independent buyer-agent paid invocation. PayAI Bazaar rows remain stale at 30000 atomic units; the existing manual refresh-or-suppress request has no new reply.",
-  "latest_promotion_scope": "Exercised PayAPI's real public agent discovery route with exact-name and task-intent queries. DELTA is discoverable for 'page state proof' at a current 1 USDC listing price. No platform mutation, payment or signature occurred.",
+  "current_reconciliation_gap": "No chain coverage gap through block 53104122 and no unmatched receipt candidate. Commercial gap remains: no independent buyer-agent paid invocation. PayAI Bazaar rows remain stale and the manual refresh-or-suppress request has no new reply.",
+  "latest_promotion_scope": "Exercised the Official MCP Registry exact-name production API and PayAPI's real agent task-intent search. DELTA latest 0.7.1 remains active in the Registry and is the sole PayAPI match for page-state-proof intent at 1 USDC. npm last-week downloads were 40, which is a distribution signal only.",
   "legacy_pointer_scope": "Older latest_canonical_run, production, distribution and task_next_scheduled_start fields are retained dated snapshots, not newly executed checks or a current next-run calculation. Newer promotion evidence is in latest_handoff. The historical pulse's overall success does not override its failed Treasury step. No evidence here establishes the local buyer-assurance patch is deployed. 收到Codex交接，未直接读取本地日志；未运行337项测试，未核验本地候选版在线生效。",
   "latest_reviewed_pulse_artifact": {
     "run_id": 37873628220,
@@ -219,27 +217,27 @@
   },
   "task_cadence_frequency": "daily",
   "task_rrule": "FREQ=DAILY",
-  "task_cadence_source": "Latest owner direction on 2026-10-22 after prior five-hour cadence",
+  "task_cadence_source": "Latest owner direction requiring daily execution; schedule drift corrected on 2026-10-26.",
   "task_schedule_changed_this_run": true,
   "treasury_checkpoint": {
     "chain": "eip155:8453",
     "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
     "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
-    "checked_at_cst": "2026-10-23T19:11:13+08:00",
+    "checked_at_cst": "2026-10-26T14:53:11+08:00",
     "source": "Fresh Blockscout v2 head and complete Treasury token-transfers history",
-    "previous_checkpoint_block": 52956919,
-    "safe_overlap_from_block": 52955919,
-    "checked_through_block": 52982263,
+    "previous_checkpoint_block": 52982263,
+    "safe_overlap_from_block": 52981263,
+    "checked_through_block": 53104122,
     "range": [
-      52955919,
-      52982263
+      52981263,
+      53104122
     ],
     "coverage_gap": null,
     "new_receipt_candidates": 0,
     "verified_customer_receipts": 0
   },
   "latest_full_incoming_transfer_read": {
-    "checked_at_cst": "2026-10-23T19:11:13+08:00",
+    "checked_at_cst": "2026-10-26T14:53:11+08:00",
     "canonical_usdc_transfer_count": 2,
     "transfers": [
       {
@@ -257,26 +255,26 @@
     "verified_customer_receipts": 0
   },
   "latest_run": {
-    "path": "docs/channel-status/revenue-expansion-2026-10-23-1912-automation.json",
-    "commit_sha": "bcf52ef05b41fb6bd038623e8ddca77e5b5cc933",
-    "target": "Agent-platform distribution and independently funded buyer routing",
-    "inbound_scope": "No new PayAI, PayAPI, Invoica/Kognai or PayAgentic reply after the existing actions",
-    "external_surface": "PayAPI Market agent discovery; PayAI Bazaar status",
-    "external_action": "Queried PayAPI agent search/detail endpoints and re-read PayAI exact-Treasury discovery plus live DELTA manifest",
-    "state": "PayAPI: live and task-intent discoverable at 1 USDC, with a historical 0.03 USDC verification badge. PayAI: two stale 0.03 rows remain. No independent paid invocation."
+    "path": "docs/channel-status/revenue-expansion-2026-10-26-1455-automation.json",
+    "commit_sha": "feb872cc44578d64afc5de99271f57c668385d9f",
+    "target": "Agent-platform discovery and independently funded buyer routing",
+    "inbound_scope": "No new PayAI, Invoica/Kognai, PayAgentic, payment or fulfillment reply",
+    "external_surface": "Official MCP Registry, PayAPI Market, PayAI Bazaar",
+    "external_action": "Queried Official Registry exact-name API, exercised PayAPI task-intent search, re-read PayAI exact-Treasury discovery, live manifest and npm download signal",
+    "state": "Official Registry latest 0.7.1 active; PayAPI sole task-intent match at 1 USDC among 932 entries; PayAI two stale 0.03 rows remain; no independent paid invocation."
   },
   "latest_actionable_intent_scope": "No new actionable intent in this run; historical Invoica/Kognai and PayAgentic stages remain pending.",
   "latest_verified_funded_request": false,
   "latest_run_counts": {
-    "platform_listing_discovered": 1,
-    "platform_listing_task_intent_evaluated": 1,
-    "newly_discovered_external_buyer_agents": 0,
+    "platform_listings_discovered": 2,
+    "platform_entries_task_intent_evaluated": 1,
+    "newly_identified_individual_external_buyer_agents": 0,
     "payment_authorized": 0,
     "settlement_confirmed": 0,
     "treasury_received": 0,
     "fulfilled_paid_uses": 0,
     "counted_customer_transactions": 0,
-    "external_agent_routing_actions": 3,
+    "external_agent_routing_actions": 2,
     "paid_agent_invocations": 0
   },
   "cadence": "daily",
@@ -304,13 +302,25 @@
     "state": "priceConflict true; live origin quotes are current and unchanged; no external listing or price mutation attempted"
   },
   "latest_agent_routing": {
-    "checked_at_cst": "2026-10-23T19:12:12+08:00",
-    "primary_surface": "PayAPI Market agent HTTP discovery",
+    "checked_at_cst": "2026-10-26T14:55:10+08:00",
+    "primary_surface": "Official MCP Registry and PayAPI Market",
+    "official_mcp_registry": {
+      "canonical_name": "io.github.15998194110/delta-witness",
+      "versions": [
+        "0.6.1",
+        "0.7.0",
+        "0.7.1"
+      ],
+      "latest_version": "0.7.1",
+      "latest_active": true,
+      "package": "delta-witness-mcp@0.7.1",
+      "transport": "stdio",
+      "duplicate_identity_created": false
+    },
     "payapi": {
-      "exact_name_search": true,
       "task_intent_search": "page state proof",
       "task_intent_match_count": 1,
-      "searched_catalog_entries": 832,
+      "searched_catalog_entries": 932,
       "listing_id": "7608dde0-0625-4553-8f2a-e451a887c0ad",
       "slug": "delta-witness-capture",
       "status": "live",
@@ -327,6 +337,12 @@
       "existing_manual_remediation_message_id": "1a16693304f499fe",
       "new_inbound_after_request": false
     },
+    "npm": {
+      "package": "delta-witness-mcp",
+      "interval": "2026-10-16/2026-10-22",
+      "downloads": 40,
+      "classification": "distribution signal only"
+    },
     "direct_buyer_threads": {
       "invoica_kognai_existing_followup_message_id": "1a1683972397b945",
       "invoica_kognai_new_inbound": false,
@@ -340,15 +356,27 @@
     "treasury_receipt": false
   },
   "platform_channel_funnel": {
+    "official_mcp_registry": {
+      "canonical_listing_found": true,
+      "latest_version": "0.7.1",
+      "latest_active": true,
+      "machine_install_path": "npm:delta-witness-mcp@0.7.1",
+      "external_buyer_traffic": null,
+      "external_agent_paid_invocation": false,
+      "delta_fulfillment": false,
+      "treasury_receipt": false
+    },
     "payapi_market": {
       "listing_discovered": true,
       "accurate_current_listing_price_usdc": 1,
       "callable_entry": "https://delta-witness-api.ruphussten.workers.dev/v1/capture",
       "external_agent_discovery_verified": true,
+      "searched_catalog_entries": 932,
+      "task_intent_match_count": 1,
       "external_agent_paid_invocation": false,
       "delta_fulfillment": false,
       "treasury_receipt": false,
-      "issue": "Historical verified-route badge remains 0.03 USDC and must not be presented as current price."
+      "issue": "Historical verified-route badge remains 0.03 USDC and reliability is unscored."
     },
     "payai_bazaar": {
       "listings_discovered": 2,
