@@ -1,0 +1,192 @@
+{
+  "recorded_at_cst": "2026-10-26T15:07:30+08:00",
+  "operation": "DELTA Witness revenue operation",
+  "continuation": {
+    "previous_handoff": "docs/channel-status/revenue-expansion-2026-10-26-1455-automation.json",
+    "previous_checkpoint_block": 53104122,
+    "previous_next_action": "Move to another transaction-capable Agent marketplace/RFP if PayAI and direct-buyer threads remain unchanged."
+  },
+  "treasury": {
+    "chain": "eip155:8453",
+    "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "source": "Fresh Blockscout v2 head and complete Treasury token-transfers history",
+    "checked_at_cst": "2026-10-26T15:02:53+08:00",
+    "safe_overlap_from_block": 53103122,
+    "checked_through_block": 53104413,
+    "coverage_gap": null,
+    "full_incoming_canonical_usdc_transfer_count": 2,
+    "historical_transfers": [
+      {
+        "tx_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+        "block_number": 51091432,
+        "amount_usdc": "0.03",
+        "classification": "project_test_excluded"
+      },
+      {
+        "tx_hash": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3",
+        "block_number": 50985188,
+        "amount_usdc": "0.03",
+        "classification": "project_test_excluded"
+      }
+    ],
+    "new_receipt_candidates": 0,
+    "verified_customer_receipts": 0,
+    "new_verified_customer_revenue_usdc": 0
+  },
+  "buyer_and_order_reconciliation": {
+    "gmail_query": "after:2026/10/26 -in:sent -in:spam -in:trash {DELTA x402 proof_id USDC Kognai Kreativ PayAgentic PayAI PayAPI}",
+    "new_inbound_messages": 0,
+    "new_delta_payment_or_fulfillment_reply_found": false,
+    "existing_thread_followup_sent": false,
+    "note": "No duplicate follow-up was sent; existing PayAI, Invoica/Kognai, and PayAgentic threads remain pending."
+  },
+  "actual_agent_routing_action": {
+    "channel": "Coinbase CDP x402 Bazaar",
+    "tier": 1,
+    "public_discovery_docs": "https://docs.cdp.coinbase.com/x402/buyer/discover-services",
+    "actions": [
+      {
+        "action": "Queried the public merchant discovery endpoint by the canonical DELTA Treasury.",
+        "endpoint": "https://api.cdp.coinbase.com/platform/v2/x402/discovery/merchant?payTo=0x1990e21bc219696ff7fbc26527dbaed335ac6367&limit=100&offset=0",
+        "result": {
+          "x402Version": 2,
+          "total": 0,
+          "resources": []
+        }
+      },
+      {
+        "action": "Searched the public Bazaar on Base for the exact product name DELTA Witness.",
+        "endpoint": "https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?query=DELTA%20Witness&network=eip155%3A8453&limit=20",
+        "result": {
+          "delta_match_found": false,
+          "note": "Returned relevance-ranked third-party resources but no DELTA Treasury/resource match."
+        }
+      },
+      {
+        "action": "Submitted the deployed Capture route to Coinbase's official read-only x402 validator; no payment or indexing occurs.",
+        "endpoint": "https://api.cdp.coinbase.com/platform/v2/x402/validate",
+        "request": {
+          "resource": "https://delta-witness-api.ruphussten.workers.dev/v1/capture",
+          "method": "POST"
+        },
+        "result": {
+          "http_status": 200,
+          "valid": true,
+          "endpoint_status": 402,
+          "x402Version": 2,
+          "simulation_outcome": "accepted",
+          "index": null,
+          "required_checks_passed": [
+            "url_valid",
+            "url_https",
+            "endpoint_reachable",
+            "returns_402",
+            "valid_json",
+            "x402_version",
+            "payment_required_header",
+            "has_accepts",
+            "accepts[0].scheme",
+            "accepts[0].network",
+            "accepts[0].asset",
+            "accepts[0].amount",
+            "accepts[0].payTo",
+            "accepts[0].maxTimeoutSeconds",
+            "has_resource",
+            "has_bazaar_extension",
+            "bazaar.info",
+            "bazaar.info.input",
+            "bazaar.info.input.type",
+            "bazaar.info.input.method",
+            "bazaar.info.input.method.matches_request",
+            "bazaar.schema",
+            "parse"
+          ],
+          "advertised_amount_atomic": "1000000",
+          "advertised_price_usdc": "1",
+          "network": "eip155:8453",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "payTo": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+          "bazaar_input_schema_present": true,
+          "bazaar_output_example_present": true
+        }
+      }
+    ],
+    "conversion_interpretation": "The deployed 1 USDC Capture route is technically accepted by Coinbase's validator but is not indexed in the Bazaar. Coinbase documents that indexing is triggered only after a successful settled payment through the CDP Facilitator. No such independent buyer payment was made in this run.",
+    "funded_buyer_intent": false,
+    "paid_invocation": false,
+    "listing_mutated": false
+  },
+  "platform_channel_funnel": {
+    "coinbase_x402_bazaar": {
+      "exact_merchant_listing_found": false,
+      "exact_name_search_match_found": false,
+      "live_route_validation_passed": true,
+      "accurate_price_usdc": 1,
+      "machine_readable_schema": true,
+      "external_agent_discovery": false,
+      "buyer_authorized_payment": false,
+      "settlement_confirmed": false,
+      "delta_fulfillment": false,
+      "treasury_receipt": false
+    },
+    "payapi_market": {
+      "state_carried_forward_from_same_day_verified_run": true,
+      "accurate_current_listing_price_usdc": 1,
+      "paid_invocation": false
+    },
+    "payai_bazaar": {
+      "state_carried_forward_from_same_day_verified_run": true,
+      "stale_catalog_amount_atomic": "30000",
+      "remediation_pending": true,
+      "duplicate_followup_sent": false
+    }
+  },
+  "funnel": {
+    "new_platforms_actually_exercised": 1,
+    "new_platform_routes_technically_validated": 1,
+    "new_platform_routes_indexed": 0,
+    "new_buyer_agents_discovered": 0,
+    "buyer_agents_evaluated": 0,
+    "buyer_authorized_paid_invocations": 0,
+    "settlement_confirmed": 0,
+    "delta_paid_fulfillments": 0,
+    "third_party_verifications_of_new_paid_fulfillment": 0,
+    "treasury_customer_receipts": 0,
+    "new_verified_customer_revenue_usdc": 0
+  },
+  "task_state_reconciliation": {
+    "task_id": "6a9699b9f8308191a104d805bfa57c43",
+    "actual_title": "DELTA｜唯一主任务｜50000 USDC",
+    "same_task_reused": true,
+    "enabled": true,
+    "actual_schedule": "BEGIN:VEVENT\nDTSTART;TZID=Asia/Shanghai:20261026T150000\nRRULE:FREQ=HOURLY\nEND:VEVENT",
+    "latest_owner_cadence": "hourly",
+    "schedule_verified": true,
+    "schedule_changed_this_run": false,
+    "prompt_changed_this_run": false,
+    "notification_settings_changed_this_run": false
+  },
+  "blockers": [
+    "Coinbase x402 Bazaar has no active resource for the canonical DELTA Treasury even though the deployed Capture route passes all required read-only validation checks.",
+    "Coinbase documents that production indexing is triggered only after a successful settled payment through the CDP Facilitator; self-payment, funded canaries, wallet signing and manufactured demand are prohibited.",
+    "No new inbound PayAI, Invoica/Kognai, PayAgentic, payment or fulfillment message was found.",
+    "PayAI stale 30000-atomic-unit rows remain pending manual correction/suppression from the existing thread."
+  ],
+  "next_executable_action": {
+    "executor": "next scheduled DELTA run",
+    "action": "Reconcile Treasury and existing buyer/platform replies first. If unchanged, use the technically validated Coinbase Bazaar-ready Capture route in a one-contact qualification to a newly verified external buyer agent with a live supplier/price approval task and independent Base USDC spend authority, or use a free official seller refresh path if one appears; do not self-pay, sign, or duplicate-list.",
+    "success_condition": "Independent external agent discover→evaluate→authorize/pay 1 USDC→DELTA fulfill→third-party verify→Treasury receipt."
+  },
+  "safety": {
+    "payment_made": false,
+    "wallet_signature": false,
+    "paid_canary": false,
+    "account_creation": false,
+    "deployment": false,
+    "listing_mutation": false,
+    "duplicate_listing": false,
+    "new_outbound_email": false
+  },
+  "native_notification_delivery_status": "unknown"
+}
