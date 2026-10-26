@@ -1,0 +1,187 @@
+{
+  "recorded_at_cst": "2026-10-26T14:55:10+08:00",
+  "operation": "DELTA Witness revenue operation",
+  "continuation": {
+    "previous_handoff": "docs/channel-status/revenue-expansion-2026-10-23-1912-automation.json",
+    "previous_checkpoint_block": 52982263,
+    "previous_next_action": "Recheck PayAI remediation and Invoica/Kognai; if unchanged, shift distribution surface while preserving live endpoint and prices."
+  },
+  "treasury": {
+    "chain": "eip155:8453",
+    "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "source": "Fresh Blockscout v2 head and complete Treasury token-transfers history",
+    "checked_at_cst": "2026-10-26T14:53:11+08:00",
+    "previous_checkpoint_block": 52982263,
+    "safe_overlap_from_block": 52981263,
+    "checked_through_block": 53104122,
+    "coverage_gap": null,
+    "full_incoming_canonical_usdc_transfer_count": 2,
+    "historical_transfers": [
+      {
+        "tx_hash": "0xdac6c2ccc3857685b52dfdd18322dd3968d2f074a2d3ecc64434b9b4c7219fe9",
+        "block_number": 51091432,
+        "amount_usdc": "0.03",
+        "classification": "project_test_excluded"
+      },
+      {
+        "tx_hash": "0x5ae76f54c158d24f03b86aed0a20482e8de2a35983941c03fe60d131c19cd7b3",
+        "block_number": 50985188,
+        "amount_usdc": "0.03",
+        "classification": "project_test_excluded"
+      }
+    ],
+    "new_receipt_candidates": 0,
+    "verified_customer_receipts": 0
+  },
+  "buyer_and_order_reconciliation": {
+    "gmail_queries_completed": true,
+    "inbox_window_start": "2026-10-23",
+    "new_delta_payment_or_fulfillment_reply_found": false,
+    "irrelevant_receipt_found": "Suno subscription receipt; excluded from DELTA",
+    "payai": {
+      "thread_id": "1a08ec603167c349",
+      "messages": 5,
+      "latest_message_id": "1a16693304f499fe",
+      "latest_direction": "outbound manual refresh-or-suppress request",
+      "new_inbound": false
+    },
+    "invoica_kognai": {
+      "thread_id": "1a0ba420b6bcc766",
+      "messages": 4,
+      "latest_message_id": "1a1683972397b945",
+      "latest_direction": "outbound one real buyer-agent test follow-up",
+      "new_inbound": false,
+      "payment_or_proof_found": false
+    },
+    "payagentic": {
+      "messages": 3,
+      "latest_message_id": "1a10c42c3e0c3683",
+      "latest_direction": "outbound substantive answers",
+      "new_inbound": false,
+      "payment_or_proof_found": false
+    },
+    "duplicate_followup_sent": false
+  },
+  "actual_agent_routing_actions": [
+    {
+      "channel": "Official MCP Registry",
+      "tier": 2,
+      "action": "Queried the unauthenticated production REST API by exact canonical server name through both v0.1 and v0 compatibility routes.",
+      "endpoint": "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.15998194110%2Fdelta-witness&limit=10",
+      "result": {
+        "canonical_name": "io.github.15998194110/delta-witness",
+        "versions_found": [
+          "0.6.1",
+          "0.7.0",
+          "0.7.1"
+        ],
+        "latest_version": "0.7.1",
+        "latest_active": true,
+        "package": "delta-witness-mcp@0.7.1",
+        "transport": "stdio",
+        "duplicate_identity_created": false
+      },
+      "buyer_payment_or_funded_intent": false
+    },
+    {
+      "channel": "PayAPI Market",
+      "tier": 1,
+      "action": "Exercised the public agent-facing task-intent search for 'page state proof'.",
+      "endpoint": "https://payapi.market/agent/search?q=page%20state%20proof",
+      "result": {
+        "searched_catalog_entries": 932,
+        "match_count": 1,
+        "slug": "delta-witness-capture",
+        "status": "live",
+        "current_price_usdc": 1,
+        "base_url": "https://delta-witness-api.ruphussten.workers.dev/v1/capture",
+        "network": "base",
+        "reliability_band": "unscored",
+        "historical_verification_amount_usdc": 0.03,
+        "historical_verification_classification": "platform/project verification test; not current price or independent customer revenue"
+      },
+      "buyer_payment_or_funded_intent": false
+    }
+  ],
+  "downstream_traffic_signal": {
+    "source": "npm downloads point API",
+    "package": "delta-witness-mcp",
+    "interval_start": "2026-10-16",
+    "interval_end": "2026-10-22",
+    "downloads": 40,
+    "interpretation": "Package fetches only; not unique agents, evaluations, paid invocations or revenue."
+  },
+  "live_delta_manifest": {
+    "checked_at_cst": "2026-10-26T14:54:00+08:00",
+    "version": "0.7.0",
+    "network": "eip155:8453",
+    "canonical_usdc": true,
+    "canonical_treasury": true,
+    "amounts_atomic": [
+      "1000000",
+      "5000000",
+      "10000000"
+    ],
+    "machine_readable_input_schemas": true,
+    "capture_and_preflight_bazaar_extensions_present": true
+  },
+  "payai_bazaar": {
+    "checked_at_cst": "2026-10-26T14:54:00+08:00",
+    "capture_catalog_amount_atomic": "30000",
+    "preflight_catalog_amount_atomic": "30000",
+    "current_live_amounts_atomic": [
+      "1000000",
+      "5000000"
+    ],
+    "stale_rows_remain": true,
+    "extensions_present": false,
+    "existing_manual_remediation_message_id": "1a16693304f499fe",
+    "new_inbound_after_request": false,
+    "duplicate_email_sent": false
+  },
+  "funnel": {
+    "platform_listings_discovered": 2,
+    "platform_entries_task_intent_evaluated": 1,
+    "newly_identified_individual_external_buyer_agents": 0,
+    "buyer_authorized_paid_invocations": 0,
+    "settlement_confirmed": 0,
+    "delta_paid_fulfillments": 0,
+    "third_party_verifications_of_new_paid_fulfillment": 0,
+    "treasury_customer_receipts": 0,
+    "new_verified_customer_revenue_usdc": 0
+  },
+  "task_state_reconciliation": {
+    "anomaly": "Actual schedule had drifted to hourly despite the latest explicit owner direction requiring daily execution.",
+    "corrected": true,
+    "task_id": "6a9699b9f8308191a104d805bfa57c43",
+    "same_task_reused": true,
+    "enabled": true,
+    "schedule_after": "BEGIN:VEVENT\nDTSTART;TZID=Asia/Shanghai:20261026T150000\nRRULE:FREQ=DAILY\nEND:VEVENT",
+    "prompt_changed": false,
+    "title_changed": false,
+    "notification_settings_changed": false
+  },
+  "blockers": [
+    "No independent buyer agent has authorized and paid for a DELTA invocation.",
+    "PayAI Bazaar still exposes stale 30000-atomic-unit Capture and Preflight rows; the manual refresh-or-suppress request remains unanswered.",
+    "Official MCP Registry proves package discoverability but does not expose buyer traffic or autonomous spend readiness.",
+    "PayAPI exposes a correct 1 USDC current price but retains a historical 0.03 USDC verification receipt and no reliability score."
+  ],
+  "next_executable_action": {
+    "executor": "next scheduled DELTA run",
+    "action": "Recheck only the existing PayAI and Invoica/Kognai threads plus Treasury. If neither produces a correction or independently authorized payment, move the immediate use case from generic page proof to a buyer agent with an active supplier/price approval task on another transaction-capable marketplace/RFP; preserve the 1 USDC Capture endpoint and do not self-pay or create a duplicate identity.",
+    "success_condition": "Independent external agent discover→evaluate→authorize/pay→DELTA fulfill→third-party verify→Treasury receipt, or verified PayAI stale-row correction/suppression."
+  },
+  "safety": {
+    "payment_made": false,
+    "wallet_signature": false,
+    "paid_canary": false,
+    "listing_mutation": false,
+    "duplicate_listing": false,
+    "account_creation": false,
+    "deployment": false,
+    "new_outbound_email": false
+  },
+  "native_notification_delivery_status": "unknown"
+}
