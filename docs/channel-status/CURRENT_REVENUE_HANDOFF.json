@@ -1,8 +1,8 @@
 {
-  "updated_at_cst": "2026-10-27T18:40:00+08:00",
-  "updated_at_scope": "Fresh Treasury verification through Base block 53153717 found no new canonical USDC receipt candidate. This run verified pre-existing MCP Market listing id 56835 through its public dedupe API and blocked a duplicate submission after live 1/5/10 USDC pricing checks passed. x402mpp remains queued and unindexed; x402-list requires a forbidden 1 USDC listing review fee. One deduped nonpriced qualification inquiry was sent to Treza Labs, whose official guide demonstrates a budgeted x402 buyer-agent workflow. No buyer reply, payment, fulfillment or customer revenue.",
-  "latest_handoff": "docs/channel-status/distribution-expansion-2026-10-27-1840.json",
-  "previous_latest_actual_handoff": "docs/channel-status/distribution-expansion-2026-10-26-1532.json",
+  "updated_at_cst": "2026-10-27T19:05:00+08:00",
+  "updated_at_scope": "Current-run EurusPay buyer qualification action plus a failed Treasury incremental attempt. The last complete Treasury checkpoint remains block 53153717; the interval after it is unverified.",
+  "latest_handoff": "docs/channel-status/distribution-expansion-2026-10-27-1905.json",
+  "previous_latest_actual_handoff": "docs/channel-status/distribution-expansion-2026-10-27-1840.json",
   "previous_pointer_handoff": "docs/channel-status/revenue-expansion-2026-09-29-1316-chat.json",
   "owner_delegation_document": "docs/owner-delegation-2026-09-27.md",
   "instruction": "Continue hourly. Reconcile Treasury and buyer/platform replies first. Do not follow up Treza, Invoica/Kognai or PayAgentic without new inbound. Recheck x402mpp public indexing, then execute one deduped free public distribution action with readback or qualify one new independent budgeted buyer-agent workflow. Never self-pay, pay listing fees, sign, KYC, create duplicate identities, fund canaries or manufacture demand.",
@@ -42,8 +42,8 @@
   "ongoing_variable_cost_usdc": null,
   "ongoing_contribution_margin_usdc": null,
   "ongoing_counts_scope": "Freshly verified through Base block 53153717. Exactly two historical 0.03 USDC canonical-token transfers remain project-test exclusions; no new receipt candidate or verified customer transaction.",
-  "fresh_canonical_execution_triggered_this_run": false,
-  "fresh_direct_treasury_reconciliation_completed_this_run": true,
+  "fresh_canonical_execution_triggered_this_run": true,
+  "fresh_direct_treasury_reconciliation_completed_this_run": false,
   "latest_fresh_treasury_read_at_cst": "2026-10-27T18:26:21+08:00",
   "latest_treasury_evidence_origin": "Fresh Blockscout v2 head and complete Treasury token-transfers history.",
   "latest_verified_treasury_block": 53153717,
@@ -67,11 +67,11 @@
     "5000000",
     "10000000"
   ],
-  "live_pricing_reverified_this_run": true,
+  "live_pricing_reverified_this_run": false,
   "latest_actionable_buyer_intent": false,
-  "latest_actionable_buyer_intent_scope": "Treza received a first qualification inquiry; no delivery confirmation or reply. Invoica/Kognai and PayAgentic had no new reply.",
+  "latest_actionable_buyer_intent_scope": "EurusPay received one deduped first inquiry, but its published x402 agent example is explicitly illustrative; no reply, funded intent, payment or delivery is verified.",
   "latest_verified_funded_native_request": false,
-  "latest_verified_funded_native_request_scope": "No independent funded request or buyer-authorized paid invocation was established.",
+  "latest_verified_funded_native_request_scope": "No funded request verified.",
   "latest_run_new_external_listings_confirmed": 0,
   "latest_run_published_buyer_integration_guides": 0,
   "latest_run_successful_external_contacts": 1,
@@ -103,7 +103,7 @@
     "next_page_params": null,
     "new_items_after_prior_history": 0
   },
-  "latest_run_new_verified_customer_revenue_usdc": 0,
+  "latest_run_new_verified_customer_revenue_usdc": null,
   "latest_run_record": {
     "path": "docs/channel-status/revenue-expansion-2026-10-22-0912-automation.json",
     "commit_sha": "1ac470e799fc8aa54eb800cad5f2a7db5680609a",
@@ -184,7 +184,12 @@
     "source_and_live_price_checks_passed_in_that_pulse": true,
     "production_patch_presence_proven": false
   },
-  "current_reconciliation_gap": "No chain coverage gap through block 53153717 and no unmatched receipt candidate. Commercial gap remains: no independent buyer-agent paid invocation. Treza inquiry is SENT but unconfirmed; x402mpp is queued but not publicly indexed; PayAI cached prices and MCP Market Free display remain stale.",
+  "current_reconciliation_gap": {
+    "from_block": 53153718,
+    "detected_at_cst": "2026-10-27T19:01:00+08:00",
+    "reason": "Fresh Blockscout read failed: web retrieval unavailable and direct HTTPS returned HTTP 403 after 18.5 seconds.",
+    "effect": "No current-interval revenue conclusion; retain the last complete checkpoint at block 53153717."
+  },
   "latest_promotion_scope": "MCP Market pre-existing DELTA listing id 56835 was confirmed through the public dedupe API after live 1/5/10 pricing checks; duplicate submission was blocked. Treza Labs buyer-agent workflow received one deduped nonpriced qualification inquiry.",
   "legacy_pointer_scope": "Older latest_canonical_run, production, distribution and task_next_scheduled_start fields are retained dated snapshots, not newly executed checks or a current next-run calculation. Newer promotion evidence is in latest_handoff. The historical pulse's overall success does not override its failed Treasury step. No evidence here establishes the local buyer-assurance patch is deployed. 收到Codex交接，未直接读取本地日志；未运行337项测试，未核验本地候选版在线生效。",
   "latest_reviewed_pulse_artifact": {
@@ -257,34 +262,31 @@
     "verified_customer_receipts": 0
   },
   "latest_run": {
-    "path": "docs/channel-status/distribution-expansion-2026-10-27-1840.json",
-    "commit_sha": "496f8994137fe393bc77c1f943f9c072f19f75f0",
-    "target": "MCP Market and Treza Labs",
-    "inbound_scope": "No new buyer reply, payment proof, fulfillment request or delivery-status notice",
-    "external_surface": "Existing MCP directory plus independent budgeted buyer-agent workflow",
-    "external_action": "Public dedupe/readback and one nonpriced qualified first contact",
-    "state": "MCP Market listing id 56835 confirmed; duplicate blocked; Treza SENT/read back; no independent paid invocation."
+    "path": "docs/channel-status/distribution-expansion-2026-10-27-1905.json",
+    "commit_sha": "65c7274ddcd4ff14788c1351ec594ad508e6cbbc",
+    "target": "EurusPay / basenode.io GmbH",
+    "inbound_scope": "No new buyer or platform reply in the DELTA/x402/payment inbox search.",
+    "external_surface": "Official corporate business contact for a published x402 agent-wallet workflow",
+    "external_action": "One deduped first qualification inquiry, read back with Gmail SENT label and exact recipient.",
+    "state": "Message 1a17d08ca6fe0b8e is SENT; delivery/reply/funded intent/payment/fulfillment/Treasury receipt remain unverified."
   },
   "latest_actionable_intent_scope": "Treza was newly qualified and contacted, but no reply or funded intent exists yet. Invoica/Kognai and PayAgentic remain pending with no new inbound.",
   "latest_verified_funded_request": false,
   "latest_run_counts": {
-    "platform_listings_discovered": 1,
-    "platform_entries_task_intent_evaluated": 1,
-    "newly_created_public_platforms": 0,
-    "newly_verified_preexisting_platforms": 1,
-    "newly_queued_unconfirmed_platforms": 0,
-    "new_public_product_resources": 0,
-    "newly_identified_individual_external_buyer_agents": 1,
+    "newly_created_independent_platforms": 0,
+    "newly_verified_preexisting_independent_platforms": 0,
+    "newly_created_public_product_resources": 0,
+    "newly_identified_qualified_external_buyer_agents": 1,
     "newly_sent_unique_first_contacts": 1,
     "delivery_confirmed": 0,
+    "replies": 0,
+    "funded_buyer_intent": 0,
     "payment_authorized": 0,
     "settlement_confirmed": 0,
-    "treasury_received": 0,
+    "treasury_received": null,
     "fulfilled_paid_uses": 0,
     "counted_customer_transactions": 0,
-    "external_agent_routing_actions": 1,
-    "paid_agent_invocations": 0,
-    "routes_readonly_validated": 3
+    "newly_verified_customer_revenue_usdc": null
   },
   "cadence": "hourly",
   "cadence_changed": false,
@@ -296,7 +298,7 @@
   },
   "latest_direct_quote_network": "eip155:8453",
   "latest_direct_quote_pay_to": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
-  "latest_raw_402_header_body_reverified_this_run": true,
+  "latest_raw_402_header_body_reverified_this_run": false,
   "latest_third_party_price_anomaly": {
     "observed_at_cst": "2026-10-22T17:10:00+08:00",
     "surface": "Agent402 seller index",
@@ -311,43 +313,18 @@
     "state": "priceConflict true; live origin quotes are current and unchanged; no external listing or price mutation attempted"
   },
   "latest_agent_routing": {
-    "checked_at_cst": "2026-10-27T18:40:00+08:00",
-    "primary_surface": "MCP Market and Treza Labs",
-    "mcp_market": {
-      "status": "pre-existing listing confirmed",
-      "listing_id": 56835,
-      "slug": "delta-witness",
-      "public_dedupe_api": "https://mcpmarket.com/api/tools/check?github=15998194110/delta-witness",
-      "pricing_display": "Free",
-      "live_prices_usdc": [
-        1,
-        5,
-        10
-      ],
-      "duplicate_submission": false,
-      "issue": "Marketplace price display is stale/misleading relative to live x402 pricing."
+    "checked_at_cst": "2026-10-27T19:05:00+08:00",
+    "primary_surface": "EurusPay / basenode.io GmbH",
+    "direct_buyer_thread": {
+      "message_id": "1a17d08ca6fe0b8e",
+      "thread_id": "1a17d08ca6fe0b8e",
+      "recipient": "hello@basenode.io",
+      "sent_label": true,
+      "recipient_readback_verified": true,
+      "delivery_confirmed": false,
+      "reply": false
     },
-    "x402mpp": {
-      "status": "queued_not_public",
-      "public_index_mentions": 0
-    },
-    "x402_list": {
-      "status": "not_indexed",
-      "submission_blocked_by_fee": true,
-      "fee_usdc": 1
-    },
-    "direct_buyer_threads": {
-      "treza": {
-        "message_id": "1a17cf1641900081",
-        "thread_id": "1a17cf1641900081",
-        "sent_label": true,
-        "delivery_confirmed": false,
-        "reply": false
-      },
-      "invoica_kognai_new_inbound": false,
-      "payagentic_new_inbound": false,
-      "duplicate_followup_sent": false
-    },
+    "qualification": "Published x402 agent-wallet flow is illustrative; inquiry asks whether an actual production or funded-pilot workflow exists.",
     "funded_buyer_intent": false,
     "paid_invocation": false,
     "fulfillment": false,
