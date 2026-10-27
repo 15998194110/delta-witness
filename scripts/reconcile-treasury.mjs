@@ -22,9 +22,17 @@ const KNOWN_NON_CUSTOMER_PAYERS = new Map([
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Remember the last healthy RPC provider within this scan. A primary RPC can
+// serve eth_blockNumber yet rate-limit eth_getLogs; avoid retrying that same
+// degraded endpoint for each of dozens of chunks once a fallback succeeds.
+let preferredRpcUrl = null;
+
 async function rpc(method, params) {
   let lastError;
-  for (const url of RPCS) {
+  const candidates = preferredRpcUrl
+    ? [preferredRpcUrl, ...RPCS.filter((url) => url !== preferredRpcUrl)]
+    : RPCS;
+  for (const url of candidates) {
     for (let attempt = 1; attempt <= 2; attempt += 1) {
       try {
         const response = await fetch(url, {
@@ -37,6 +45,7 @@ async function rpc(method, params) {
         if (!response.ok) throw new Error(`${url} HTTP ${response.status}: ${text.slice(0, 200)}`);
         const json = JSON.parse(text);
         if (json.error) throw new Error(`${url} RPC ${JSON.stringify(json.error)}`);
+        preferredRpcUrl = url;
         return { url, result: json.result };
       } catch (error) {
         lastError = error;
