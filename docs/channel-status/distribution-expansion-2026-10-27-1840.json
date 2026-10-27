@@ -1,0 +1,185 @@
+{
+  "recorded_at_cst": "2026-10-27T18:40:00+08:00",
+  "operation": {
+    "task_id": "6a9699b9f8308191a104d805bfa57c43",
+    "title": "全力冲刺50000usdc",
+    "cadence": "hourly",
+    "schedule_changed": false
+  },
+  "treasury": {
+    "chain": "eip155:8453",
+    "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
+    "source": "Fresh Blockscout v2 head and complete Treasury token-transfer history",
+    "checked_at_utc": "2026-10-27T10:26:21Z",
+    "previous_checkpoint_block": 53105167,
+    "safe_overlap_from_block": 53104167,
+    "checked_through_block": 53153717,
+    "incremental_range": [
+      53105168,
+      53153717
+    ],
+    "coverage_gap": null,
+    "new_canonical_usdc_receipt_candidates": 0,
+    "full_history_canonical_usdc_transfers": 2,
+    "historical_project_test_exclusions": [
+      {
+        "block": 51091432,
+        "amount_usdc": "0.03",
+        "classification": "project_test_excluded"
+      },
+      {
+        "block": 50985188,
+        "amount_usdc": "0.03",
+        "classification": "project_test_excluded"
+      }
+    ],
+    "verified_customer_receipts": 0,
+    "newly_verified_customer_revenue_usdc": 0
+  },
+  "paid_fulfillment": {
+    "payment_authorized": 0,
+    "settlement_confirmed": 0,
+    "treasury_received": 0,
+    "fulfilled_paid_uses": 0,
+    "counted_customer_transactions": 0,
+    "new_delivery_work": 0
+  },
+  "inbox": {
+    "broad_new_inbound_after_cst": "2026-10-26T00:00:00+08:00",
+    "delta_x402_payment_or_fulfillment_inbound_count": 0,
+    "invoica_kognai": {
+      "latest_outbound_cst": "2026-10-23",
+      "new_reply": false,
+      "duplicate_followup_sent": false
+    },
+    "payagentic": {
+      "latest_outbound_cst": "2026-10-05",
+      "new_reply": false,
+      "duplicate_followup_sent": false
+    }
+  },
+  "live_pricing": {
+    "checked_at_utc": "2026-10-27T10:35:14.241Z",
+    "source_run": "https://github.com/15998194110/delta-witness/actions/runs/40489619537",
+    "source_policy_check_passed": true,
+    "public_routes": [
+      {
+        "product": "capture",
+        "status": 402,
+        "amount_atomic": "1000000"
+      },
+      {
+        "product": "preflight",
+        "status": 402,
+        "amount_atomic": "5000000"
+      },
+      {
+        "product": "guarded_action_pilot",
+        "status": 402,
+        "amount_atomic": "10000000"
+      }
+    ],
+    "network": "eip155:8453",
+    "canonical_usdc": true,
+    "canonical_treasury": true,
+    "header_body_agreement": true,
+    "payment_or_revenue": false
+  },
+  "platform_actions": {
+    "mcp_market": {
+      "public_dedupe_api": "https://mcpmarket.com/api/tools/check?github=15998194110/delta-witness",
+      "workflow_run": "https://github.com/15998194110/delta-witness/actions/runs/40489619537",
+      "workflow_commit": "9adfcf5a5358d73370300c3356ab51ea169da291",
+      "check_result": {
+        "exists": true,
+        "id": 56835,
+        "name": "Delta Witness",
+        "slug": "delta-witness",
+        "owner": "15998194110",
+        "pricing_display": "Free"
+      },
+      "duplicate_submit_blocked": true,
+      "new_platform_created": false,
+      "newly_verified_preexisting_independent_platform": true,
+      "public_price_issue": "Marketplace pricing field says Free and is stale/misleading relative to live x402 1/5/10 USDC routes.",
+      "remediation_write_attempted": false,
+      "independent_agent_paid_invocation": false,
+      "customer_revenue_usdc": 0
+    },
+    "x402mpp": {
+      "status": "queued_not_public",
+      "public_delta_mentions": 0,
+      "duplicate_submit_attempted": false
+    },
+    "x402_list": {
+      "search_result_count": 0,
+      "public_indexed": false,
+      "seller_submission_fee_usdc": 1,
+      "submission_attempted": false,
+      "blocked_reason": "One-off paid review fee; self-payment and listing fees are outside authorization."
+    },
+    "awesome_mcp_servers": {
+      "canonical_repo": "https://github.com/punkpeye/awesome-mcp-servers",
+      "delta_existing_search_match": false,
+      "connected_owner_fork_exists": false,
+      "pr_created": false,
+      "blocked_reason": "Official contribution path requires a fork/README pull request; the connected GitHub account has no fork and the connector exposes no fork action."
+    }
+  },
+  "buyer_conversion": {
+    "target": "Treza Labs",
+    "qualification": {
+      "technical_fit": "A",
+      "commercial_evidence": "B",
+      "basis": "Official current guide demonstrates an agent that searches x402 Bazaar, enforces per-payment/task budgets, pays from its own USDC wallet and collects the result."
+    },
+    "public_official_route": "hello@trezalabs.com",
+    "source": "https://www.trezalabs.com/blog/how-to-build-an-ai-agent-that-can-pay-for-its-own-apis",
+    "gmail_and_operator_dedupe": {
+      "gmail_matches": 0,
+      "repository_matches": 0
+    },
+    "action": "Sent one brief nonpriced qualification inquiry asking whether a current funded agent task needs a public source/supplier/pricing observation immediately before selection or purchase.",
+    "message_id": "1a17cf1641900081",
+    "thread_id": "1a17cf1641900081",
+    "sent_label_readback": true,
+    "recipient_readback_verified": true,
+    "delivery_confirmed": false,
+    "reply_received": false,
+    "funded_buyer_intent": false,
+    "paid_invocation": false,
+    "fulfillment": false,
+    "treasury_receipt": false,
+    "duplicate_followup_allowed_without_reply": false
+  },
+  "run_counts": {
+    "newly_created_independent_platforms": 0,
+    "newly_verified_preexisting_independent_platforms": 1,
+    "newly_created_public_product_resources": 0,
+    "newly_identified_qualified_external_buyer_agents": 1,
+    "newly_sent_unique_first_contacts": 1,
+    "delivery_confirmed": 0,
+    "replies": 0,
+    "funded_buyer_intent": 0,
+    "payment_authorized": 0,
+    "settlement_confirmed": 0,
+    "treasury_received": 0,
+    "fulfilled_paid_uses": 0,
+    "counted_customer_transactions": 0,
+    "newly_verified_customer_revenue_usdc": 0
+  },
+  "controls": {
+    "self_payment": false,
+    "paid_canary": false,
+    "wallet_signature": false,
+    "wallet_topup": false,
+    "kyc": false,
+    "deposit": false,
+    "duplicate_seller_identity": false,
+    "deployment": false,
+    "price_change": false,
+    "task_change": false
+  },
+  "next_action": "Check for Treza reply and x402mpp public indexing; reconcile Treasury first. If no new intent, submit through one deduped free public platform path with readback or contact one new independently verified budgeted buyer-agent workflow. Do not chase Treza, Invoica/Kognai or PayAgentic without new inbound."
+}
