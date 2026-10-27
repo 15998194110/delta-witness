@@ -13,6 +13,7 @@ on:
       - "scripts/scan-moltjobs-demand.mjs"
       - "scripts/scan-workpnp-demand.mjs"
       - "scripts/scan-agentpact-demand.mjs"
+      - "scripts/reconcile-treasury.mjs"
 
 permissions:
   contents: read
@@ -221,3 +222,14 @@ jobs:
             /tmp/delta-operator-records-sha256.txt
           if-no-files-found: warn
           retention-days: 7
+
+      # Treasury is a revenue-critical check: maintain artifact collection and
+      # unrelated buyer scans, but NEVER surface a green run on a failed scan.
+      - name: Fail pulse visibly when Treasury reconciliation failed
+        if: always() && steps.treasury.outcome != 'success'
+        shell: bash
+        run: |
+          echo '::error::DELTA Treasury reconciliation failed or was skipped. Revenue is UNVERIFIED, not zero; inspect the prior scan logs and retry after recovery.'
+          echo '### Revenue scan failure' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The canonical Treasury scan did not succeed. Do not report zero newly received funds from this run.' >> "$GITHUB_STEP_SUMMARY"
+          exit 1
