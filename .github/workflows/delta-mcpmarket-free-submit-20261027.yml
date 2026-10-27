@@ -1,0 +1,70 @@
+# One-shot extension of DELTA's existing distribution operation, not a recurring loop.
+# Free queue only. No wallet, payment, account creation, KYC, deployment or fabricated traffic.
+name: DELTA MCP Market free queue submission
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/delta-mcpmarket-free-submit-20261027.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: delta-mcpmarket-free-canonical-once
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - name: Verify owner-authorized pricing source
+        run: node scripts/check-owner-pricing.mjs
+      - name: Verify live 402 prices, network, token and Treasury without purchase
+        run: node scripts/verify-owner-pricing-live.mjs
+      - name: Validate canonical public manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          origin="https://delta-witness-api.ruphussten.workers.dev"
+          manifest="$origin/.well-known/x402"
+          curl -fSs --connect-timeout 10 --max-time 30 "$manifest" -o /tmp/delta-x402.json
+          jq -e --arg origin "$origin" --arg treasury "0x1990e21bc219696ff7fbc26527dbaed335ac6367" '
+            .x402Version == 2 and
+            ([.resources[]?] | length) >= 3 and
+            ([.resources[]? | select(.resource == ($origin + "/v1/capture")) | .accepts[]? | select(.amount == "1000000" and .network == "eip155:8453" and (.payTo|ascii_downcase) == $treasury)] | length) > 0 and
+            ([.resources[]? | select(.resource == ($origin + "/v1/preflight")) | .accepts[]? | select(.amount == "5000000" and .network == "eip155:8453" and (.payTo|ascii_downcase) == $treasury)] | length) > 0 and
+            ([.resources[]? | select(.resource == ($origin + "/v1/guarded-action-pilot")) | .accepts[]? | select(.amount == "10000000" and .network == "eip155:8453" and (.payTo|ascii_downcase) == $treasury)] | length) > 0
+          ' /tmp/delta-x402.json >/dev/null
+          echo "Canonical DELTA x402 manifest and 1/5/10 USDC prices confirmed. No payment made."
+      - name: Deduplicate and submit GitHub repository to MCP Market free queue
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="15998194110/delta-witness"
+          repo_url="https://github.com/$repo"
+          check_url="https://mcpmarket.com/api/tools/check?github=$repo"
+          curl -fSs --connect-timeout 10 --max-time 30 "$check_url" -o /tmp/mcpmarket-check.json
+          cat /tmp/mcpmarket-check.json
+          echo
+          if jq -e '.exists == true' /tmp/mcpmarket-check.json >/dev/null; then
+            echo "MCP Market already contains this repository; duplicate submission blocked."
+            exit 0
+          fi
+          contact="${GITHUB_ACTOR}@users.noreply.github.com"
+          payload=$(jq -nc --arg url "$repo_url" --arg email "$contact"             '{url:$url,type:"server",tier:"free",email:$email}')
+          code=$(curl -sS --connect-timeout 10 --max-time 45 --request POST             'https://mcpmarket.com/api/submit-url'             --header 'content-type: application/json'             --data "$payload"             --output /tmp/mcpmarket-submit.json             --write-out '%{http_code}')
+          echo "MCP Market free queue submission HTTP $code"
+          cat /tmp/mcpmarket-submit.json
+          echo
+          case "$code" in
+            200|201|202) ;;
+            *) echo "Submission not confirmed: HTTP $code" >&2; exit 1 ;;
+          esac
+          jq -e '(.tier == "free") or (.message | type == "string")' /tmp/mcpmarket-submit.json >/dev/null
+          echo "Free-queue submission accepted; public listing remains pending editorial ingestion."
