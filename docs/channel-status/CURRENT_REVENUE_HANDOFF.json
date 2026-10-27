@@ -10,7 +10,7 @@
     "record_path": "docs/channel-status/distribution-expansion-2026-10-27-1840.json",
     "record_commit_sha": "496f8994137fe393bc77c1f943f9c072f19f75f0",
     "repository_write_verified": true,
-    "repository_readback_verified": false,
+    "repository_readback_verified": true,
     "latest_external_agent_surface": "MCP Market and Treza Labs",
     "latest_external_agent_action": "Deduped MCP Market through public API and sent one nonpriced qualified first contact to a documented budgeted x402 buyer-agent workflow",
     "latest_external_agent_result": "MCP Market pre-existing listing id 56835 confirmed and duplicate blocked; Treza message/thread 1a17cf1641900081 read back with SENT label, delivery/reply not confirmed",
@@ -20,7 +20,9 @@
     "treasury_error": null,
     "task_changed": false,
     "prior_holds_changed": false,
-    "error_handling": "No unknown send or payment state. No wallet action, signature, paid canary, listing fee, duplicate seller identity, account creation, deployment or settlement."
+    "error_handling": "No unknown send or payment state. No wallet action, signature, paid canary, listing fee, duplicate seller identity, account creation, deployment or settlement.",
+    "record_blob_sha": "32ce3f79eee780cf919b848f6aad933067d4fa39",
+    "pointer_previous_blob_sha": "14911dd5a4de4580a8adb4317a88c732d76c08d2"
   },
   "task_id": "6a9699b9f8308191a104d805bfa57c43",
   "task_title": "全力冲刺50000usdc",
