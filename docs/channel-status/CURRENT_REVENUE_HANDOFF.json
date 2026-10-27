@@ -1,28 +1,26 @@
 {
-  "updated_at_cst": "2026-10-26T15:32:00+08:00",
-  "updated_at_scope": "Fresh Treasury verification through Base block 53105167 found no new canonical USDC receipt candidate. Since the previous pointer, Saylor Agent Bazaar added one new independent public marketplace with three accurate 1/5/10 USDC resources. This run verified OrbitX402 as a pre-existing automatic mirror, queued the canonical manifest with x402mpp (not yet public), and refreshed/read back three pre-existing 402 Index entries as active, healthy and x402-valid. No new buyer reply, payment, fulfillment or customer revenue.",
-  "latest_handoff": "docs/channel-status/distribution-expansion-2026-10-26-1532.json",
-  "previous_latest_actual_handoff": "docs/channel-status/distribution-expansion-2026-10-26-1512.json",
+  "updated_at_cst": "2026-10-27T18:40:00+08:00",
+  "updated_at_scope": "Fresh Treasury verification through Base block 53153717 found no new canonical USDC receipt candidate. This run verified pre-existing MCP Market listing id 56835 through its public dedupe API and blocked a duplicate submission after live 1/5/10 USDC pricing checks passed. x402mpp remains queued and unindexed; x402-list requires a forbidden 1 USDC listing review fee. One deduped nonpriced qualification inquiry was sent to Treza Labs, whose official guide demonstrates a budgeted x402 buyer-agent workflow. No buyer reply, payment, fulfillment or customer revenue.",
+  "latest_handoff": "docs/channel-status/distribution-expansion-2026-10-27-1840.json",
+  "previous_latest_actual_handoff": "docs/channel-status/distribution-expansion-2026-10-26-1532.json",
   "previous_pointer_handoff": "docs/channel-status/revenue-expansion-2026-09-29-1316-chat.json",
   "owner_delegation_document": "docs/owner-delegation-2026-09-27.md",
-  "instruction": "Continue hourly. Reconcile Treasury and buyer/platform replies first. Read back x402mpp queue in the public index, then continue one deduped free public platform action with independent readback. Prioritize genuine independent buyer-agent conversion through 1 USDC Capture. Never self-pay, sign, KYC, create duplicate seller identities, fund canaries or manufacture demand.",
+  "instruction": "Continue hourly. Reconcile Treasury and buyer/platform replies first. Do not follow up Treza, Invoica/Kognai or PayAgentic without new inbound. Recheck x402mpp public indexing, then execute one deduped free public distribution action with readback or qualify one new independent budgeted buyer-agent workflow. Never self-pay, pay listing fees, sign, KYC, create duplicate identities, fund canaries or manufacture demand.",
   "execution_recovery": {
-    "record_path": "docs/channel-status/distribution-expansion-2026-10-26-1532.json",
-    "record_commit_sha": "c00fa386d19f547cafb06210093a9fbc36cb06b0",
+    "record_path": "docs/channel-status/distribution-expansion-2026-10-27-1840.json",
+    "record_commit_sha": "496f8994137fe393bc77c1f943f9c072f19f75f0",
     "repository_write_verified": true,
-    "repository_readback_verified": true,
-    "latest_external_agent_surface": "402 Index and x402mpp.sh",
-    "latest_external_agent_action": "Refreshed/read back three live 402 Index routes and queued canonical manifest with x402mpp after dedupe",
-    "latest_external_agent_result": "402 Index 3/3 active healthy x402-valid at 1/5/10 USDC; x402mpp HTTP 202 queued and not yet public",
-    "latest_outbound_count": 0,
+    "repository_readback_verified": false,
+    "latest_external_agent_surface": "MCP Market and Treza Labs",
+    "latest_external_agent_action": "Deduped MCP Market through public API and sent one nonpriced qualified first contact to a documented budgeted x402 buyer-agent workflow",
+    "latest_external_agent_result": "MCP Market pre-existing listing id 56835 confirmed and duplicate blocked; Treza message/thread 1a17cf1641900081 read back with SENT label, delivery/reply not confirmed",
+    "latest_outbound_count": 1,
     "github_error": null,
     "gmail_error": null,
     "treasury_error": null,
     "task_changed": false,
     "prior_holds_changed": false,
-    "error_handling": "No unknown send or payment state. No wallet action, signature, paid canary, duplicate seller identity, account creation, deployment or settlement.",
-    "record_blob_sha": "b82be59c002cb8340692735e520f0a69cc4ce2df",
-    "pointer_previous_blob_sha": "38232bc082c74da6beffbe4851eeecb6f075c5f6"
+    "error_handling": "No unknown send or payment state. No wallet action, signature, paid canary, listing fee, duplicate seller identity, account creation, deployment or settlement."
   },
   "task_id": "6a9699b9f8308191a104d805bfa57c43",
   "task_title": "全力冲刺50000usdc",
@@ -41,15 +39,15 @@
   "ongoing_recognized_customer_revenue_usdc": 0,
   "ongoing_variable_cost_usdc": null,
   "ongoing_contribution_margin_usdc": null,
-  "ongoing_counts_scope": "Freshly verified through Base block 53105167. Exactly two historical 0.03 USDC canonical-token transfers remain project-test exclusions; no new receipt candidate or verified customer transaction.",
+  "ongoing_counts_scope": "Freshly verified through Base block 53153717. Exactly two historical 0.03 USDC canonical-token transfers remain project-test exclusions; no new receipt candidate or verified customer transaction.",
   "fresh_canonical_execution_triggered_this_run": false,
   "fresh_direct_treasury_reconciliation_completed_this_run": true,
-  "latest_fresh_treasury_read_at_cst": "2026-10-26T15:28:01+08:00",
+  "latest_fresh_treasury_read_at_cst": "2026-10-27T18:26:21+08:00",
   "latest_treasury_evidence_origin": "Fresh Blockscout v2 head and complete Treasury token-transfers history.",
-  "latest_verified_treasury_block": 53105167,
+  "latest_verified_treasury_block": 53153717,
   "latest_checked_range": [
-    53103413,
-    53105167
+    53104167,
+    53153717
   ],
   "latest_range_receipt_candidates": 0,
   "latest_paid_funnel_candidates": 0,
@@ -61,7 +59,7 @@
   "latest_canonical_run_attempt": 2,
   "latest_canonical_artifact_id": 11137825972,
   "latest_canonical_artifact_sha256": "a626bcbb2dbfb4e8908a6950fd234b4edc8aef28ea3af51805a73b98bc8f744c",
-  "latest_public_pricing_verified_at_utc": "2026-10-26T07:31:08Z",
+  "latest_public_pricing_verified_at_utc": "2026-10-27T10:35:14.241Z",
   "latest_public_raw_amounts": [
     "1000000",
     "5000000",
@@ -69,12 +67,12 @@
   ],
   "live_pricing_reverified_this_run": true,
   "latest_actionable_buyer_intent": false,
-  "latest_actionable_buyer_intent_scope": "No new incoming DELTA/x402/USDC/payment/fulfillment message in this run; historical Invoica/Kognai and PayAgentic intent remains pending.",
+  "latest_actionable_buyer_intent_scope": "Treza received a first qualification inquiry; no delivery confirmation or reply. Invoica/Kognai and PayAgentic had no new reply.",
   "latest_verified_funded_native_request": false,
   "latest_verified_funded_native_request_scope": "No independent funded request or buyer-authorized paid invocation was established.",
-  "latest_run_new_external_listings_confirmed": 3,
+  "latest_run_new_external_listings_confirmed": 0,
   "latest_run_published_buyer_integration_guides": 0,
-  "latest_run_successful_external_contacts": 0,
+  "latest_run_successful_external_contacts": 1,
   "latest_run_priced_offers": 0,
   "latest_run_new_counted_customer_transactions": 0,
   "repository_operator_records_export_files": 327,
@@ -95,9 +93,9 @@
     "historical_safety_holds_cleared": false
   },
   "latest_full_incoming_token_transfer_read": {
-    "checked_at_utc": "2026-10-26T07:28:01Z",
+    "checked_at_utc": "2026-10-27T10:26:21Z",
     "source": "Fresh Blockscout v2 Treasury token-transfers API",
-    "observed_head_block": 53105167,
+    "observed_head_block": 53153717,
     "items": 2,
     "canonical_usdc_items": 2,
     "next_page_params": null,
@@ -184,8 +182,8 @@
     "source_and_live_price_checks_passed_in_that_pulse": true,
     "production_patch_presence_proven": false
   },
-  "current_reconciliation_gap": "No chain coverage gap through block 53105167 and no unmatched receipt candidate. Commercial gap remains: no independent buyer-agent paid invocation. x402mpp is queued but not publicly indexed; PayAI cached prices remain stale.",
-  "latest_promotion_scope": "Saylor is public with 3 accurate resources; OrbitX402 automatic mirror verified without duplicate submit; x402mpp manifest queued after dedupe; 402 Index pre-existing records refreshed and independently read back active/healthy/x402-valid at 1/5/10 USDC.",
+  "current_reconciliation_gap": "No chain coverage gap through block 53153717 and no unmatched receipt candidate. Commercial gap remains: no independent buyer-agent paid invocation. Treza inquiry is SENT but unconfirmed; x402mpp is queued but not publicly indexed; PayAI cached prices and MCP Market Free display remain stale.",
+  "latest_promotion_scope": "MCP Market pre-existing DELTA listing id 56835 was confirmed through the public dedupe API after live 1/5/10 pricing checks; duplicate submission was blocked. Treza Labs buyer-agent workflow received one deduped nonpriced qualification inquiry.",
   "legacy_pointer_scope": "Older latest_canonical_run, production, distribution and task_next_scheduled_start fields are retained dated snapshots, not newly executed checks or a current next-run calculation. Newer promotion evidence is in latest_handoff. The historical pulse's overall success does not override its failed Treasury step. No evidence here establishes the local buyer-assurance patch is deployed. 收到Codex交接，未直接读取本地日志；未运行337项测试，未核验本地候选版在线生效。",
   "latest_reviewed_pulse_artifact": {
     "run_id": 37873628220,
@@ -225,21 +223,21 @@
     "chain": "eip155:8453",
     "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
     "treasury": "0x1990e21bc219696ff7fbc26527dbaed335ac6367",
-    "checked_at_cst": "2026-10-26T15:28:01+08:00",
+    "checked_at_cst": "2026-10-27T18:26:21+08:00",
     "source": "Fresh Blockscout v2 head and complete Treasury token-transfers history",
-    "previous_checkpoint_block": 53104413,
-    "safe_overlap_from_block": 53103413,
-    "checked_through_block": 53105167,
+    "previous_checkpoint_block": 53105167,
+    "safe_overlap_from_block": 53104167,
+    "checked_through_block": 53153717,
     "range": [
-      53103413,
-      53105167
+      53104167,
+      53153717
     ],
     "coverage_gap": null,
     "new_receipt_candidates": 0,
     "verified_customer_receipts": 0
   },
   "latest_full_incoming_transfer_read": {
-    "checked_at_cst": "2026-10-26T15:28:01+08:00",
+    "checked_at_cst": "2026-10-27T18:26:21+08:00",
     "canonical_usdc_transfer_count": 2,
     "transfers": [
       {
@@ -257,32 +255,34 @@
     "verified_customer_receipts": 0
   },
   "latest_run": {
-    "path": "docs/channel-status/distribution-expansion-2026-10-26-1532.json",
-    "commit_sha": "c00fa386d19f547cafb06210093a9fbc36cb06b0",
-    "target": "Saylor Agent Bazaar, OrbitX402, x402mpp.sh and 402 Index",
+    "path": "docs/channel-status/distribution-expansion-2026-10-27-1840.json",
+    "commit_sha": "496f8994137fe393bc77c1f943f9c072f19f75f0",
+    "target": "MCP Market and Treza Labs",
     "inbound_scope": "No new buyer reply, payment proof, fulfillment request or delivery-status notice",
-    "external_surface": "Multi-platform x402 discovery",
-    "external_action": "Public listing verification, deduped manifest queueing and live route refresh/readback",
-    "state": "Saylor public 3 resources; Orbit mirror verified; x402mpp queued; 402 Index 3/3 live; no independent paid invocation."
+    "external_surface": "Existing MCP directory plus independent budgeted buyer-agent workflow",
+    "external_action": "Public dedupe/readback and one nonpriced qualified first contact",
+    "state": "MCP Market listing id 56835 confirmed; duplicate blocked; Treza SENT/read back; no independent paid invocation."
   },
-  "latest_actionable_intent_scope": "No new actionable intent in this run; historical Invoica/Kognai and PayAgentic stages remain pending.",
+  "latest_actionable_intent_scope": "Treza was newly qualified and contacted, but no reply or funded intent exists yet. Invoica/Kognai and PayAgentic remain pending with no new inbound.",
   "latest_verified_funded_request": false,
   "latest_run_counts": {
-    "platform_listings_discovered": 7,
-    "platform_entries_task_intent_evaluated": 4,
-    "newly_created_public_platforms": 1,
-    "newly_verified_preexisting_platforms": 2,
-    "newly_queued_unconfirmed_platforms": 1,
-    "new_public_product_resources": 3,
-    "newly_identified_individual_external_buyer_agents": 0,
+    "platform_listings_discovered": 1,
+    "platform_entries_task_intent_evaluated": 1,
+    "newly_created_public_platforms": 0,
+    "newly_verified_preexisting_platforms": 1,
+    "newly_queued_unconfirmed_platforms": 0,
+    "new_public_product_resources": 0,
+    "newly_identified_individual_external_buyer_agents": 1,
+    "newly_sent_unique_first_contacts": 1,
+    "delivery_confirmed": 0,
     "payment_authorized": 0,
     "settlement_confirmed": 0,
     "treasury_received": 0,
     "fulfilled_paid_uses": 0,
     "counted_customer_transactions": 0,
-    "external_agent_routing_actions": 3,
+    "external_agent_routing_actions": 1,
     "paid_agent_invocations": 0,
-    "routes_readonly_validated": 6
+    "routes_readonly_validated": 3
   },
   "cadence": "hourly",
   "cadence_changed": false,
@@ -309,43 +309,41 @@
     "state": "priceConflict true; live origin quotes are current and unchanged; no external listing or price mutation attempted"
   },
   "latest_agent_routing": {
-    "checked_at_cst": "2026-10-26T15:32:00+08:00",
-    "primary_surface": "Saylor Agent Bazaar, OrbitX402, x402mpp.sh, 402 Index",
-    "saylor": {
-      "status": "public",
-      "platform_delta": 1,
-      "resources": 3,
-      "prices_usdc": [
-        1,
-        5,
-        10
-      ]
-    },
-    "orbitx402": {
-      "status": "pre-existing auto-mirror verified",
-      "resources": 3,
-      "duplicate_submission": false,
-      "historical_003_volume_classification": "project_test_excluded"
-    },
-    "x402mpp": {
-      "status": "queued_not_public",
-      "submission_id": "sub-b800f7e62c9ae5ae958f1c1b",
-      "public_index_mentions": 0
-    },
-    "index402": {
-      "status": "pre-existing records refreshed and publicly read back",
-      "resources": 3,
-      "prices_usdc": [
+    "checked_at_cst": "2026-10-27T18:40:00+08:00",
+    "primary_surface": "MCP Market and Treza Labs",
+    "mcp_market": {
+      "status": "pre-existing listing confirmed",
+      "listing_id": 56835,
+      "slug": "delta-witness",
+      "public_dedupe_api": "https://mcpmarket.com/api/tools/check?github=15998194110/delta-witness",
+      "pricing_display": "Free",
+      "live_prices_usdc": [
         1,
         5,
         10
       ],
-      "all_active": true,
-      "all_healthy": true,
-      "all_x402_payment_valid": true
+      "duplicate_submission": false,
+      "issue": "Marketplace price display is stale/misleading relative to live x402 pricing."
+    },
+    "x402mpp": {
+      "status": "queued_not_public",
+      "public_index_mentions": 0
+    },
+    "x402_list": {
+      "status": "not_indexed",
+      "submission_blocked_by_fee": true,
+      "fee_usdc": 1
     },
     "direct_buyer_threads": {
-      "new_inbound": false,
+      "treza": {
+        "message_id": "1a17cf1641900081",
+        "thread_id": "1a17cf1641900081",
+        "sent_label": true,
+        "delivery_confirmed": false,
+        "reply": false
+      },
+      "invoica_kognai_new_inbound": false,
+      "payagentic_new_inbound": false,
       "duplicate_followup_sent": false
     },
     "funded_buyer_intent": false,
@@ -445,6 +443,25 @@
       "external_agent_paid_invocation": false,
       "delta_fulfillment": false,
       "treasury_receipt": false
+    },
+    "mcp_market": {
+      "listing_discovered": true,
+      "listing_id": 56835,
+      "slug": "delta-witness",
+      "owner": "15998194110",
+      "public_dedupe_api": "https://mcpmarket.com/api/tools/check?github=15998194110/delta-witness",
+      "current_marketplace_pricing_display": "Free",
+      "accurate_live_prices_usdc": [
+        1,
+        5,
+        10
+      ],
+      "duplicate_submission_blocked": true,
+      "newly_created_platform": false,
+      "external_agent_paid_invocation": false,
+      "delta_fulfillment": false,
+      "treasury_receipt": false,
+      "issue": "Marketplace pricing display is stale/misleading relative to live x402 routes."
     }
   }
 }
