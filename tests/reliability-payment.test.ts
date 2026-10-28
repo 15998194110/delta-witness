@@ -797,4 +797,3 @@ describe("buyer assurance adversarial core", () => {
     expect(env.BROWSER.quickAction).toHaveBeenCalledTimes(1);
   });
 });
-
