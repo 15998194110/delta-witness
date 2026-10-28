@@ -105,15 +105,30 @@ export const DELIVERY_SCHEMA = {
 } as const;
 
 export function openApi(origin: string, version: string, capture: PricingQuote, preflight: PricingQuote): Record<string, unknown> {
+  const orderEnrollment = [
+    { name: "x-delta-order-id", in: "header", required: false, schema: { type: "string", format: "uuid" }, description: "Optional UUIDv4 business order. Send together with x-delta-recovery-token. Persist both privately before authorizing payment. Available only when the operator explicitly configures an order credential lifetime." },
+    { name: "x-delta-recovery-token", in: "header", required: false, schema: { type: "string", pattern: "^[A-Za-z0-9_-]{43}$" }, description: "Optional canonical base64url encoding of 32 cryptographically random bytes; paired with x-delta-order-id. Never put this bearer capability in a URL, log, public proof or model response." },
+  ];
+  const orderParameter = { name: "order_id", in: "path", required: true, schema: { type: "string", format: "uuid" } };
+  const orderResponses = {
+    "200": { description: "Original delivery verified against stored evidence", content: { "application/json": { schema: { $ref: "#/components/schemas/OrderStatus" } } } },
+    "202": { description: "Original outcome remains incomplete or uncertain; never permission to pay again", content: { "application/json": { schema: { $ref: "#/components/schemas/OrderStatus" } } } },
+    "400": { description: "Payment headers, body or query credentials are not accepted" },
+    "403": { description: "Capability does not include this scope" },
+    "404": { description: "Order or capability unavailable. This does not establish non-payment." },
+    "410": { description: "Correct capability has expired. Original evidence is retained." },
+    "503": { description: "Evidence unavailable, inconsistent or deadline exceeded. Reconciliation required." },
+  };
   const error = { description: "Request rejected", content: { "application/json": { schema: { type: "object", properties: { error: { type: "string" } } } } } };
   const paidResponses = {
     "200": { description: "Paid observation delivered", content: { "application/json": { schema: DELIVERY_SCHEMA } } },
     "202": { description: "An identical settled fulfillment is already in progress" },
     "400": error,
-    "402": { description: "x402 v2 payment required or settlement failed" },
+    "402": { description: "x402 v2 payment challenge or explicit verification rejection; not evidence of non-payment after an uncertain attempt" },
     "409": { description: "Payment replay attempted with a different request" },
     "413": error,
     "502": { description: "Settled observation failed; identical retry remains idempotent" },
+    "503": { description: "Payment or delivery outcome uncertain, or optional order capability not configured; do not authorize another payment" },
   };
   const paymentInfo = (quote: PricingQuote) => ({
     price: {
@@ -134,6 +149,20 @@ export function openApi(origin: string, version: string, capture: PricingQuote, 
       "x-guidance": "Call GET /v1/quote before budgeting. Capture preserves a public observation; Guard compares one with deterministic expectations; Guarded-Action Pilot bundles 1-3 public URL proofs for exactly $10. Runtime HTTP 402 payment requirements are authoritative.",
     },
     servers: [{ url: origin }],
+    components: {
+      securitySchemes: { OrderCapability: { type: "apiKey", in: "header", name: "x-delta-recovery-token", description: "Buyer-created scoped bearer credential persisted before payment. Public proof IDs and public payment signatures are not credentials." } },
+      schemas: { OrderStatus: {
+        type: "object", required: ["ok", "order_id", "product", "state", "payment", "fulfillment", "recovery"],
+        properties: {
+          ok: { const: true }, order_id: { type: "string", format: "uuid" }, product: { enum: ["capture", "preflight"] },
+          state: { enum: ["complete", "recovery_available", "processing", "retryable_failure", "blocked_failure", "settlement_unknown", "settlement_rejected", "settlement_confirmed"] },
+          payment: { type: "object", required: ["state", "treasury_received"], properties: { state: { enum: ["settlement_unknown", "settlement_rejected", "settlement_confirmed"] }, treasury_received: { type: "null", description: "Facilitator settlement does not establish separately reconciled treasury receipt." } } },
+          fulfillment: { type: "object", required: ["state"], properties: { state: { enum: ["not_started", "processing", "retryable_failure", "blocked_failure", "complete", "recovery_available"] } } },
+          recovery: { type: "object", required: ["expires_at", "can_recover"], properties: { expires_at: { type: "string", format: "date-time" }, can_recover: { type: "boolean" } } },
+          delivery: DELIVERY_SCHEMA, reconciliation_required: { type: "boolean" },
+        },
+      } },
+    },
     paths: {
       "/health": { get: { operationId: "health", security: [], responses: { "200": { description: "Healthy" } } } },
       "/v1/quote": { get: { operationId: "quote", security: [], parameters: [{ name: "product", in: "query", schema: { enum: ["capture", "preflight", "guarded-action-pilot"] } }], responses: { "200": { description: "Current floor-aware quote or exact pilot package quote" } } } },
@@ -144,6 +173,7 @@ export function openApi(origin: string, version: string, capture: PricingQuote, 
           description: `Capture what a public page says now and return timestamped proof metadata and hashes. Useful for browser verification and page state proof. x402 v2 upfront settlement. Current calculated price: $${capture.grossPriceUsd}.`,
           tags: ["browser verification", "page state proof", "web capture"],
           security: [],
+          parameters: orderEnrollment,
           "x-payment-info": paymentInfo(capture),
           requestBody: { required: true, content: { "application/json": { schema: CAPTURE_INPUT_SCHEMA } } },
           responses: paidResponses,
@@ -156,6 +186,7 @@ export function openApi(origin: string, version: string, capture: PricingQuote, 
           description: `Verify page state before an agent executes a consequential autonomous action. Returns safe/changed/reason/diff plus a proof reference. Current calculated price: $${preflight.grossPriceUsd}.`,
           tags: ["preflight autonomous action", "browser verification", "agent guard"],
           security: [],
+          parameters: orderEnrollment,
           "x-payment-info": paymentInfo(preflight),
           requestBody: { required: true, content: { "application/json": { schema: PREFLIGHT_INPUT_SCHEMA } } },
           responses: paidResponses,
@@ -185,6 +216,22 @@ export function openApi(origin: string, version: string, capture: PricingQuote, 
           },
         },
       },
+      "/v1/orders/{order_id}": { get: {
+        operationId: "getOrderStatus", summary: "Authenticate and verify the original order without payment",
+        description: "Opt-in Capture/Guard capability only. Legacy orders cannot enroll retrospectively from a public payment signature. A 404 or uncertain result never permits automatic repayment.",
+        security: [{ OrderCapability: [] }], parameters: [orderParameter], responses: orderResponses,
+      } },
+      "/v1/orders/{order_id}/recover": { post: {
+        operationId: "recoverOriginalOrder", summary: "Complete delivery from verified original evidence",
+        description: "No body or payment signature. Reuses only the original verified draft and artifacts; never settles, signs, captures again or re-evaluates Guard. Supports safely repeating concurrent recovery calls.",
+        security: [{ OrderCapability: [] }], parameters: [orderParameter], responses: orderResponses,
+      } },
+      "/v1/orders/{order_id}/artifacts/{artifact}": { get: {
+        operationId: "exportOrderArtifact", summary: "Download an original artifact with a scoped buyer capability",
+        description: "Requires a complete verified order and export scope. Raw artifacts remain private; downloads are attachments, uncached and bounded. No payment or Browser work. Older status/recover-only capabilities do not gain export scope.",
+        security: [{ OrderCapability: [] }], parameters: [orderParameter, { name: "artifact", in: "path", required: true, schema: { enum: ["html", "markdown", "screenshot", "manifest"] } }],
+        responses: { ...orderResponses, "200": { description: "Verified original bytes; Content-Disposition: attachment; private, no-store", content: { "application/octet-stream": { schema: { type: "string", format: "binary" } }, "image/png": { schema: { type: "string", format: "binary" } }, "application/json": { schema: { type: "object" } } } }, "409": { description: "Original delivery incomplete or authorization changed" } },
+      } },
       "/v1/proofs/{proof_id}": {
         get: {
           operationId: "verifyProof",

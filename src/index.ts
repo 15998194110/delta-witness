@@ -32,6 +32,9 @@ import {
   parseCaptureRequest,
   parsePreflightRequest,
   readFulfillment,
+  recoverDelivery,
+  deliveryDigest,
+  validDeliveryDigest,
   settledRetryPrice,
   writeFulfillment,
   type DeliveryResponse,
@@ -69,6 +72,8 @@ import { agentJsonManifest } from "./agent-manifest";
 import { guardedFacilitator, readSettlement, settlementBlockedBody, validatePaymentBinding } from "./settlement";
 import { captureFailure, safeErrorCode, MAX_FULFILLMENT_ATTEMPTS } from "./failures";
 import { commitClaim, createClaim, lostClaimBody } from "./claims";
+import { parseOrderEnrollment, assertOrderReplay, OrderAccessError, orderStatusResponse, type OrderEnrollment } from "./orders";
+import { exportOrderArtifact } from "./order-export";
 
 type PaidProduct = "capture" | "preflight";
 type PriorManifest = Pick<ProofManifest, "proof_id" | "requested_url" | "capture_completed_at" | "hashes">;
@@ -84,6 +89,7 @@ type AppVariables = {
   claimedRecord?: StoredFulfillment;
   replayAuthorized: boolean;
   priorManifest?: PriorManifest;
+  orderEnrollment?: OrderEnrollment;
 };
 
 type App = { Bindings: RuntimeEnv; Variables: AppVariables };
@@ -152,21 +158,6 @@ function isProcessingFresh(record: FulfillmentRecord): boolean {
   return record.state === "processing" && Date.now() - Date.parse(record.updated_at) < PROCESSING_LEASE_MS;
 }
 
-async function recoverDelivery(env: RuntimeEnv, key: string, stored: StoredFulfillment, body: PaidRequest, product: PaidProduct, fingerprint: string): Promise<DeliveryResponse | null> {
-  const { record } = stored;
-  const response = record.response;
-  if (record.state !== "processing" || !response || response.ok !== true || response.product !== product ||
-    record.fulfillment_fingerprint !== fingerprint || (record.payment_fingerprint !== undefined && record.payment_fingerprint !== fingerprint) ||
-    typeof record.paid_price_usd !== "number" || !Number.isFinite(record.paid_price_usd) || record.paid_price_usd <= 0) return null;
-  const artifacts = await readStoredCapture({ env, fulfillmentFingerprint: record.fulfillment_fingerprint, product, requestedUrl: body.url,
-    grossPriceUsd: record.paid_price_usd, paymentProtocol: record.partner ? "partner-prepaid" : "x402-v2-upfront", partner: record.partner });
-  if (!artifacts || response.proof_id !== artifacts.manifest.proof_id || response.bundle_root !== artifacts.manifest.hashes.bundle_root || response.observed_at !== artifacts.manifest.capture_completed_at) return null;
-  // response is the server's original evaluated draft, persisted before artifact
-  // publication. In particular, never re-evaluate Preflight against a new prior.
-  const completed = await commitClaim(env, key, stored, { ...record, state: "complete", updated_at: new Date().toISOString() });
-  return completed ? response : null;
-}
-
 async function loadPriorManifest(env: RuntimeEnv, request: PreflightRequest): Promise<PriorManifest | undefined> {
   if (!request.prior_proof_id) return undefined;
   const object = await env.PROOFS.get(`${request.prior_proof_id}/manifest.json`);
@@ -179,6 +170,11 @@ async function loadPriorManifest(env: RuntimeEnv, request: PreflightRequest): Pr
 
 async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Promise<Response | void> {
   if (c.req.method !== "POST") return next();
+  try { c.set("orderEnrollment", await parseOrderEnrollment(c.req.raw, c.env)); }
+  catch (error) {
+    if (error instanceof OrderAccessError) return noStore(c.json({ ok: false, error: error.code }, error.status));
+    return noStore(c.json({ ok: false, error: "order_unavailable" }, 503));
+  }
   // Keep the paywall ahead of request validation. Discovery clients (including
   // x402scan) are allowed to probe a paid route without knowing its body yet;
   // they must receive a 402 challenge rather than a validation error. We still
@@ -227,6 +223,8 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
     c.set("paymentFingerprint", paymentFingerprint);
     c.set("fulfillmentKey", key);
     const stored = await readFulfillment(c.env, key);
+    if (c.var.orderEnrollment) await assertOrderReplay(c.env, c.var.orderEnrollment,
+      { product, request_hash: requestHash, payment_fingerprint: paymentFingerprint }, await readSettlement(c.env, payment), Boolean(stored));
     if (!stored) {
       const settlement = await readSettlement(c.env, payment);
       validatePaymentBinding(c.env, payment, `${origin(c.env)}/v1/${product}`, settlement?.amount ?? String(Math.round(quote.grossPriceUsd * 1_000_000)));
@@ -244,6 +242,14 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
     }
     if (!fulfillmentMatches(stored.record, `/v1/${product}`, requestHash)) {
       return c.json({ error: "payment_already_used_for_different_request" }, 409);
+    }
+    if (stored.record.response) {
+      // A newly enrolled order cannot remove its digest and impersonate an old
+      // hashless record by omitting capability headers on signed replay.
+      if (stored.record.response_hash === undefined && (await readSettlement(c.env, payment, true))?.order_id) {
+        return noStore(c.json({ ok: false, error: "delivery_evidence_inconsistent", retryable: false }, 503));
+      }
+      if (!await validDeliveryDigest(stored.record)) return noStore(c.json({ ok: false, error: "delivery_evidence_inconsistent", retryable: false }, 503));
     }
     if (stored.record.state === "complete" && stored.record.response) {
       await recordEvent(c.env, { event: "repeat_call", route: `/v1/${product}`, channel: c.var.channel, success: true });
@@ -272,6 +278,7 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
     await recordEvent(c.env, { event: "repeat_call", route: `/v1/${product}`, channel: c.var.channel, success: true });
     return next();
   } catch (error) {
+    if (error instanceof OrderAccessError) return noStore(c.json({ ok: false, error: error.code }, error.status));
     const reason = safeErrorCode(error);
     const status = reason === "request_too_large" || reason === "body_too_large" ? 413 : 400;
     return c.json({ error: reason }, status);
@@ -308,7 +315,9 @@ async function protectWithX402(product: PaidProduct, c: AppContext, next: Next):
   // probes from seeing an internal error when they first test the endpoint.
   if (c.req.method !== "POST") return next();
   if (c.var.replayAuthorized) return next();
-  const facilitator = guardedFacilitator(c.env, c.var.requestHash, c.var.paymentFingerprint ?? "");
+  const facilitator = guardedFacilitator(c.env, c.var.requestHash, c.var.paymentFingerprint ?? "", c.var.orderEnrollment ? {
+    enrollment: c.var.orderEnrollment, product, resource: `${origin(c.env)}/v1/${product}`, request_body: c.var.paidBody,
+  } : undefined);
   const server = new x402ResourceServer(facilitator.client);
   registerExactEvmScheme(server);
   server.registerExtension(bazaarResourceServerExtension);
@@ -409,6 +418,7 @@ async function executeFulfillment(input: {
         return { status: 409, body: { error: "fulfillment_key_conflict" } };
       }
       if (existing.record.state === "complete" && existing.record.response) {
+        if (!await validDeliveryDigest(existing.record)) return { status: 503, body: { ok: false, error: "delivery_evidence_inconsistent", retryable: false } };
         return { status: 200, body: { ...existing.record.response, idempotent_replay: true } };
       }
       return { status: 202, body: { ok: false, state: "processing", retryable: true } };
@@ -462,7 +472,8 @@ async function executeFulfillment(input: {
       response.diff = evaluation.diff;
     }
     persistenceStarted = true;
-    const draft = await writeFulfillment(env, key, claim, { ...record, response });
+    const responseHash = await deliveryDigest(record, response);
+    const draft = await writeFulfillment(env, key, claim, { ...record, response, response_hash: responseHash });
     if (!draft) return { status: 503, body: lostClaimBody() };
     claim = draft;
     await storeCapture(env, artifacts);
@@ -470,6 +481,7 @@ async function executeFulfillment(input: {
       ...record,
       state: "complete",
       response,
+      response_hash: responseHash,
       updated_at: new Date().toISOString(),
       error: undefined,
     };
@@ -545,18 +557,25 @@ app.use("*", async (c, next) => {
   c.header("x-content-type-options", "nosniff");
   c.header("referrer-policy", "no-referrer");
   c.header("permissions-policy", "camera=(), microphone=(), geolocation=()");
-  c.header("content-security-policy", "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'");
-  if (c.req.path.startsWith("/v1/") || c.req.path.endsWith(".json")) {
+  if (!c.req.path.startsWith("/v1/orders/") || !c.res.headers.has("content-security-policy")) {
+    c.header("content-security-policy", "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'");
+  }
+  if (!c.req.path.startsWith("/v1/orders/") && (c.req.path.startsWith("/v1/") || c.req.path.endsWith(".json"))) {
     c.header("access-control-allow-origin", "*");
     // x402 v2 clients must read the challenge and settlement headers in a browser.
     c.header("access-control-expose-headers", "PAYMENT-REQUIRED, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE");
   }
 });
 
+app.options("/v1/orders/*", (c) => orderStatusResponse(c.env, c.req.raw));
+app.get("/v1/orders/:id", (c) => orderStatusResponse(c.env, c.req.raw, c.req.param("id")));
+app.post("/v1/orders/:id/recover", (c) => orderStatusResponse(c.env, c.req.raw, c.req.param("id"), true));
+app.get("/v1/orders/:id/artifacts/:artifact", (c) => exportOrderArtifact(c.env, c.req.param("id"), c.req.raw, c.req.param("artifact")));
+
 app.options("/v1/*", (c) => {
   c.header("access-control-allow-origin", "*");
   c.header("access-control-allow-methods", "GET, POST, OPTIONS");
-  c.header("access-control-allow-headers", "content-type, payment-signature, x-payment, x-delta-channel");
+  c.header("access-control-allow-headers", "content-type, payment-signature, x-payment, x-delta-channel, x-delta-order-id, x-delta-recovery-token");
   c.header("access-control-max-age", "86400");
   return c.body(null, 204);
 });
@@ -608,6 +627,12 @@ app.use("/v1/preflight", (c, next) => prevalidate("preflight", c, next));
 app.use("/v1/preflight", (c, next) => protectWithX402("preflight", c, next));
 app.post("/v1/preflight", (c) => paidHandler("preflight", c));
 
+app.use("/v1/guarded-action-pilot", async (c, next) => {
+  if (c.req.header("x-delta-order-id") !== undefined || c.req.header("x-delta-recovery-token") !== undefined) {
+    return noStore(c.json({ ok: false, error: "order_recovery_product_unsupported" }, 400));
+  }
+  return next();
+});
 app.use("/v1/guarded-action-pilot", (c, next) => guardedPilotPrevalidate(c, next));
 app.use("/v1/guarded-action-pilot", (c, next) => guardedPilotProtect(c, next));
 app.post("/v1/guarded-action-pilot", (c) => guardedPilotHandler(c));
@@ -670,6 +695,7 @@ app.post("/internal/partner/:product", async (c) => {
         return c.json({ error: "idempotency_key_reused_for_different_request" }, 409);
       }
       if (stored.record.state === "complete" && stored.record.response) {
+        if (!await validDeliveryDigest(stored.record)) return noStore(c.json({ ok: false, error: "delivery_evidence_inconsistent", retryable: false }, 503));
         return noStore(c.json({ ...stored.record.response, idempotent_replay: true }));
       }
       const recovered = await recoverDelivery(c.env, key, stored, body, product, fingerprint);

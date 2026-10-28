@@ -1,5 +1,5 @@
 import type { RuntimeEnv } from "./env";
-import type { ProofManifest } from "./capture";
+import { readStoredCapture, type ProofManifest } from "./capture";
 import { sha256, stableJson } from "./crypto";
 import { validateTarget } from "./security";
 import { decodePaymentSignatureHeader } from "@x402/core/http";
@@ -53,6 +53,7 @@ export type FulfillmentRecord = {
   updated_at: string;
   error?: string;
   response?: DeliveryResponse;
+  response_hash?: string;
   payment_response_header?: string;
 };
 
@@ -136,6 +137,43 @@ export async function readFulfillment(env: RuntimeEnv, key: string): Promise<Sto
   const record = await object.json<FulfillmentRecord>();
   if (record.schema !== "delta-fulfillment/v1") throw new Error("invalid_fulfillment_record");
   return { record, etag: object.etag };
+}
+
+export async function deliveryDigest(record: Pick<FulfillmentRecord, "route" | "request_hash" | "fulfillment_fingerprint">, response: DeliveryResponse): Promise<string> {
+  return sha256(`delta-original-delivery/v1\n${stableJson({ route: record.route, request_hash: record.request_hash, fulfillment_fingerprint: record.fulfillment_fingerprint, response })}`);
+}
+
+export async function validDeliveryDigest(record: FulfillmentRecord): Promise<boolean> {
+  // Pre-existing records remain readable. New order entitlement separately
+  // requires the digest, so removing it cannot downgrade capability recovery.
+  return record.response_hash === undefined || Boolean(record.response && HASH_PATTERN.test(record.response_hash) &&
+    record.response_hash === await deliveryDigest(record, record.response));
+}
+
+// Both signed-header replay and scoped buyer recovery verify the same original
+// observation. Recovery never recaptures or re-evaluates a Preflight result.
+export async function verifiedDelivery(env: RuntimeEnv, stored: StoredFulfillment, body: PaidRequest,
+  product: "capture" | "preflight", fingerprint: string): Promise<DeliveryResponse | null> {
+  const { record } = stored;
+  const response = record.response;
+  if (!await validDeliveryDigest(record)) return null;
+  if (!["processing", "complete"].includes(record.state) || !response || response.ok !== true || response.product !== product ||
+    record.fulfillment_fingerprint !== fingerprint || (record.payment_fingerprint !== undefined && record.payment_fingerprint !== fingerprint) ||
+    typeof record.paid_price_usd !== "number" || !Number.isFinite(record.paid_price_usd) || record.paid_price_usd <= 0) return null;
+  const artifacts = await readStoredCapture({ env, fulfillmentFingerprint: fingerprint, product, requestedUrl: body.url,
+    grossPriceUsd: record.paid_price_usd, paymentProtocol: record.partner ? "partner-prepaid" : "x402-v2-upfront", partner: record.partner });
+  if (!artifacts || response.proof_id !== artifacts.manifest.proof_id || response.bundle_root !== artifacts.manifest.hashes.bundle_root ||
+    response.observed_at !== artifacts.manifest.capture_completed_at) return null;
+  return response;
+}
+
+export async function recoverDelivery(env: RuntimeEnv, key: string, stored: StoredFulfillment, body: PaidRequest,
+  product: "capture" | "preflight", fingerprint: string): Promise<DeliveryResponse | null> {
+  if (stored.record.state !== "processing") return null;
+  const response = await verifiedDelivery(env, stored, body, product, fingerprint);
+  if (!response) return null;
+  const completed = await commitClaim(env, key, stored, { ...stored.record, state: "complete", updated_at: new Date().toISOString() });
+  return completed ? response : null;
 }
 
 export async function reserveInitialFulfillment(

@@ -14,6 +14,20 @@ const quote: PricingQuote = {
 };
 
 describe("OpenAPI paid discovery", () => {
+  it("keeps scoped recovery and artifact downloads separate from paid discovery", () => {
+    const document = openApi("https://delta.example", "0.7.1", { ...quote, product: "capture" }, quote) as any;
+    for (const [path, method] of [["/v1/orders/{order_id}", "get"], ["/v1/orders/{order_id}/recover", "post"], ["/v1/orders/{order_id}/artifacts/{artifact}", "get"]]) {
+      const operation = document.paths[path][method];
+      expect(operation.security).toEqual([{ OrderCapability: [] }]);
+      expect(operation["x-payment-info"]).toBeUndefined();
+      expect(operation.requestBody).toBeUndefined();
+      expect(operation.responses["404"].description).toContain("does not establish non-payment");
+    }
+    expect(document.components.securitySchemes.OrderCapability.name).toBe("x-delta-recovery-token");
+    expect(document.paths["/v1/capture"].post.parameters.map((parameter: any) => parameter.name)).toEqual(["x-delta-order-id", "x-delta-recovery-token"]);
+    expect(document.paths["/v1/guarded-action-pilot"].post.parameters).toBeUndefined();
+    expect(document.components.schemas.OrderStatus.properties.payment.properties.treasury_received.type).toBe("null");
+  });
   it("advertises Capture and Guard with x402scan-compatible fixed pricing", () => {
     const document = openApi("https://delta.example", "0.6.1", { ...quote, product: "capture" }, quote) as any;
     expect(document.info.contact.email).toBe("ruphussten@163.com");

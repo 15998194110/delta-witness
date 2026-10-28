@@ -3,13 +3,17 @@ import { decodePaymentSignatureHeader } from "@x402/core/http";
 import type { PaymentPayload, PaymentRequirements, SettleResponse } from "@x402/core/types";
 import type { RuntimeEnv } from "./env";
 import { sha256, stableJson } from "./crypto";
+import { bindOrder, orderAuthorityDigest, type OrderBinding, type OrderEnrollment, type OrderPaymentBinding } from "./orders";
+import type { PaidRequest } from "./fulfillment";
 
-type SettlementRecord = {
+export type SettlementRecord = {
   schema: "delta-settlement/v1";
   state: "settlement_unknown" | "settlement_rejected" | "settlement_confirmed";
   request_hash: string;
   payment_fingerprint: string;
   amount: string;
+  order_id?: string;
+  order_binding_hash?: string;
   updated_at: string;
   result?: SettleResponse;
   failure_class?: string;
@@ -75,11 +79,19 @@ async function settlementKey(payload: PaymentPayload): Promise<string> {
   return `settlements/${(await sha256(stableJson(identity))).slice(7)}.json`;
 }
 
-export async function readSettlement(env: RuntimeEnv, header: string): Promise<SettlementRecord | null> {
+export async function readSettlement(env: RuntimeEnv, header: string, allowUnstructuredLegacy = false): Promise<SettlementRecord | null> {
   // Legacy completed deliveries are checked first by callers, so they do not
   // require a new settlement identity or any change to historical records.
-  const payload = decodePaymentSignatureHeader(header);
-  const key = await settlementKey(payload);
+  let payload: PaymentPayload, key: string;
+  try {
+    payload = decodePaymentSignatureHeader(header);
+    key = await settlementKey(payload);
+  } catch (error) {
+    // Only an already completed exact-header legacy replay may lack a semantic
+    // identity. Storage/receipt errors below must never be swallowed here.
+    if (allowUnstructuredLegacy) return null;
+    throw error;
+  }
   const object = await env.PROOFS.get(key);
   if (!object) return null;
   const record = await object.json<SettlementRecord>();
@@ -88,7 +100,24 @@ export async function readSettlement(env: RuntimeEnv, header: string): Promise<S
   return record;
 }
 
-export function guardedFacilitator(env: RuntimeEnv, requestHash: string, paymentFingerprint: string) {
+export async function readOrderSettlement(env: RuntimeEnv, order: OrderBinding): Promise<SettlementRecord> {
+  const object = await env.PROOFS.get(order.settlement_key);
+  if (!object) throw new Error("order_evidence_inconsistent");
+  const record = await object.json<SettlementRecord>();
+  if (!record || record.schema !== "delta-settlement/v1" || record.order_id !== order.order_id ||
+      record.order_binding_hash !== await orderAuthorityDigest(order) ||
+      record.request_hash !== order.request_hash || record.payment_fingerprint !== order.payment_fingerprint ||
+      record.amount !== order.amount || !["settlement_unknown", "settlement_rejected", "settlement_confirmed"].includes(record.state)) throw new Error("order_evidence_inconsistent");
+  if (record.state === "settlement_confirmed" && (!record.result || record.result.success !== true ||
+      !/^0x[0-9a-f]{64}$/i.test(record.result.transaction) || record.result.network !== order.network ||
+      (record.result.amount !== undefined && record.result.amount !== order.amount) ||
+      (record.result.payer !== undefined && !sameAddress(record.result.payer, order.payer)))) throw new Error("order_evidence_inconsistent");
+  return record;
+}
+
+export type SettlementOrder = { enrollment: OrderEnrollment; product: "capture" | "preflight"; resource: string; request_body: PaidRequest };
+
+export function guardedFacilitator(env: RuntimeEnv, requestHash: string, paymentFingerprint: string, order?: SettlementOrder) {
   const upstream = new HTTPFacilitatorClient({ url: env.FACILITATOR_URL, timeoutMs: 30_000 });
   let blocked: "settlement_unknown" | "settlement_rejected" | "settlement_identity_conflict" | undefined;
   const client: FacilitatorClient = {
@@ -101,18 +130,33 @@ export function guardedFacilitator(env: RuntimeEnv, requestHash: string, payment
     async settle(payload: PaymentPayload, requirements: PaymentRequirements): Promise<SettleResponse> {
       if (!authorizationMatches(payload, requirements)) throw new Error("payment_request_binding_mismatch");
       const key = await settlementKey(payload);
+      const authorization = (payload.payload.authorization ?? payload.payload.permit2Authorization) as { from: string };
+      const orderPayment: OrderPaymentBinding | undefined = order ? {
+        product: order.product, resource: order.resource, request_body: order.request_body, request_hash: requestHash,
+        payment_fingerprint: paymentFingerprint, settlement_key: key, network: requirements.network,
+        asset: requirements.asset, pay_to: requirements.payTo, payer: authorization.from, amount: requirements.amount,
+      } : undefined;
       const failure = (): SettleResponse => ({ success: false, errorReason: blocked, transaction: "", network: requirements.network });
       const existing = await env.PROOFS.get(key);
       if (existing) {
         const record = await existing.json<SettlementRecord>();
-        if (record.request_hash !== requestHash || record.payment_fingerprint !== paymentFingerprint) blocked = "settlement_identity_conflict";
+        if (record.request_hash !== requestHash || record.payment_fingerprint !== paymentFingerprint || (order && record.order_id !== order.enrollment.order_id)) blocked = "settlement_identity_conflict";
         else if (record.schema === "delta-settlement/v1" && record.state === "settlement_confirmed" && record.amount === requirements.amount && record.result && receiptMatches(record.result, payload, requirements)) return record.result;
         else blocked = record.state === "settlement_rejected" ? "settlement_rejected" : "settlement_unknown";
         return failure();
       }
+      if (order) {
+        // x402 upfront mode deliberately skips verify. A recovery capability
+        // must not be enrolled for an unverified/publicly forged payment.
+        let verified;
+        try { verified = await upstream.verify(payload, requirements); }
+        catch (error) { throw new Error(facilitatorFailure(error)); }
+        if (!verified.isValid) return { success: false, errorReason: "payment_verification_failed", transaction: "", network: requirements.network };
+      }
       const record: SettlementRecord = {
         schema: "delta-settlement/v1", state: "settlement_unknown", request_hash: requestHash,
         payment_fingerprint: paymentFingerprint, amount: requirements.amount, updated_at: new Date().toISOString(),
+        ...(order && orderPayment ? { order_id: order.enrollment.order_id, order_binding_hash: await orderAuthorityDigest({ ...order.enrollment, ...orderPayment, scope: ["status", "recover", "export"] }) } : {}),
       };
       // This durable reservation has no expiry. A timed-out POST may have settled.
       // Unknown outcomes require receipt reconciliation; never retry that POST.
@@ -121,6 +165,9 @@ export function guardedFacilitator(env: RuntimeEnv, requestHash: string, payment
       });
       if (!reserved) { blocked = "settlement_unknown"; return failure(); }
       try {
+        // Claim entitlement only at the first verified authorization reservation.
+        // An old/public payment signature can never mint a replacement capability.
+        if (order && orderPayment) await bindOrder(env, order.enrollment, orderPayment);
         const result = await upstream.settle(payload, requirements);
         if (receiptMatches(result, payload, requirements)) {
           const saved = await env.PROOFS.put(key, JSON.stringify({ ...record, state: "settlement_confirmed", result, updated_at: new Date().toISOString() }), {
