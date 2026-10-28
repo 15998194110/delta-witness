@@ -407,7 +407,6 @@ describe("payment reliability regressions (all external operations mocked)", () 
     expect(await (await bucket.get(key))!.json()).toMatchObject({ state: "recovery_required", checks_remaining: 1, checks_attempted: 0 });
   });
 });
-
 function deferred() {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => { resolve = done; });
