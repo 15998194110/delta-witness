@@ -1,6 +1,8 @@
 import { Hono, type Context, type Next } from "hono";
 
 const MAX_BODY_BYTES = 12_288;
+const CORE_TIMEOUT_MS = 120_000;
+const MAX_CORE_RESPONSE_BYTES = 1_048_576;
 
 export type GatewayEnv = Env & {
   PARTNER_SECRET?: string;
@@ -66,6 +68,60 @@ async function sha256(value: string): Promise<string> {
 async function equalSecret(presented: string, expected: string): Promise<boolean> {
   const [left, right] = await Promise.all([sha256(presented), sha256(expected)]);
   return left === right;
+}
+
+// A timeout may occur after Core accepted the operation. Never resubmit here;
+// the caller must keep the original idempotency key for any later recovery.
+async function fetchCore(env: GatewayEnv, request: Request): Promise<Response> {
+  const controller = new AbortController();
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const timeout = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => {
+        reject(new Error("core_response_timeout"));
+        controller.abort();
+        void reader?.cancel().catch(() => {});
+      }, CORE_TIMEOUT_MS);
+    });
+    return await Promise.race([
+      (async () => {
+        const response = await env.CORE.fetch(new Request(request, { signal: controller.signal }));
+        if (controller.signal.aborted) { void response.body?.cancel().catch(() => {}); throw new Error("core_response_timeout"); }
+        // Keep the deadline active through the body; receiving headers alone
+        // does not establish delivery. Core returns metadata, not raw artifacts.
+        reader = response.body?.getReader();
+        if (!reader) return response;
+        const chunks: Uint8Array[] = [];
+        let size = 0;
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (controller.signal.aborted) throw new Error("core_response_timeout");
+            if (done) break;
+            size += value.byteLength;
+            if (size > MAX_CORE_RESPONSE_BYTES) { void reader.cancel().catch(() => {}); throw new Error("core_response_too_large"); }
+            chunks.push(value);
+          }
+        } finally { reader.releaseLock(); }
+        const body = new Uint8Array(size);
+        let offset = 0;
+        for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.byteLength; }
+        return new Response(body, { status: response.status, headers: response.headers });
+      })(), timeout,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function coreFailure(c: GatewayContext, error: unknown): Response {
+  const timeout = error instanceof Error && error.message === "core_response_timeout";
+  return c.json({
+    error: timeout ? "core_response_timeout" : "core_response_unavailable",
+    state: "uncertain",
+    recovery: "reuse_original_idempotency_key",
+  }, timeout ? 504 : 502);
 }
 
 async function boundedBody(request: Request): Promise<Uint8Array> {
@@ -154,7 +210,9 @@ async function forward(product: "capture" | "preflight" | "watch", c: GatewayCon
       netPrice = Number(c.env.PARTNER_NET_WATCH_CHECK_USD) * checks;
     }
     if (!Number.isFinite(netPrice) || netPrice <= 0) return c.json({ error: "invalid_partner_net_price" }, 503);
-    const response = await c.env.CORE.fetch(new Request(`https://delta.internal/internal/partner/${product}`, {
+    let response: Response;
+    try {
+      response = await fetchCore(c.env, new Request(`https://delta.internal/internal/partner/${product}`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -165,7 +223,10 @@ async function forward(product: "capture" | "preflight" | "watch", c: GatewayCon
         "idempotency-key": idempotencyKey,
       },
       body: JSON.stringify(coreBody),
-    }));
+      }));
+    } catch (error) {
+      return coreFailure(c, error);
+    }
     const headers = new Headers({
       "content-type": response.headers.get("content-type") ?? "application/json; charset=utf-8",
       "cache-control": "private, no-store",
@@ -176,7 +237,9 @@ async function forward(product: "capture" | "preflight" | "watch", c: GatewayCon
     return new Response(response.body, { status: response.status, headers });
   } catch (error) {
     const reason = error instanceof Error ? error.message : "internal_error";
-    return c.json({ error: reason }, reason === "request_too_large" ? 413 : 500);
+    if (reason === "request_too_large") return c.json({ error: reason }, 413);
+    if (reason === "content_type_must_be_application_json") return c.json({ error: reason }, 400);
+    return c.json({ error: "internal_error" }, 500);
   }
 }
 
@@ -186,12 +249,17 @@ app.post("/watch", (c) => forward("watch", c));
 app.get("/watch/:id", async (c) => {
   const id = c.req.param("id");
   if (!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(id)) return c.json({ error: "invalid_watch_id" }, 400);
-  const response = await c.env.CORE.fetch(new Request(`https://delta.internal/internal/partner/watch/${id}`, {
+  let response: Response;
+  try {
+    response = await fetchCore(c.env, new Request(`https://delta.internal/internal/partner/watch/${id}`, {
     headers: {
       "x-delta-core-secret": c.env.CORE_SERVICE_SECRET!,
       "x-delta-partner": c.env.PARTNER_ID,
     },
-  }));
+    }));
+  } catch (error) {
+    return coreFailure(c, error);
+  }
   return new Response(response.body, {
     status: response.status,
     headers: { "content-type": response.headers.get("content-type") ?? "application/json; charset=utf-8", "cache-control": "private, no-store" },
@@ -199,8 +267,8 @@ app.get("/watch/:id", async (c) => {
 });
 
 app.notFound((c) => c.json({ error: "not_found" }, 404));
-app.onError((error, c) => {
-  console.error(JSON.stringify({ event: "partner_gateway_error", path: c.req.path, message: error.message }));
+app.onError((_error, c) => {
+  console.error(JSON.stringify({ event: "partner_gateway_error", code: "internal_error" }));
   return c.json({ error: "internal_error" }, 500);
 });
 

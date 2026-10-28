@@ -1,0 +1,659 @@
+{
+  "schema": "delta-local-repair-evidence/v1",
+  "base_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+  "scope": "first local batch only",
+  "published": false,
+  "online_accepted": false,
+  "tests": {
+    "core": 272,
+    "base": 77,
+    "mcp": 42,
+    "total": 420,
+    "js": 14,
+    "gateway": 15
+  },
+  "commands": [
+    {
+      "label": "29-final-core-test",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1",
+      "command": [
+        "npm.cmd",
+        "test"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:52:15.9711318+08:00",
+      "completed_at": "2026-10-29T00:52:19.8060022+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-core-test.log",
+      "log_sha256": "f686a2a10bc645e5d8cab7a4e632aea9a9996e4f435c2454a44d590840bd6b0d"
+    },
+    {
+      "label": "29-final-base-test",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1\\channels\\base-app",
+      "command": [
+        "npm.cmd",
+        "test"
+      ],
+      "exit_code": 0,
+      "source_before": "b539a9181fa7b38923ac831e72af56ac63b85e6bfcc34c3bda679daed52c1327",
+      "source_after": "b539a9181fa7b38923ac831e72af56ac63b85e6bfcc34c3bda679daed52c1327",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:46:46.4407524+08:00",
+      "completed_at": "2026-10-29T00:46:49.4014691+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-base-test.log",
+      "log_sha256": "c3bb4c5f6cdc20dd122e108d8adb1926fc8041b3dfbd4c85441d8aadad9a539a"
+    },
+    {
+      "label": "29-final-gateway-test",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1\\channels\\partner-gateway",
+      "command": [
+        "npm.cmd",
+        "test"
+      ],
+      "exit_code": 0,
+      "source_before": "b539a9181fa7b38923ac831e72af56ac63b85e6bfcc34c3bda679daed52c1327",
+      "source_after": "b539a9181fa7b38923ac831e72af56ac63b85e6bfcc34c3bda679daed52c1327",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:46:46.4311632+08:00",
+      "completed_at": "2026-10-29T00:46:48.6068491+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-gateway-test.log",
+      "log_sha256": "1150b691bdf5c85ed573cc1450f87f2a25ad6ecd7c61aff071d18e3ab808cb7b"
+    },
+    {
+      "label": "29-final-mcp-test",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1\\packages\\mcp-server",
+      "command": [
+        "npm.cmd",
+        "test"
+      ],
+      "exit_code": 0,
+      "source_before": "b539a9181fa7b38923ac831e72af56ac63b85e6bfcc34c3bda679daed52c1327",
+      "source_after": "b539a9181fa7b38923ac831e72af56ac63b85e6bfcc34c3bda679daed52c1327",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:46:46.4016878+08:00",
+      "completed_at": "2026-10-29T00:46:48.716543+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-mcp-test.log",
+      "log_sha256": "e4246a73572c73eddeb86b2298234157d5c18de0d02b56597e0cc4efddc4aecf"
+    },
+    {
+      "label": "29-final-js-test-clean-log",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1\\packages\\js-client",
+      "command": [
+        "npm.cmd",
+        "test"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:52:15.9996544+08:00",
+      "completed_at": "2026-10-29T00:52:17.4802772+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-js-test-clean-log.log",
+      "log_sha256": "ee74591d84284b81dd41565bbce6c2a608113e2b6d4a02faa7e298413841c098"
+    },
+    {
+      "label": "29-final-core-check",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1",
+      "command": [
+        "npm.cmd",
+        "run",
+        "check"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:48:28.5968619+08:00",
+      "completed_at": "2026-10-29T00:48:31.0679992+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-core-check.log",
+      "log_sha256": "59d90a2f4773d7879c77860734fe4731521d3a40c59b0197d38d490d2863743c"
+    },
+    {
+      "label": "29-final-base-check",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1\\channels\\base-app",
+      "command": [
+        "npm.cmd",
+        "run",
+        "check"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:48:28.6816468+08:00",
+      "completed_at": "2026-10-29T00:48:31.7375825+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-base-check.log",
+      "log_sha256": "4093ecdc2aff764a00678a4f11f526153606e4586981ff8d7c6ee83bd0f329e6"
+    },
+    {
+      "label": "29-final-gateway-check",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1\\channels\\partner-gateway",
+      "command": [
+        "npm.cmd",
+        "run",
+        "check"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:48:28.6126074+08:00",
+      "completed_at": "2026-10-29T00:48:31.0829443+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-gateway-check.log",
+      "log_sha256": "e9cc66deb4fea674d8554931a5c91caa93667893db90f2ef117acab38734330b"
+    },
+    {
+      "label": "29-final-mcp-check",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1\\packages\\mcp-server",
+      "command": [
+        "npm.cmd",
+        "run",
+        "check"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:48:28.6751621+08:00",
+      "completed_at": "2026-10-29T00:48:31.2020234+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-mcp-check.log",
+      "log_sha256": "de2f8d3a386607209d6dac52c84b3a8a9c945d4afc8252c813daa9e7361d2805"
+    },
+    {
+      "label": "29-final-js-check",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1\\packages\\js-client",
+      "command": [
+        "npm.cmd",
+        "run",
+        "check"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:48:28.796075+08:00",
+      "completed_at": "2026-10-29T00:48:30.7630274+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-js-check.log",
+      "log_sha256": "ab1a5e10218bd35215a8fecd3dfc704f3f1f4dedaf44e383b5c21eaeb1eb7f73"
+    },
+    {
+      "label": "29-final-apify-check",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1\\channels\\apify",
+      "command": [
+        "npm.cmd",
+        "run",
+        "check"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:48:28.8095423+08:00",
+      "completed_at": "2026-10-29T00:48:30.7398537+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-apify-check.log",
+      "log_sha256": "5ebc6bf0f6f165145144f3125b4d60c73a6bc3974dc802ead6880fc7e057f487"
+    },
+    {
+      "label": "29-final-core-build",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1",
+      "command": [
+        "npm.cmd",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:48:28.8397731+08:00",
+      "completed_at": "2026-10-29T00:48:37.3914392+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-core-build.log",
+      "log_sha256": "e9c5019e52442055bcee5f85f29dfc8be1d6940bdc04c83476e362ee28ebd087"
+    },
+    {
+      "label": "29-final-gateway-build",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1\\channels\\partner-gateway",
+      "command": [
+        "npm.cmd",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:48:28.8568453+08:00",
+      "completed_at": "2026-10-29T00:48:36.9644797+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-gateway-build.log",
+      "log_sha256": "69e74f3da0e38bdd4fff9e7b92760ae9b2239cbca4700208f1a7d8c0e0e57625"
+    },
+    {
+      "label": "29-final-mcp-build",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1\\packages\\mcp-server",
+      "command": [
+        "npm.cmd",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:48:28.8364098+08:00",
+      "completed_at": "2026-10-29T00:48:31.3829074+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-mcp-build.log",
+      "log_sha256": "b39a07bce7b1b98becb3c31a9e8345b835617f8f1ef68f2034eaeefb4f593560"
+    },
+    {
+      "label": "29-final-base-build",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1\\channels\\base-app",
+      "command": [
+        "npm.cmd",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:48:28.8539509+08:00",
+      "completed_at": "2026-10-29T00:48:34.4681312+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-base-build.log",
+      "log_sha256": "0325c363bb391627df4a120175c43142215c59f867660d3376971ad4d709ced5"
+    },
+    {
+      "label": "29-final-js-pack",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1\\packages\\js-client",
+      "command": [
+        "npm.cmd",
+        "pack",
+        "--ignore-scripts",
+        "--json",
+        "--pack-destination",
+        "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\package-artifacts-29"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:49:21.1495553+08:00",
+      "completed_at": "2026-10-29T00:49:22.7399766+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-js-pack.log",
+      "log_sha256": "4be76028e7391f8ae22b12dc820771ced02f09b26f40fa101535a04bf893d262"
+    },
+    {
+      "label": "29-final-mcp-pack",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1\\packages\\mcp-server",
+      "command": [
+        "npm.cmd",
+        "pack",
+        "--ignore-scripts",
+        "--json",
+        "--pack-destination",
+        "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\package-artifacts-29"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:49:21.14955+08:00",
+      "completed_at": "2026-10-29T00:49:23.0287247+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-mcp-pack.log",
+      "log_sha256": "850959f3d4596ed6109b837259fa97065efe799f7970e26704e643b23a1074c7"
+    },
+    {
+      "label": "29-final-package-unpack",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1",
+      "command": [
+        "C:\\Users\\10122\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\verify-local-packages.py"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:50:01.0563299+08:00",
+      "completed_at": "2026-10-29T00:50:01.9803936+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-package-unpack.log",
+      "log_sha256": "3be54d8886f46fb48d475c2118c953e93855de3067966161ef90b86fef210df6"
+    },
+    {
+      "label": "29-final-packed-smoke",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1",
+      "command": [
+        "node.exe",
+        "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\smoke-packed-clients.mjs"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:51:29.7374506+08:00",
+      "completed_at": "2026-10-29T00:51:31.0299762+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-packed-smoke.log",
+      "log_sha256": "1482834ea8f1035d6110403cde2ae4343dbd71ef036b96d5d1482884252452da"
+    },
+    {
+      "label": "29-final-price-policy-corrected",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1",
+      "command": [
+        "node.exe",
+        "scripts/check-owner-pricing.mjs"
+      ],
+      "exit_code": 0,
+      "source_before": "45010c38728a0ae4cffd60a956b68302370a75b965f3b76611fd48a290f60d77",
+      "source_after": "45010c38728a0ae4cffd60a956b68302370a75b965f3b76611fd48a290f60d77",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:52:48.1831246+08:00",
+      "completed_at": "2026-10-29T00:52:48.8809027+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-price-policy-corrected.log",
+      "log_sha256": "1e29de1d6f01d9145f435297af58d36fadee84a3fbcaecfb89eb9fb76375ee40"
+    },
+    {
+      "label": "29-final-base-manifest",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1",
+      "command": [
+        "node.exe",
+        "scripts/validate-base-manifest.mjs"
+      ],
+      "exit_code": 0,
+      "source_before": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_after": "f8c80c2a04819ca2e8258840f5b915d68bbbef7ae9f1c556d0ac6dc2a4850a73",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:52:15.9921488+08:00",
+      "completed_at": "2026-10-29T00:52:16.731497+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-final-base-manifest.log",
+      "log_sha256": "396b01d889b1bc1eec7545c868bd05326e07a47eb82c7c2639c47387613ca418"
+    },
+    {
+      "label": "29-local-release-inventory-1",
+      "source_commit": "455f7be8278205f78e2099b85c45867ba39163b6",
+      "environment": "isolated-network-blocked",
+      "directory": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-local-repair-v1.1",
+      "command": [
+        "node.exe",
+        "scripts/check-local-release.mjs"
+      ],
+      "exit_code": 0,
+      "source_before": "ebf4af6e7c50ca65b88028e500e392133de9ed41b41b839233c360a11db3f3ef",
+      "source_after": "ebf4af6e7c50ca65b88028e500e392133de9ed41b41b839233c360a11db3f3ef",
+      "source_stable": true,
+      "started_at": "2026-10-29T00:44:47.0835667+08:00",
+      "completed_at": "2026-10-29T00:44:47.7213856+08:00",
+      "log_path": "C:\\Users\\10122\\Documents\\ChatGPT\\DELTA-repair-evidence-20261028\\29-local-release-inventory-1.log",
+      "log_sha256": "4cd0e7aabf37b293e3f49d97dd30b3e90992acbef9a607070fa6add36f0f78aa"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "dist/index.js",
+      "bytes": 876523,
+      "sha256": "a26c2042482cbc570e72c26d6af181df70f494035e42ce2e199cc84e53b2db54"
+    },
+    {
+      "path": "dist/index.js.map",
+      "bytes": 1582305,
+      "sha256": "09448f7a7c09025dc62a8aa5b814f919e8ace91a3a7b4cf65b0dce5cea90b7fc"
+    },
+    {
+      "path": "dist/README.md",
+      "bytes": 118,
+      "sha256": "8c92ab3e8ca87aec763b3da3176aea4bc3e988ea6c7a4d82c8f0b8a8f8aa0a27"
+    },
+    {
+      "path": "channels/partner-gateway/dist/index.js",
+      "bytes": 74633,
+      "sha256": "23a41468a2d7af04f2494eb5e5a8e22d8a9253cc5f0970c53bc37ff2bae9e4c1"
+    },
+    {
+      "path": "channels/partner-gateway/dist/index.js.map",
+      "bytes": 130996,
+      "sha256": "04d5ec723fbeaf99c712740a11489bbc6499a5cb9166b6dfcfc433ffd6f869b5"
+    },
+    {
+      "path": "channels/partner-gateway/dist/README.md",
+      "bytes": 130,
+      "sha256": "4310b5a205f06cfa4a4219bbb5e3b882c34ba967bbd3f6596daf72d97408d790"
+    },
+    {
+      "path": "channels/base-app/dist/_headers",
+      "bytes": 569,
+      "sha256": "5e81c65666538d315952e1c30759079934a83056fac3debc630122436dd8bf42"
+    },
+    {
+      "path": "channels/base-app/dist/delta-witness-2026-8f0c5a3d6e7b91ac.txt",
+      "bytes": 37,
+      "sha256": "d199b41c52bc641b2816b8763900b5c69ad39d3e53bb00876e386a2ee53e3317"
+    },
+    {
+      "path": "channels/base-app/dist/hero.png",
+      "bytes": 5747,
+      "sha256": "4737e7bfc2aa9f89ae428932089b76fc7b8c5360f063fd64541008f6d1ff0800"
+    },
+    {
+      "path": "channels/base-app/dist/icon.png",
+      "bytes": 11446,
+      "sha256": "4aa23bc467371003ced79f12c6957ccb73954fd805f256661c310b1343f9c3a0"
+    },
+    {
+      "path": "channels/base-app/dist/index.html",
+      "bytes": 1315,
+      "sha256": "2818474659b1141f81e9b0c1e625d8994a3acf21c65c8f425f6fd7ea6e358920"
+    },
+    {
+      "path": "channels/base-app/dist/robots.txt",
+      "bytes": 85,
+      "sha256": "f78b750552857155998c10d5eb1f7b1f1843efa2f51000485f6d12b06e878c46"
+    },
+    {
+      "path": "channels/base-app/dist/screenshot.png",
+      "bytes": 23415,
+      "sha256": "66c309e800febf2f9c7771b26fd13d154013aa01a6243e2ca8973bf7c72a20c2"
+    },
+    {
+      "path": "channels/base-app/dist/sitemap.xml",
+      "bytes": 175,
+      "sha256": "855b567808c98786b3b263699fed76a4e3023b4d09295d0a79b43d566b660d86"
+    },
+    {
+      "path": "channels/base-app/dist/splash.png",
+      "bytes": 598,
+      "sha256": "3732a4777c5b53ce4f3105a91e9de3f003dbe6aebaf69b2df7b63e95f4802d37"
+    },
+    {
+      "path": "channels/base-app/dist/.well-known/farcaster.json",
+      "bytes": 1475,
+      "sha256": "4e2d527f2cecbd8b204d18d9d7d227f6eae25b4db44e3037d312c8491a51870e"
+    },
+    {
+      "path": "channels/base-app/dist/assets/ccip-DCMq_9lX.js",
+      "bytes": 3021,
+      "sha256": "4879d4b6972f89a4bb6ad92bf9c1940fb57fd7839ce5e2792eb5c9dce5c6b950"
+    },
+    {
+      "path": "channels/base-app/dist/assets/ccip-DCMq_9lX.js.map",
+      "bytes": 11201,
+      "sha256": "756cce1e94e9792db907758ccbe143156b8c288b9f9253449fbf95ac6e964fca"
+    },
+    {
+      "path": "channels/base-app/dist/assets/chunk-UQQR4X3S-CqQyyMwe.js",
+      "bytes": 2565,
+      "sha256": "888217377866eb23ee613d01215152186eb83b0c9a3ed256e98906e3f456b712"
+    },
+    {
+      "path": "channels/base-app/dist/assets/chunk-UQQR4X3S-CqQyyMwe.js.map",
+      "bytes": 10422,
+      "sha256": "3421ecccd555682595cfa767ef3c408bbbe931827b198604a31fd8793f330178"
+    },
+    {
+      "path": "channels/base-app/dist/assets/defineChain-RX2fTRk9.js",
+      "bytes": 8242,
+      "sha256": "080dc03068477f336090fbcb8457d520bd5c62bd283ae252af7ae81da2d2fa9c"
+    },
+    {
+      "path": "channels/base-app/dist/assets/defineChain-RX2fTRk9.js.map",
+      "bytes": 46074,
+      "sha256": "0cb5b92bbef33ad0191782bbbec2b0d8190916dd6f54f3516bc4b46ed41a6faf"
+    },
+    {
+      "path": "channels/base-app/dist/assets/http-XYCpKijE.js",
+      "bytes": 64773,
+      "sha256": "7a8e553a34dfdf3c9b3a5a063be7e82815e45a762a1ae508f5688d3766c2888c"
+    },
+    {
+      "path": "channels/base-app/dist/assets/http-XYCpKijE.js.map",
+      "bytes": 407106,
+      "sha256": "230b830b8f4676bd1a7a62baf42abf61a2a3806749263e75584be0f0888d5731"
+    },
+    {
+      "path": "channels/base-app/dist/assets/index-BDkoWyeD.js",
+      "bytes": 57837,
+      "sha256": "775ab8fbdf24ec41cd0dfaa980882d215a30b230d6b8e4fa462580add721859a"
+    },
+    {
+      "path": "channels/base-app/dist/assets/index-BDkoWyeD.js.map",
+      "bytes": 290845,
+      "sha256": "a8691d1cc86f573ff7b62b674c514c5157e85c671455641e1806fd601e5df107"
+    },
+    {
+      "path": "channels/base-app/dist/assets/index-Cmp2OaJ4.js",
+      "bytes": 418173,
+      "sha256": "f79ae8c7ff0143a928b3d0c43447dd6c978840d0703dcc88259ee2dea54c4226"
+    },
+    {
+      "path": "channels/base-app/dist/assets/index-Cmp2OaJ4.js.map",
+      "bytes": 1633254,
+      "sha256": "4236652f2be2df8b416adf7e69c8b03ef7fa3ae903c3d8ec121cdac64e4dba92"
+    },
+    {
+      "path": "channels/base-app/dist/assets/index-LHQhlQgM.js",
+      "bytes": 216008,
+      "sha256": "8f060f35a27b5da439f55e31532821fe9d676ab9cf0e6bfe55f28710458505c1"
+    },
+    {
+      "path": "channels/base-app/dist/assets/index-LHQhlQgM.js.map",
+      "bytes": 968423,
+      "sha256": "9a5514e02ece84cdbd6909e96ca01f30d07728915c60416849d2d703f547e75b"
+    },
+    {
+      "path": "channels/base-app/dist/assets/index-R4O4MwkI.css",
+      "bytes": 7971,
+      "sha256": "65e28a2104f73c060ee7eca1b35bab3cbf9701e67359b82a3eebc0093a42104b"
+    },
+    {
+      "path": "channels/base-app/dist/assets/index-TALamM3H.js",
+      "bytes": 70999,
+      "sha256": "4897645dc39eecd605cdf499df9347631e0ae696342f89c50aee5dacb6057e96"
+    },
+    {
+      "path": "channels/base-app/dist/assets/index-TALamM3H.js.map",
+      "bytes": 406909,
+      "sha256": "6aa8ea89722ccc8ab9c3a79c8ff52ee6db85ef8b2269e67c82399f720ad9f7de"
+    },
+    {
+      "path": "channels/base-app/dist/assets/index-Xs9E02Tx.js",
+      "bytes": 12774,
+      "sha256": "6c438fb45a68842f27219fc4745abae95078a46ebaa946ee258bccb47df824e4"
+    },
+    {
+      "path": "channels/base-app/dist/assets/index-Xs9E02Tx.js.map",
+      "bytes": 96535,
+      "sha256": "a73eec2e3d10e300e8f556cb8fe71aca136db27da3bb62b9d9cba76c1cdb8832"
+    },
+    {
+      "path": "channels/base-app/dist/assets/localBatchGatewayRequest-OCKPKn9g.js",
+      "bytes": 1844,
+      "sha256": "a36fb134c45cae9e00c8a3780aa21305c6469f338a64d2b82c5ed595a8aa0d2a"
+    },
+    {
+      "path": "channels/base-app/dist/assets/localBatchGatewayRequest-OCKPKn9g.js.map",
+      "bytes": 8919,
+      "sha256": "c5122533a9b4dd917f452fe0be85c4a38c82619203f74af7dd79974123e1299b"
+    },
+    {
+      "path": "channels/base-app/dist/assets/native-CJ5et6AR.js",
+      "bytes": 363,
+      "sha256": "4cc08916166d0f7e5fd7bb702591aef967d17000bd8112fcf416cd95d11b7fa4"
+    },
+    {
+      "path": "channels/base-app/dist/assets/native-CJ5et6AR.js.map",
+      "bytes": 1088,
+      "sha256": "348117e1ae7a92dc6e620bc1edf69e4fdc69fb587af5094d6e936da6dad238f3"
+    },
+    {
+      "path": "channels/base-app/dist/assets/verifyHash-vmWoui0_.js",
+      "bytes": 235416,
+      "sha256": "e6019b8eaf70b01136e5d8a2169934e1b55ebe10ac0660e2a934cc16220d0319"
+    },
+    {
+      "path": "channels/base-app/dist/assets/verifyHash-vmWoui0_.js.map",
+      "bytes": 1094107,
+      "sha256": "d072e69cfbde7d89cb42ed4c20730e9431bf7e7171ea52c288fbce74aa4ab940"
+    },
+    {
+      "path": "packages/mcp-server/dist/index.d.ts",
+      "bytes": 668,
+      "sha256": "fe4e5ed7efa95d58a7a4181da6e21101bcceaf9b91f1940bba71a0848b9d57f9"
+    },
+    {
+      "path": "packages/mcp-server/dist/index.js",
+      "bytes": 12346,
+      "sha256": "2fc45c24f6c1f9f44a6366dc9b4cd878c69ad371b4058977a01de24d177f03a2"
+    },
+    {
+      "path": "packages/mcp-server/dist/payment-config.d.ts",
+      "bytes": 444,
+      "sha256": "2589142393a0d2e5a48e6551306246b4d8f1e6c4d8edf93e50fe950dc4509df7"
+    },
+    {
+      "path": "packages/mcp-server/dist/payment-config.js",
+      "bytes": 1285,
+      "sha256": "a9287f9a96ca0b8240c5ea69516b4443c74e6e8916120e8f532a5c81ee5e52b0"
+    }
+  ],
+  "isolation_note": "Node preload denies network transports; reviewed stdlib Python pack comparison has no network code. No OS sandbox guarantee."
+}

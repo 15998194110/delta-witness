@@ -1,4 +1,5 @@
 import { sha256 } from "./crypto";
+import { withinDeadline } from "./deadline";
 
 export const MAX_URL_LENGTH = 2_048;
 export const MAX_CAPTURE_BODY_BYTES = 4_096;
@@ -176,23 +177,29 @@ export async function resolvePublicRedirects(
   throw new Error("too_many_redirects");
 }
 
-async function readStreamBounded(stream: ReadableStream<Uint8Array> | null, limit: number): Promise<Uint8Array> {
+async function readStreamBounded(stream: ReadableStream<Uint8Array> | null, limit: number, timeoutMs: number): Promise<Uint8Array> {
   if (!stream) return new Uint8Array();
   const reader = stream.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
+  const expiresAt = Date.now() + timeoutMs;
   try {
     while (true) {
-      const { done, value } = await reader.read();
+      const remaining = expiresAt - Date.now();
+      if (remaining <= 0) throw new Error("body_read_timeout");
+      const { done, value } = await withinDeadline(reader.read(), remaining, "body_read_timeout", () => {
+        void reader.cancel("body_read_timeout").catch(() => {});
+      });
       if (done) break;
       total += value.byteLength;
       if (total > limit) {
-        void reader.cancel("body_too_large");
+        void reader.cancel("body_too_large").catch(() => {});
         throw new Error("body_too_large");
       }
       chunks.push(value);
     }
   } finally {
+    void reader.cancel().catch(() => {});
     reader.releaseLock();
   }
   const result = new Uint8Array(total);
@@ -204,12 +211,12 @@ async function readStreamBounded(stream: ReadableStream<Uint8Array> | null, limi
   return result;
 }
 
-export async function readJsonRequestBounded(request: Request, limit: number): Promise<unknown> {
+export async function readJsonRequestBounded(request: Request, limit: number, timeoutMs = 10_000): Promise<unknown> {
   const declared = Number(request.headers.get("content-length") ?? "0");
   if (Number.isFinite(declared) && declared > limit) throw new Error("request_too_large");
   const contentType = request.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") throw new Error("content_type_must_be_application_json");
-  const bytes = await readStreamBounded(request.clone().body, limit);
+  const bytes = await readStreamBounded(request.body, limit, timeoutMs);
   try {
     return JSON.parse(new TextDecoder().decode(bytes));
   } catch {
@@ -217,10 +224,10 @@ export async function readJsonRequestBounded(request: Request, limit: number): P
   }
 }
 
-export async function readJsonResponseBounded(response: Response, limit: number): Promise<unknown> {
+export async function readJsonResponseBounded(response: Response, limit: number, timeoutMs = 15_000): Promise<unknown> {
   const declared = Number(response.headers.get("content-length") ?? "0");
   if (Number.isFinite(declared) && declared > limit) throw new Error("upstream_response_too_large");
-  const bytes = await readStreamBounded(response.body, limit);
+  const bytes = await readStreamBounded(response.body, limit, timeoutMs);
   try {
     return JSON.parse(new TextDecoder().decode(bytes));
   } catch {

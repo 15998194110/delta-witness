@@ -5,6 +5,7 @@ import { evaluatePreflight, parsePreflightRequest, type PreflightRequest } from 
 import { quoteProductWithOverride, raisePriceAfterNegativeMargin } from "./pricing";
 import { assertPublicDns, resolvePublicRedirects, sanitizeDimension, validateTarget } from "./security";
 import { recordEvent } from "./telemetry";
+import { safeErrorCode } from "./failures";
 
 const MIN_INTERVAL_SECONDS = 900;
 const MAX_INTERVAL_SECONDS = 2_592_000;
@@ -21,7 +22,7 @@ export type WatchRegistration = {
   expected?: PreflightRequest["expected"];
 };
 
-type WatchState = "active" | "exhausted" | "paused_margin";
+type WatchState = "active" | "exhausted" | "paused_margin" | "recovery_required";
 
 export type WatchRecord = {
   schema: "delta-watch/v1";
@@ -127,12 +128,6 @@ export async function registerWatch(input: {
   channel: string;
   grossPaidUsd: number;
 }): Promise<RegistrationResult> {
-  await assertPriorTarget(input.env, input.request);
-  const quote = await quoteProductWithOverride(input.env, "watch_check");
-  const requiredTotal = Math.ceil(quote.grossPriceUsd * input.request.checks * 1_000_000) / 1_000_000;
-  if (!Number.isFinite(input.grossPaidUsd) || input.grossPaidUsd < requiredTotal) {
-    return { status: 402, body: { error: "watch_prepaid_amount_below_floor", required_total_usd: requiredTotal } };
-  }
   const id = uuidFromDigest(await sha256(`watch\n${input.fingerprint}`));
   const key = watchKey(id);
   const existing = await input.env.PROOFS.get(key);
@@ -142,6 +137,12 @@ export async function registerWatch(input: {
       return { status: 409, body: { error: "idempotency_key_reused_for_different_watch" } };
     }
     return { status: 200, body: { ok: true, ...publicWatch(record), idempotent_replay: true } };
+  }
+  await assertPriorTarget(input.env, input.request);
+  const quote = await quoteProductWithOverride(input.env, "watch_check");
+  const requiredTotal = Math.ceil(quote.grossPriceUsd * input.request.checks * 1_000_000) / 1_000_000;
+  if (!Number.isFinite(input.grossPaidUsd) || input.grossPaidUsd < requiredTotal) {
+    return { status: 402, body: { error: "watch_prepaid_amount_below_floor", required_total_usd: requiredTotal } };
   }
   const now = new Date();
   const webhookSecret = input.request.webhook_url ? randomSecret() : undefined;
@@ -241,6 +242,14 @@ async function processWatch(env: RuntimeEnv, key: string): Promise<void> {
   const nowMs = Date.now();
   if (record.schema !== "delta-watch/v1" || record.state !== "active" || record.checks_remaining <= 0) return;
   if (Date.parse(record.next_check_at) > nowMs || (record.lease_until && Date.parse(record.lease_until) > nowMs)) return;
+  if (record.lease_until) {
+    // An expired lease proves neither cancellation nor failed artifact storage.
+    // Preserve the paid sequence and quota until the prior attempt is reconciled.
+    await env.PROOFS.put(key, JSON.stringify({ ...record, state: "recovery_required", updated_at: new Date().toISOString() }), {
+      onlyIf: { etagMatches: object.etag }, httpMetadata: { contentType: "application/json; charset=utf-8" },
+    });
+    return;
+  }
   // The current list price applies to new Watch purchases only. Existing prepaid
   // checks are grandfathered at their recorded unit price and are not
   // retroactively repriced merely because the owner changes today's ladder.
@@ -301,7 +310,7 @@ async function processWatch(env: RuntimeEnv, key: string): Promise<void> {
       record.state = "paused_margin";
     }
   } catch (error) {
-    payload = { ok: false, watch_id: record.watch_id, sequence, reason: error instanceof Error ? error.message : "watch_check_failed" };
+    payload = { ok: false, watch_id: record.watch_id, sequence, reason: safeErrorCode(error) };
   }
   record.checks_attempted = sequence;
   record.checks_remaining -= 1;
@@ -310,7 +319,10 @@ async function processWatch(env: RuntimeEnv, key: string): Promise<void> {
   record.updated_at = new Date().toISOString();
   record.lease_until = undefined;
   record.last_result = payload;
-  await env.PROOFS.put(key, JSON.stringify(record), { httpMetadata: { contentType: "application/json; charset=utf-8" } });
+  const completed = await env.PROOFS.put(key, JSON.stringify(record), {
+    onlyIf: { etagMatches: claimed.etag }, httpMetadata: { contentType: "application/json; charset=utf-8" },
+  });
+  if (!completed) return;
   await recordEvent(env, {
     event: "watch_checked",
     route: "/watch/check",
@@ -333,7 +345,7 @@ async function processWatch(env: RuntimeEnv, key: string): Promise<void> {
       partner: record.partner,
       channel: record.channel,
       success: false,
-      reason: error instanceof Error ? error.message : "webhook_failed",
+      reason: safeErrorCode(error),
     });
   }
 }

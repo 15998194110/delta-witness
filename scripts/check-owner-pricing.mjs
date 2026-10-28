@@ -47,7 +47,7 @@ export function checkOwnerPricing() {
   assert(!/DELTA_MAX_USD_PER_CALL\s*(?:\|\||\?\?)/.test(mcp), 'MCP contains an implicit numerical spending fallback');
   assert(mcpConfig.includes('Object.freeze({ capture: 1, preflight: 5 } as const)'), 'MCP product-price map drifted');
   assert(mcpConfig.includes('Explicit buyer approval required') && mcpConfig.includes('approved < price') && mcpConfig.includes('return price;'), 'MCP must require buyer approval, preserve smaller budgets and cap each call to its exact product price');
-  assert(mcp.includes('paidFetch("capture")') && mcp.includes('paidFetch("preflight")'), 'MCP paid tools are not bound to their chosen product');
+  assert(mcp.includes('return paidResult("capture",') && mcp.includes('return paidResult("preflight",') && /fetchPaid\s*=\s*paidFetch\(product(?:\s*,|\s*\))/.test(mcp), 'MCP paid tools are not bound to their chosen product');
   assert(mcp.includes('requirement.amount === rawAmount') && mcp.includes('requirement.asset.toLowerCase() === USDC'), 'MCP payment policy must validate exact amount and canonical USDC');
   assert(mcpReadme.includes('"DELTA_MAX_USD_PER_CALL": "1.00"') && mcpReadme.includes('"DELTA_MAX_USD_PER_CALL": "5.00"'), 'MCP installation examples must explicitly approve current Capture/Preflight amounts');
   assert(sdkReadme.includes('Capture **1 USDC**') && sdkReadme.includes('Public Preflight **5 USDC**'), 'JS SDK current purchase examples drifted');

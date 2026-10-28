@@ -65,13 +65,117 @@ async function jsonResponse(response: Response, operation: string): Promise<Json
     throw new Error(`${operation} returned non-JSON HTTP ${response.status}`);
   }
   if (!response.ok) {
-    const reason = body && typeof body === "object" && "error" in body ? String((body as Json).error) : "request_failed";
-    throw new Error(`${operation} failed: HTTP ${response.status} ${reason}`);
+    throw new Error(`${operation} failed: HTTP ${response.status}`);
   }
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error(`${operation} returned invalid JSON shape`);
   return body as Json;
 }
 
-function paidFetch(product: PaidProduct): typeof fetch {
+// Bound both headers and body even if an injected/payment transport ignores abort.
+// The timer never initiates another request; an unknown paid outcome stays unknown.
+async function responseWithinDeadline(fetchImpl: typeof fetch, url: string, init: RequestInit,
+  timeoutMs: number, observed: (response: Response) => void): Promise<Response> {
+  const controller = new AbortController();
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error("response_deadline_exceeded"));
+      controller.abort();
+      void reader?.cancel().catch(() => {});
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([timeout, (async () => {
+      const response = await fetchImpl(url, { ...init, signal: controller.signal });
+      if (controller.signal.aborted) { void response.body?.cancel().catch(() => {}); throw new Error("response_deadline_exceeded"); }
+      observed(response);
+      reader = response.body?.getReader();
+      if (!reader) return response;
+      const chunks: Uint8Array[] = [];
+      let size = 0;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (controller.signal.aborted) throw new Error("response_deadline_exceeded");
+          if (done) break;
+          size += value.byteLength;
+          if (size > 1_048_576) { void reader.cancel().catch(() => {}); throw new Error("response_too_large"); }
+          chunks.push(value);
+        }
+      } finally { reader.releaseLock(); }
+      const bytes = new Uint8Array(size);
+      let offset = 0;
+      for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+      return new Response(bytes, { status: response.status, headers: response.headers });
+    })()]);
+  } finally { clearTimeout(timer); }
+}
+
+function completedDelivery(body: Json, product: PaidProduct, origin: string): boolean {
+  if (body.ok !== true || body.product !== product) return false;
+  const id = body.proof_id;
+  if (typeof id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) return false;
+  if (body.manifest_url !== `${origin}/v1/proofs/${id}` || body.public_proof_url !== `${origin}/p/${id}`) return false;
+  if (typeof body.bundle_root !== "string" || !/^sha256:[0-9a-f]{64}$/i.test(body.bundle_root)) return false;
+  if (typeof body.observed_at !== "string" || !Number.isFinite(Date.parse(body.observed_at))) return false;
+  return product !== "preflight" || ([true, false, null].includes(body.safe as boolean | null) && [true, false, null].includes(body.changed as boolean | null));
+}
+
+function errorResult(error: string, message: string, status: number | null = null) {
+  return {
+    ...result({ error, message, status, retryable: false,
+      classification: status === 401 ? "authentication_required" : status === 403 ? "http_forbidden"
+        : status === 429 || (status !== null && status >= 500) ? "http_transient"
+          : status === 202 ? "fulfillment_pending" : "unknown",
+    }),
+    isError: true as const,
+  };
+}
+
+async function paidResult(product: PaidProduct, body: Json) {
+  let fetchPaid: typeof fetch;
+  let origin: string;
+  let active = true;
+  try {
+    // Configuration failures happen before any external request or signature.
+    fetchPaid = paidFetch(product, () => active);
+    origin = baseUrl();
+  } catch {
+    return errorResult("payment_not_attempted", "No payment was attempted. Check the local explicit buyer approval, signing-key configuration, and DELTA base URL.");
+  }
+  let status: number | null = null;
+  try {
+    const response = await responseWithinDeadline(fetchPaid, `${origin}/v1/${product}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-delta-channel": "mcp" },
+      body: JSON.stringify(body),
+    }, 120_000, (response) => { status = response.status; });
+    const delivery = await jsonResponse(response, `DELTA ${product}`);
+    if (status !== 200 || !completedDelivery(delivery, product, origin)) throw new Error("Delivery not confirmed");
+    return result(delivery);
+  } catch {
+    // A transport error, partial response, or pending delivery cannot establish
+    // whether x402 already authorized/settled. Never call paidFetch again here.
+    return errorResult("payment_outcome_unconfirmed", "Delivery and payment outcome are unconfirmed; do not approve another payment. Reconcile the original attempt before recovery.", status);
+  } finally { active = false; }
+}
+
+async function readResult(path: string, operation: string) {
+  let status: number | null = null;
+  try {
+    const response = await responseWithinDeadline(fetch, `${baseUrl()}${path}`, {
+      headers: { "x-delta-channel": "mcp" },
+    }, 20_000, (response) => { status = response.status; });
+    return result(await jsonResponse(response, operation));
+  } catch {
+    // Transport errors and provider response bodies can contain secrets. Return
+    // only controlled diagnostics; this read never signs or retries a payment.
+    return errorResult("read_failed", `${operation} could not be verified. No payment was attempted by this read.`, status);
+  }
+}
+
+function paidFetch(product: PaidProduct, canSign: () => boolean): typeof fetch {
   // Missing approval is reported explicitly; no hidden legacy fallback or automatic budget increase.
   const maxUsd = approvedPaymentUsd(product, process.env.DELTA_MAX_USD_PER_CALL);
   const privateKey = process.env.EVM_PRIVATE_KEY;
@@ -81,8 +185,17 @@ function paidFetch(product: PaidProduct): typeof fetch {
   const client = new x402Client();
   client.setSpendControls({ maxAmountPerPayment: `$${maxUsd.toFixed(2)}` });
   client.registerPolicy(deltaPaymentPolicy(product));
+  const account = privateKeyToAccount(privateKey as `0x${string}`);
+  let signatureStarted = false;
   registerExactEvmScheme(client, {
-    signer: privateKeyToAccount(privateKey as `0x${string}`),
+    signer: {
+      ...account,
+      signTypedData: async (parameters) => {
+        if (signatureStarted || !canSign()) throw new Error("original_payment_requires_reconciliation");
+        signatureStarted = true;
+        return account.signTypedData(parameters as never);
+      },
+    },
     networks: [NETWORK],
   });
   return wrapFetchWithPayment(fetch, client);
@@ -103,8 +216,7 @@ export function createServer(): McpServer {
     description: "Get the current owner-authorized price before any payment is signed.",
     inputSchema: { product: z.enum(["capture", "preflight"]).default("capture") },
   }, async ({ product }) => {
-    const response = await fetch(`${baseUrl()}/v1/quote?product=${product}`, { headers: { "x-delta-channel": "mcp" } });
-    return result(await jsonResponse(response, "DELTA quote"));
+    return readResult(`/v1/quote?product=${product}`, "DELTA quote");
   });
 
   server.registerTool("delta_capture", {
@@ -112,12 +224,7 @@ export function createServer(): McpServer {
     description: "Capture costs 1 USDC. Requires the buyer's explicit DELTA_MAX_USD_PER_CALL approval of at least 1.00; pays exactly 1 USDC via x402. Preserves a public webpage and returns proof metadata and hashes; raw artifacts remain private.",
     inputSchema: { url: z.string().url() },
   }, async ({ url }) => {
-    const response = await paidFetch("capture")(`${baseUrl()}/v1/capture`, {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-delta-channel": "mcp" },
-      body: JSON.stringify({ url }),
-    });
-    return result(await jsonResponse(response, "DELTA capture"));
+    return paidResult("capture", { url });
   });
 
   server.registerTool("delta_preflight", {
@@ -133,12 +240,7 @@ export function createServer(): McpServer {
       freshness_seconds: z.number().int().min(0).max(2_592_000).optional(),
     },
   }, async (input) => {
-    const response = await paidFetch("preflight")(`${baseUrl()}/v1/preflight`, {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-delta-channel": "mcp" },
-      body: JSON.stringify(buildPreflightBody(input)),
-    });
-    return result(await jsonResponse(response, "DELTA preflight"));
+    return paidResult("preflight", buildPreflightBody(input));
   });
 
   server.registerTool("delta_verify_proof", {
@@ -146,8 +248,7 @@ export function createServer(): McpServer {
     description: "Read public proof metadata, hashes, and manifest integrity status without exposing private raw artifacts.",
     inputSchema: { proof_id: z.string().uuid() },
   }, async ({ proof_id }) => {
-    const response = await fetch(`${baseUrl()}/v1/proofs/${encodeURIComponent(proof_id)}`, { headers: { "x-delta-channel": "mcp" } });
-    return result(await jsonResponse(response, "DELTA proof verification"));
+    return readResult(`/v1/proofs/${encodeURIComponent(proof_id)}`, "DELTA proof verification");
   });
 
   return server;

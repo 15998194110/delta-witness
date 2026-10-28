@@ -1,0 +1,54 @@
+name: DELTA offline reliability regressions
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: "22" }
+      - name: Install pinned dependencies without lifecycle hooks
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Preserve pricing and test Core plus read-only audit scripts
+        env:
+          NODE_OPTIONS: --require=${{ github.workspace }}/tests/offline-guard.cjs
+        run: |
+          node scripts/check-owner-pricing.mjs
+          node scripts/check-local-release.mjs
+          npm run check
+          npm test
+      - name: Gateway regression tests and types
+        env:
+          NODE_OPTIONS: --require=${{ github.workspace }}/tests/offline-guard.cjs
+        run: |
+          node node_modules/typescript/bin/tsc --noEmit -p channels/partner-gateway/tsconfig.json
+          node node_modules/vitest/vitest.mjs run --root channels/partner-gateway
+      - name: JS paid-delivery regressions
+        working-directory: packages/js-client
+        env:
+          NODE_OPTIONS: --require=${{ github.workspace }}/tests/offline-guard.cjs
+        run: npm run check && npm test
+      - name: Install pinned MCP dependencies without lifecycle hooks
+        working-directory: packages/mcp-server
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: MCP delivery and payment-policy regressions
+        working-directory: packages/mcp-server
+        env:
+          NODE_OPTIONS: --require=${{ github.workspace }}/tests/offline-guard.cjs
+        run: npm run check && npm test && npm run build
+      - name: Install pinned browser dependencies without lifecycle hooks
+        working-directory: channels/base-app
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Browser recovery and multiple-tab regressions
+        working-directory: channels/base-app
+        env:
+          NODE_OPTIONS: --require=${{ github.workspace }}/tests/offline-guard.cjs
+        run: npm run check && npm test && npm run build

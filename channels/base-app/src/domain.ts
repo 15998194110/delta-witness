@@ -7,6 +7,58 @@ export const CANONICAL_USDC = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
 
 export type Product = "preflight" | "capture";
 
+// Only locally authored messages may be shown verbatim. Provider errors and
+// response bodies can include tokens, signed payloads, or private request data.
+export class BuyerMessageError extends Error {}
+
+export async function fetchWithDeadline(input: RequestInfo | URL, init: RequestInit | undefined, timeoutMs: number): Promise<Response> {
+  const original = new Request(input, init);
+  const signal = AbortSignal.any([original.signal, AbortSignal.timeout(timeoutMs)]);
+  const request = new Request(original, { signal });
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  let removeAbort = () => {};
+  const aborted = new Promise<never>((_resolve, reject) => {
+    const onAbort = () => {
+      reject(new DOMException("Request deadline exceeded", "TimeoutError"));
+      void reader?.cancel().catch(() => {});
+    };
+    removeAbort = () => signal.removeEventListener("abort", onAbort);
+    if (signal.aborted) onAbort();
+    else signal.addEventListener("abort", onAbort, { once: true });
+  });
+  try {
+    // Buffer only the API response so the deadline also covers a stalled body.
+    // Race the network only, never the wallet prompt. A provider ignoring abort
+    // cannot later turn a timed-out purchase into a successful UI result.
+    return await Promise.race([aborted, (async () => {
+      if (signal.aborted) throw new DOMException("Request deadline exceeded", "TimeoutError");
+      const response = await fetch(request);
+      if (signal.aborted) { void response.body?.cancel().catch(() => {}); throw new DOMException("Request deadline exceeded", "TimeoutError"); }
+      reader = response.body?.getReader();
+      if (!reader) return response;
+      const chunks: Uint8Array[] = [];
+      let size = 0;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (signal.aborted) throw new DOMException("Request deadline exceeded", "TimeoutError");
+          if (done) break;
+          size += value.byteLength;
+          if (size > 1_048_576) { void reader.cancel().catch(() => {}); throw new Error("response_too_large"); }
+          chunks.push(value);
+        }
+      } finally { reader.releaseLock(); }
+      const body = new Uint8Array(size);
+      let offset = 0;
+      for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.byteLength; }
+      if (signal.aborted) throw new DOMException("Request deadline exceeded", "TimeoutError");
+      return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
+    })()]);
+  } finally {
+    removeAbort();
+  }
+}
+
 export function isHttpSourceUrl(value: string): boolean {
   try {
     const url = new URL(value);
@@ -74,7 +126,7 @@ export function assertPaymentStorageAvailable(storage: PaymentStorage): void {
     if (storage.getItem(key) !== null) throw new Error("storage_probe_cleanup_failed");
   } catch {
     try { storage.removeItem(key); } catch { /* No payment data is stored in the probe. */ }
-    throw new Error("Browser recovery storage is unavailable. No wallet authorization or signed request was started.");
+    throw new BuyerMessageError("Browser recovery storage is unavailable. No wallet authorization or signed request was started.");
   }
 }
 
@@ -87,7 +139,7 @@ export function readPaymentAttempt(storage: PaymentStorage): PaymentAttempt | nu
       typeof value.attemptId !== "string" || !/^sha256:[0-9a-f]{64}$/.test(value.attemptId) ||
       !["signed_request", "processing", "retryable_failure", "uncertain"].includes(String(value.phase)) ||
       Object.keys(value).some((key) => !["version", "product", "startedAt", "attemptId", "phase"].includes(key))) {
-    throw new Error("Saved payment recovery marker is invalid; do not start a new payment");
+    throw new BuyerMessageError("Saved payment recovery marker is invalid; do not start a new payment");
   }
   return value as PaymentAttempt;
 }
@@ -232,14 +284,17 @@ export function requestBody(product: Product, url: string, mustContain: string):
 }
 
 export function validateQuote(quote: Quote, product: Product): void {
-  if (quote.network !== BASE_NETWORK || quote.asset !== "USDC" || quote.pay_to.toLowerCase() !== TREASURY) {
-    throw new Error("DELTA returned an unexpected payment destination");
+  if (!isRecord(quote) || typeof quote.price !== "string" || typeof quote.pay_to !== "string") {
+    throw new BuyerMessageError("DELTA returned an invalid quote. No payment was started.");
   }
-  if (quote.payment_flow !== "upfront") throw new Error("DELTA payment must settle before capture");
+  if (quote.network !== BASE_NETWORK || quote.asset !== "USDC" || quote.pay_to.toLowerCase() !== TREASURY) {
+    throw new BuyerMessageError("DELTA returned an unexpected payment destination");
+  }
+  if (quote.payment_flow !== "upfront") throw new BuyerMessageError("DELTA payment must settle before capture");
   const price = Number(quote.price.replace("$", ""));
   const expected = maxPaymentUsd(product);
   if (!Number.isFinite(price) || price !== expected) {
-    throw new Error(`${product === "preflight" ? "Guard" : "Capture"} quote must match the current ${expected.toFixed(2)} USDC owner price`);
+    throw new BuyerMessageError(`${product === "preflight" ? "Guard" : "Capture"} quote must match the current ${expected.toFixed(2)} USDC owner price`);
   }
 }
 

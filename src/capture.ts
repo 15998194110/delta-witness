@@ -1,6 +1,8 @@
 import type { RuntimeEnv } from "./env";
 import { sha256, stableJson, uuidFromDigest } from "./crypto";
 import { estimateVariableCost } from "./pricing";
+import { withinDeadline } from "./deadline";
+import { isPng } from "./png";
 import {
   assertPublicDns,
   BROWSER_REJECT_PATTERNS,
@@ -89,7 +91,7 @@ export type CaptureInput = {
   partner?: string;
 };
 
-function base64ToBytes(value: string): Uint8Array {
+async function base64ToBytes(value: string): Promise<Uint8Array> {
   if (!/^[A-Za-z0-9+/]*={0,2}$/.test(value) || value.length % 4 !== 0) {
     throw new Error("invalid_screenshot_base64");
   }
@@ -100,6 +102,7 @@ function base64ToBytes(value: string): Uint8Array {
   if (binary.length > MAX_SCREENSHOT_BYTES) throw new Error("capture_too_large");
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  if (!await isPng(bytes)) throw new Error("invalid_screenshot_png");
   return bytes;
 }
 
@@ -112,7 +115,14 @@ function nonNegativeInteger(value: string | null): number {
 function isSnapshot(value: unknown): value is BrowserRunSnapshotSuccessResponse {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<BrowserRunSnapshotSuccessResponse>;
-  return candidate.success === true && Boolean(candidate.result) && Boolean(candidate.meta);
+  if (candidate.success !== true || !candidate.result || typeof candidate.result !== "object" || Array.isArray(candidate.result) || !candidate.meta || typeof candidate.meta !== "object" || Array.isArray(candidate.meta)) return false;
+  const { content, markdown, screenshot } = candidate.result;
+  const { status, title, finalUrl, redirectChain } = candidate.meta;
+  return typeof content === "string" && typeof markdown === "string" && typeof screenshot === "string" &&
+    (status === undefined || status === null || (Number.isInteger(status) && status >= 100 && status <= 599)) &&
+    (title === undefined || title === null || typeof title === "string") &&
+    (finalUrl === undefined || finalUrl === null || typeof finalUrl === "string") &&
+    (redirectChain === undefined || (Array.isArray(redirectChain) && redirectChain.every((hop) => hop && typeof hop === "object" && typeof hop.url === "string")));
 }
 
 async function validateObservedNavigation(snapshot: BrowserRunSnapshotSuccessResponse): Promise<void> {
@@ -166,7 +176,8 @@ export async function verifyManifestIntegrity(manifest: unknown): Promise<boolea
 export async function capturePage(input: CaptureInput): Promise<CaptureArtifacts> {
   const { env, target, fulfillmentFingerprint } = input;
   const captureStartedAt = new Date().toISOString();
-  const response = await env.BROWSER.quickAction("snapshot", {
+  let expired = false;
+  const response = await withinDeadline(env.BROWSER.quickAction("snapshot", {
     url: target.finalUrl,
     formats: ["content", "screenshot", "markdown"],
     screenshotOptions: { fullPage: true, type: "png", optimizeForSpeed: true },
@@ -176,10 +187,15 @@ export async function capturePage(input: CaptureInput): Promise<CaptureArtifacts
     cacheTTL: 0,
     rejectRequestPattern: BROWSER_REJECT_PATTERNS,
     rejectResourceTypes: ["media", "websocket"],
-  });
+  }).then(response => {
+    // The binding has no caller cancellation handle. Do not retain a body that
+    // arrives after our deadline, and never start another observation here.
+    if (expired) void response.body?.cancel().catch(() => {});
+    return response;
+  }), MAX_BROWSER_MS, "capture_response_timeout", () => { expired = true; });
   const browserMs = nonNegativeInteger(response.headers.get("x-browser-ms-used"));
   if (browserMs > MAX_BROWSER_MS) throw new Error("browser_cost_limit_exceeded");
-  if (!response.ok) throw new Error(`capture_upstream_${response.status}`);
+  if (response.status !== 200) throw new Error(`capture_upstream_${response.status}`);
 
   const raw = await readJsonResponseBounded(response, MAX_SNAPSHOT_RESPONSE_BYTES);
   if (!isSnapshot(raw)) throw new Error("capture_incomplete");
@@ -189,7 +205,7 @@ export async function capturePage(input: CaptureInput): Promise<CaptureArtifacts
   const markdown = raw.result.markdown ?? "";
   const screenshotBase64 = raw.result.screenshot ?? "";
   if (!html || !screenshotBase64) throw new Error("capture_incomplete");
-  const screenshot = base64ToBytes(screenshotBase64);
+  const screenshot = await base64ToBytes(screenshotBase64);
   const htmlBytes = new TextEncoder().encode(html).byteLength;
   const markdownBytes = new TextEncoder().encode(markdown).byteLength;
   const totalBytes = htmlBytes + markdownBytes + screenshot.byteLength;
@@ -272,12 +288,59 @@ export async function capturePage(input: CaptureInput): Promise<CaptureArtifacts
 export async function storeCapture(env: RuntimeEnv, artifacts: CaptureArtifacts): Promise<void> {
   const { manifest, html, markdown, screenshot } = artifacts;
   const id = manifest.proof_id;
+  const putImmutable = async (key: string, value: string | Uint8Array, contentType: string) => {
+    const expected = typeof value === "string" ? new TextEncoder().encode(value) : value;
+    const written = await env.PROOFS.put(key, value, {
+      onlyIf: { etagDoesNotMatch: "*" }, httpMetadata: { contentType },
+    });
+    if (written) return;
+    // An ambiguous write may already have succeeded. Accept identical bytes,
+    // but never replace an earlier observation to make a retry complete.
+    const existing = await env.PROOFS.get(key);
+    if (!existing || existing.size !== expected.byteLength) throw new Error("artifact_identity_conflict");
+    const actual = new Uint8Array(await existing.arrayBuffer());
+    if (actual.byteLength !== expected.byteLength || await sha256(actual) !== await sha256(expected)) throw new Error("artifact_identity_conflict");
+  };
   await Promise.all([
-    env.PROOFS.put(`${id}/page.html`, html, { httpMetadata: { contentType: "text/html; charset=utf-8" } }),
-    env.PROOFS.put(`${id}/page.md`, markdown, { httpMetadata: { contentType: "text/markdown; charset=utf-8" } }),
-    env.PROOFS.put(`${id}/screenshot.png`, screenshot, { httpMetadata: { contentType: "image/png" } }),
-    env.PROOFS.put(`${id}/manifest.json`, JSON.stringify(manifest, null, 2), {
-      httpMetadata: { contentType: "application/json; charset=utf-8" },
-    }),
+    putImmutable(`${id}/page.html`, html, "text/html; charset=utf-8"),
+    putImmutable(`${id}/page.md`, markdown, "text/markdown; charset=utf-8"),
+    putImmutable(`${id}/screenshot.png`, screenshot, "image/png"),
   ]);
+  // Publish the manifest only after every required artifact write succeeded.
+  await putImmutable(`${id}/manifest.json`, JSON.stringify(manifest, null, 2), "application/json; charset=utf-8");
+}
+
+// Recovery reads already-published evidence only. It never captures, settles,
+// rewrites artifacts, or infers success from a manifest without its bytes.
+export async function readStoredCapture(input: {
+  env: RuntimeEnv;
+  fulfillmentFingerprint: string;
+  product: ProofProduct;
+  requestedUrl: string;
+  grossPriceUsd: number;
+  paymentProtocol: ProofManifest["payment"]["protocol"];
+  partner?: string;
+}): Promise<CaptureArtifacts | null> {
+  const id = uuidFromDigest(await sha256(`${input.fulfillmentFingerprint}\n${input.product}`));
+  const object = await input.env.PROOFS.get(`${id}/manifest.json`);
+  if (!object) return null;
+  const manifest = await object.json<ProofManifest>();
+  if (await verifyManifestIntegrity(manifest) !== true || manifest.proof_id !== id || manifest.product !== input.product ||
+    manifest.requested_url !== input.requestedUrl || manifest.requested_url_sha256 !== await sha256(input.requestedUrl) ||
+    manifest.payment?.network !== input.env.NETWORK || manifest.payment.asset !== "USDC" ||
+    manifest.payment.pay_to?.toLowerCase() !== input.env.PAY_TO.toLowerCase() ||
+    manifest.payment.protocol !== input.paymentProtocol || manifest.payment.partner !== (input.partner ?? null) ||
+    manifest.payment.listed_price_usd !== input.grossPriceUsd || manifest.execution?.gross_price_usd !== input.grossPriceUsd) return null;
+  const keys = [`${id}/page.html`, `${id}/page.md`, `${id}/screenshot.png`];
+  if (manifest.storage?.html !== keys[0] || manifest.storage.markdown !== keys[1] || manifest.storage.screenshot !== keys[2] || manifest.storage.manifest !== `${id}/manifest.json`) return null;
+  const objects = await Promise.all(keys.map((key) => input.env.PROOFS.get(key)));
+  const limits = [MAX_HTML_BYTES, MAX_MARKDOWN_BYTES, MAX_SCREENSHOT_BYTES];
+  if (objects.some((artifact, i) => !artifact || artifact.size > limits[i])) return null;
+  const bytes = await Promise.all(objects.map(async (artifact) => new Uint8Array(await artifact!.arrayBuffer())));
+  const sizes = [manifest.artifact_sizes?.html_bytes, manifest.artifact_sizes?.markdown_bytes, manifest.artifact_sizes?.screenshot_png_bytes];
+  if (bytes.some((value, i) => value.byteLength !== sizes[i] || value.byteLength > limits[i]) || bytes[0].length === 0 || bytes[2].length === 0 ||
+    bytes.reduce((total, value) => total + value.byteLength, 0) !== manifest.artifact_sizes.total_bytes || manifest.artifact_sizes.total_bytes > MAX_TOTAL_ARTIFACT_BYTES) return null;
+  const hashes = await Promise.all(bytes.map((value) => sha256(value)));
+  if (hashes[0] !== manifest.hashes.html || hashes[1] !== manifest.hashes.markdown || hashes[2] !== manifest.hashes.screenshot_png || !await isPng(bytes[2])) return null;
+  return { manifest, html: new TextDecoder().decode(bytes[0]), markdown: new TextDecoder().decode(bytes[1]), screenshot: bytes[2] };
 }

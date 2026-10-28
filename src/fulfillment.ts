@@ -3,6 +3,7 @@ import type { ProofManifest } from "./capture";
 import { sha256, stableJson } from "./crypto";
 import { validateTarget } from "./security";
 import { decodePaymentSignatureHeader } from "@x402/core/http";
+import { commitClaim, createClaim, type StoredClaim } from "./claims";
 
 export type CaptureRequest = {
   url: string;
@@ -39,7 +40,7 @@ export type DeliveryResponse = {
 
 export type FulfillmentRecord = {
   schema: "delta-fulfillment/v1";
-  state: "processing" | "retryable_failure" | "complete";
+  state: "processing" | "retryable_failure" | "blocked_failure" | "complete";
   route: string;
   request_hash: string;
   requested_url: string;
@@ -55,7 +56,7 @@ export type FulfillmentRecord = {
   payment_response_header?: string;
 };
 
-export type StoredFulfillment = { record: FulfillmentRecord; etag: string };
+export type StoredFulfillment = StoredClaim<FulfillmentRecord>;
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const HASH_PATTERN = /^sha256:[0-9a-f]{64}$/i;
@@ -142,18 +143,14 @@ export async function reserveInitialFulfillment(
   key: string,
   record: FulfillmentRecord,
 ): Promise<boolean> {
-  const created = await env.PROOFS.put(key, JSON.stringify(record), {
-    onlyIf: { etagDoesNotMatch: "*" },
-    httpMetadata: { contentType: "application/json; charset=utf-8" },
-  });
-  return created !== null;
+  return (await createClaim(env, key, record)) !== null;
 }
 
 export async function claimRetry(
   env: RuntimeEnv,
   key: string,
   stored: StoredFulfillment,
-): Promise<FulfillmentRecord | null> {
+): Promise<StoredFulfillment | null> {
   const now = new Date().toISOString();
   const next: FulfillmentRecord = {
     ...stored.record,
@@ -162,21 +159,16 @@ export async function claimRetry(
     updated_at: now,
     error: undefined,
   };
-  const claimed = await env.PROOFS.put(key, JSON.stringify(next), {
-    onlyIf: { etagMatches: stored.etag },
-    httpMetadata: { contentType: "application/json; charset=utf-8" },
-  });
-  return claimed ? next : null;
+  return commitClaim(env, key, stored, next);
 }
 
 export async function writeFulfillment(
   env: RuntimeEnv,
   key: string,
+  claim: StoredFulfillment,
   record: FulfillmentRecord,
-): Promise<void> {
-  await env.PROOFS.put(key, JSON.stringify(record), {
-    httpMetadata: { contentType: "application/json; charset=utf-8" },
-  });
+): Promise<StoredFulfillment | null> {
+  return commitClaim(env, key, claim, record);
 }
 
 export function initialFulfillment(input: {

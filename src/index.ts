@@ -1,6 +1,6 @@
 import { Hono, type Context, type Next } from "hono";
 import { paymentMiddleware } from "@x402/hono";
-import { HTTPFacilitatorClient, x402ResourceServer } from "@x402/core/server";
+import { x402ResourceServer } from "@x402/core/server";
 import { registerExactEvmScheme } from "@x402/evm/exact/server";
 import { bazaarResourceServerExtension, declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import {
@@ -32,15 +32,15 @@ import {
   parseCaptureRequest,
   parsePreflightRequest,
   readFulfillment,
-  reserveInitialFulfillment,
   settledRetryPrice,
   writeFulfillment,
   type DeliveryResponse,
   type FulfillmentRecord,
   type PaidRequest,
   type PreflightRequest,
+  type StoredFulfillment,
 } from "./fulfillment";
-import { capturePage, storeCapture, verifyManifestIntegrity, type ProofManifest } from "./capture";
+import { capturePage, readStoredCapture, storeCapture, verifyManifestIntegrity, type ProofManifest } from "./capture";
 import {
   quoteProductWithOverride,
   raisePriceAfterNegativeMargin,
@@ -66,6 +66,9 @@ import { getWatch, parseWatchRegistration, registerWatch, runDueWatches } from "
 import { guardedPilotEconomics, guardedPilotHandler, guardedPilotPrevalidate, guardedPilotProtect } from "./guarded-pilot";
 import { mirrorX402ChallengeBody } from "./x402-compat";
 import { agentJsonManifest } from "./agent-manifest";
+import { guardedFacilitator, readSettlement, settlementBlockedBody, validatePaymentBinding } from "./settlement";
+import { captureFailure, safeErrorCode, MAX_FULFILLMENT_ATTEMPTS } from "./failures";
+import { commitClaim, createClaim, lostClaimBody } from "./claims";
 
 type PaidProduct = "capture" | "preflight";
 type PriorManifest = Pick<ProofManifest, "proof_id" | "requested_url" | "capture_completed_at" | "hashes">;
@@ -78,7 +81,7 @@ type AppVariables = {
   channel: string;
   paymentFingerprint?: string;
   fulfillmentKey?: string;
-  claimedRecord?: FulfillmentRecord;
+  claimedRecord?: StoredFulfillment;
   replayAuthorized: boolean;
   priorManifest?: PriorManifest;
 };
@@ -95,7 +98,7 @@ function origin(env: RuntimeEnv): string {
 }
 
 function message(error: unknown): string {
-  return error instanceof Error ? error.message : "internal_error";
+  return safeErrorCode(error);
 }
 
 function escapeHtml(value: unknown): string {
@@ -149,6 +152,21 @@ function isProcessingFresh(record: FulfillmentRecord): boolean {
   return record.state === "processing" && Date.now() - Date.parse(record.updated_at) < PROCESSING_LEASE_MS;
 }
 
+async function recoverDelivery(env: RuntimeEnv, key: string, stored: StoredFulfillment, body: PaidRequest, product: PaidProduct, fingerprint: string): Promise<DeliveryResponse | null> {
+  const { record } = stored;
+  const response = record.response;
+  if (record.state !== "processing" || !response || response.ok !== true || response.product !== product ||
+    record.fulfillment_fingerprint !== fingerprint || (record.payment_fingerprint !== undefined && record.payment_fingerprint !== fingerprint) ||
+    typeof record.paid_price_usd !== "number" || !Number.isFinite(record.paid_price_usd) || record.paid_price_usd <= 0) return null;
+  const artifacts = await readStoredCapture({ env, fulfillmentFingerprint: record.fulfillment_fingerprint, product, requestedUrl: body.url,
+    grossPriceUsd: record.paid_price_usd, paymentProtocol: record.partner ? "partner-prepaid" : "x402-v2-upfront", partner: record.partner });
+  if (!artifacts || response.proof_id !== artifacts.manifest.proof_id || response.bundle_root !== artifacts.manifest.hashes.bundle_root || response.observed_at !== artifacts.manifest.capture_completed_at) return null;
+  // response is the server's original evaluated draft, persisted before artifact
+  // publication. In particular, never re-evaluate Preflight against a new prior.
+  const completed = await commitClaim(env, key, stored, { ...record, state: "complete", updated_at: new Date().toISOString() });
+  return completed ? response : null;
+}
+
 async function loadPriorManifest(env: RuntimeEnv, request: PreflightRequest): Promise<PriorManifest | undefined> {
   if (!request.prior_proof_id) return undefined;
   const object = await env.PROOFS.get(`${request.prior_proof_id}/manifest.json`);
@@ -179,18 +197,22 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
       product === "capture" ? MAX_CAPTURE_BODY_BYTES : MAX_PREFLIGHT_BODY_BYTES,
     );
     const body = product === "capture" ? parseCaptureRequest(value) : parsePreflightRequest(value);
-    const [redirectResolution, quote, requestHash, priorManifest] = await Promise.all([
-      resolvePublicRedirects(body.url),
+    const [quote, requestHash] = await Promise.all([
       quoteProductWithOverride(c.env, product),
       paidRequestHash(`/v1/${product}`, body),
-      product === "preflight" ? loadPriorManifest(c.env, body as PreflightRequest) : Promise.resolve(undefined),
     ]);
+    const prepareCapture = async () => {
+      const [target, prior] = await Promise.all([
+        resolvePublicRedirects(body.url),
+        product === "preflight" ? loadPriorManifest(c.env, body as PreflightRequest) : Promise.resolve(undefined),
+      ]);
+      c.set("redirectResolution", target);
+      c.set("priorManifest", prior);
+    };
     c.set("paidBody", body);
-    c.set("redirectResolution", redirectResolution);
     c.set("quote", quote);
     c.set("requestHash", requestHash);
     c.set("channel", referrerChannel(c.req.raw));
-    c.set("priorManifest", priorManifest);
     c.set("replayAuthorized", false);
     await recordEvent(c.env, {
       event: "qualified_request",
@@ -205,7 +227,21 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
     c.set("paymentFingerprint", paymentFingerprint);
     c.set("fulfillmentKey", key);
     const stored = await readFulfillment(c.env, key);
-    if (!stored) return next();
+    if (!stored) {
+      const settlement = await readSettlement(c.env, payment);
+      validatePaymentBinding(c.env, payment, `${origin(c.env)}/v1/${product}`, settlement?.amount ?? String(Math.round(quote.grossPriceUsd * 1_000_000)));
+      if (settlement) {
+        if (settlement.request_hash !== requestHash || settlement.payment_fingerprint !== paymentFingerprint) {
+          return noStore(c.json(settlementBlockedBody("settlement_identity_conflict"), 409));
+        }
+        if (settlement.state !== "settlement_confirmed") return noStore(c.json(settlementBlockedBody(settlement.state), 503));
+        const paidPrice = Number(settlement.amount) / 1_000_000;
+        c.set("quote", { ...quote, grossPriceUsd: paidPrice, estimatedContributionMarginUsd: paidPrice - quote.expectedVariableCostUsd });
+        c.set("replayAuthorized", true);
+      }
+      await prepareCapture();
+      return next();
+    }
     if (!fulfillmentMatches(stored.record, `/v1/${product}`, requestHash)) {
       return c.json({ error: "payment_already_used_for_different_request" }, 409);
     }
@@ -213,12 +249,19 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
       await recordEvent(c.env, { event: "repeat_call", route: `/v1/${product}`, channel: c.var.channel, success: true });
       return noStore(c.json({ ...stored.record.response, idempotent_replay: true }));
     }
+    const recovered = await recoverDelivery(c.env, key, stored, body, product, paymentFingerprint);
+    if (recovered) return noStore(c.json({ ...recovered, idempotent_replay: true }));
+    if (stored.record.state === "blocked_failure" || stored.record.attempts >= MAX_FULFILLMENT_ATTEMPTS) {
+      return noStore(c.json({ ok: false, state: "blocked_failure", error: "fulfillment_requires_review", retryable: false }, 503));
+    }
     if (isProcessingFresh(stored.record)) {
       c.header("retry-after", "5");
       return c.json({ ok: false, state: "processing", retryable: true }, 202);
     }
+    if (stored.record.state === "processing") return noStore(c.json({ ok: false, state: "fulfillment_unknown", retryable: false, requires_fulfillment_reconciliation: true }, 503));
     const paidPrice = settledRetryPrice(stored.record, payment);
     c.set("quote", { ...quote, grossPriceUsd: paidPrice, estimatedContributionMarginUsd: paidPrice - quote.expectedVariableCostUsd });
+    await prepareCapture();
     const claimed = await claimRetry(c.env, key, stored);
     if (!claimed) {
       c.header("retry-after", "5");
@@ -229,7 +272,7 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
     await recordEvent(c.env, { event: "repeat_call", route: `/v1/${product}`, channel: c.var.channel, success: true });
     return next();
   } catch (error) {
-    const reason = message(error);
+    const reason = safeErrorCode(error);
     const status = reason === "request_too_large" || reason === "body_too_large" ? 413 : 400;
     return c.json({ error: reason }, status);
   }
@@ -265,8 +308,8 @@ async function protectWithX402(product: PaidProduct, c: AppContext, next: Next):
   // probes from seeing an internal error when they first test the endpoint.
   if (c.req.method !== "POST") return next();
   if (c.var.replayAuthorized) return next();
-  const facilitator = new HTTPFacilitatorClient({ url: c.env.FACILITATOR_URL });
-  const server = new x402ResourceServer(facilitator);
+  const facilitator = guardedFacilitator(c.env, c.var.requestHash, c.var.paymentFingerprint ?? "");
+  const server = new x402ResourceServer(facilitator.client);
   registerExactEvmScheme(server);
   server.registerExtension(bazaarResourceServerExtension);
   server.registerExtension(paymentIdentifierResourceServerExtension);
@@ -311,6 +354,7 @@ async function protectWithX402(product: PaidProduct, c: AppContext, next: Next):
     server,
   );
   const middlewareResponse = await middleware(c, next);
+  if (facilitator.blocked()) return noStore(c.json(settlementBlockedBody(facilitator.blocked()!), 503));
   if (middlewareResponse instanceof Response) c.res = middlewareResponse;
   if (c.res.status === 402) {
     c.res = mirrorX402ChallengeBody(c.res, {
@@ -342,14 +386,14 @@ async function executeFulfillment(input: {
   key: string;
   route: string;
   paymentProtocol: "x402-v2-upfront" | "partner-prepaid";
-  existingClaim?: FulfillmentRecord;
+  existingClaim?: StoredFulfillment;
   partner?: string;
   priorManifest?: PriorManifest;
 }): Promise<{ status: number; body: DeliveryResponse | Record<string, unknown> }> {
   const { env, product, route, requestHash, fingerprint, key } = input;
-  let record = input.existingClaim;
-  if (!record) {
-    record = initialFulfillment({
+  let claim = input.existingClaim;
+  if (!claim) {
+    const initial = initialFulfillment({
       route,
       requestHash,
       requestedUrl: input.body.url,
@@ -358,7 +402,8 @@ async function executeFulfillment(input: {
       paidPriceUsd: input.quote.grossPriceUsd,
       partner: input.partner,
     });
-    if (!(await reserveInitialFulfillment(env, key, record))) {
+    const created = await createClaim(env, key, initial);
+    if (!created) {
       const existing = await readFulfillment(env, key);
       if (!existing || !fulfillmentMatches(existing.record, route, requestHash)) {
         return { status: 409, body: { error: "fulfillment_key_conflict" } };
@@ -368,7 +413,9 @@ async function executeFulfillment(input: {
       }
       return { status: 202, body: { ok: false, state: "processing", retryable: true } };
     }
+    claim = created;
   }
+  const record = claim.record;
 
   if (!input.existingClaim) await recordEvent(env, {
     event: input.paymentProtocol === "x402-v2-upfront" ? "payment_verified" : "partner_request",
@@ -380,6 +427,7 @@ async function executeFulfillment(input: {
   });
   await recordEvent(env, { event: "capture_started", route, channel: input.channel, partner: input.partner, success: true });
 
+  let persistenceStarted = false;
   try {
     const artifacts = await capturePage({
       env,
@@ -391,7 +439,6 @@ async function executeFulfillment(input: {
       channel: input.channel,
       partner: input.partner,
     });
-    await storeCapture(env, artifacts);
     const base = `${origin(env)}`;
     const response: DeliveryResponse = {
       ok: true,
@@ -414,6 +461,11 @@ async function executeFulfillment(input: {
       response.reason = evaluation.reason;
       response.diff = evaluation.diff;
     }
+    persistenceStarted = true;
+    const draft = await writeFulfillment(env, key, claim, { ...record, response });
+    if (!draft) return { status: 503, body: lostClaimBody() };
+    claim = draft;
+    await storeCapture(env, artifacts);
     const complete: FulfillmentRecord = {
       ...record,
       state: "complete",
@@ -421,7 +473,8 @@ async function executeFulfillment(input: {
       updated_at: new Date().toISOString(),
       error: undefined,
     };
-    await writeFulfillment(env, key, complete);
+    const completed = await writeFulfillment(env, key, claim, complete);
+    if (!completed) return { status: 503, body: lostClaimBody() };
     const economics = artifacts.manifest.execution;
     await recordEvent(env, {
       event: "capture_completed",
@@ -440,13 +493,17 @@ async function executeFulfillment(input: {
     }
     return { status: 200, body: response };
   } catch (error) {
-    const reason = message(error).slice(0, 160);
-    await writeFulfillment(env, key, {
+    // A rejected R2 promise does not prove that its write failed. Never replace
+    // a possibly committed delivery or rerun captures after uncertain storage.
+    if (persistenceStarted) return { status: 503, body: { ok: false, state: "fulfillment_unknown", retryable: false, requires_fulfillment_reconciliation: true } };
+    const { reason, retryable } = captureFailure(error);
+    const failed = await writeFulfillment(env, key, claim, {
       ...record,
-      state: "retryable_failure",
+      state: retryable && record.attempts < MAX_FULFILLMENT_ATTEMPTS ? "retryable_failure" : "blocked_failure",
       error: reason,
       updated_at: new Date().toISOString(),
     });
+    if (!failed) return { status: 503, body: lostClaimBody() };
     await recordEvent(env, {
       event: "capture_failed",
       route,
@@ -456,7 +513,7 @@ async function executeFulfillment(input: {
       success: false,
       reason,
     });
-    return { status: 502, body: { error: "capture_failed", reason, retryable: true, payment_will_not_be_charged_again: true } };
+    return { status: 502, body: { error: "capture_failed", reason, retryable: retryable && record.attempts < MAX_FULFILLMENT_ATTEMPTS, payment_will_not_be_charged_again: true } };
   }
 }
 
@@ -479,7 +536,7 @@ async function paidHandler(product: PaidProduct, c: AppContext): Promise<Respons
     existingClaim: c.var.claimedRecord,
     priorManifest: c.var.priorManifest,
   });
-  c.status(result.status as 200 | 202 | 409 | 500 | 502);
+  c.status(result.status as 200 | 202 | 409 | 500 | 502 | 503);
   return noStore(c.json(result.body));
 }
 
@@ -603,24 +660,11 @@ app.post("/internal/partner/:product", async (c) => {
     const partner = sanitizeDimension(c.req.header("x-delta-partner"), "unknown");
     const idempotencyKey = c.req.header("idempotency-key") ?? "";
     if (!/^[A-Za-z0-9._:-]{8,128}$/.test(idempotencyKey)) return c.json({ error: "valid_idempotency_key_required" }, 400);
-    const [target, quote, requestHash, priorManifest] = await Promise.all([
-      resolvePublicRedirects(body.url),
-      quoteProductWithOverride(c.env, product),
-      paidRequestHash(`/partner/${product}`, body),
-      product === "preflight" ? loadPriorManifest(c.env, body as PreflightRequest) : Promise.resolve(undefined),
-    ]);
-    const gross = Number(c.req.header("x-delta-gross-usd"));
-    // Public Preflight repricing does not renegotiate existing prepaid channels.
-    const partnerFloor = product === "preflight"
-      ? Math.max(Number(c.env.PARTNER_PREFLIGHT_BASE_PRICE_USD || "1"), quote.minimumPriceUsd)
-      : quote.grossPriceUsd;
-    if (!Number.isFinite(gross) || gross < partnerFloor) {
-      return c.json({ error: "partner_price_below_floor", minimum_price_usd: partnerFloor }, 402);
-    }
+    const requestHash = await paidRequestHash(`/partner/${product}`, body);
     const fingerprint = await sha256(`partner\n${partner}\n${idempotencyKey}`);
     const key = fulfillmentRecordKey(fingerprint);
     const stored = await readFulfillment(c.env, key);
-    let claim: FulfillmentRecord | undefined;
+    let claim: StoredFulfillment | undefined;
     if (stored) {
       if (!fulfillmentMatches(stored.record, `/partner/${product}`, requestHash)) {
         return c.json({ error: "idempotency_key_reused_for_different_request" }, 409);
@@ -628,7 +672,28 @@ app.post("/internal/partner/:product", async (c) => {
       if (stored.record.state === "complete" && stored.record.response) {
         return noStore(c.json({ ...stored.record.response, idempotent_replay: true }));
       }
+      const recovered = await recoverDelivery(c.env, key, stored, body, product, fingerprint);
+      if (recovered) return noStore(c.json({ ...recovered, idempotent_replay: true }));
+      if (stored.record.state === "blocked_failure" || stored.record.attempts >= MAX_FULFILLMENT_ATTEMPTS) return noStore(c.json({ ok: false, state: "blocked_failure", error: "fulfillment_requires_review", retryable: false }, 503));
       if (isProcessingFresh(stored.record)) return c.json({ ok: false, state: "processing", retryable: true }, 202);
+      if (stored.record.state === "processing") return noStore(c.json({ ok: false, state: "fulfillment_unknown", retryable: false, requires_fulfillment_reconciliation: true }, 503));
+    }
+    const quote = await quoteProductWithOverride(c.env, product);
+    if (stored && (typeof stored.record.paid_price_usd !== "number" || !Number.isFinite(stored.record.paid_price_usd) || stored.record.paid_price_usd <= 0)) {
+      return noStore(c.json({ ok: false, state: "fulfillment_unknown", error: "historical_prepaid_amount_requires_reconciliation", retryable: false }, 503));
+    }
+    const gross = stored?.record.paid_price_usd ?? Number(c.req.header("x-delta-gross-usd"));
+    const partnerFloor = product === "preflight"
+      ? Math.max(Number(c.env.PARTNER_PREFLIGHT_BASE_PRICE_USD || "1"), quote.minimumPriceUsd)
+      : quote.grossPriceUsd;
+    if (!stored && (!Number.isFinite(gross) || gross < partnerFloor)) {
+      return c.json({ error: "partner_price_below_floor", minimum_price_usd: partnerFloor }, 402);
+    }
+    const [target, priorManifest] = await Promise.all([
+      resolvePublicRedirects(body.url),
+      product === "preflight" ? loadPriorManifest(c.env, body as PreflightRequest) : Promise.resolve(undefined),
+    ]);
+    if (stored) {
       claim = await claimRetry(c.env, key, stored) ?? undefined;
       if (!claim) return c.json({ ok: false, state: "processing", retryable: true }, 202);
     }
@@ -894,8 +959,7 @@ app.onError((error, c) => {
   console.error(JSON.stringify({
     event: "uncaught_request_error",
     path: c.req.path,
-    message: message(error),
-    stack: error instanceof Error ? error.stack : undefined,
+    reason: safeErrorCode(error),
   }));
   return c.json({ error: "internal_error" }, 500);
 });

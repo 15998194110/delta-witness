@@ -170,7 +170,7 @@ describe("payment hard gate", () => {
       status: null,
       retryable: true,
       error: "indexnow_transport_error",
-      detail: "connection reset",
+      detail: "dependency_failure",
     });
   });
 

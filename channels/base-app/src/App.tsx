@@ -4,8 +4,10 @@ import {
   API_ORIGIN,
   assertPaymentStorageAvailable,
   BASE_NETWORK,
+  BuyerMessageError,
   clearPaymentAttempt,
   compactProof,
+  fetchWithDeadline,
   isHttpSourceUrl,
   markSignedPaymentRequest,
   maxPaymentUsd,
@@ -45,10 +47,11 @@ function asJson<T>(text: string): T {
 }
 
 function friendlyError(error: unknown): string {
+  if (error instanceof BuyerMessageError) return error.message;
   const message = error instanceof Error ? error.message : String(error);
-  if (/rejected|denied|4001/i.test(message)) return "Wallet request was declined. If a payment request was already submitted, verify its settlement status before retrying.";
+  if ((error && typeof error === "object" && "code" in error && error.code === 4001) || /user (?:rejected|denied)|request rejected by (?:the )?user/i.test(message)) return "Wallet request was declined. No signed payment request was sent; you can reconnect when ready.";
   if (/insufficient/i.test(message)) return "The connected wallet needs enough Base USDC to pay the displayed quote.";
-  return message.replace(/^Error:\s*/i, "").slice(0, 240);
+  return "The request could not be completed before a signed payment request was sent. Check the connection and wallet before trying again.";
 }
 
 export default function App() {
@@ -110,11 +113,11 @@ export default function App() {
     setQuoteError("");
     setQuote(null);
     try {
-      const response = await fetch(`${API_ORIGIN}/v1/quote?product=${product}`, {
+      const response = await fetchWithDeadline(`${API_ORIGIN}/v1/quote?product=${product}`, {
         headers: { "x-delta-channel": "base-app" },
-      });
-      const body = asJson<Quote & { error?: string }>(await response.text());
-      if (!response.ok) throw new Error(body.error || `Quote failed with HTTP ${response.status}`);
+      }, 15_000);
+      if (!response.ok) throw new BuyerMessageError(`Quote request failed with HTTP ${response.status}. No payment was started.`);
+      const body = asJson<Quote>(await response.text());
       validateQuote(body, product);
       if (requestId === quoteRequest.current) setQuote(body);
     } catch (quoteFailure) {
@@ -140,6 +143,7 @@ export default function App() {
     if (runInFlight.current || recoveryRequired.current) return;
     runInFlight.current = true;
     let paymentAttempted = false;
+    let signatureStarted = false;
     let attempt: PaymentAttempt | null = null;
     setError("");
     setDelivery(null);
@@ -147,17 +151,17 @@ export default function App() {
       if (!navigator.locks) {
         setRecoveryBlocked(true);
         recoveryRequired.current = true;
-        throw new Error("This browser cannot safely coordinate payments across tabs. No new signed request will be sent.");
+        throw new BuyerMessageError("This browser cannot safely coordinate payments across tabs. No new signed request will be sent.");
       }
       await navigator.locks.request(PAYMENT_LOCK_NAME, { ifAvailable: true }, async (lock) => {
-        if (!lock) throw new Error("Another DELTA tab is handling a payment. Wait for that attempt to finish; this tab did not start a payment.");
+        if (!lock) throw new BuyerMessageError("Another DELTA tab is handling a payment. Wait for that attempt to finish; this tab did not start a payment.");
         try {
           const previous = readPaymentAttempt(window.localStorage);
           if (previous) {
             setSavedAttempt(previous);
             setRecoveryBlocked(true);
             recoveryRequired.current = true;
-            throw new Error(`A previous attempt needs review. ${PAYMENT_RECOVERY_WARNING}`);
+            throw new BuyerMessageError(`A previous attempt needs review. ${PAYMENT_RECOVERY_WARNING}`);
           }
           assertPaymentStorageAvailable(window.localStorage);
         } catch (storageError) {
@@ -166,17 +170,17 @@ export default function App() {
           throw storageError;
         }
         const target = new URL(url);
-        if (target.protocol !== "https:" && target.protocol !== "http:") throw new Error("Enter a public HTTP or HTTPS URL");
-        if (!quote) throw new Error("A valid live quote is required before payment");
+        if (!isHttpSourceUrl(target.toString())) throw new BuyerMessageError("Enter a public HTTP or HTTPS URL without credentials");
+        if (!quote) throw new BuyerMessageError("A valid live quote is required before payment");
         validateQuote(quote, product);
         const provider = window.ethereum;
-        if (!provider) throw new Error("Install or open a Base-compatible wallet to continue. DELTA never receives your private key.");
+        if (!provider) throw new BuyerMessageError("Install or open a Base-compatible wallet to continue. DELTA never receives your private key.");
 
         setRunState("connecting");
         await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x2105" }] });
         const accounts = await provider.request({ method: "eth_requestAccounts" }) as Address[];
         const address = accounts[0];
-        if (!address) throw new Error("The wallet did not return an account");
+        if (!address) throw new BuyerMessageError("The wallet did not return an account");
         setWalletAddress(address);
 
         const [fetchSdk, evmSdk, viem, chains] = await Promise.all([
@@ -192,12 +196,28 @@ export default function App() {
         const wallet = createWalletClient({ account: address, chain: base, transport: custom(provider) });
         const signer = {
           address,
-          signTypedData: (message: {
+          signTypedData: async (message: {
             domain: Record<string, unknown>;
             types: Record<string, unknown>;
             primaryType: string;
             message: Record<string, unknown>;
-          }) => wallet.signTypedData({ ...message, account: address } as never) as Promise<Hex>,
+          }): Promise<Hex> => {
+            if (signatureStarted || paymentAttempted || recoveryRequired.current) throw new BuyerMessageError(PAYMENT_RECOVERY_WARNING);
+            // Claim this one authorization synchronously, before any wallet RPC.
+            signatureStarted = true;
+            if (window.ethereum !== provider) throw new BuyerMessageError("The connected wallet changed. No new payment was signed; reconnect and review the original request.");
+            const [chainId, currentAccounts] = await Promise.all([
+              provider.request({ method: "eth_chainId" }),
+              provider.request({ method: "eth_accounts" }),
+            ]);
+            if (window.ethereum !== provider || Number(chainId) !== 8453 || !Array.isArray(currentAccounts) ||
+                typeof currentAccounts[0] !== "string" || currentAccounts[0].toLowerCase() !== address.toLowerCase()) {
+              throw new BuyerMessageError("The connected wallet account or network changed. No new payment was signed; reconnect and review the original request.");
+            }
+            // Never release the purchase lock by timing out a wallet prompt.
+            // A late signature must still belong to this one active attempt.
+            return wallet.signTypedData({ ...message, account: address } as never) as Promise<Hex>;
+          },
         };
         const client = new x402Client();
         client.setSpendControls({ maxAmountPerPayment: `$${maxPaymentUsd(product).toFixed(2)}` });
@@ -213,7 +233,7 @@ export default function App() {
             } catch {
               setRecoveryBlocked(true);
               recoveryRequired.current = true;
-              throw new Error("The recovery marker could not be saved. This signed request was not sent; new payments are disabled until browser storage is available.");
+              throw new BuyerMessageError("The recovery marker could not be saved. This signed request was not sent; new payments are disabled until browser storage is available.");
             }
             if (attempt) {
               setSavedAttempt(attempt);
@@ -222,7 +242,7 @@ export default function App() {
               paymentAttempted = true;
             }
           }
-          return fetch(request);
+          return fetchWithDeadline(request, undefined, 120_000);
         }, client);
         const response = await paidFetch(`${API_ORIGIN}/v1/${product === "preflight" ? "preflight" : "capture"}`, {
           method: "POST",

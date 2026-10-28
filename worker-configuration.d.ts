@@ -5,7 +5,7 @@ interface __BaseEnv_Env {
 	PROOFS: R2Bucket;
 	ANALYTICS_DB: D1Database;
 	BROWSER: BrowserRun;
-	APP_VERSION: "0.7.0";
+	APP_VERSION: "0.7.1";
 	PAY_TO: "0x1990e21bc219696ff7fbc26527dbaed335ac6367";
 	NETWORK: "eip155:8453";
 	CAPTURE_BASE_PRICE_USD: "1";

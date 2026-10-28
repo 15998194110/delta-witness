@@ -1,4 +1,5 @@
 import type { RuntimeEnv } from "./env";
+import { safeErrorCode } from "./failures";
 
 export type Product = "capture" | "preflight" | "watch_check";
 
@@ -111,7 +112,7 @@ export async function raisePriceAfterNegativeMargin(
       httpMetadata: { contentType: "application/json; charset=utf-8" },
     });
   } catch (error) {
-    console.error(JSON.stringify({ event: "pricing_margin_alert_write_failed", product, message: error instanceof Error ? error.message : String(error) }));
+    console.error(JSON.stringify({ event: "pricing_margin_alert_write_failed", product, reason: safeErrorCode(error) }));
   }
 }
 

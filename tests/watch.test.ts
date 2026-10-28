@@ -123,7 +123,7 @@ describe("prepaid Watch", () => {
     expect(value.checks_attempted).toBe(1);
     expect(value.checks_remaining).toBe(1);
     expect(value.last_result?.reason).not.toBe("current_price_floor_exceeds_prepaid_check_price");
-    expect(value.last_result?.reason).toBe("deterministic_capture_failure");
+    expect(value.last_result?.reason).toBe("dependency_failure");
     expect(env.BROWSER.quickAction).toHaveBeenCalledOnce();
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });

@@ -1,5 +1,6 @@
 import type { AnalyticsEventName, RuntimeEnv } from "./env";
 import { sanitizeDimension } from "./security";
+import { safeErrorCode } from "./failures";
 
 export type TelemetryEvent = {
   event: AnalyticsEventName;
@@ -39,6 +40,6 @@ export async function recordEvent(env: RuntimeEnv, event: TelemetryEvent): Promi
       event.contributionMarginUsd ?? 0,
     ).run();
   } catch (error) {
-    console.error(JSON.stringify({ event: "analytics_write_failed", message: error instanceof Error ? error.message : String(error) }));
+    console.error(JSON.stringify({ event: "analytics_write_failed", reason: safeErrorCode(error) }));
   }
 }

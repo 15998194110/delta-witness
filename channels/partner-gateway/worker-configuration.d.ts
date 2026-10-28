@@ -3,7 +3,7 @@
 // Runtime types generated with workerd@1.20260828.1 2026-08-31 nodejs_compat
 interface __BaseEnv_Env {
 	PARTNER_RATE_LIMITER: RateLimit;
-	APP_VERSION: "0.6.1";
+	APP_VERSION: "0.7.1";
 	PARTNER_ID: "marketplace";
 	PARTNER_NET_CAPTURE_USD: "1";
 	PARTNER_NET_PREFLIGHT_USD: "1";
