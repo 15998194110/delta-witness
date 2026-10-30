@@ -107,11 +107,12 @@ export const DELIVERY_SCHEMA = {
 export function openApi(origin: string, version: string, capture: PricingQuote, preflight: PricingQuote): Record<string, unknown> {
   const orderEnrollment = [
     { name: "x-delta-order-id", in: "header", required: false, schema: { type: "string", format: "uuid" }, description: "Optional UUIDv4 business order. Send together with x-delta-recovery-token. Persist both privately before authorizing payment. Available only when the operator explicitly configures an order credential lifetime." },
+    { name: "x-delta-retention-policy-hash", in: "header", required: false, schema: { type: "string", pattern: "^sha256:[0-9a-f]{64}$" }, description: "For new scoped orders with configured retention terms: accept the policy hash disclosed in quote/402. Persist before the first authorized payment. A 409 terms change never permits re-signing an uncertain payment. Existing orders retain their original snapshot." },
     { name: "x-delta-recovery-token", in: "header", required: false, schema: { type: "string", pattern: "^[A-Za-z0-9_-]{43}$" }, description: "Optional canonical base64url encoding of 32 cryptographically random bytes; paired with x-delta-order-id. Never put this bearer capability in a URL, log, public proof or model response." },
   ];
   const orderParameter = { name: "order_id", in: "path", required: true, schema: { type: "string", format: "uuid" } };
   const orderResponses = {
-    "200": { description: "Original delivery verified against stored evidence", content: { "application/json": { schema: { $ref: "#/components/schemas/OrderStatus" } } } },
+    "200": { description: "Original delivery verified, or authenticated raw_artifacts_expired metadata without delivery bytes", content: { "application/json": { schema: { $ref: "#/components/schemas/OrderStatus" } } } },
     "202": { description: "Original outcome remains incomplete or uncertain; never permission to pay again", content: { "application/json": { schema: { $ref: "#/components/schemas/OrderStatus" } } } },
     "400": { description: "Payment headers, body or query credentials are not accepted" },
     "403": { description: "Capability does not include this scope" },
@@ -155,7 +156,10 @@ export function openApi(origin: string, version: string, capture: PricingQuote, 
         type: "object", required: ["ok", "order_id", "product", "state", "payment", "fulfillment", "recovery"],
         properties: {
           ok: { const: true }, order_id: { type: "string", format: "uuid" }, product: { enum: ["capture", "preflight"] },
-          state: { enum: ["complete", "recovery_available", "processing", "retryable_failure", "blocked_failure", "settlement_unknown", "settlement_rejected", "settlement_confirmed"] },
+          state: { enum: ["complete", "recovery_available", "processing", "retryable_failure", "blocked_failure", "settlement_unknown", "settlement_rejected", "settlement_confirmed", "raw_artifacts_expired"] },
+          retention: { type: "object", description: "Original policy evaluation; raw expiry does not delete files or extend the independent credential lifetime.", properties: {
+            state: { enum: ["legacy_policy_unknown", "allowed_by_retention", "pending_start", "expired"] }, raw_expires_at: { type: ["string", "null"] }, export_allowed: { type: ["boolean", "null"] }, timeline: { type: ["object", "null"] },
+          } },
           payment: { type: "object", required: ["state", "treasury_received"], properties: { state: { enum: ["settlement_unknown", "settlement_rejected", "settlement_confirmed"] }, treasury_received: { type: "null", description: "Facilitator settlement does not establish separately reconciled treasury receipt." } } },
           fulfillment: { type: "object", required: ["state"], properties: { state: { enum: ["not_started", "processing", "retryable_failure", "blocked_failure", "complete", "recovery_available"] } } },
           recovery: { type: "object", required: ["expires_at", "can_recover"], properties: { expires_at: { type: "string", format: "date-time" }, can_recover: { type: "boolean" } } },

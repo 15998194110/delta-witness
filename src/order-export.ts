@@ -1,7 +1,9 @@
 import type { RuntimeEnv } from "./env";
 import { sha256, stableJson, uuidFromDigest } from "./crypto";
 import { MAX_TOTAL_ARTIFACT_BYTES, readStoredCapture } from "./capture";
-import { authenticateOrder, OrderAccessError, orderPrivateHeaders, readOrderEntitlement } from "./orders";
+import { authenticateOrder, OrderAccessError, orderPrivateHeaders, readOrderEntitlement, orderRetention } from "./orders";
+import { readOrderSettlement } from "./settlement";
+import { readFulfillment, fulfillmentRecordKey } from "./fulfillment";
 import { withinDeadline } from "./deadline";
 
 export { MAX_EXPORT_MANIFEST_BYTES } from "./order-storage";
@@ -45,6 +47,11 @@ export async function exportOrderArtifact(env: RuntimeEnv, orderId: string, requ
       const proofId = uuidFromDigest(await sha256(`${order.payment_fingerprint}\n${order.product}`));
       const keys = [`${proofId}/page.html`, `${proofId}/page.md`, `${proofId}/screenshot.png`, `${proofId}/manifest.json`];
       snapshot.allowArtifactsFor(proofId);
+      const journal = await readOrderSettlement(boundedEnv, order);
+      const original = await readFulfillment(boundedEnv, fulfillmentRecordKey(order.payment_fingerprint));
+      const retention = await orderRetention(order, journal, original);
+      if (retention.state === "expired") throw new OrderAccessError("order_artifacts_expired", 410);
+      if (order.retention_snapshot && retention.export_allowed !== true) throw new ExportError("order_retention_start_unknown", 503);
       const entitlement = await readOrderEntitlement(boundedEnv, order);
       snapshot.assertActive();
       const delivery = entitlement.delivery;
@@ -72,6 +79,7 @@ export async function exportOrderArtifact(env: RuntimeEnv, orderId: string, requ
       const stillAuthorized = await authenticateOrder(boundedEnv, orderId, request);
       snapshot.assertActive();
       if (stableJson(stillAuthorized) !== stableJson(order)) throw new ExportError("order_export_authorization_changed", 409);
+      if ((await orderRetention(order, journal, original)).state === "expired") throw new OrderAccessError("order_artifacts_expired", 410);
 
       const names = ["page.html", "page.md", "screenshot.png", "manifest.json"];
       const types = ["application/octet-stream", "application/octet-stream", "image/png", "application/json; charset=utf-8"];

@@ -4,6 +4,8 @@ import { paidRequestHash, parseCaptureRequest, parsePreflightRequest, readFulfil
 import { readOrderSettlement, type SettlementRecord } from "./settlement";
 import { withinDeadline } from "./deadline";
 import { createOrderReadSnapshot } from "./order-storage";
+import { deliveryDigest } from "./fulfillment";
+import { parseRetentionPolicy, verifyRetentionSnapshot, evaluateRetention, type RetentionPolicy, type RetentionSnapshot } from "./retention";
 
 export const ORDER_ID_HEADER = "x-delta-order-id";
 export const ORDER_TOKEN_HEADER = "x-delta-recovery-token";
@@ -15,7 +17,7 @@ export class OrderAccessError extends Error {
   constructor(public readonly code: string, public readonly status: 400 | 403 | 404 | 409 | 410 | 503) { super(code); }
 }
 
-export type OrderEnrollment = { order_id: string; token_digest: string; ttl_seconds: number; created_at: string; expires_at: string };
+export type OrderEnrollment = { order_id: string; token_digest: string; ttl_seconds: number; created_at: string; expires_at: string; retention_policy?: RetentionPolicy };
 export type OrderBinding = {
   schema: "delta-order-binding/v1";
   order_id: string;
@@ -35,6 +37,7 @@ export type OrderBinding = {
   pay_to: string;
   payer: string;
   amount: string;
+  retention_snapshot?: RetentionSnapshot;
 };
 export type OrderPaymentBinding = Omit<OrderBinding, "schema" | "order_id" | "token_digest" | "scope" | "created_at" | "expires_at" | "revoked_at">;
 
@@ -74,8 +77,19 @@ export async function parseOrderEnrollment(request: Request, env: RuntimeEnv): P
   const ttl = Number(configured);
   if (!Number.isSafeInteger(ttl) || ttl < 60 || ttl > 604800) throw new OrderAccessError("order_recovery_not_configured", 503);
   const digest = await tokenDigest(id.toLowerCase(), token), now = Date.now();
+  // Existing orders keep their purchased policy even when current terms change.
+  const previous = await readOrderBinding(env, id.toLowerCase(), digest);
+  let policy: RetentionPolicy | undefined;
+  if (!previous) {
+    try { policy = parseRetentionPolicy(env.RETENTION_POLICY_JSON); }
+    catch { throw new OrderAccessError("retention_policy_unavailable", 503); }
+    if (policy && (request.headers.has("payment-signature") || request.headers.has("x-payment")) &&
+        request.headers.get("x-delta-retention-policy-hash") !== await sha256(stableJson(policy))) {
+      throw new OrderAccessError("retention_terms_changed", 409);
+    }
+  }
   return { order_id: id.toLowerCase(), token_digest: digest, ttl_seconds: ttl,
-    created_at: new Date(now).toISOString(), expires_at: new Date(now + ttl * 1000).toISOString() };
+    created_at: new Date(now).toISOString(), expires_at: new Date(now + ttl * 1000).toISOString(), ...(policy ? { retention_policy: policy } : {}) };
 }
 
 export async function readOrderBinding(env: RuntimeEnv, id: string, expectedTokenDigest?: string): Promise<OrderBinding | null> {
@@ -165,7 +179,36 @@ export async function bindOrder(env: RuntimeEnv, enrollment: OrderEnrollment, pa
 export async function orderAuthorityDigest(order: Pick<OrderBinding, "order_id" | "token_digest" | "scope" | "created_at" | "expires_at"> & OrderPaymentBinding): Promise<string> {
   const { order_id, token_digest, product, resource, request_hash, request_body, payment_fingerprint, settlement_key, network, asset, pay_to, payer, amount } = order;
   return sha256(stableJson({ order_id, token_digest, scope: order.scope, created_at: order.created_at, expires_at: order.expires_at,
-    product, resource, request_hash, request_body, payment_fingerprint, settlement_key, network, asset, pay_to, payer, amount }));
+    product, resource, request_hash, request_body, payment_fingerprint, settlement_key, network, asset, pay_to, payer, amount,
+    ...(order.retention_snapshot ? { retention_snapshot: order.retention_snapshot } : {}) }));
+}
+
+export async function orderRetention(order: OrderBinding, settlement: SettlementRecord, fulfillment: StoredFulfillment | null) {
+  const snapshot = order.retention_snapshot;
+  if (snapshot) {
+    await verifyRetentionSnapshot(snapshot, snapshot.snapshot_hash);
+    const proofId = uuidFromDigest(await sha256(`${order.payment_fingerprint}\n${order.product}`));
+    if (snapshot.order_id !== order.order_id || snapshot.tenant_id !== "direct" || snapshot.proof_id !== proofId ||
+        snapshot.payment_fingerprint !== order.payment_fingerprint || snapshot.purchased_at !== order.created_at) throw new OrderAccessError("order_evidence_inconsistent", 503);
+    if (settlement.state === "settlement_confirmed" && !settlement.confirmed_at) throw new OrderAccessError("order_evidence_inconsistent", 503);
+    if (fulfillment) {
+      const record = fulfillment.record;
+      if (record.route !== `/v1/${order.product}` || record.request_hash !== order.request_hash || record.payment_fingerprint !== order.payment_fingerprint ||
+          record.fulfillment_fingerprint !== order.payment_fingerprint || record.requested_url !== order.request_body.url || record.partner ||
+          record.paid_price_usd !== Number(order.amount) / 1_000_000 ||
+          (record.response && record.response_hash !== await deliveryDigest(record, record.response))) throw new OrderAccessError("order_evidence_inconsistent", 503);
+    }
+  }
+  return evaluateRetention(snapshot, {
+    ...(settlement.state === "settlement_confirmed" && settlement.confirmed_at ? { settlement_confirmed_at: settlement.confirmed_at } : {}),
+    ...(fulfillment?.record.state === "complete" && fulfillment.record.completed_at ? { fulfillment_completed_at: fulfillment.record.completed_at } : {}),
+  }, new Date().toISOString());
+}
+
+export async function retentionDisclosure(env: RuntimeEnv) {
+  const policy = parseRetentionPolicy(env.RETENTION_POLICY_JSON);
+  return policy ? { scope: "new_scoped_capture_preflight_orders", policy, policy_hash: await sha256(stableJson(policy)),
+    acceptance_header: "x-delta-retention-policy-hash", credential_expiry_is_independent: true } : null;
 }
 
 export type OrderEntitlement = { settlement: SettlementRecord; fulfillment: StoredFulfillment | null; delivery?: DeliveryResponse };
@@ -217,6 +260,16 @@ export async function orderStatusResponse(env: RuntimeEnv, request: Request, id?
       if (!order.scope.includes(recover ? "recover" : "status")) throw new OrderAccessError("order_scope_forbidden", 403);
       if (request.headers.has("payment-signature") || request.headers.has("x-payment") || request.body !== null) throw new OrderAccessError("order_recovery_input_forbidden", 400);
       snapshot.allowArtifactsFor(uuidFromDigest(await sha256(`${order.payment_fingerprint}\n${order.product}`)));
+      const journal = await readOrderSettlement(boundedEnv, order);
+      const original = await readFulfillment(boundedEnv, fulfillmentRecordKey(order.payment_fingerprint));
+      const retention = await orderRetention(order, journal, original);
+      if (retention.state === "expired") {
+        await assertCurrent(order);
+        return Response.json({ ok: true, order_id: order.order_id, product: order.product, state: "raw_artifacts_expired",
+          payment: { state: journal.state, treasury_received: null }, retention,
+          fulfillment: { state: original?.record.state ?? "not_started" },
+          recovery: { expires_at: order.expires_at, can_recover: false } }, { status: 200, headers });
+      }
       let entitlement = await readOrderEntitlement(boundedEnv, order);
       if (recover && entitlement.fulfillment?.record.state === "processing" && entitlement.delivery) {
         await assertCurrent(order);
@@ -231,6 +284,7 @@ export async function orderStatusResponse(env: RuntimeEnv, request: Request, id?
         payment: { state: entitlement.settlement.state, treasury_received: null },
         fulfillment: { state: available ? "recovery_available" : entitlement.fulfillment?.record.state ?? "not_started" },
         recovery: { expires_at: order.expires_at, can_recover: available },
+        retention: await orderRetention(order, entitlement.settlement, entitlement.fulfillment),
         ...(complete ? { delivery: entitlement.delivery } : { reconciliation_required: true }),
       }, { status: complete ? 200 : 202, headers });
     })(), 15_000, "order_evidence_unavailable", snapshot.cancel);

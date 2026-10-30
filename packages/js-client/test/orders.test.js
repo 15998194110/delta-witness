@@ -31,6 +31,20 @@ function store() {
 function client(orderStore, fetchImpl = async () => Response.json(envelope())) {
   return new DeltaWitness({baseUrl: origin, orderStore, fetchImpl, requestTimeoutMs: 1000});
 }
+
+test('persists accepted retention terms before signing and rejects term replacement for the same order', async () => {
+  const state = store(), delta = client(state), hash = `sha256:${'a'.repeat(64)}`;
+  await delta.prepareOrder('capture', input, {orderId: id, retentionPolicyHash: hash});
+  await assert.rejects(delta.prepareOrder('capture', input, {orderId: id, retentionPolicyHash: `sha256:${'b'.repeat(64)}`}), /order_identity_conflict/);
+  await delta.executeOrder(id, async (_, init) => {
+    assert.equal((await state.load(id)).retention_policy_hash, hash);
+    assert.equal(init.headers['x-delta-retention-policy-hash'], hash);
+    return Response.json(proof());
+  });
+  let calls = 0;
+  await delta.executeOrder(id, () => { calls++; throw new Error(); });
+  assert.equal(calls, 0);
+});
 async function prepared(orderStore = store(), product = 'capture', fetchImpl) {
   const delta = client(orderStore, fetchImpl);
   await delta.prepareOrder(product, input, {orderId: id});

@@ -1,4 +1,5 @@
 export type RuntimeEnv = Env & {
+  RETENTION_POLICY_JSON?: string;
   INDEXNOW_ADMIN_SECRET?: string;
   PARTNER_GATEWAY_SECRET?: string;
   MESHKORE_API_KEY?: string;

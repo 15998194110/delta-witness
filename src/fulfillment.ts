@@ -51,6 +51,7 @@ export type FulfillmentRecord = {
   attempts: number;
   created_at: string;
   updated_at: string;
+  completed_at?: string;
   error?: string;
   response?: DeliveryResponse;
   response_hash?: string;
@@ -172,6 +173,9 @@ export async function recoverDelivery(env: RuntimeEnv, key: string, stored: Stor
   if (stored.record.state !== "processing") return null;
   const response = await verifiedDelivery(env, stored, body, product, fingerprint);
   if (!response) return null;
+  // Recovery is not the original delivery-completion event. If that event was
+  // never durably acknowledged, keep its time unknown rather than extending a
+  // purchased retention period to today's date. Original artifacts remain safe.
   const completed = await commitClaim(env, key, stored, { ...stored.record, state: "complete", updated_at: new Date().toISOString() });
   return completed ? response : null;
 }

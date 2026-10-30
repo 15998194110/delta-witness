@@ -2,7 +2,8 @@ import { HTTPFacilitatorClient, FacilitatorResponseError, FacilitatorTimeoutErro
 import { decodePaymentSignatureHeader } from "@x402/core/http";
 import type { PaymentPayload, PaymentRequirements, SettleResponse } from "@x402/core/types";
 import type { RuntimeEnv } from "./env";
-import { sha256, stableJson } from "./crypto";
+import { sha256, stableJson, uuidFromDigest } from "./crypto";
+import { createRetentionSnapshot } from "./retention";
 import { bindOrder, orderAuthorityDigest, type OrderBinding, type OrderEnrollment, type OrderPaymentBinding } from "./orders";
 import type { PaidRequest } from "./fulfillment";
 
@@ -15,6 +16,7 @@ export type SettlementRecord = {
   order_id?: string;
   order_binding_hash?: string;
   updated_at: string;
+  confirmed_at?: string;
   result?: SettleResponse;
   failure_class?: string;
   transaction_hint?: string;
@@ -136,6 +138,10 @@ export function guardedFacilitator(env: RuntimeEnv, requestHash: string, payment
         payment_fingerprint: paymentFingerprint, settlement_key: key, network: requirements.network,
         asset: requirements.asset, pay_to: requirements.payTo, payer: authorization.from, amount: requirements.amount,
       } : undefined;
+      if (order?.enrollment.retention_policy && orderPayment) orderPayment.retention_snapshot = await createRetentionSnapshot(order.enrollment.retention_policy, {
+        order_id: order.enrollment.order_id, tenant_id: "direct", proof_id: uuidFromDigest(await sha256(`${paymentFingerprint}\n${order.product}`)),
+        payment_fingerprint: paymentFingerprint, purchased_at: order.enrollment.created_at,
+      });
       const failure = (): SettleResponse => ({ success: false, errorReason: blocked, transaction: "", network: requirements.network });
       const existing = await env.PROOFS.get(key);
       if (existing) {
@@ -170,7 +176,8 @@ export function guardedFacilitator(env: RuntimeEnv, requestHash: string, payment
         if (order && orderPayment) await bindOrder(env, order.enrollment, orderPayment);
         const result = await upstream.settle(payload, requirements);
         if (receiptMatches(result, payload, requirements)) {
-          const saved = await env.PROOFS.put(key, JSON.stringify({ ...record, state: "settlement_confirmed", result, updated_at: new Date().toISOString() }), {
+          const confirmedAt = new Date().toISOString();
+          const saved = await env.PROOFS.put(key, JSON.stringify({ ...record, state: "settlement_confirmed", result, updated_at: confirmedAt, confirmed_at: confirmedAt }), {
             onlyIf: { etagMatches: reserved.etag }, httpMetadata: { contentType: "application/json" },
           });
           if (saved) return result;

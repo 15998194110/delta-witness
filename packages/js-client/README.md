@@ -69,11 +69,13 @@ const delta = new DeltaWitness({
   },
 });
 
+// Check disclosed terms against your already-authorized purchase policy.
+const quote = await delta.quote("preflight");
 // Run once for an intentionally new purchase, before any signing.
 const order = await delta.prepareOrder("preflight", {
   url: "https://example.com/",
   expected: { contains: ["Example Domain"] },
-});
+}, { retentionPolicyHash: quote.retention?.policy_hash });
 // Persist order.order_id in your application's durable job record.
 const completed = await delta.executeOrder(order.order_id, approvedPaidFetch);
 console.log(completed.order_id, completed.delivery.proof_id);

@@ -175,7 +175,8 @@ export class DeltaWitness {
     try {
       // Take a JSON-only copy so a store cannot mutate the active request after a read.
       const record = JSON.parse(canonicalJson(saved));
-      if (Object.keys(record).some(key => !['schema', 'revision', 'order_id', 'origin', 'product', 'request_json', 'request_digest', 'recovery_token', 'phase'].includes(key)) ||
+      if (Object.keys(record).some(key => !['schema', 'revision', 'order_id', 'origin', 'product', 'request_json', 'request_digest', 'recovery_token', 'phase', 'retention_policy_hash'].includes(key)) ||
+          (record.retention_policy_hash !== undefined && !/^sha256:[0-9a-f]{64}$/.test(record.retention_policy_hash)) ||
           record.schema !== 'delta-client-order/v1' || record.order_id !== id || !Number.isSafeInteger(record.revision) || record.revision < 0 ||
           !ORDER_PHASES.includes(record.phase) || !validRecoveryToken(record.recovery_token) ||
           typeof record.request_json !== 'string' || orderBody(record.product, JSON.parse(record.request_json)) !== record.request_json ||
@@ -202,21 +203,22 @@ export class DeltaWitness {
     try { await this.#compareAndSet({ ...record, revision: record.revision + 1, phase }, record.revision); } catch { /* Keep original recovery state. */ }
   }
 
-  async prepareOrder(product, input, { orderId: requestedId = crypto.randomUUID() } = {}) {
+  async prepareOrder(product, input, { orderId: requestedId = crypto.randomUUID(), retentionPolicyHash } = {}) {
+    if (retentionPolicyHash !== undefined && (typeof retentionPolicyHash !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(retentionPolicyHash))) throw orderError('invalid_retention_policy_hash');
     const id = orderId(requestedId), origin = this.#orderOrigin(), requestJson = orderBody(product, input);
     const digest = await requestDigest(origin, product, requestJson);
     const previous = await this.#readOrder(id, true);
     if (previous) {
-      if (previous.product !== product || previous.request_digest !== digest || previous.request_json !== requestJson) throw orderError('order_identity_conflict', id);
+      if (previous.product !== product || previous.request_digest !== digest || previous.request_json !== requestJson || previous.retention_policy_hash !== retentionPolicyHash) throw orderError('order_identity_conflict', id);
       return publicOrder(previous);
     }
     const bytes = crypto.getRandomValues(new Uint8Array(32));
     const token = btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
     const record = { schema: 'delta-client-order/v1', revision: 0, order_id: id, origin, product,
-      request_json: requestJson, request_digest: digest, recovery_token: token, phase: 'prepared' };
+      request_json: requestJson, request_digest: digest, recovery_token: token, phase: 'prepared', ...(retentionPolicyHash ? { retention_policy_hash: retentionPolicyHash } : {}) };
     await this.#compareAndSet(record, null);
     const persisted = await this.#readOrder(id);
-    if (persisted.product !== product || persisted.request_digest !== digest || persisted.request_json !== requestJson) throw orderError('order_identity_conflict', id);
+    if (persisted.product !== product || persisted.request_digest !== digest || persisted.request_json !== requestJson || persisted.retention_policy_hash !== retentionPolicyHash) throw orderError('order_identity_conflict', id);
     return publicOrder(persisted);
   }
 
@@ -233,7 +235,8 @@ export class DeltaWitness {
       const response = await boundedResponse(paidFetch, `${record.origin}/v1/${record.product}`, {
         method: 'POST', redirect: 'error',
         headers: { 'content-type': 'application/json', 'x-delta-channel': 'npm',
-          'x-delta-order-id': id, 'x-delta-recovery-token': record.recovery_token },
+          'x-delta-order-id': id, 'x-delta-recovery-token': record.recovery_token,
+          ...(record.retention_policy_hash ? { 'x-delta-retention-policy-hash': record.retention_policy_hash } : {}) },
         body: record.request_json,
       }, this.requestTimeoutMs, response => { status = response.status; });
       const body = await response.json();

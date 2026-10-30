@@ -6,12 +6,22 @@ import { quoteProductWithOverride, raisePriceAfterNegativeMargin } from "./prici
 import { assertPublicDns, resolvePublicRedirects, sanitizeDimension, validateTarget } from "./security";
 import { recordEvent } from "./telemetry";
 import { safeErrorCode } from "./failures";
+import { createClaim, commitClaim } from "./claims";
+import { withinDeadline } from "./deadline";
+import { createOrderReadSnapshot } from "./order-storage";
 
 const MIN_INTERVAL_SECONDS = 900;
 const MAX_INTERVAL_SECONDS = 2_592_000;
 const MAX_PREPAID_CHECKS = 1_000;
 const WATCH_BATCH_SIZE = 25;
 const WATCH_LEASE_MS = 60_000;
+const WEBHOOK_TIMEOUT_MS = 15_000;
+const NOTIFICATION_OPERATION_MS = 20_000;
+const WEBHOOK_LEASE_MS = 30_000;
+const WEBHOOK_MAX_ATTEMPTS = 5;
+const WEBHOOK_MAX_BODY_BYTES = 32_000;
+const WATCH_METADATA_BYTES = 262_144;
+const WEBHOOK_BACKOFF_MS = [60_000, 300_000, 900_000, 3_600_000];
 
 export type WatchRegistration = {
   url: string;
@@ -22,7 +32,26 @@ export type WatchRegistration = {
   expected?: PreflightRequest["expected"];
 };
 
-type WatchState = "active" | "exhausted" | "paused_margin" | "recovery_required";
+type WatchState = "active" | "exhausted" | "paused" | "expired" | "paused_margin" | "recovery_required";
+
+export type WatchNotification = {
+  schema: "delta-watch-notification/v1";
+  event_id: string;
+  watch_id: string;
+  sequence: number;
+  webhook_url: string;
+  raw_body: string;
+  body_hash: string;
+  created_at: string;
+  state: "queued" | "delivering" | "retry_wait" | "delivered" | "failed";
+  attempts: number;
+  next_attempt_at: string;
+  attempt_timestamp?: string;
+  lease_until?: string;
+  last_outcome?: string;
+  last_http_status?: number;
+  delivered_at?: string;
+};
 
 export type WatchRecord = {
   schema: "delta-watch/v1";
@@ -47,6 +76,10 @@ export type WatchRecord = {
   created_at: string;
   updated_at: string;
   last_result?: Record<string, unknown>;
+  // No expiry is imposed on old prepaid obligations. Enforce only an explicit
+  // pre-existing deadline; changing a registration policy is a separate task.
+  expires_at?: string;
+  pending_notification?: WatchNotification;
 };
 
 type RegistrationResult = {
@@ -93,6 +126,12 @@ function watchKey(id: string): string {
   return `watches/${id}.json`;
 }
 
+function watchJson(record: WatchRecord): string {
+  const raw = JSON.stringify(record);
+  if (new TextEncoder().encode(raw).byteLength > WATCH_METADATA_BYTES) throw new Error("watch_metadata_unavailable");
+  return raw;
+}
+
 function publicWatch(record: WatchRecord): Record<string, unknown> {
   return {
     watch_id: record.watch_id,
@@ -108,6 +147,7 @@ function publicWatch(record: WatchRecord): Record<string, unknown> {
     last_result: record.last_result,
     created_at: record.created_at,
     updated_at: record.updated_at,
+    expires_at: record.expires_at,
   };
 }
 
@@ -167,7 +207,7 @@ export async function registerWatch(input: {
     created_at: now.toISOString(),
     updated_at: now.toISOString(),
   };
-  const stored = await input.env.PROOFS.put(key, JSON.stringify(record), {
+  const stored = await input.env.PROOFS.put(key, watchJson(record), {
     onlyIf: { etagDoesNotMatch: "*" },
     httpMetadata: { contentType: "application/json; charset=utf-8" },
   });
@@ -187,6 +227,7 @@ export async function registerWatch(input: {
       ...publicWatch(record),
       webhook_secret: webhookSecret,
       webhook_signature: webhookSecret ? "HMAC-SHA256 over <timestamp>.<raw-json-body>" : undefined,
+      webhook_delivery: webhookSecret ? "At-least-once; atomically deduplicate the signed event_id before processing" : undefined,
     },
   };
 }
@@ -205,42 +246,162 @@ async function loadManifest(env: RuntimeEnv, proofId: string | undefined): Promi
   return object ? object.json<ProofManifest>() : undefined;
 }
 
-async function sendWebhook(env: RuntimeEnv, record: WatchRecord, payload: Record<string, unknown>): Promise<void> {
-  if (!record.webhook_url || !record.webhook_secret) return;
-  const url = validateTarget(record.webhook_url);
-  await assertPublicDns(url.hostname);
-  const raw = stableJson(payload);
-  const timestamp = Math.floor(Date.now() / 1_000).toString();
-  const signature = await hmacSha256(record.webhook_secret, `${timestamp}.${raw}`);
-  const response = await fetch(url, {
-    method: "POST",
-    redirect: "manual",
-    headers: {
-      "content-type": "application/json",
-      "x-delta-timestamp": timestamp,
-      "x-delta-signature": `sha256=${signature}`,
-      "user-agent": "DELTA-Witness-Watch/0.6",
+function notificationKey(id: string): string { return `watch-notifications/${id}.json`; }
+
+// Reuse Core's actual-byte metadata reader, while keeping the original R2 CAS
+// authority. Cancellation fences future calls; an already submitted write may
+// still commit and must be reconciled from its durable record, never erased.
+async function withNotificationBounds<T>(source: RuntimeEnv, operation: (env: RuntimeEnv, signal: AbortSignal) => Promise<T>): Promise<T> {
+  const view = createOrderReadSnapshot(source, WATCH_METADATA_BYTES);
+  const controller = new AbortController();
+  const env = { ...view.env, PROOFS: {
+    get: view.env.PROOFS.get,
+    put: async (key: string, value: Parameters<R2Bucket["put"]>[1], options?: R2PutOptions) => {
+      view.assertActive();
+      if (typeof value !== "string" || new TextEncoder().encode(value).byteLength > WATCH_METADATA_BYTES) throw new Error("watch_metadata_unavailable");
+      const result = await view.env.PROOFS.put(key, value, options);
+      view.assertActive();
+      return result;
     },
-    body: raw,
-    signal: AbortSignal.timeout(10_000),
-  });
-  await response.body?.cancel();
-  await recordEvent(env, {
-    event: "watch_webhook",
-    route: "/watch/webhook",
-    partner: record.partner,
-    channel: record.channel,
-    success: response.ok,
-    reason: response.ok ? "delivered" : `http_${response.status}`,
-  });
+    list: async (options?: R2ListOptions) => {
+      view.assertActive();
+      const result = await source.PROOFS.list(options);
+      view.assertActive();
+      if (result.objects.length > WATCH_BATCH_SIZE) throw new Error("watch_metadata_unavailable");
+      return result;
+    },
+  } as R2Bucket };
+  const cancel = () => { view.cancel(); controller.abort(); };
+  try { return await withinDeadline(operation(env, controller.signal), NOTIFICATION_OPERATION_MS, "notification_operation_timeout", cancel); }
+  finally { cancel(); }
+}
+
+async function notificationFor(record: WatchRecord, payload: Record<string, unknown>): Promise<WatchNotification | undefined> {
+  if (!record.webhook_url || !record.webhook_secret) return;
+  const eventId = uuidFromDigest(await sha256(`watch-event/v1\n${record.watch_id}\n${record.checks_attempted}`));
+  const createdAt = record.updated_at;
+  const raw = stableJson({ ...payload, event_id: eventId, event_created_at: createdAt });
+  if (new TextEncoder().encode(raw).byteLength > WEBHOOK_MAX_BODY_BYTES) throw new Error("watch_notification_too_large");
+  return { schema: "delta-watch-notification/v1", event_id: eventId, watch_id: record.watch_id, sequence: record.checks_attempted,
+    webhook_url: record.webhook_url, raw_body: raw, body_hash: await sha256(raw), created_at: createdAt,
+    state: "queued", attempts: 0, next_attempt_at: createdAt };
+}
+
+async function validNotification(event: WatchNotification, key: string): Promise<boolean> {
+  if (!event || event.schema !== "delta-watch-notification/v1" || typeof event.raw_body !== "string" ||
+      new TextEncoder().encode(event.raw_body).byteLength > WEBHOOK_MAX_BODY_BYTES || event.body_hash !== await sha256(event.raw_body) ||
+      !Number.isSafeInteger(event.sequence) || event.sequence < 1 || !Number.isInteger(event.attempts) || event.attempts < 0 || event.attempts > WEBHOOK_MAX_ATTEMPTS ||
+      !["queued", "delivering", "retry_wait", "delivered", "failed"].includes(event.state) ||
+      !Number.isFinite(Date.parse(event.created_at)) || !Number.isFinite(Date.parse(event.next_attempt_at))) return false;
+  const expectedId = uuidFromDigest(await sha256(`watch-event/v1\n${event.watch_id}\n${event.sequence}`));
+  if (event.event_id !== expectedId || key !== notificationKey(expectedId)) return false;
+  try {
+    const body = JSON.parse(event.raw_body);
+    return body.event_id === event.event_id && body.watch_id === event.watch_id && body.sequence === event.sequence && body.event_created_at === event.created_at;
+  } catch { return false; }
+}
+
+// The check's final CAS commits quota, baseline and this outbox atomically.
+// Promotion is replayable after a crash; notification delivery owns a separate
+// CAS record and never mutates checks_remaining or starts another capture.
+async function materializeNotification(env: RuntimeEnv, key: string): Promise<void> {
+  await withNotificationBounds(env, bounded => materializeNotificationWithinBounds(bounded, key));
+}
+
+async function materializeNotificationWithinBounds(env: RuntimeEnv, key: string): Promise<void> {
+  const object = await env.PROOFS.get(key);
+  if (!object) return;
+  const watch = await object.json<WatchRecord>(), event = watch.pending_notification;
+  if (!event) return;
+  const eventKey = notificationKey(event.event_id);
+  if (!await validNotification(event, eventKey) || event.watch_id !== watch.watch_id) throw new Error("watch_notification_invalid");
+  const created = await createClaim(env, eventKey, event);
+  if (!created) {
+    const prior = await env.PROOFS.get(eventKey), saved = prior ? await prior.json<WatchNotification>() : null;
+    if (!saved || !await validNotification(saved, eventKey) || saved.body_hash !== event.body_hash || saved.webhook_url !== event.webhook_url) throw new Error("watch_notification_conflict");
+  }
+  const next = { ...watch };
+  delete next.pending_notification;
+  await commitClaim(env, key, { record: watch, etag: object.etag }, next);
+}
+
+async function processNotification(env: RuntimeEnv, key: string): Promise<void> {
+  await withNotificationBounds(env, (bounded, signal) => processNotificationWithinBounds(bounded, key, signal));
+}
+
+async function processNotificationWithinBounds(env: RuntimeEnv, key: string, operationSignal: AbortSignal): Promise<void> {
+  const object = await env.PROOFS.get(key);
+  if (!object) return;
+  const event = await object.json<WatchNotification>();
+  if (!await validNotification(event, key) || ["delivered", "failed"].includes(event.state)) return;
+  const now = Date.now();
+  if (Date.parse(event.next_attempt_at) > now || (event.lease_until && Date.parse(event.lease_until) > now)) return;
+  if (event.attempts >= WEBHOOK_MAX_ATTEMPTS) {
+    await commitClaim(env, key, { record: event, etag: object.etag }, { ...event, state: "failed", last_outcome: "attempts_exhausted_unknown", lease_until: undefined });
+    return;
+  }
+  const watchObject = await env.PROOFS.get(watchKey(event.watch_id));
+  const watch = watchObject ? await watchObject.json<WatchRecord>() : null;
+  if (!watch?.webhook_secret || watch.webhook_url !== event.webhook_url) {
+    await commitClaim(env, key, { record: event, etag: object.etag }, { ...event, state: "failed", last_outcome: "destination_unavailable", lease_until: undefined });
+    return;
+  }
+  const attempt: WatchNotification = { ...event, attempts: event.attempts + 1, state: "delivering",
+    attempt_timestamp: Math.floor(now / 1000).toString(), lease_until: new Date(now + WEBHOOK_LEASE_MS).toISOString(), last_outcome: "delivery_unknown" };
+  const claim = await commitClaim(env, key, { record: event, etag: object.etag }, attempt);
+  if (!claim) return;
+  let outcome = "delivery_unknown", status: number | undefined, delivered = false, retry = true;
+  const controller = new AbortController();
+  if (operationSignal.aborted) throw new Error("notification_operation_timeout");
+  operationSignal.addEventListener("abort", () => controller.abort(), { once: true });
+  try {
+    await withinDeadline((async () => {
+      const url = validateTarget(event.webhook_url);
+      if (url.protocol !== "https:") throw new Error("webhook_https_required");
+      await assertPublicDns(url.hostname);
+      const current = await env.PROOFS.get(key);
+      if (controller.signal.aborted || current?.etag !== claim.etag) throw new Error("notification_claim_lost");
+      const signature = await hmacSha256(watch.webhook_secret!, `${attempt.attempt_timestamp}.${event.raw_body}`);
+      if (controller.signal.aborted) throw new Error("notification_timeout");
+      const response = await fetch(url, { method: "POST", redirect: "manual", signal: controller.signal,
+        headers: { "content-type": "application/json", "x-delta-event-id": event.event_id,
+          "x-delta-timestamp": attempt.attempt_timestamp!, "x-delta-signature": `sha256=${signature}`, "user-agent": "DELTA-Witness-Watch/0.7" }, body: event.raw_body });
+      void response.body?.cancel().catch(() => {});
+      if (controller.signal.aborted) throw new Error("notification_timeout");
+      status = response.status;
+      delivered = response.ok;
+      outcome = delivered ? "delivered" : `http_${status}`;
+      retry = status === 408 || status === 429 || status >= 500;
+      // Redirects are terminal: never forward the signed payload to another URL.
+    })(), WEBHOOK_TIMEOUT_MS, "notification_timeout", () => controller.abort());
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "";
+    outcome = ["notification_timeout", "notification_claim_lost", "private_target_not_allowed", "private_dns_target_not_allowed", "webhook_https_required", "unsafe_port_not_allowed", "userinfo_not_allowed"].includes(code) ? code : "delivery_unknown";
+    retry = !["private_target_not_allowed", "private_dns_target_not_allowed", "webhook_https_required", "unsafe_port_not_allowed", "userinfo_not_allowed"].includes(outcome);
+  }
+  const next: WatchNotification = { ...attempt, state: delivered ? "delivered" : retry && attempt.attempts < WEBHOOK_MAX_ATTEMPTS ? "retry_wait" : "failed",
+    next_attempt_at: new Date(Date.now() + (WEBHOOK_BACKOFF_MS[attempt.attempts - 1] ?? 3_600_000)).toISOString(),
+    lease_until: undefined, last_outcome: outcome, last_http_status: status, ...(delivered ? { delivered_at: new Date().toISOString() } : {}) };
+  const saved = await commitClaim(env, key, claim, next);
+  if (saved) await recordEvent(env, { event: "watch_webhook", route: "/watch/webhook", partner: watch.partner, channel: watch.channel, success: delivered, reason: outcome });
 }
 
 async function processWatch(env: RuntimeEnv, key: string): Promise<void> {
+  await materializeNotification(env, key);
   const object = await env.PROOFS.get(key);
   if (!object) return;
   const record = await object.json<WatchRecord>();
   const nowMs = Date.now();
   if (record.schema !== "delta-watch/v1" || record.state !== "active" || record.checks_remaining <= 0) return;
+  if (record.pending_notification || !Number.isSafeInteger(record.checks_remaining) || !Number.isSafeInteger(record.checks_attempted) ||
+      record.checks_attempted < 0 || record.checks_remaining + record.checks_attempted !== record.checks_purchased) return;
+  if (record.expires_at) {
+    if (!Number.isFinite(Date.parse(record.expires_at))) return;
+    if (Date.parse(record.expires_at) <= nowMs) {
+      await commitClaim(env, key, { record, etag: object.etag }, { ...record, state: "expired", updated_at: new Date().toISOString() });
+      return;
+    }
+  }
   if (Date.parse(record.next_check_at) > nowMs || (record.lease_until && Date.parse(record.lease_until) > nowMs)) return;
   if (record.lease_until) {
     // An expired lease proves neither cancellation nor failed artifact storage.
@@ -253,12 +414,19 @@ async function processWatch(env: RuntimeEnv, key: string): Promise<void> {
   // The current list price applies to new Watch purchases only. Existing prepaid
   // checks are grandfathered at their recorded unit price and are not
   // retroactively repriced merely because the owner changes today's ladder.
+  const quote = await quoteProductWithOverride(env, "watch_check");
+  const expectedMargin = record.prepaid_check_price_usd - quote.expectedVariableCostUsd;
+  if (!Number.isFinite(record.prepaid_check_price_usd) || !Number.isFinite(quote.expectedVariableCostUsd) ||
+      quote.expectedVariableCostUsd < 0 || !Number.isFinite(expectedMargin) || expectedMargin <= 0) {
+    await commitClaim(env, key, { record, etag: object.etag }, { ...record, state: "paused_margin", updated_at: new Date().toISOString() });
+    return;
+  }
   const leased: WatchRecord = {
     ...record,
     lease_until: new Date(nowMs + WATCH_LEASE_MS).toISOString(),
     updated_at: new Date().toISOString(),
   };
-  const claimed = await env.PROOFS.put(key, JSON.stringify(leased), {
+  const claimed = await env.PROOFS.put(key, watchJson(leased), {
     onlyIf: { etagMatches: object.etag },
     httpMetadata: { contentType: "application/json; charset=utf-8" },
   });
@@ -319,7 +487,8 @@ async function processWatch(env: RuntimeEnv, key: string): Promise<void> {
   record.updated_at = new Date().toISOString();
   record.lease_until = undefined;
   record.last_result = payload;
-  const completed = await env.PROOFS.put(key, JSON.stringify(record), {
+  record.pending_notification = await notificationFor(record, payload);
+  const completed = await env.PROOFS.put(key, watchJson(record), {
     onlyIf: { etagMatches: claimed.etag }, httpMetadata: { contentType: "application/json; charset=utf-8" },
   });
   if (!completed) return;
@@ -336,27 +505,46 @@ async function processWatch(env: RuntimeEnv, key: string): Promise<void> {
     success: payload.ok === true,
     reason: String(payload.reason ?? "observed"),
   });
-  try {
-    await sendWebhook(env, record, payload);
-  } catch (error) {
-    await recordEvent(env, {
-      event: "watch_webhook",
-      route: "/watch/webhook",
-      partner: record.partner,
-      channel: record.channel,
-      success: false,
-      reason: safeErrorCode(error),
-    });
-  }
+  await materializeNotification(env, key);
 }
 
 export async function runDueWatches(env: RuntimeEnv): Promise<void> {
-  const cursorKey = "ops/watch-list-cursor.json";
-  const cursorObject = await env.PROOFS.get(cursorKey);
-  const saved = cursorObject ? await cursorObject.json<{ cursor?: string }>() : {};
-  const listed = await env.PROOFS.list({ prefix: "watches/", limit: WATCH_BATCH_SIZE, cursor: saved.cursor });
-  await Promise.allSettled(listed.objects.map((object) => processWatch(env, object.key)));
-  await env.PROOFS.put(cursorKey, JSON.stringify({ cursor: listed.truncated ? listed.cursor : undefined }), {
-    httpMetadata: { contentType: "application/json; charset=utf-8" },
+  // Existing events do not wait on the older check inventory/capture path.
+  // The after-check pass also picks up newly committed events. Independent CAS
+  // claims make overlapping passes safe; neither pass can create a new check.
+  const outcomes = await Promise.allSettled([dispatchNotifications(env), runWatchChecks(env)]);
+  const failure = outcomes.find((outcome): outcome is PromiseRejectedResult => outcome.status === "rejected");
+  if (failure) throw failure.reason;
+}
+
+async function runWatchChecks(env: RuntimeEnv): Promise<void> {
+  try {
+    const cursorKey = "ops/watch-list-cursor.json";
+    const cursorObject = await env.PROOFS.get(cursorKey);
+    const saved = cursorObject ? await cursorObject.json<{ cursor?: string }>() : {};
+    const listed = await env.PROOFS.list({ prefix: "watches/", limit: WATCH_BATCH_SIZE, cursor: saved.cursor });
+    await Promise.allSettled(listed.objects.map((object) => processWatch(env, object.key)));
+    await env.PROOFS.put(cursorKey, JSON.stringify({ cursor: listed.truncated ? listed.cursor : undefined }), {
+      httpMetadata: { contentType: "application/json; charset=utf-8" },
+    });
+  } finally {
+    // A check-list or cursor-write rejection must not strand earlier events.
+    await dispatchNotifications(env);
+  }
+}
+
+async function dispatchNotifications(env: RuntimeEnv): Promise<void> {
+  // Notification dispatch has its own cursor and runs even when no Watch may
+  // start a new check. A receiver must deduplicate event_id atomically because
+  // a lost acknowledgement can cause the identical event to be delivered again.
+  const notificationCursorKey = "ops/watch-notification-list-cursor.json";
+  const notifications = await withNotificationBounds(env, async bounded => {
+    const notificationCursor = await bounded.PROOFS.get(notificationCursorKey);
+    const notificationSaved = notificationCursor ? await notificationCursor.json<{ cursor?: string }>() : {};
+    return bounded.PROOFS.list({ prefix: "watch-notifications/", limit: WATCH_BATCH_SIZE, cursor: notificationSaved.cursor });
   });
+  await Promise.allSettled(notifications.objects.map((object) => processNotification(env, object.key)));
+  await withNotificationBounds(env, bounded => bounded.PROOFS.put(notificationCursorKey, JSON.stringify({ cursor: notifications.truncated ? notifications.cursor : undefined }), {
+    httpMetadata: { contentType: "application/json; charset=utf-8" },
+  }));
 }

@@ -13,7 +13,10 @@ class MemoryBucket {
   sequence = 0;
   async get(key: string) {
     const value = this.values.get(key);
-    return value ? { etag: value.etag, size: value.bytes?.byteLength ?? new TextEncoder().encode(value.text).byteLength, json: async () => JSON.parse(value.text), text: async () => value.text, arrayBuffer: async () => (value.bytes ?? new TextEncoder().encode(value.text)).slice().buffer } : null;
+    const bytes = value && (value.bytes ?? new TextEncoder().encode(value.text)).slice();
+    return value ? { etag: value.etag, size: value.bytes?.byteLength ?? new TextEncoder().encode(value.text).byteLength,
+      body: new ReadableStream<Uint8Array>({ start(controller) { controller.enqueue(bytes!); controller.close(); } }),
+      json: async () => JSON.parse(value.text), text: async () => value.text, arrayBuffer: async () => (value.bytes ?? new TextEncoder().encode(value.text)).slice().buffer } : null;
   }
   async put(key: string, value: unknown, options?: R2PutOptions) {
     const current = this.values.get(key);

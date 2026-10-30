@@ -72,7 +72,7 @@ import { agentJsonManifest } from "./agent-manifest";
 import { guardedFacilitator, readSettlement, settlementBlockedBody, validatePaymentBinding } from "./settlement";
 import { captureFailure, safeErrorCode, MAX_FULFILLMENT_ATTEMPTS } from "./failures";
 import { commitClaim, createClaim, lostClaimBody } from "./claims";
-import { parseOrderEnrollment, assertOrderReplay, OrderAccessError, orderStatusResponse, type OrderEnrollment } from "./orders";
+import { parseOrderEnrollment, assertOrderReplay, OrderAccessError, orderStatusResponse, retentionDisclosure, type OrderEnrollment } from "./orders";
 import { exportOrderArtifact } from "./order-export";
 
 type PaidProduct = "capture" | "preflight";
@@ -367,6 +367,7 @@ async function protectWithX402(product: PaidProduct, c: AppContext, next: Next):
   if (middlewareResponse instanceof Response) c.res = middlewareResponse;
   if (c.res.status === 402) {
     c.res = mirrorX402ChallengeBody(c.res, {
+      retention: await retentionDisclosure(c.env),
       error: "payment_required",
       product,
       price_usd: c.var.quote.grossPriceUsd,
@@ -480,6 +481,7 @@ async function executeFulfillment(input: {
     const complete: FulfillmentRecord = {
       ...record,
       state: "complete",
+      completed_at: new Date().toISOString(),
       response,
       response_hash: responseHash,
       updated_at: new Date().toISOString(),
@@ -575,7 +577,7 @@ app.get("/v1/orders/:id/artifacts/:artifact", (c) => exportOrderArtifact(c.env, 
 app.options("/v1/*", (c) => {
   c.header("access-control-allow-origin", "*");
   c.header("access-control-allow-methods", "GET, POST, OPTIONS");
-  c.header("access-control-allow-headers", "content-type, payment-signature, x-payment, x-delta-channel, x-delta-order-id, x-delta-recovery-token");
+  c.header("access-control-allow-headers", "content-type, payment-signature, x-payment, x-delta-channel, x-delta-order-id, x-delta-recovery-token, x-delta-retention-policy-hash");
   c.header("access-control-max-age", "86400");
   return c.body(null, 204);
 });
@@ -616,6 +618,7 @@ app.get("/v1/quote", async (c) => {
     pay_to: c.env.PAY_TO,
     payment_flow: "upfront",
     economics: quote,
+    retention: await retentionDisclosure(c.env),
   });
 });
 

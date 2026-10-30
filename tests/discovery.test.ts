@@ -24,7 +24,7 @@ describe("OpenAPI paid discovery", () => {
       expect(operation.responses["404"].description).toContain("does not establish non-payment");
     }
     expect(document.components.securitySchemes.OrderCapability.name).toBe("x-delta-recovery-token");
-    expect(document.paths["/v1/capture"].post.parameters.map((parameter: any) => parameter.name)).toEqual(["x-delta-order-id", "x-delta-recovery-token"]);
+    expect(document.paths["/v1/capture"].post.parameters.map((parameter: any) => parameter.name)).toEqual(["x-delta-order-id", "x-delta-retention-policy-hash", "x-delta-recovery-token"]);
     expect(document.paths["/v1/guarded-action-pilot"].post.parameters).toBeUndefined();
     expect(document.components.schemas.OrderStatus.properties.payment.properties.treasury_received.type).toBe("null");
   });

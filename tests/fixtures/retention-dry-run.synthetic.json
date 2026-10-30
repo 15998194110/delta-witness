@@ -1,0 +1,78 @@
+{
+  "schema": "delta-retention-inventory/v1",
+  "tenant_id": "synthetic-buyer-a",
+  "at": "2026-10-29T00:01:40.000Z",
+  "orders": [
+    {
+      "order_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "tenant_id": "synthetic-buyer-a",
+      "proof_id": "bbbbbbbb-bbbb-5bbb-8bbb-bbbbbbbbbbbb",
+      "payment_fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "purchased_at": "2026-10-29T00:00:00.000Z",
+      "snapshot": {
+        "schema": "delta-retention-snapshot/v1",
+        "order_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "tenant_id": "synthetic-buyer-a",
+        "proof_id": "bbbbbbbb-bbbb-5bbb-8bbb-bbbbbbbbbbbb",
+        "payment_fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "purchased_at": "2026-10-29T00:00:00.000Z",
+        "policy": {
+          "schema": "delta-retention-policy/v1",
+          "policy_id": "synthetic-not-a-customer-promise",
+          "classes": {
+            "raw_artifacts": {
+              "start_event": "fulfillment_completed",
+              "retain_seconds": 60,
+              "deletion_window_seconds": 120
+            },
+            "minimal_metadata": {
+              "start_event": "fulfillment_completed",
+              "retain_seconds": 600,
+              "deletion_window_seconds": 120
+            },
+            "transaction_audit": {
+              "start_event": "fulfillment_completed",
+              "retain_seconds": 1200,
+              "deletion_window_seconds": 120
+            }
+          },
+          "export_rights": {
+            "raw_artifacts": "authenticated_until_raw_expiry",
+            "minimal_metadata": "authenticated_until_metadata_expiry"
+          }
+        },
+        "policy_hash": "sha256:faec712a35437c1dab789631502dbf0ee57bc45688e56fa8381363fe53bb4109",
+        "snapshot_hash": "sha256:7d2f7fc05064554836010b58ef3f428dac99b5b7af49921ccdaa4b20492ab628"
+      },
+      "authoritative_snapshot_hash": "sha256:7d2f7fc05064554836010b58ef3f428dac99b5b7af49921ccdaa4b20492ab628",
+      "events": {
+        "settlement_confirmed_at": "2026-10-29T00:00:10.000Z",
+        "fulfillment_completed_at": "2026-10-29T00:00:30.000Z"
+      },
+      "fulfillment_state": "complete",
+      "settlement_state": "settlement_confirmed",
+      "obligation_state": "cleared",
+      "legal_hold": false,
+      "objects": [
+        {
+          "key": "bbbbbbbb-bbbb-5bbb-8bbb-bbbbbbbbbbbb/page.html",
+          "etag": "synthetic-page.html",
+          "sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "bytes": 100
+        },
+        {
+          "key": "bbbbbbbb-bbbb-5bbb-8bbb-bbbbbbbbbbbb/page.md",
+          "etag": "synthetic-page.md",
+          "sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "bytes": 100
+        },
+        {
+          "key": "bbbbbbbb-bbbb-5bbb-8bbb-bbbbbbbbbbbb/screenshot.png",
+          "etag": "synthetic-screenshot.png",
+          "sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "bytes": 100
+        }
+      ]
+    }
+  ]
+}

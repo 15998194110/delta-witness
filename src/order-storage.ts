@@ -15,7 +15,8 @@ function memoryObject(value: Snapshot | null) {
 // Request-local storage view. Metadata is fresh on every read (including auth
 // rechecks and recovery CAS readback); proof artifacts form one immutable view.
 // This is a read bound, not a second credential or entitlement authority.
-export function createOrderReadSnapshot(source: RuntimeEnv) {
+export function createOrderReadSnapshot(source: RuntimeEnv, metadataByteLimit = MAX_ORDER_METADATA_BYTES) {
+  if (!Number.isSafeInteger(metadataByteLimit) || metadataByteLimit < 1 || metadataByteLimit > 262_144) throw new Error("invalid_metadata_byte_limit");
   let expired = false;
   const readers = new Set<ReadableStreamDefaultReader<Uint8Array>>();
   const assertActive = () => { if (expired) throw new Error("order_evidence_unavailable"); };
@@ -63,7 +64,7 @@ export function createOrderReadSnapshot(source: RuntimeEnv) {
     return snapshot.get(key)!;
   };
   const proofs = {
-    get: async (key: string) => memoryObject(await (artifactLimits.has(key) ? getArtifact(key) : readObject(key, MAX_ORDER_METADATA_BYTES))),
+    get: async (key: string) => memoryObject(await (artifactLimits.has(key) ? getArtifact(key) : readObject(key, metadataByteLimit))),
     // Recovery uses Core's existing CAS; the storage view never invents a write.
     put: (key: string, value: Parameters<R2Bucket["put"]>[1], options?: R2PutOptions) => { assertActive(); return source.PROOFS.put(key, value, options); },
   } as unknown as R2Bucket;

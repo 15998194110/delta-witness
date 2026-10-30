@@ -11,7 +11,10 @@ class MemoryBucket {
   async get(key: string) {
     const value = this.values.get(key);
     if (!value) return null;
-    return { etag: value.etag, json: async <T>() => JSON.parse(value.text) as T };
+    const bytes = new TextEncoder().encode(value.text);
+    return { etag: value.etag, size: bytes.byteLength,
+      body: new ReadableStream<Uint8Array>({start(controller) { controller.enqueue(bytes); controller.close(); }}),
+      json: async <T>() => JSON.parse(value.text) as T };
   }
 
   async put(key: string, value: string, options?: R2PutOptions) {
@@ -82,6 +85,9 @@ describe("prepaid Watch", () => {
   it("grandfathers an already prepaid watch instead of repricing it to the current list price", async () => {
     const bucket = new MemoryBucket();
     const env = runtime(bucket);
+    // This historical unit price is viable only with lower expected overhead.
+    // Retail price alone must not invalidate a margin-positive prepaid promise.
+    Object.assign(env, {FACILITATOR_FEE_USD: "0", FAILURE_ALLOWANCE_USD: "0", WORKER_ALLOWANCE_USD: "0"});
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
       if (url.startsWith("https://cloudflare-dns.com/dns-query?")) {
