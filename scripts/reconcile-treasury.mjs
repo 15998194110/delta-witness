@@ -13,6 +13,8 @@ export async function runTreasuryCli(env = process.env, dependencies = {}) {
     overlapBlocks: env.DELTA_TREASURY_OVERLAP_BLOCKS || 100,
     maxChunks: env.DELTA_TREASURY_MAX_CHUNKS || 100,
     scanTimeoutMs: env.DELTA_TREASURY_SCAN_TIMEOUT_MS || 180000,
+    // Opt-in read-only diagnostics; never changes confirmations or receipt state.
+    observeFinalized: env.DELTA_TREASURY_OBSERVE_FINALIZED === '1',
     log,
   };
   if (env.DELTA_TREASURY_START_BLOCK && env.DELTA_TREASURY_CHECKPOINT_BLOCK) throw failure('ambiguous_initial_block');

@@ -365,31 +365,34 @@ async function materializeNotificationWithinBounds(env: RuntimeEnv, key: string)
   await commitClaim(env, key, { record: watch, etag: object.etag }, next);
 }
 
-async function processNotification(env: RuntimeEnv, key: string): Promise<void> {
-  await withNotificationBounds(env, (bounded, signal) => processNotificationWithinBounds(bounded, key, signal));
+type WatchWorkOutcome = "skipped" | "completed" | "failed" | "deferred";
+
+async function processNotification(env: RuntimeEnv, key: string): Promise<WatchWorkOutcome> {
+  return withNotificationBounds(env, (bounded, signal) => processNotificationWithinBounds(bounded, key, signal));
 }
 
-async function processNotificationWithinBounds(env: RuntimeEnv, key: string, operationSignal: AbortSignal): Promise<void> {
+async function processNotificationWithinBounds(env: RuntimeEnv, key: string, operationSignal: AbortSignal): Promise<WatchWorkOutcome> {
   const object = await env.PROOFS.get(key);
-  if (!object) return;
+  if (!object) return "skipped";
   const event = await object.json<WatchNotification>();
-  if (!await validNotification(event, key) || ["delivered", "failed"].includes(event.state)) return;
+  if (!await validNotification(event, key) || event.state === "failed") return "failed";
+  if (event.state === "delivered") return "skipped";
   const now = Date.now();
-  if (Date.parse(event.next_attempt_at) > now || (event.lease_until && Date.parse(event.lease_until) > now)) return;
+  if (Date.parse(event.next_attempt_at) > now || (event.lease_until && Date.parse(event.lease_until) > now)) return ["retry_wait", "delivering"].includes(event.state) ? "deferred" : "skipped";
   if (event.attempts >= WEBHOOK_MAX_ATTEMPTS) {
     await commitClaim(env, key, { record: event, etag: object.etag }, { ...event, state: "failed", last_outcome: "attempts_exhausted_unknown", lease_until: undefined });
-    return;
+    return "failed";
   }
   const watchObject = await env.PROOFS.get(watchKey(event.watch_id));
   const watch = watchObject ? await watchObject.json<WatchRecord>() : null;
   if (!watch?.webhook_secret || watch.webhook_url !== event.webhook_url) {
     await commitClaim(env, key, { record: event, etag: object.etag }, { ...event, state: "failed", last_outcome: "destination_unavailable", lease_until: undefined });
-    return;
+    return "failed";
   }
   const attempt: WatchNotification = { ...event, attempts: event.attempts + 1, state: "delivering",
     attempt_timestamp: Math.floor(now / 1000).toString(), lease_until: new Date(now + WEBHOOK_LEASE_MS).toISOString(), last_outcome: "delivery_unknown" };
   const claim = await commitClaim(env, key, { record: event, etag: object.etag }, attempt);
-  if (!claim) return;
+  if (!claim) return "deferred";
   let outcome = "delivery_unknown", status: number | undefined, delivered = false, retry = true;
   const controller = new AbortController();
   if (operationSignal.aborted) throw new Error("notification_operation_timeout");
@@ -424,9 +427,10 @@ async function processNotificationWithinBounds(env: RuntimeEnv, key: string, ope
     lease_until: undefined, last_outcome: outcome, last_http_status: status, ...(delivered ? { delivered_at: new Date().toISOString() } : {}) };
   const saved = await commitClaim(env, key, claim, next);
   if (saved) await recordEvent(env, { event: "watch_webhook", route: "/watch/webhook", partner: watch.partner, channel: watch.channel, success: delivered, reason: outcome });
+  return !saved ? "deferred" : delivered ? "completed" : "failed";
 }
 
-async function processWatch(env: RuntimeEnv, key: string): Promise<void> {
+async function processWatch(env: RuntimeEnv, key: string): Promise<WatchWorkOutcome> {
   const view = createOrderReadSnapshot(env, WATCH_METADATA_BYTES);
   const source = env;
   const bounded = { ...env, PROOFS: {
@@ -453,34 +457,36 @@ async function processWatch(env: RuntimeEnv, key: string): Promise<void> {
       return response;
     },
   } as BrowserRun };
-  try { await withinDeadline(processWatchWithinBounds(bounded, key), WATCH_CHECK_OPERATION_MS, "watch_check_timeout", view.cancel); }
+  try { return await withinDeadline(processWatchWithinBounds(bounded, key), WATCH_CHECK_OPERATION_MS, "watch_check_timeout", view.cancel); }
   finally { view.cancel(); }
 }
 
-async function processWatchWithinBounds(env: RuntimeEnv, key: string): Promise<void> {
+async function processWatchWithinBounds(env: RuntimeEnv, key: string): Promise<WatchWorkOutcome> {
   await materializeNotification(env, key);
   const object = await env.PROOFS.get(key);
-  if (!object) return;
+  if (!object) return "skipped";
   const record = await object.json<WatchRecord>();
   const nowMs = Date.now();
-  if (record.schema !== "delta-watch/v1" || record.state !== "active" || record.checks_remaining <= 0) return;
+  if (record.schema !== "delta-watch/v1") return "failed";
+  if (["recovery_required", "paused_margin"].includes(record.state)) return "deferred";
+  if (record.state !== "active" || record.checks_remaining <= 0) return record.last_result?.ok === false ? "failed" : "skipped";
   if (record.pending_notification || !Number.isSafeInteger(record.checks_remaining) || !Number.isSafeInteger(record.checks_attempted) ||
-      record.checks_attempted < 0 || record.checks_remaining + record.checks_attempted !== record.checks_purchased) return;
+      record.checks_attempted < 0 || record.checks_remaining + record.checks_attempted !== record.checks_purchased) return "deferred";
   if (record.expires_at) {
-    if (!Number.isFinite(Date.parse(record.expires_at))) return;
+    if (!Number.isFinite(Date.parse(record.expires_at))) return "failed";
     if (Date.parse(record.expires_at) <= nowMs) {
-      await commitClaim(env, key, { record, etag: object.etag }, { ...record, state: "expired", updated_at: new Date().toISOString() });
-      return;
+      const expired = await commitClaim(env, key, { record, etag: object.etag }, { ...record, state: "expired", updated_at: new Date().toISOString() });
+      return expired ? "skipped" : "deferred";
     }
   }
-  if (Date.parse(record.next_check_at) > nowMs || (record.lease_until && Date.parse(record.lease_until) > nowMs)) return;
+  if (Date.parse(record.next_check_at) > nowMs || (record.lease_until && Date.parse(record.lease_until) > nowMs)) return record.lease_until || record.last_result?.ok === false ? "deferred" : "skipped";
   if (record.lease_until) {
     // An expired lease proves neither cancellation nor failed artifact storage.
     // Preserve the paid sequence and quota until the prior attempt is reconciled.
     await env.PROOFS.put(key, JSON.stringify({ ...record, state: "recovery_required", updated_at: new Date().toISOString() }), {
       onlyIf: { etagMatches: object.etag }, httpMetadata: { contentType: "application/json; charset=utf-8" },
     });
-    return;
+    return "deferred";
   }
   // The current list price applies to new Watch purchases only. Existing prepaid
   // checks are grandfathered at their recorded unit price and are not
@@ -490,7 +496,7 @@ async function processWatchWithinBounds(env: RuntimeEnv, key: string): Promise<v
   if (!Number.isFinite(record.prepaid_check_price_usd) || !Number.isFinite(quote.expectedVariableCostUsd) ||
       quote.expectedVariableCostUsd < 0 || !Number.isFinite(expectedMargin) || expectedMargin <= 0) {
     await commitClaim(env, key, { record, etag: object.etag }, { ...record, state: "paused_margin", updated_at: new Date().toISOString() });
-    return;
+    return "deferred";
   }
   const leased: WatchRecord = {
     ...record,
@@ -501,7 +507,7 @@ async function processWatchWithinBounds(env: RuntimeEnv, key: string): Promise<v
     onlyIf: { etagMatches: object.etag },
     httpMetadata: { contentType: "application/json; charset=utf-8" },
   });
-  if (!claimed) return;
+  if (!claimed) return "deferred";
 
   const sequence = record.checks_attempted + 1;
   let payload: Record<string, unknown>;
@@ -562,7 +568,7 @@ async function processWatchWithinBounds(env: RuntimeEnv, key: string): Promise<v
   const completed = await env.PROOFS.put(key, watchJson(record), {
     onlyIf: { etagMatches: claimed.etag }, httpMetadata: { contentType: "application/json; charset=utf-8" },
   });
-  if (!completed) return;
+  if (!completed) return "deferred";
   await recordEvent(env, {
     event: "watch_checked",
     route: "/watch/check",
@@ -577,18 +583,37 @@ async function processWatchWithinBounds(env: RuntimeEnv, key: string): Promise<v
     reason: String(payload.reason ?? "observed"),
   });
   await materializeNotification(env, key);
+  return payload.ok !== true ? "failed" : record.state === "paused_margin" ? "deferred" : "completed";
 }
 
-export async function runDueWatches(env: RuntimeEnv): Promise<void> {
+export type WatchRunSummary = {
+  checks_selected: number; checks_settled: number; checks_rejected: number;
+  checks_failed: number; checks_deferred: number;
+  notifications_selected: number; notifications_settled: number; notifications_rejected: number;
+  notifications_failed: number; notifications_deferred: number;
+  inventory_failures: number;
+};
+export class WatchRunError extends Error {
+  constructor(readonly summary: WatchRunSummary, cause: unknown) {
+    // Preserve the existing caller's error contract. Scheduled observation never
+    // emits this provider message; it records only its own sanitized category.
+    super(cause instanceof Error ? cause.message : "watch_inventory_failed");
+  }
+}
+export async function runDueWatches(env: RuntimeEnv): Promise<WatchRunSummary> {
   // Existing events do not wait on the older check inventory/capture path.
   // The after-check pass also picks up newly committed events. Independent CAS
   // claims make overlapping passes safe; neither pass can create a new check.
-  const outcomes = await Promise.allSettled([dispatchNotifications(env), runWatchChecks(env)]);
+  const summary: WatchRunSummary = { checks_selected: 0, checks_settled: 0, checks_rejected: 0,
+    checks_failed: 0, checks_deferred: 0, notifications_selected: 0, notifications_settled: 0, notifications_rejected: 0,
+    notifications_failed: 0, notifications_deferred: 0, inventory_failures: 0 };
+  const outcomes = await Promise.allSettled([dispatchNotifications(env, summary), runWatchChecks(env, summary)]);
   const failure = outcomes.find((outcome): outcome is PromiseRejectedResult => outcome.status === "rejected");
-  if (failure) throw failure.reason;
+  if (failure) throw new WatchRunError({ ...summary }, failure.reason);
+  return { ...summary };
 }
 
-async function runWatchChecks(env: RuntimeEnv): Promise<void> {
+async function runWatchChecks(env: RuntimeEnv, summary: WatchRunSummary): Promise<void> {
   try {
     const cursorKey = "ops/watch-list-cursor.json";
     const listed = await withNotificationBounds(env, async bounded => {
@@ -596,28 +621,46 @@ async function runWatchChecks(env: RuntimeEnv): Promise<void> {
       const saved = cursorObject ? await cursorObject.json<{ cursor?: string }>() : {};
       return bounded.PROOFS.list({ prefix: "watches/", limit: WATCH_BATCH_SIZE, cursor: saved.cursor });
     });
-    await Promise.allSettled(listed.objects.map((object) => processWatch(env, object.key)));
+    summary.checks_selected += listed.objects.length;
+    const outcomes = await Promise.allSettled(listed.objects.map((object) => processWatch(env, object.key)));
+    summary.checks_settled += outcomes.filter(value => value.status === "fulfilled").length;
+    summary.checks_rejected += outcomes.filter(value => value.status === "rejected").length;
+    summary.checks_failed += outcomes.filter(value => value.status === "fulfilled" && value.value === "failed").length;
+    summary.checks_deferred += outcomes.filter(value => value.status === "fulfilled" && value.value === "deferred").length;
     await withNotificationBounds(env, bounded => bounded.PROOFS.put(cursorKey, JSON.stringify({ cursor: listed.truncated ? listed.cursor : undefined }), {
       httpMetadata: { contentType: "application/json; charset=utf-8" },
     }));
+  } catch (error) {
+    summary.inventory_failures += 1;
+    throw error;
   } finally {
     // A check-list or cursor-write rejection must not strand earlier events.
-    await dispatchNotifications(env);
+    await dispatchNotifications(env, summary);
   }
 }
 
-async function dispatchNotifications(env: RuntimeEnv): Promise<void> {
+async function dispatchNotifications(env: RuntimeEnv, summary: WatchRunSummary): Promise<void> {
   // Notification dispatch has its own cursor and runs even when no Watch may
   // start a new check. A receiver must deduplicate event_id atomically because
   // a lost acknowledgement can cause the identical event to be delivered again.
   const notificationCursorKey = "ops/watch-notification-list-cursor.json";
-  const notifications = await withNotificationBounds(env, async bounded => {
-    const notificationCursor = await bounded.PROOFS.get(notificationCursorKey);
-    const notificationSaved = notificationCursor ? await notificationCursor.json<{ cursor?: string }>() : {};
-    return bounded.PROOFS.list({ prefix: "watch-notifications/", limit: WATCH_BATCH_SIZE, cursor: notificationSaved.cursor });
-  });
-  await Promise.allSettled(notifications.objects.map((object) => processNotification(env, object.key)));
-  await withNotificationBounds(env, bounded => bounded.PROOFS.put(notificationCursorKey, JSON.stringify({ cursor: notifications.truncated ? notifications.cursor : undefined }), {
-    httpMetadata: { contentType: "application/json; charset=utf-8" },
-  }));
+  try {
+    const notifications = await withNotificationBounds(env, async bounded => {
+      const notificationCursor = await bounded.PROOFS.get(notificationCursorKey);
+      const notificationSaved = notificationCursor ? await notificationCursor.json<{ cursor?: string }>() : {};
+      return bounded.PROOFS.list({ prefix: "watch-notifications/", limit: WATCH_BATCH_SIZE, cursor: notificationSaved.cursor });
+    });
+    summary.notifications_selected += notifications.objects.length;
+    const outcomes = await Promise.allSettled(notifications.objects.map((object) => processNotification(env, object.key)));
+    summary.notifications_settled += outcomes.filter(value => value.status === "fulfilled").length;
+    summary.notifications_rejected += outcomes.filter(value => value.status === "rejected").length;
+    summary.notifications_failed += outcomes.filter(value => value.status === "fulfilled" && value.value === "failed").length;
+    summary.notifications_deferred += outcomes.filter(value => value.status === "fulfilled" && value.value === "deferred").length;
+    await withNotificationBounds(env, bounded => bounded.PROOFS.put(notificationCursorKey, JSON.stringify({ cursor: notifications.truncated ? notifications.cursor : undefined }), {
+      httpMetadata: { contentType: "application/json; charset=utf-8" },
+    }));
+  } catch (error) {
+    summary.inventory_failures += 1;
+    throw error;
+  }
 }

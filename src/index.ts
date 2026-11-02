@@ -79,6 +79,7 @@ import { withinDeadline } from "./deadline";
 import { partnerBusinessIdentity, coordinatePartnerBilling } from "./partner-billing";
 import { exportOrderArtifact } from "./order-export";
 import { orderExportAuthorizationResponse } from "./order-export-authorization";
+import { runScheduledOperations, scheduledStatus, scheduledFetch, readScheduledJson, type ScheduledWorkResult } from "./scheduled-operations";
 
 type PaidProduct = "capture" | "preflight";
 type PriorManifest = Pick<ProofManifest, "proof_id" | "requested_url" | "capture_completed_at" | "hashes">;
@@ -1055,6 +1056,16 @@ app.get("*", (c, next) => {
   return c.env.INDEXNOW_KEY && requestedKey === c.env.INDEXNOW_KEY ? c.text(c.env.INDEXNOW_KEY) : next();
 });
 
+app.get("/internal/scheduled/status", async (c) => {
+  const headers = { "cache-control": "private, no-store", "x-robots-tag": "noindex, nofollow" };
+  if (!c.env.INDEXNOW_ADMIN_SECRET) return c.json({ error: "scheduled_admin_not_configured" }, 503, headers);
+  const presented = c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  if (!(await timingSafeEqualSecret(presented, c.env.INDEXNOW_ADMIN_SECRET))) return c.json({ error: "unauthorized" }, 401, headers);
+  if (new URL(c.req.url).search || c.req.header("origin")) return c.json({ error: "scheduled_status_input_forbidden" }, 400, headers);
+  const result = await scheduledStatus(c.env);
+  return c.json(result, result.ok === true ? 200 : 503, headers);
+});
+
 app.post("/internal/indexnow", async (c) => {
   if (!c.env.INDEXNOW_ADMIN_SECRET) return c.json({ error: "indexnow_admin_not_configured" }, 503);
   const presented = c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
@@ -1090,10 +1101,10 @@ app.onError((error, c) => {
   return c.json({ error: "internal_error" }, 500);
 });
 
-async function submitIndexNow(env: RuntimeEnv): Promise<Response> {
+async function submitIndexNow(env: RuntimeEnv, signal?: AbortSignal): Promise<Response> {
   if (!env.INDEXNOW_KEY) return new Response("IndexNow key not configured", { status: 503 });
   const base = origin(env);
-  return fetch("https://api.indexnow.org/indexnow", {
+  const init: RequestInit = {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: stableJson({
@@ -1102,7 +1113,8 @@ async function submitIndexNow(env: RuntimeEnv): Promise<Response> {
       keyLocation: `${base}/${env.INDEXNOW_KEY}.txt`,
       urlList: [`${base}/`, `${base}/docs`, ...USE_CASE_SLUGS.map((slug) => `${base}/use-cases/${slug}`), `${base}/openapi.json`, `${base}/SKILL.md`],
     }),
-  });
+  };
+  return signal ? scheduledFetch("https://api.indexnow.org/indexnow", init, signal) : fetch("https://api.indexnow.org/indexnow", init);
 }
 
 const MESHKORE_DEFAULT_AGENT_ID = "delta-witness-ruphussten";
@@ -1126,18 +1138,23 @@ function meshKoreDiscoveryCard(env: RuntimeEnv): Record<string, unknown> {
   };
 }
 
-async function meshKoreHeartbeat(env: RuntimeEnv): Promise<void> {
-  if (!env.MESHKORE_API_KEY) return;
+async function meshKoreHeartbeat(env: RuntimeEnv, signal: AbortSignal): Promise<ScheduledWorkResult> {
+  if (!env.MESHKORE_API_KEY) return { outcome: "skipped", reason: "missing_configuration" };
   const agentId = env.MESHKORE_AGENT_ID || MESHKORE_DEFAULT_AGENT_ID;
-  const tokenResponse = await fetch("https://api.meshkore.com/v1/agents/token", {
+  const tokenResponse = await scheduledFetch("https://api.meshkore.com/v1/agents/token", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: stableJson({ agent_id: agentId, api_key: env.MESHKORE_API_KEY }),
-  });
-  if (!tokenResponse.ok) throw new Error(`meshkore_token_${tokenResponse.status}`);
-  const tokenBody = await tokenResponse.json<{ token?: string }>();
-  if (!tokenBody.token) throw new Error("meshkore_token_missing");
-  const updateResponse = await fetch("https://api.meshkore.com/v1/agents/me", {
+  }, signal);
+  if (!tokenResponse.ok) {
+    void tokenResponse.body?.cancel().catch(() => {});
+    return { outcome: "degraded", reason: "upstream_rejected", http_status: tokenResponse.status };
+  }
+  let tokenBody: { token?: unknown };
+  try { tokenBody = await readScheduledJson(tokenResponse, signal) as { token?: unknown }; }
+  catch (error) { if (signal.aborted) throw error; return { outcome: "degraded", reason: "upstream_invalid_response" }; }
+  if (!tokenBody || typeof tokenBody.token !== "string" || !tokenBody.token || tokenBody.token.length > 4_096) return { outcome: "degraded", reason: "upstream_invalid_response" };
+  const updateResponse = await scheduledFetch("https://api.meshkore.com/v1/agents/me", {
     method: "PATCH",
     headers: { authorization: `Bearer ${tokenBody.token}`, "content-type": "application/json" },
     body: stableJson({
@@ -1146,9 +1163,9 @@ async function meshKoreHeartbeat(env: RuntimeEnv): Promise<void> {
       capabilities: ["web-proof", "browser-verification", "preflight", "page-state", "x402", "base", "usdc", "autonomous-agents", "guard", "evidence"],
       agent_card: meshKoreDiscoveryCard(env),
     }),
-  });
-  if (!updateResponse.ok) throw new Error(`meshkore_update_${updateResponse.status}`);
-  await updateResponse.body?.cancel();
+  }, signal);
+  void updateResponse.body?.cancel().catch(() => {});
+  return { outcome: updateResponse.ok ? "success" : "degraded", reason: updateResponse.ok ? "none" : "upstream_rejected", http_status: updateResponse.status };
 }
 
 export { app };
@@ -1156,19 +1173,25 @@ export { app };
 export default {
   fetch: app.fetch,
   async scheduled(controller: ScheduledController, env: RuntimeEnv, ctx: ExecutionContext): Promise<void> {
-    if (controller.cron === "*/3 * * * *") {
-      ctx.waitUntil(meshKoreHeartbeat(env).catch((error) => {
-        console.error(JSON.stringify({ event: "meshkore_heartbeat_failed", message: message(error) }));
-      }));
-      return;
-    }
-    ctx.waitUntil(runDueWatches(env));
-    const scheduled = new Date(controller.scheduledTime);
-    if (scheduled.getUTCHours() === 3 && scheduled.getUTCMinutes() < 15) {
-      ctx.waitUntil(submitIndexNow(env).then(async (response) => {
-        if (!response.ok) console.error(JSON.stringify({ event: "indexnow_failed", status: response.status }));
-        await response.body?.cancel();
-      }));
-    }
+    ctx.waitUntil(runScheduledOperations(env, controller, {
+      meshkore: signal => meshKoreHeartbeat(env, signal),
+      watch: async () => {
+        const counts = await runDueWatches(env);
+        const rejected = counts.checks_rejected + counts.notifications_rejected + counts.inventory_failures > 0;
+        const handled = counts.checks_failed + counts.checks_deferred + counts.notifications_failed + counts.notifications_deferred > 0;
+        return { outcome: rejected || handled ? "degraded" : "success", reason: rejected ? "watch_items_rejected" : handled ? "watch_items_degraded" : "none", counts };
+      },
+      indexnow: async signal => {
+        if (!env.INDEXNOW_KEY) return { outcome: "skipped", reason: "missing_configuration" };
+        const response = await submitIndexNow(env, signal);
+        void response.body?.cancel().catch(() => {});
+        return { outcome: response.ok ? "success" : "degraded", reason: response.ok ? "none" : "upstream_rejected", http_status: response.status };
+      },
+    }).then(results => {
+      // Every lane completes independently before the provider invocation is
+      // marked degraded. No failure disables Cron or starts replacement work.
+      if (results.some(result => ["failed", "timeout", "degraded"].includes(result.outcome) ||
+          ["unconfirmed", "conflict"].includes(result.observation))) throw new Error("scheduled_operations_degraded");
+    }));
   },
 } satisfies ExportedHandler<RuntimeEnv>;

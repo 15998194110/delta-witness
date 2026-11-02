@@ -41,6 +41,14 @@ export function decimalUsdc(raw) {
 }
 export function legacyDisplay(raw) { return BigInt(raw) <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(raw) / 1e6 : null; }
 function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+// Diagnostics identify the provider without copying credentials, query strings,
+// or API keys embedded in an RPC path into reports or logs.
+function providerSource(value) {
+  try {
+    const url = new URL(value);
+    return ['https:', 'http:'].includes(url.protocol) ? url.origin : null;
+  } catch { return null; }
+}
 function header(value, requested) {
   if (!value || !HASH.test(value.hash || '') || !HASH.test(value.parentHash || '') || quantity(value.number) !== requested) throw failure('invalid_block_header');
   return { number: requested, hash: value.hash.toLowerCase(), parent_hash: value.parentHash.toLowerCase() };
@@ -171,8 +179,12 @@ export function createRpcClient(options = {}) {
   const chainChecked = new Set();
   let preferred = null;
   let count = 0;
+  let failovers = 0;
+  const health = urls.map((url, provider) => ({ provider, source: providerSource(url), requests: 0,
+    successful_calls: 0, failed_attempts: 0, last_success_at: null, last_failure_at: null, last_failure_category: null }));
   async function request(url, method, params) {
     if (++count > maxRequests || now() - started >= scanTimeoutMs) throw failure('rpc_scan_budget_exhausted');
+    health[urls.indexOf(url)].requests++;
     const controller = new AbortController();
     return withDeadline(async () => {
       const response = await fetchImpl(url, { method: 'POST', redirect: 'error', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }), signal: controller.signal });
@@ -189,8 +201,9 @@ export function createRpcClient(options = {}) {
       return json.result;
     }, Math.min(requestTimeoutMs, Math.max(1, scanTimeoutMs - (now() - started))), controller);
   }
-  return async function rpc(method, params) {
+  const rpc = async function rpc(method, params) {
     let last = failure('rpc_unavailable');
+    const firstProvider = preferred ?? urls[0];
     for (const url of preferred ? [preferred, ...urls.filter(u => u !== preferred)] : urls) {
       for (let attempt = 1; attempt <= attempts; attempt++) {
         try {
@@ -203,11 +216,23 @@ export function createRpcClient(options = {}) {
             if (quantity(result) !== 8453) throw failure('wrong_chain');
             chainChecked.add(url);
           }
+          const observed = health[urls.indexOf(url)];
+          observed.successful_calls++;
+          observed.last_success_at = new Date(now()).toISOString();
+          if (url !== firstProvider) {
+            failovers++;
+            log({ event: 'treasury_rpc_fallback_selected', method, from_provider: urls.indexOf(firstProvider),
+              provider: urls.indexOf(url), source: providerSource(url) });
+          }
           preferred = url; // Retain the healthy-fallback optimization from the current master.
           return { result, url };
         } catch (error) {
           last = error?.category ? error : error instanceof TypeError ? failure('network_failure', true) : failure('unknown');
-          log({ event: 'treasury_rpc_degraded', method, provider: urls.indexOf(url), attempt, category: last.category });
+          const observed = health[urls.indexOf(url)];
+          observed.failed_attempts++;
+          observed.last_failure_at = new Date(now()).toISOString();
+          observed.last_failure_category = last.category;
+          log({ event: 'treasury_rpc_degraded', method, provider: urls.indexOf(url), source: providerSource(url), attempt, category: last.category });
           // Do not use another endpoint to bypass a denial or malformed chain evidence.
           if (!last.retryable) throw last;
           if (attempt < attempts) {
@@ -219,6 +244,11 @@ export function createRpcClient(options = {}) {
     }
     throw last;
   };
+  // An observational snapshot of this client instance, never persistent node
+  // health or a reason to alter a financial checkpoint.
+  rpc.getObservability = () => structuredClone({ scope: 'this_rpc_client_instance_only', persisted: false,
+    preferred_provider: preferred === null ? null : urls.indexOf(preferred), failovers, providers: health });
+  return rpc;
 }
 
 export async function reconcileTreasury(options) {
@@ -231,6 +261,13 @@ export async function reconcileTreasury(options) {
   let corrections = [];
   let committedChunks = 0;
   let checkpointWritePending = false;
+  const sources = new Set();
+  let sourceMissing = false;
+  const rpcCoverage = [];
+  let activeCoverage = null;
+  let finalityObservation = { status: 'not_requested', block_number: null, block_hash: null, source: null,
+    observed_at: null, scan_through_at_or_below_observed_finalized_number: null,
+    basis: 'provider_reported_header_only_not_consensus_or_economic_finality' };
   const base = () => ({
     schema: 'delta-treasury-report/v2', checked_at: new Date(now()).toISOString(), network: NETWORK, asset: USDC, treasury: TREASURY,
     scan_mode: mode, start_block: start, latest_block: latest, requested_through_block: target, last_scanned_block: scanned,
@@ -238,6 +275,10 @@ export async function reconcileTreasury(options) {
     checkpoint_revision: saved?.version ?? loaded?.version ?? null, checkpoint_advanced: checkpointWritePending ? null : committedChunks > 0,
     checkpoint_write_status: checkpointWritePending ? 'unknown_readback_required' : 'last_confirmed_snapshot',
     all_time_reconciled: false, finality_verified: false,
+    rpc_sources: [...sources], rpc_source_missing: sourceMissing,
+    rpc_coverage: structuredClone(rpcCoverage),
+    rpc_observability: typeof rpc.getObservability === 'function' ? rpc.getObservability() : null,
+    finality_observation: structuredClone(finalityObservation),
     recognized_customer_revenue_usdc: null, actual_variable_cost_usdc: null, actual_contribution_margin_usdc: null,
     scope: 'Canonical receipt candidates in the declared range; independent customer, settlement and delivery reconciliation is separate. No all-time claim.',
   });
@@ -250,7 +291,19 @@ export async function reconcileTreasury(options) {
     const scanMs = integer(options.scanTimeoutMs ?? 180000, 'scan_timeout', 1, 900000);
     const lookback = integer(options.lookbackBlocks ?? 50000, 'lookback_blocks', 1);
     const budget = () => { if (now() - started >= scanMs) throw failure('scan_budget_exhausted'); };
-    const call = async (method, params) => { budget(); const answer = await rpc(method, params); budget(); return answer.result; };
+    const call = async (method, params) => {
+      budget(); const answer = await rpc(method, params); budget();
+      const source = providerSource(answer.url);
+      if (source === null) sourceMissing = true; else sources.add(source);
+      if (activeCoverage) {
+        if (method === 'eth_getLogs') activeCoverage.log_source = source;
+        if (method === 'eth_getBlockByNumber') {
+          if (source === null) activeCoverage.header_source_missing = true;
+          else if (!activeCoverage.header_sources.includes(source)) activeCoverage.header_sources.push(source);
+        }
+      }
+      return answer.result;
+    };
     const block = async n => header(await call('eth_getBlockByNumber', [hex(n), false]), n);
     if (quantity(await call('eth_chainId', [])) !== 8453) throw failure('wrong_chain');
     latest = quantity(await call('eth_blockNumber', []));
@@ -282,6 +335,9 @@ export async function reconcileTreasury(options) {
       budget();
       if (++chunks > maxChunks) throw failure('chunk_budget_exhausted');
       const through = Math.min(target, from + chunkSize - 1);
+      activeCoverage = { from_block: from, through_block: through, status: 'incomplete', canonical_logs_verified: false,
+        log_source: null, header_sources: [], header_source_missing: false, checkpoint_committed: false };
+      rpcCoverage.push(activeCoverage);
       if (preceding && (await block(from - 1)).hash !== preceding.hash) throw failure('chain_changed_during_scan');
       const before = await block(through);
       const filter = { address: USDC, fromBlock: hex(from), toBlock: hex(through), topics: [TRANSFER_TOPIC, null, TO_TOPIC] };
@@ -314,6 +370,7 @@ export async function reconcileTreasury(options) {
       receipts.sort((a, b) => a.block_number - b.block_number || a.log_index - b.log_index);
       scanned = through;
       preceding = before;
+      activeCoverage.canonical_logs_verified = true;
       // Do not lower a committed cursor while rechecking an overlap/reorg. A crash
       // before reaching its prior tip leaves the old snapshot, marked unverified.
       if (options.checkpointStore && through >= (checkpointBefore ?? origin)) {
@@ -334,7 +391,34 @@ export async function reconcileTreasury(options) {
         expectedVersion = published.version;
         committedChunks++;
       }
+      activeCoverage.status = 'complete';
+      activeCoverage.checkpoint_committed = saved?.state.checked_through_block === through;
       log({ event: 'treasury_chunk_ok', from_block: from, to_block: through, logs: observed.length, checkpoint_committed: saved?.state.checked_through_block === through });
+      activeCoverage = null;
+    }
+    // Optional, bounded diagnostics after receipt coverage is complete. An
+    // unavailable finality tag cannot erase a confirmed scan or certify finality.
+    // The provider's block number alone is not proof of consensus/ancestry.
+    if (options.observeFinalized === true) {
+      const controller = new AbortController();
+      try {
+        const observationMs = integer(options.finalityObservationTimeoutMs ?? 3000, 'finality_observation_timeout', 1, 12000);
+        const observation = await withDeadline(async () => {
+          budget();
+          const answer = await rpc('eth_getBlockByNumber', ['finalized', false]);
+          if (controller.signal.aborted) throw failure('rpc_timeout', true);
+          budget();
+          const number = quantity(answer.result?.number);
+          const observed = header(answer.result, number);
+          return { status: 'observed', block_number: observed.number, block_hash: observed.hash,
+            source: providerSource(answer.url), observed_at: new Date(now()).toISOString(),
+            scan_through_at_or_below_observed_finalized_number: target <= observed.number,
+            basis: 'provider_reported_header_only_not_consensus_or_economic_finality' };
+        }, observationMs, controller);
+        finalityObservation = observation;
+      } catch (error) {
+        finalityObservation = { ...finalityObservation, status: 'unavailable', category: error?.category ?? 'finality_observation_failed' };
+      }
     }
     const total = receipts.reduce((n, t) => n + BigInt(t.raw_amount), 0n);
     const excluded = receipts.filter(t => t.customer_revenue === false).reduce((n, t) => n + BigInt(t.raw_amount), 0n);
