@@ -1,8 +1,15 @@
 export type Product = 'capture' | 'preflight';
+export type PrivateExportAuthorization = {
+  operation_id: string; token: string; ttl_seconds: number; expected_generation: number;
+} & ({ phase: 'pending'; generation?: never; expires_at?: never } | { phase: 'confirmed'; generation: number; expires_at: string });
+export type ExportAuthorizationResult = { ok: true; order_id: string; authorization: null | {
+  operation_id: string; generation: number; expires_at: string; scope: ['export']; state: 'active' | 'expired';
+} };
 export type OrderRecord = {
   schema: 'delta-client-order/v1'; revision: number; order_id: string; origin: string;
   product: Product; request_json: string; request_digest: string; recovery_token: string;
   phase: 'prepared' | 'signing_started' | 'uncertain' | 'complete'; retention_policy_hash?: string;
+  export_authorization?: PrivateExportAuthorization;
 };
 export type OrderStore = {
   load(id: string): Promise<unknown | null>;
@@ -20,7 +27,9 @@ export class DeltaWitness {
   prepareOrder(product: Product, input: Record<string, unknown>, options?: { orderId?: string; retentionPolicyHash?: string }): Promise<OrderResult>;
   executeOrder(id: string, paidFetch: DeltaFetch): Promise<OrderResult>;
   recoverOrder(id: string): Promise<OrderResult>;
-  exportArtifact(id: string, artifact: 'html' | 'markdown' | 'screenshot' | 'manifest'): Promise<{
+  renewExportAuthorization(id: string, options?: { ttlSeconds?: number }): Promise<ExportAuthorizationResult>;
+  recoverExportAuthorization(id: string): Promise<ExportAuthorizationResult>;
+  exportArtifact(id: string, artifact: 'html' | 'markdown' | 'screenshot' | 'manifest', options?: { authorization?: 'original' | 'derived' }): Promise<{
     order_id: string; artifact: string; bytes: Uint8Array; filename: string; content_sha256: string; content_type: string;
   }>;
   quote(product?: Product): Promise<unknown>;

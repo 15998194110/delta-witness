@@ -1,7 +1,7 @@
 import type { RuntimeEnv } from "./env";
 import { sha256, stableJson, uuidFromDigest } from "./crypto";
 import { MAX_TOTAL_ARTIFACT_BYTES, readStoredCapture } from "./capture";
-import { authenticateOrder, OrderAccessError, orderPrivateHeaders, readOrderEntitlement, orderRetention } from "./orders";
+import { authenticateOrderExport, OrderAccessError, orderPrivateHeaders, readOrderEntitlement, orderRetention } from "./orders";
 import { readOrderSettlement } from "./settlement";
 import { readFulfillment, fulfillmentRecordKey } from "./fulfillment";
 import { withinDeadline } from "./deadline";
@@ -39,7 +39,7 @@ export async function exportOrderArtifact(env: RuntimeEnv, orderId: string, requ
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
     return await withinDeadline((async () => {
       if (request.method !== "GET") throw new ExportError("method_not_allowed", 405);
-      const order = await authenticateOrder(boundedEnv, orderId, request);
+      const order = await authenticateOrderExport(boundedEnv, orderId, request);
       snapshot.assertActive();
       if (!order.scope.includes("export")) throw new ExportError("order_export_not_authorized", 403);
       if (!["html", "markdown", "screenshot", "manifest"].includes(artifact)) throw new ExportError("invalid_order_artifact", 400);
@@ -76,7 +76,7 @@ export async function exportOrderArtifact(env: RuntimeEnv, orderId: string, requ
       const contentHash = await sha256(bytes[index]);
       // Recheck the shared capability immediately before publishing bytes. An
       // expired/revoked/rotated credential cannot finish a long storage read.
-      const stillAuthorized = await authenticateOrder(boundedEnv, orderId, request);
+      const stillAuthorized = await authenticateOrderExport(boundedEnv, orderId, request);
       snapshot.assertActive();
       if (stableJson(stillAuthorized) !== stableJson(order)) throw new ExportError("order_export_authorization_changed", 409);
       if ((await orderRetention(order, journal, original)).state === "expired") throw new OrderAccessError("order_artifacts_expired", 410);

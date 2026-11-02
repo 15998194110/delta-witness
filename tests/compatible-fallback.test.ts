@@ -31,6 +31,30 @@ function artifacts(bucket: MemoryBucket) {
 }
 
 suite('exact reviewed Core fallback, isolated shared original storage', () => {
+  it.each(['capture', 'preflight'])('fallback preserves original %s access and rejects the unsupported child credential without changing the authorization', async product => {
+    const bucket = new MemoryBucket(), env = orderRuntime(bucket), network = mockOrderNetwork(); vi.stubGlobal('fetch', network);
+    const body = product === 'preflight' ? { url: 'https://example.com/', expected: { contains: ['missing fixture'] } } : undefined;
+    expect((await app.fetch(orderRequest({ product, body }), env)).status).toBe(200);
+    const child = Buffer.alloc(32, 63).toString('base64url');
+    const created = await app.fetch(new Request(`https://delta.test/v1/orders/${TEST_ORDER_ID}/export-authorization`, {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-delta-recovery-token': TEST_RECOVERY_TOKEN },
+      body: JSON.stringify({ operation_id: '33333333-3333-4333-8333-333333333333', token: child, ttl_seconds: 60, expected_generation: 0 }),
+    }), env);
+    expect(created.status).toBe(201);
+    const originals = structuredClone([...bucket.values]);
+    network.mockClear(); vi.mocked(env.BROWSER.quickAction).mockClear();
+    const download = (token: string) => new Request(`https://delta.test/v1/orders/${TEST_ORDER_ID}/artifacts/html`, { headers: { 'x-delta-recovery-token': token } });
+    expect((await fallback.fetch(statusRequest(), env)).status).toBe(200);
+    expect((await fallback.fetch(statusRequest({ token: child }), env)).status).toBe(404);
+    const prior = await fallback.fetch(download(TEST_RECOVERY_TOKEN), env);
+    expect(prior.status).toBe(200);
+    expect((await fallback.fetch(download(child), env)).status).toBe(404);
+    const resumed = await app.fetch(download(child), env);
+    expect(resumed.status).toBe(200);
+    expect(new Uint8Array(await resumed.arrayBuffer())).toEqual(new Uint8Array(await prior.arrayBuffer()));
+    expect([...bucket.values]).toEqual(originals);
+    expect(network).not.toHaveBeenCalled(); expect(env.BROWSER.quickAction).not.toHaveBeenCalled();
+  });
   it.each(['capture','preflight'].flatMap(product=>['html','markdown'].map(blank=>({product,blank}))))
   ('fallback rejects a new blank $blank $product snapshot; current preserves the blocked original without recapture',async({product,blank})=>{
     const bucket=new MemoryBucket(),env=orderRuntime(bucket),network=mockOrderNetwork();vi.stubGlobal('fetch',network);

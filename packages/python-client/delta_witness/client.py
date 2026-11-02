@@ -41,6 +41,41 @@ def _id(value):
     return value.lower()
 
 
+def _valid_token(value):
+    try:
+        decoded = base64.urlsafe_b64decode(value + '=')
+        return (type(value) is str and re.fullmatch(r'[A-Za-z0-9_-]{43}', value) is not None and
+            len(decoded) == 32 and base64.urlsafe_b64encode(decoded).decode().rstrip('=') == value)
+    except Exception:
+        return False
+
+
+def _valid_export_operation(value):
+    if type(value) is not dict or set(value) != {'operation_id', 'token', 'ttl_seconds', 'expected_generation', 'phase'}:
+        return False
+    return (type(value['operation_id']) is str and ID.fullmatch(value['operation_id']) is not None and
+        _valid_token(value['token']) and type(value['ttl_seconds']) is int and 60 <= value['ttl_seconds'] <= 3600 and
+        type(value['expected_generation']) is int and 0 <= value['expected_generation'] < 2**53 - 1 and
+        value['phase'] in {'prepared', 'attempted', 'confirmed'})
+
+
+def _export_authorization_envelope(value, order_id):
+    if type(value) is not dict or set(value) != {'ok', 'order_id', 'authorization'} or value['ok'] is not True or value['order_id'] != order_id:
+        raise ValueError()
+    auth = value['authorization']
+    if auth is None:
+        return value
+    if (type(auth) is not dict or set(auth) != {'operation_id', 'generation', 'expires_at', 'scope', 'state'} or
+        type(auth['operation_id']) is not str or ID.fullmatch(auth['operation_id']) is None or
+        type(auth['generation']) is not int or not 1 <= auth['generation'] < 2**53 or
+        auth['scope'] != ['export'] or auth['state'] not in {'active', 'expired'} or type(auth['expires_at']) is not str):
+        raise ValueError()
+    expiry = datetime.fromisoformat(auth['expires_at'].replace('Z', '+00:00'))
+    if expiry.utcoffset() is None or expiry.utcoffset().total_seconds() != 0:
+        raise ValueError()
+    return value
+
+
 def _body(product, value):
     try:
         allowed = {'url'} if product == 'capture' else {'url', 'expected', 'prior_proof_id', 'freshness_seconds'}
@@ -136,7 +171,7 @@ class DeltaWitness:
             raise DeltaError('order_not_prepared', order_id)
         try:
             record = json.loads(_json(record))
-            fields = {'schema', 'revision', 'order_id', 'origin', 'product', 'request_json', 'request_digest', 'recovery_token', 'phase', 'retention_policy_hash'}
+            fields = {'schema', 'revision', 'order_id', 'origin', 'product', 'request_json', 'request_digest', 'recovery_token', 'phase', 'retention_policy_hash', 'export_authorization'}
             token = record['recovery_token']
             decoded = base64.urlsafe_b64decode(token + '=')
             if (set(record) - fields or record['schema'] != 'delta-python-client-order/v1' or record['order_id'] != order_id or
@@ -144,7 +179,9 @@ class DeltaWitness:
                 not re.fullmatch(r'[A-Za-z0-9_-]{43}', token) or len(decoded) != 32 or base64.urlsafe_b64encode(decoded).decode().rstrip('=') != token or
                 record['origin'] != self._origin() or _body(record['product'], json.loads(record['request_json'])) != record['request_json'] or
                 record['request_digest'] != self._digest(record['product'], record['request_json']) or
-                ('retention_policy_hash' in record and not HASH.fullmatch(record['retention_policy_hash']))):
+                ('retention_policy_hash' in record and not HASH.fullmatch(record['retention_policy_hash'])) or
+                ('export_authorization' in record and (not _valid_export_operation(record['export_authorization']) or
+                    record['export_authorization']['token'] == token))):
                 raise ValueError()
             return record
         except Exception:
@@ -201,7 +238,7 @@ class DeltaWitness:
             raise ValueError()
         allowed = ('ok', 'product', 'proof_id', 'manifest_url', 'public_proof_url', 'bundle_root', 'observed_at', 'safe', 'changed', 'reason', 'diff', 'idempotent_replay')
         selected = {key: body[key] for key in allowed if key in body}
-        if record['recovery_token'] in _json(selected):
+        if any(token in _json(selected) for token in [record['recovery_token'], record.get('export_authorization', {}).get('token')] if token):
             raise ValueError()
         return {'order_id': record['order_id'], 'product': record['product'], 'state': 'complete', 'delivery': selected}
 
@@ -266,17 +303,107 @@ class DeltaWitness:
             raise DeltaError('read_failed', status=status)
         return body
 
-    def export_artifact(self, order_id, artifact):
+    def _read_export_authorization(self, record):
+        status, _, body = self._request('GET', '/v1/orders/' + record['order_id'] + '/export-authorization',
+            headers={'x-delta-recovery-token': record['recovery_token']})
+        if status != 200:
+            raise ValueError()
+        return _export_authorization_envelope(body, record['order_id'])
+
+    def prepare_export_authorization(self, order_id, *, operation_id, ttl_seconds=300):
+        """Persist one private operation before any update; no payment transport."""
+        oid, op_id = _id(order_id), _id(operation_id)
+        if type(ttl_seconds) is not int or not 60 <= ttl_seconds <= 3600:
+            raise DeltaError('invalid_export_authorization', oid)
+        record = self._read(oid)
+        prior = record.get('export_authorization')
+        if prior and prior['operation_id'] == op_id:
+            if prior['ttl_seconds'] != ttl_seconds:
+                raise DeltaError('export_authorization_identity_conflict', oid)
+            return {'order_id': oid, 'operation_id': op_id, 'state': prior['phase']}
+        if prior and prior['phase'] != 'confirmed':
+            raise DeltaError('export_authorization_pending', oid)
+        try:
+            current = self._read_export_authorization(record)['authorization']
+        except Exception:
+            raise DeltaError('export_authorization_unconfirmed', oid) from None
+        token = secrets.token_urlsafe(32)
+        if not _valid_token(token) or token == record['recovery_token']:
+            raise DeltaError('invalid_export_authorization', oid)
+        operation = {'operation_id': op_id, 'token': token, 'ttl_seconds': ttl_seconds,
+            'expected_generation': current['generation'] if current else 0, 'phase': 'prepared'}
+        next_record = {**record, 'revision': record['revision'] + 1, 'export_authorization': operation}
+        if not self._cas(next_record, record['revision']):
+            raise DeltaError('order_store_conflict', oid)
+        if self._read(oid) != next_record:
+            raise DeltaError('order_store_conflict', oid)
+        return {'order_id': oid, 'operation_id': op_id, 'state': 'prepared'}
+
+    def _accept_export_authorization(self, record, body):
+        operation = record['export_authorization']
+        auth = _export_authorization_envelope(body, record['order_id'])['authorization']
+        if auth is None or auth['operation_id'] != operation['operation_id'] or auth['generation'] != operation['expected_generation'] + 1:
+            raise ValueError()
+        if operation['phase'] != 'confirmed':
+            if not self._cas({**record, 'revision': record['revision'] + 1,
+                'export_authorization': {**operation, 'phase': 'confirmed'}}, record['revision']):
+                raise ValueError()
+        return body
+
+    def execute_export_authorization(self, order_id):
+        oid, status = _id(order_id), None
+        record = self._read(oid)
+        operation = record.get('export_authorization')
+        if not operation:
+            raise DeltaError('export_authorization_not_prepared', oid)
+        if operation['phase'] != 'prepared':
+            return self.recover_export_authorization(oid)
+        claimed = {**record, 'revision': record['revision'] + 1,
+            'export_authorization': {**operation, 'phase': 'attempted'}}
+        if not self._cas(claimed, record['revision']):
+            raise DeltaError('order_store_conflict', oid)
+        if self._read(oid) != claimed:
+            raise DeltaError('order_store_conflict', oid)
+        try:
+            payload = {key: operation[key] for key in ('operation_id', 'token', 'ttl_seconds', 'expected_generation')}
+            status, _, body = self._request('POST', '/v1/orders/' + oid + '/export-authorization',
+                headers={'content-type': 'application/json', 'x-delta-recovery-token': record['recovery_token']},
+                body=_json(payload).encode())
+            if status not in (200, 201):
+                raise ValueError()
+            return self._accept_export_authorization(claimed, body)
+        except Exception:
+            raise DeltaError('export_authorization_unconfirmed', oid, status) from None
+
+    def recover_export_authorization(self, order_id):
+        oid = _id(order_id)
+        record = self._read(oid)
+        if not record.get('export_authorization'):
+            raise DeltaError('export_authorization_not_prepared', oid)
+        try:
+            return self._accept_export_authorization(record, self._read_export_authorization(record))
+        except Exception:
+            raise DeltaError('export_authorization_unconfirmed', oid) from None
+
+    def export_artifact(self, order_id, artifact, *, use_export_authorization=False):
         oid = _id(order_id)
         if artifact not in {'html', 'markdown', 'screenshot', 'manifest'}:
             raise DeltaError('invalid_order_artifact', oid)
         record = self._read(oid)
+        token = record['recovery_token']
+        if type(use_export_authorization) is not bool:
+            raise DeltaError('invalid_export_authorization', oid)
+        if use_export_authorization:
+            operation = record.get('export_authorization')
+            if not operation or operation['phase'] != 'confirmed':
+                raise DeltaError('export_authorization_unconfirmed', oid)
+            token = operation['token']
         names = {'html': 'page.html', 'markdown': 'page.md', 'screenshot': 'screenshot.png', 'manifest': 'manifest.json'}
         filename = 'delta-' + oid + '-' + names[artifact]
         status = None
         try:
             status, headers, raw = self._request('GET', '/v1/orders/' + oid + '/artifacts/' + artifact,
-                headers={'x-delta-recovery-token': record['recovery_token']}, binary=True)
+                headers={'x-delta-recovery-token': token}, binary=True)
             headers = {key.lower(): value for key, value in headers.items()}
             digest = 'sha256:' + hashlib.sha256(raw).hexdigest()
             if (status != 200 or headers.get('x-delta-content-sha256') != digest or

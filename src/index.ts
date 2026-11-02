@@ -78,6 +78,7 @@ import { createOrderReadSnapshot, MetadataReadError, StorageWriteError, readProo
 import { withinDeadline } from "./deadline";
 import { partnerBusinessIdentity, coordinatePartnerBilling } from "./partner-billing";
 import { exportOrderArtifact } from "./order-export";
+import { orderExportAuthorizationResponse } from "./order-export-authorization";
 
 type PaidProduct = "capture" | "preflight";
 type PriorManifest = Pick<ProofManifest, "proof_id" | "requested_url" | "capture_completed_at" | "hashes">;
@@ -624,6 +625,8 @@ app.options("/v1/orders/*", (c) => orderStatusResponse(c.env, c.req.raw));
 app.get("/v1/orders/:id", (c) => orderStatusResponse(c.env, c.req.raw, c.req.param("id")));
 app.post("/v1/orders/:id/recover", (c) => orderStatusResponse(c.env, c.req.raw, c.req.param("id"), true));
 app.get("/v1/orders/:id/artifacts/:artifact", (c) => exportOrderArtifact(c.env, c.req.param("id"), c.req.raw, c.req.param("artifact")));
+app.get("/v1/orders/:id/export-authorization", (c) => orderExportAuthorizationResponse(c.env, c.req.param("id"), c.req.raw));
+app.post("/v1/orders/:id/export-authorization", (c) => orderExportAuthorizationResponse(c.env, c.req.param("id"), c.req.raw));
 
 app.options("/v1/*", (c) => {
   c.header("access-control-allow-origin", "*");

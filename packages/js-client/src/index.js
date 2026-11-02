@@ -64,6 +64,35 @@ function validRecoveryToken(value) {
   } catch { return false; }
 }
 
+function validPrivateExportAuthorization(value, rootToken) {
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype ||
+      Object.keys(value).some(key => !['operation_id', 'token', 'ttl_seconds', 'expected_generation', 'phase', 'generation', 'expires_at'].includes(key)) ||
+      typeof value.operation_id !== 'string' || !ORDER_ID.test(value.operation_id) ||
+      !validRecoveryToken(value.token) || value.token === rootToken ||
+      !Number.isInteger(value.ttl_seconds) || value.ttl_seconds < 60 || value.ttl_seconds > 3600 ||
+      !Number.isSafeInteger(value.expected_generation) || value.expected_generation < 0 || value.expected_generation >= Number.MAX_SAFE_INTEGER ||
+      !['pending', 'confirmed'].includes(value.phase)) return false;
+  if (value.phase === 'pending') return value.generation === undefined && value.expires_at === undefined;
+  return value.generation === value.expected_generation + 1 && typeof value.expires_at === 'string' &&
+    Number.isFinite(Date.parse(value.expires_at)) && new Date(value.expires_at).toISOString() === value.expires_at;
+}
+
+function exportAuthorizationEnvelope(body, id) {
+  if (!body || Object.getPrototypeOf(body) !== Object.prototype || body.ok !== true || body.order_id !== id ||
+      Object.keys(body).some(key => !['ok', 'order_id', 'authorization'].includes(key))) throw new Error();
+  const value = body.authorization;
+  if (value === null) return { ok: true, order_id: id, authorization: null };
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype ||
+      Object.keys(value).some(key => !['operation_id', 'generation', 'expires_at', 'scope', 'state'].includes(key)) ||
+      typeof value.operation_id !== 'string' || !ORDER_ID.test(value.operation_id) ||
+      !Number.isSafeInteger(value.generation) || value.generation < 1 ||
+      typeof value.expires_at !== 'string' || !Number.isFinite(Date.parse(value.expires_at)) || new Date(value.expires_at).toISOString() !== value.expires_at ||
+      !Array.isArray(value.scope) || value.scope.length !== 1 || value.scope[0] !== 'export' ||
+      !['active', 'expired'].includes(value.state)) throw new Error();
+  return { ok: true, order_id: id, authorization: { operation_id: value.operation_id, generation: value.generation,
+    expires_at: value.expires_at, scope: ['export'], state: value.state } };
+}
+
 async function requestDigest(origin, product, requestJson) {
   const bytes = new TextEncoder().encode(`delta-client-order/v1\n${origin}\n${product}\n${requestJson}`);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
@@ -83,7 +112,8 @@ function orderDelivery(body, record) {
   const delivery = Object.fromEntries(['ok', 'product', 'proof_id', 'manifest_url', 'public_proof_url', 'bundle_root',
     'observed_at', 'safe', 'changed', 'reason', 'diff', 'idempotent_replay']
     .filter(key => body[key] !== undefined).map(key => [key, body[key]]));
-  if (JSON.stringify(delivery).includes(record.recovery_token)) throw new Error();
+  if (JSON.stringify(delivery).includes(record.recovery_token) ||
+      record.export_authorization && JSON.stringify(delivery).includes(record.export_authorization.token)) throw new Error();
   return delivery;
 }
 
@@ -177,8 +207,9 @@ export class DeltaWitness {
     try {
       // Take a JSON-only copy so a store cannot mutate the active request after a read.
       const record = JSON.parse(canonicalJson(saved));
-      if (Object.keys(record).some(key => !['schema', 'revision', 'order_id', 'origin', 'product', 'request_json', 'request_digest', 'recovery_token', 'phase', 'retention_policy_hash'].includes(key)) ||
+      if (Object.keys(record).some(key => !['schema', 'revision', 'order_id', 'origin', 'product', 'request_json', 'request_digest', 'recovery_token', 'phase', 'retention_policy_hash', 'export_authorization'].includes(key)) ||
           (record.retention_policy_hash !== undefined && !/^sha256:[0-9a-f]{64}$/.test(record.retention_policy_hash)) ||
+          (record.export_authorization !== undefined && (record.phase !== 'complete' || !validPrivateExportAuthorization(record.export_authorization, record.recovery_token))) ||
           record.schema !== 'delta-client-order/v1' || record.order_id !== id || !Number.isSafeInteger(record.revision) || record.revision < 0 ||
           !ORDER_PHASES.includes(record.phase) || !validRecoveryToken(record.recovery_token) ||
           typeof record.request_json !== 'string' || orderBody(record.product, JSON.parse(record.request_json)) !== record.request_json ||
@@ -290,14 +321,89 @@ export class DeltaWitness {
     if (!r.ok) throw new Error(`DELTA quote failed: ${r.status}`);
     return r.json();
   }
-  async exportArtifact(requestedId, artifact) {
+
+  async #exportAuthorizationRequest(record, body) {
+    let status = null;
+    try {
+      const response = await boundedResponse(this.fetch, `${record.origin}/v1/orders/${record.order_id}/export-authorization`, {
+        method: body ? 'POST' : 'GET', redirect: 'error',
+        headers: { 'x-delta-channel': this.channel, 'x-delta-recovery-token': record.recovery_token,
+          ...(body ? { 'content-type': 'application/json' } : {}) },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      }, this.requestTimeoutMs, response => { status = response.status; }, 16_384);
+      if (body ? ![200, 201].includes(status) : status !== 200) throw new Error();
+      return exportAuthorizationEnvelope(await response.json(), record.order_id);
+    } catch { throw orderError('order_export_authorization_unconfirmed', record.order_id, status); }
+  }
+
+  async #confirmExportAuthorization(record, envelope) {
+    const local = record.export_authorization, remote = envelope.authorization;
+    if (!local) return envelope; // Metadata only; no local child token is invented.
+    if (!remote || remote.operation_id !== local.operation_id || remote.generation !== local.expected_generation + 1 ||
+        local.phase === 'confirmed' && (local.generation !== remote.generation || local.expires_at !== remote.expires_at)) {
+      throw orderError('order_export_authorization_unconfirmed', record.order_id);
+    }
+    if (local.phase === 'pending') {
+      const confirmed = { ...record, revision: record.revision + 1, export_authorization: { ...local, phase: 'confirmed',
+        generation: remote.generation, expires_at: remote.expires_at } };
+      if (!await this.#compareAndSet(confirmed, record.revision)) throw orderError('order_store_conflict', record.order_id);
+      if (canonicalJson(await this.#readOrder(record.order_id)) !== canonicalJson(confirmed)) throw orderError('order_store_conflict', record.order_id);
+    }
+    return envelope;
+  }
+
+  async recoverExportAuthorization(requestedId) {
+    const id = orderId(requestedId), record = await this.#readOrder(id);
+    // This method never posts, signs, creates another operation or overwrites a
+    // different generation. A missing/mismatched readback leaves pending intact.
+    return this.#confirmExportAuthorization(record, await this.#exportAuthorizationRequest(record));
+  }
+
+  async renewExportAuthorization(requestedId, { ttlSeconds = 900 } = {}) {
+    const id = orderId(requestedId), record = await this.#readOrder(id);
+    if (!Number.isInteger(ttlSeconds) || ttlSeconds < 60 || ttlSeconds > 3600) throw orderError('invalid_export_authorization_ttl', id);
+    if (record.phase !== 'complete') throw orderError('order_delivery_required', id);
+    // Even a crash before sending may have crossed the remote write boundary.
+    // Re-entry reconciles the persisted operation with GET, never a second POST.
+    if (record.export_authorization?.phase === 'pending') return this.recoverExportAuthorization(id);
+    const remote = (await this.#exportAuthorizationRequest(record)).authorization;
+    const generation = remote?.generation ?? 0;
+    if (generation >= Number.MAX_SAFE_INTEGER || record.export_authorization && generation < record.export_authorization.generation) {
+      throw orderError('order_export_authorization_unconfirmed', id);
+    }
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    const token = btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+    if (token === record.recovery_token) throw orderError('order_export_authorization_unconfirmed', id);
+    const local = { operation_id: crypto.randomUUID(), token, ttl_seconds: ttlSeconds, expected_generation: generation, phase: 'pending' };
+    const claimed = { ...record, revision: record.revision + 1, export_authorization: local };
+    if (!await this.#compareAndSet(claimed, record.revision)) throw orderError('order_store_conflict', id);
+    if (canonicalJson(await this.#readOrder(id)) !== canonicalJson(claimed)) throw orderError('order_store_conflict', id);
+    const envelope = await this.#exportAuthorizationRequest(record, { operation_id: local.operation_id, token: local.token,
+      ttl_seconds: local.ttl_seconds, expected_generation: local.expected_generation });
+    return this.#confirmExportAuthorization(claimed, envelope);
+  }
+
+  async exportArtifact(requestedId, artifact, { authorization = 'original' } = {}) {
     const limits = { html: 2_000_000, markdown: 1_000_000, screenshot: 6_000_000, manifest: 1_048_576 };
     if (!Object.hasOwn(limits, artifact)) throw orderError('invalid_order_artifact');
-    const id = orderId(requestedId), record = await this.#readOrder(id);
+    if (!['original', 'derived'].includes(authorization)) throw orderError('invalid_export_authorization');
+    const id = orderId(requestedId);
+    let record = await this.#readOrder(id), token = record.recovery_token;
+    if (authorization === 'derived') {
+      if (!record.export_authorization) throw orderError('order_export_authorization_unconfirmed', id);
+      const current = (await this.recoverExportAuthorization(id)).authorization;
+      record = await this.#readOrder(id);
+      if (!current || current.state !== 'active' || Date.parse(current.expires_at) <= Date.now() ||
+          record.export_authorization?.phase !== 'confirmed' || record.export_authorization.operation_id !== current.operation_id ||
+          record.export_authorization.generation !== current.generation || record.export_authorization.expires_at !== current.expires_at) {
+        throw orderError('order_export_authorization_unconfirmed', id);
+      }
+      token = record.export_authorization.token;
+    }
     let status = null;
     try {
       const response = await boundedResponse(this.fetch, `${record.origin}/v1/orders/${id}/artifacts/${artifact}`, {
-        method: 'GET', redirect: 'error', headers: { 'x-delta-channel': this.channel, 'x-delta-recovery-token': record.recovery_token },
+        method: 'GET', redirect: 'error', headers: { 'x-delta-channel': this.channel, 'x-delta-recovery-token': token },
       }, this.requestTimeoutMs, response => { status = response.status; }, limits[artifact]);
       if (status !== 200 || !response.headers.get('content-disposition')?.startsWith('attachment;')) throw new Error();
       const bytes = new Uint8Array(await response.arrayBuffer());

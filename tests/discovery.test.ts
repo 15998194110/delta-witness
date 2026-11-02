@@ -14,6 +14,21 @@ const quote: PricingQuote = {
 };
 
 describe("OpenAPI paid discovery", () => {
+  it("describes credential updates as private unpaid operations with write-only secrets and a generation fence", () => {
+    const document = openApi("https://delta.example", "0.7.1", { ...quote, product: "capture" }, quote) as any;
+    const path = document.paths["/v1/orders/{order_id}/export-authorization"];
+    for (const method of ["get", "post"]) {
+      expect(path[method].security).toEqual([{ OrderCapability: [] }]);
+      expect(path[method]["x-payment-info"]).toBeUndefined();
+      expect(path[method].responses["402"]).toBeUndefined();
+    }
+    const input = path.post.requestBody.content["application/json"].schema;
+    expect(input.required).toContain("expected_generation");
+    expect(input.properties.token.writeOnly).toBe(true);
+    const output = path.post.responses["201"].content["application/json"].schema;
+    expect(output.properties.authorization.oneOf[1].properties.token).toBeUndefined();
+    expect(output.properties.authorization.oneOf[1].properties.scope).toEqual({ const: ["export"] });
+  });
   it("keeps scoped recovery and artifact downloads separate from paid discovery", () => {
     const document = openApi("https://delta.example", "0.7.1", { ...quote, product: "capture" }, quote) as any;
     for (const [path, method] of [["/v1/orders/{order_id}", "get"], ["/v1/orders/{order_id}/recover", "post"], ["/v1/orders/{order_id}/artifacts/{artifact}", "get"]]) {

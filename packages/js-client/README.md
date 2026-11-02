@@ -52,6 +52,8 @@ For an existing x402 integration, pass its approved fetch directly to `preflight
 
 The local source adds `prepareOrder`, `executeOrder`, and `recoverOrder` for Capture and Preflight. This flow requires Core order recovery to be explicitly enabled by its operator. It is not a claim that recovery is enabled on the public service or available in an already-published npm release. The legacy `captureWithPaidFetch` and `preflightWithPaidFetch` methods remain unchanged and do not provide persistence across calls or process restarts.
 
+For an existing order, `renewExportAuthorization(orderId, {ttlSeconds: 300})` privately persists a new random export-only token and operation before a single unsigned update POST. After a lost response or restart, call `recoverExportAuthorization(orderId)`; it only reads the saved operation. Pending attempts never trigger another POST. A deliberate later renewal rotates the child credential, with a requested technical lifetime of 60–3600 seconds capped by original access and raw retention. Returned metadata contains no credential. `exportArtifact(orderId, 'html', {authorization: 'derived'})` explicitly uses a confirmed matching child credential and never silently falls back to the original. Default exports retain their existing behavior. Keep the updated SDK and private store together; old SDK versions reject the new optional record field. This API requires a still-valid original capability and does not recover a lost original identity, extend purchased retention, settle or capture again.
+
 Provide an **atomic, durable** store owned by your application:
 
 ```js

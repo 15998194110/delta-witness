@@ -70,10 +70,17 @@ function legacyTargets(value) {
 function originalHistoryBlocks(document, keys) {
   const intersects = other => other.some(key => keys.includes(key));
   if (document.contact_suppressions.some(value => intersects(legacyTargets(value.recipient)))) return true;
-  if (document.opportunities.some(value => intersects(legacyTargets(value.contact)) &&
-    [value.sent_message_id, value.failed_sent_message_id, value.followup_sent_message_id, value.thread_id].some(Boolean))) return true;
+  if (document.opportunities.some(value => intersects([
+    ...legacyTargets(value.contact), ...legacyTargets(value.failed_recipient),
+  ]) && [value.sent_message_id, value.failed_sent_message_id, value.followup_sent_message_id,
+    value.last_sent_message_id, value.superseded_message_id, value.bounce_message_id, value.thread_id].some(Boolean))) return true;
   return (document.distribution_submissions ?? []).some(value => {
-    try { return intersects(normalizeOperatorTarget(new URL(value.endpoint).hostname).keys); } catch { return false; }
+    // Historical approvals can carry url + approval_message_id rather than
+    // endpoint. Either recorded target stays reserved, including unknown
+    // submissions; an approval is not permission to submit again.
+    return [value.endpoint, value.url].some(target => {
+      try { return intersects(normalizeOperatorTarget(new URL(target).hostname).keys); } catch { return false; }
+    });
   });
 }
 function readback(value, action, at, expectedOutcome) {

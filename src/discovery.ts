@@ -111,6 +111,23 @@ export function openApi(origin: string, version: string, capture: PricingQuote, 
     { name: "x-delta-recovery-token", in: "header", required: false, schema: { type: "string", pattern: "^[A-Za-z0-9_-]{43}$" }, description: "Optional canonical base64url encoding of 32 cryptographically random bytes; paired with x-delta-order-id. Never put this bearer capability in a URL, log, public proof or model response." },
   ];
   const orderParameter = { name: "order_id", in: "path", required: true, schema: { type: "string", format: "uuid" } };
+  const exportAuthorizationSchema = { type: "object", additionalProperties: false, required: ["ok", "order_id", "authorization"], properties: {
+    ok: { const: true }, order_id: { type: "string", format: "uuid" }, authorization: { oneOf: [{ type: "null" }, {
+      type: "object", additionalProperties: false, required: ["operation_id", "generation", "expires_at", "scope", "state"], properties: {
+        operation_id: { type: "string", format: "uuid" }, generation: { type: "integer", minimum: 1, maximum: Number.MAX_SAFE_INTEGER },
+        expires_at: { type: "string", format: "date-time" }, scope: { const: ["export"] }, state: { enum: ["active", "expired"] },
+      },
+    }] },
+  } };
+  const exportAuthorizationResponses = {
+    "200": { description: "Current authorization metadata or the same completed update; no credential bytes", content: { "application/json": { schema: exportAuthorizationSchema } } },
+    "400": { description: "Invalid bounded update input or forbidden payment headers" },
+    "403": { description: "Original capability lacks export scope" },
+    "404": { description: "Original capability unavailable; a child export credential cannot manage authorization" },
+    "409": { description: "Generation or operation conflict; reconcile the saved original operation before another update" },
+    "410": { description: "Original capability or raw retention expired; no extension is granted" },
+    "503": { description: "Original evidence or update outcome unknown; keep the saved operation and read back without another payment" },
+  };
   const orderResponses = {
     "200": { description: "Original delivery verified, or authenticated raw_artifacts_expired metadata without delivery bytes", content: { "application/json": { schema: { $ref: "#/components/schemas/OrderStatus" } } } },
     "202": { description: "Original outcome remains incomplete or uncertain; never permission to pay again", content: { "application/json": { schema: { $ref: "#/components/schemas/OrderStatus" } } } },
@@ -230,9 +247,25 @@ export function openApi(origin: string, version: string, capture: PricingQuote, 
         description: "No body or payment signature. Reuses only the original verified draft and artifacts; never settles, signs, captures again or re-evaluates Guard. Supports safely repeating concurrent recovery calls.",
         security: [{ OrderCapability: [] }], parameters: [orderParameter], responses: orderResponses,
       } },
+      "/v1/orders/{order_id}/export-authorization": {
+        get: { operationId: "getExportAuthorization", summary: "Read the original order's current export authorization metadata",
+          description: "Requires the still-valid original capability. Returns no token or digest; no authorization is represented by authorization=null. Reconcile the same privately saved operation after a lost update response.",
+          security: [{ OrderCapability: [] }], parameters: [orderParameter], responses: exportAuthorizationResponses },
+        post: { operationId: "updateExportAuthorization", summary: "Update an export-only credential without paying again",
+          description: "Persist the new random token and operation ID privately before this call. Requires the original capability and expected generation; the child credential grants only original-artifact export. Its lifetime is bounded by the requested 60–3600 seconds, original capability and original raw retention. It does not change the original payment, authority or retention. Unknown outcomes must be read back before any new update.",
+          security: [{ OrderCapability: [] }], parameters: [orderParameter],
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", additionalProperties: false,
+            required: ["operation_id", "token", "ttl_seconds", "expected_generation"], properties: {
+              operation_id: { type: "string", format: "uuid" }, token: { type: "string", pattern: "^[A-Za-z0-9_-]{43}$", writeOnly: true },
+              ttl_seconds: { type: "integer", minimum: 60, maximum: 3600 }, expected_generation: { type: "integer", minimum: 0, maximum: Number.MAX_SAFE_INTEGER - 1 },
+            },
+          } } } }, responses: { ...exportAuthorizationResponses,
+            "201": { description: "One new export authorization generation committed; metadata only", content: { "application/json": { schema: exportAuthorizationSchema } } } },
+        },
+      },
       "/v1/orders/{order_id}/artifacts/{artifact}": { get: {
         operationId: "exportOrderArtifact", summary: "Download an original artifact with a scoped buyer capability",
-        description: "Requires a complete verified order and export scope. Raw artifacts remain private; downloads are attachments, uncached and bounded. No payment or Browser work. Older status/recover-only capabilities do not gain export scope.",
+        description: "Requires a complete verified order and export scope, using the original capability or its current valid export-only child credential in the same private header. Raw artifacts remain private; downloads are attachments, uncached and bounded. No payment or Browser work. Older status/recover-only capabilities do not gain export scope.",
         security: [{ OrderCapability: [] }], parameters: [orderParameter, { name: "artifact", in: "path", required: true, schema: { enum: ["html", "markdown", "screenshot", "manifest"] } }],
         responses: { ...orderResponses, "200": { description: "Verified original bytes; Content-Disposition: attachment; private, no-store", content: { "application/octet-stream": { schema: { type: "string", format: "binary" } }, "image/png": { schema: { type: "string", format: "binary" } }, "application/json": { schema: { type: "object" } } } }, "409": { description: "Original delivery incomplete or authorization changed" } },
       } },

@@ -18,6 +18,17 @@ export class OrderAccessError extends Error {
 }
 
 export type OrderEnrollment = { order_id: string; token_digest: string; ttl_seconds: number; created_at: string; expires_at: string; retention_policy?: RetentionPolicy };
+export type OrderExportAuthorization = {
+  schema: "delta-order-export-authorization/v1";
+  operation_id: string;
+  generation: number;
+  token_digest: string;
+  request_hash: string;
+  requested_ttl_seconds: number;
+  issued_at: string;
+  expires_at: string;
+  scope: ["export"];
+};
 export type OrderBinding = {
   schema: "delta-order-binding/v1";
   order_id: string;
@@ -26,6 +37,9 @@ export type OrderBinding = {
   created_at: string;
   expires_at: string;
   revoked_at?: string;
+  // Mutable download authorization only. Never part of the original purchased
+  // payment binding or a replacement for its root recovery capability.
+  export_authorization?: OrderExportAuthorization;
   product: "capture" | "preflight";
   resource: string;
   request_hash: string;
@@ -39,9 +53,9 @@ export type OrderBinding = {
   amount: string;
   retention_snapshot?: RetentionSnapshot;
 };
-export type OrderPaymentBinding = Omit<OrderBinding, "schema" | "order_id" | "token_digest" | "scope" | "created_at" | "expires_at" | "revoked_at">;
+export type OrderPaymentBinding = Omit<OrderBinding, "schema" | "order_id" | "token_digest" | "scope" | "created_at" | "expires_at" | "revoked_at" | "export_authorization">;
 
-function validToken(token: string): boolean {
+export function validToken(token: string): boolean {
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return false;
   try {
     const bytes = atob(token.replaceAll("-", "+").replaceAll("_", "/") + "=");
@@ -49,7 +63,7 @@ function validToken(token: string): boolean {
   } catch { return false; }
 }
 
-async function tokenDigest(id: string, token: string): Promise<string> {
+export async function tokenDigest(id: string, token: string): Promise<string> {
   return sha256(`delta-order-token/v1\n${id}\n${token}`);
 }
 
@@ -108,12 +122,13 @@ export async function parseOrderEnrollment(request: Request, env: RuntimeEnv): P
     created_at: new Date(now).toISOString(), expires_at: new Date(now + ttl * 1000).toISOString(), ...(policy ? { retention_policy: policy } : {}) };
 }
 
-export async function readOrderBinding(env: RuntimeEnv, id: string, expectedTokenDigest?: string): Promise<OrderBinding | null> {
+export async function readOrderBinding(env: RuntimeEnv, id: string, expectedTokenDigest?: string, allowExportAuthorization = false): Promise<OrderBinding | null> {
   const stored = await readOrderMetadata<OrderBinding>(env, orderRecordKey(id));
   if (!stored) return null;
   try {
   const record = stored.record;
-  if (expectedTokenDigest && (!record || !sameDigest(expectedTokenDigest, record.token_digest))) throw new OrderAccessError("order_unavailable", 404);
+  if (expectedTokenDigest && (!record || (!sameDigest(expectedTokenDigest, record.token_digest) &&
+      !(allowExportAuthorization && record.export_authorization && sameDigest(expectedTokenDigest, record.export_authorization.token_digest))))) throw new OrderAccessError("order_unavailable", 404);
   if (!record || record.schema !== "delta-order-binding/v1" || record.order_id !== id.toLowerCase() || !DIGEST.test(record.token_digest) ||
       !DIGEST.test(record.request_hash) || !DIGEST.test(record.payment_fingerprint) || !SETTLEMENT_KEY.test(record.settlement_key) ||
       !["capture", "preflight"].includes(record.product) || !['["status","recover"]','["status","recover","export"]'].includes(stableJson(record.scope)) ||
@@ -123,6 +138,17 @@ export async function readOrderBinding(env: RuntimeEnv, id: string, expectedToke
       typeof record.resource !== "string" || !record.resource.endsWith(`/v1/${record.product}`) ||
       !Number.isFinite(Date.parse(record.created_at)) || !Number.isFinite(Date.parse(record.expires_at)) ||
       Date.parse(record.expires_at) <= Date.parse(record.created_at)) throw new OrderAccessError("order_evidence_inconsistent", 503);
+  const grant = record.export_authorization;
+  if (grant !== undefined && (!grant || grant.schema !== "delta-order-export-authorization/v1" ||
+      Object.keys(grant).sort().join(',') !== 'expires_at,generation,issued_at,operation_id,request_hash,requested_ttl_seconds,schema,scope,token_digest' ||
+      !ORDER_ID.test(grant.operation_id) || !Number.isSafeInteger(grant.generation) || grant.generation < 1 ||
+      !DIGEST.test(grant.token_digest) || sameDigest(grant.token_digest, record.token_digest) || !DIGEST.test(grant.request_hash) ||
+      !Number.isSafeInteger(grant.requested_ttl_seconds) || grant.requested_ttl_seconds < 60 || grant.requested_ttl_seconds > 3600 ||
+      stableJson(grant.scope) !== '["export"]' || !Number.isFinite(Date.parse(grant.issued_at)) || !Number.isFinite(Date.parse(grant.expires_at)) ||
+      Date.parse(grant.issued_at) < Date.parse(record.created_at) || Date.parse(grant.expires_at) <= Date.parse(grant.issued_at) ||
+      Date.parse(grant.expires_at) > Date.parse(record.expires_at) || Date.parse(grant.expires_at) - Date.parse(grant.issued_at) > grant.requested_ttl_seconds * 1000)) {
+    throw new OrderAccessError("order_evidence_inconsistent", 503);
+  }
   const request = record.product === "capture" ? parseCaptureRequest(record.request_body) : parsePreflightRequest(record.request_body);
   if (await paidRequestHash(`/v1/${record.product}`, request) !== record.request_hash || stableJson(request) !== stableJson(record.request_body)) {
     throw new OrderAccessError("order_evidence_inconsistent", 503);
@@ -140,13 +166,26 @@ function assertActive(record: OrderBinding): void {
 }
 
 export async function authenticateOrder(env: RuntimeEnv, id: string, request: Request): Promise<OrderBinding> {
+  return authenticateScopedOrder(env, id, request, false);
+}
+
+// The child credential is recognized by the download path only. Every existing
+// status/recover/enrollment caller keeps using authenticateOrder and the root.
+export async function authenticateOrderExport(env: RuntimeEnv, id: string, request: Request): Promise<OrderBinding> {
+  return authenticateScopedOrder(env, id, request, true);
+}
+
+async function authenticateScopedOrder(env: RuntimeEnv, id: string, request: Request, allowExportAuthorization: boolean): Promise<OrderBinding> {
   if (new URL(request.url).search) throw new OrderAccessError("order_unavailable", 404);
   const token = request.headers.get(ORDER_TOKEN_HEADER);
   if (!ORDER_ID.test(id) || !token || !validToken(token)) throw new OrderAccessError("order_unavailable", 404);
-  const record = await readOrderBinding(env, id.toLowerCase(), await tokenDigest(id.toLowerCase(), token));
-  if (!record || !sameDigest(await tokenDigest(id.toLowerCase(), token), record.token_digest)) throw new OrderAccessError("order_unavailable", 404);
+  const digest = await tokenDigest(id.toLowerCase(), token);
+  const record = await readOrderBinding(env, id.toLowerCase(), digest, allowExportAuthorization);
+  const root = record && sameDigest(digest, record.token_digest);
+  if (!record || (!root && !(allowExportAuthorization && record.export_authorization && sameDigest(digest, record.export_authorization.token_digest)))) throw new OrderAccessError("order_unavailable", 404);
   // Expiry is disclosed only after the token matches, never to an enumerator.
   assertActive(record);
+  if (!root && Date.now() >= Date.parse(record.export_authorization!.expires_at)) throw new OrderAccessError("order_export_authorization_expired", 410);
   return record;
 }
 
