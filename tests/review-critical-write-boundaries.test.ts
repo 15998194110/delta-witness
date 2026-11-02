@@ -1,12 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { app } from '../src/index';
+import { app as currentApp } from '../src/index';
+import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { pathToFileURL } from 'node:url';
 import { MemoryBucket, mockOrderNetwork, orderRequest, orderRuntime } from './helpers/order-runtime';
 import { storeCapture, readStoredCapture } from '../src/capture';
 
 beforeEach(() => vi.spyOn(console, 'error').mockImplementation(() => undefined));
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
-describe('original financial and delivery writes are bounded, synthetic only', () => {
+const runtimes: [string,typeof currentApp][] = [['current',currentApp]];
+if (process.env.DELTA_FALLBACK_BUILD_EVIDENCE) {
+  const evidence=JSON.parse(await readFile(process.env.DELTA_FALLBACK_BUILD_EVIDENCE,'utf8'));
+  const reviewed=process.env.DELTA_FALLBACK_REVIEWED_COMMIT;
+  if (!reviewed || !/^[a-f0-9]{40}$/.test(reviewed) || evidence.commit!==reviewed || evidence.schema!=='delta-isolated-fallback-build/v1' ||
+      evidence.platform!=='node' || !Array.isArray(evidence.source_files) || !evidence.source_files.some((file:{path:string})=>file.path==='src/index.ts') ||
+      createHash('sha256').update(await readFile(evidence.artifact)).digest('hex')!==evidence.artifact_sha256) throw new Error('unverified_fallback_artifact');
+  const candidate=await import(/* @vite-ignore */ pathToFileURL(evidence.artifact).href);
+  if(typeof candidate.app?.fetch!=='function')throw new Error('unsupported_fallback_exports');
+  runtimes.push(['reviewed-fallback',candidate.app]);
+}
+describe.each(runtimes)('%s original financial and delivery writes are bounded, synthetic only', (_name,app) => {
   it.each(['settlement-reservation', 'settlement-confirmation', 'settlement-diagnostic', 'order-binding', 'fulfillment-claim', 'fulfillment-draft', 'fulfillment-complete', 'artifact', 'manifest'])('stalled %s returns unknown and a late ACK cannot start new work', async stage => {
     const bucket = new MemoryBucket(), env = orderRuntime(bucket), network = stage === 'settlement-diagnostic' ? mockOrderNetwork(async()=>{throw new Error('synthetic settlement ACK lost');}) : mockOrderNetwork();
     vi.stubGlobal('fetch', network); vi.useFakeTimers();
@@ -76,7 +90,10 @@ describe('original financial and delivery writes are bounded, synthetic only', (
     expect(network.mock.calls.filter(([url])=>String(url).endsWith('/settle'))).toHaveLength(1);
   });
 
-  it('immutable artifact conflict read is bounded and cannot publish a late replacement manifest',async()=>{
+  // The deployed bundle exports only Worker/app; its internal store helper is
+  // separately covered by the candidate's full source suite, not mislabelled
+  // as a fallback invocation through this current-source import.
+  (_name === 'current' ? it : it.skip)('immutable artifact conflict read is bounded and cannot publish a late replacement manifest',async()=>{
     const bucket=new MemoryBucket(),env=orderRuntime(bucket);vi.stubGlobal('fetch',mockOrderNetwork());
     expect((await app.fetch(orderRequest({legacy:true}),env)).status).toBe(200);
     const original=JSON.parse([...bucket.values.entries()].find(([key])=>key.startsWith('fulfillments/'))![1].text);
