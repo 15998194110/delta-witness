@@ -5,11 +5,11 @@ import type { RuntimeEnv } from "./env";
 import { readOrderBinding } from "./orders";
 import { readOrderSettlement } from "./settlement";
 import { readFulfillment, fulfillmentRecordKey, verifiedDelivery } from "./fulfillment";
-import { createOrderReadSnapshot } from "./order-storage";
+import { createOrderReadSnapshot, readOrderMetadata } from "./order-storage";
 import { withinDeadline } from "./deadline";
 import { sha256, stableJson, uuidFromDigest } from "./crypto";
 import type { WatchRecord } from "./watch";
-import { readStoredCapture } from "./capture";
+import { readStoredCapture, MAX_TOTAL_ARTIFACT_BYTES } from "./capture";
 // Existing canonical receipt validator is deliberately shared with the scanner.
 // @ts-ignore JavaScript module is covered by treasury-reconciliation tests.
 import { validateCheckpoint, NETWORK, USDC, TREASURY } from "../scripts/treasury-reconciliation.mjs";
@@ -24,6 +24,8 @@ export type CoreAccountingEvidence = {
   product?: string; amount_raw?: string; payer?: string; network?: string; asset?: string; pay_to?: string;
   payment_authorized: State; settlement_confirmed: State; transaction?: string;
   delivered: State; proof_id?: string; bundle_root?: string; observed_at?: string;
+  // Child observations belong to one paid Pilot package, never separate sales.
+  child_proofs?: { proof_id: string; bundle_root: string; observed_at: string }[];
 };
 export async function readCoreAccountingEvidence(env: RuntimeEnv, orderId: string): Promise<CoreAccountingEvidence> {
   const unknown: CoreAccountingEvidence = { order_id: orderId, source: "core_original_records", state: "unknown", read_at: new Date().toISOString(),
@@ -49,6 +51,87 @@ export async function readCoreAccountingEvidence(env: RuntimeEnv, orderId: strin
     })(), 15_000, "accounting_read_timeout", reader.cancel);
   } catch { return unknown; }
   finally { reader.cancel(); }
+}
+
+export type PilotAccountingIdentity = { payment_fingerprint: string; settlement_key: string };
+const PILOT_HASH = /^sha256:[0-9a-f]{64}$/;
+const PILOT_ROUTE = "/v1/guarded-action-pilot";
+const COST_BASIS = "sum_of_proof_cost_models_not_actual_total";
+// Read-only decoder for the original v1 Pilot journal. No new business order,
+// payment permission or per-page revenue record is created by this projection.
+export async function readPilotAccountingEvidence(env: RuntimeEnv, identity: PilotAccountingIdentity): Promise<CoreAccountingEvidence> {
+  if (!identity || !PILOT_HASH.test(identity.payment_fingerprint) || !/^settlements\/[0-9a-f]{64}\.json$/.test(identity.settlement_key)) throw new Error("invalid_pilot_accounting_identity");
+  const unknown: CoreAccountingEvidence = { order_id: `pilot:${identity.payment_fingerprint.slice(7)}`, source: "core_original_records", state: "unknown",
+    read_at: new Date().toISOString(), product: "guarded_action_pilot", payment_authorized: "unknown", settlement_confirmed: "unknown", delivered: "unknown" };
+  const reader = createOrderReadSnapshot(env);
+  let base = unknown;
+  try {
+    return await withinDeadline((async () => {
+      const original = await readOrderMetadata<any>(reader.env, `guarded-pilot/${identity.payment_fingerprint.slice(7)}.json`);
+      const journal = await readOrderMetadata<any>(reader.env, identity.settlement_key);
+      const record = original?.record, settlement = journal?.record;
+      if (!record || record.schema !== "delta-guarded-action-pilot/v1" || record.route !== PILOT_ROUTE ||
+          record.payment_fingerprint !== identity.payment_fingerprint || !PILOT_HASH.test(record.request_hash) ||
+          !["processing", "retryable_failure", "blocked_failure", "complete"].includes(record.state) ||
+          !settlement || settlement.schema !== "delta-settlement/v1" || settlement.request_hash !== record.request_hash ||
+          settlement.payment_fingerprint !== identity.payment_fingerprint || settlement.amount !== "10000000" ||
+          !["settlement_unknown", "settlement_rejected", "settlement_confirmed"].includes(settlement.state) ||
+          env.NETWORK !== NETWORK || env.PAY_TO?.toLowerCase() !== TREASURY) return unknown;
+      const result = settlement.result;
+      const confirmed = settlement.state === "settlement_confirmed";
+      if (confirmed && (!result || result.success !== true || result.network !== NETWORK || !/^0x[0-9a-f]{64}$/i.test(result.transaction) ||
+          (result.amount !== undefined && result.amount !== "10000000") ||
+          (result.payer !== undefined && !/^0x[0-9a-f]{40}$/i.test(result.payer)))) return unknown;
+      base = { ...unknown, state: "verified", request_hash: record.request_hash, settlement_key: identity.settlement_key,
+        payment_fingerprint: identity.payment_fingerprint, amount_raw: "10000000", network: NETWORK, asset: USDC, pay_to: TREASURY,
+        // An upfront Pilot reservation by itself does not prove the signature
+        // was accepted. Missing original payer is not supplied from a new input.
+        payer: confirmed ? result.payer : undefined, payment_authorized: confirmed ? "confirmed" : "unknown",
+        settlement_confirmed: confirmed ? "confirmed" : "unknown", transaction: confirmed ? result.transaction :
+          settlement.transaction_hint_network === NETWORK && /^0x[0-9a-f]{64}$/i.test(settlement.transaction_hint) ? settlement.transaction_hint : undefined };
+      const progress = record.progress, response = record.response;
+      if (record.state !== "complete" || !progress || progress.schema !== "delta-pilot-progress/v1" ||
+          !Array.isArray(progress.pages) || progress.pages.length < 1 || progress.pages.length > 3 ||
+          !Number.isInteger(progress.browser_calls_reserved) || progress.browser_calls_reserved < 1 || progress.browser_calls_reserved > 3 ||
+          !Number.isFinite(progress.conservative_cost_reserved_usd) || progress.conservative_cost_reserved_usd < 0 || progress.conservative_cost_reserved_usd >= 10 ||
+          !response || !PILOT_HASH.test(record.response_hash) ||
+          record.response_hash !== await sha256(`delta-pilot-response/v1\n${stableJson({request_hash:record.request_hash,payment_fingerprint:record.payment_fingerprint,response})}`)) return base;
+      const observations = [];
+      let calls = 0, totalBytes = 0;
+      for (const [index,page] of progress.pages.entries()) {
+        if (!page || page.phase !== "complete" || page.index !== index || typeof page.url !== "string" ||
+            !Number.isInteger(page.attempts) || page.attempts < 1 || page.attempts > 3 ||
+            page.fingerprint !== await sha256(`${record.payment_fingerprint}\n${record.request_hash}\n${index}`) || !page.observation ||
+            page.observation_hash !== await sha256(`delta-pilot-page/v1\n${stableJson({request_hash:record.request_hash,payment_fingerprint:record.payment_fingerprint,
+              index:page.index,url:page.url,fingerprint:page.fingerprint,observation:page.observation})}`)) return base;
+        calls += page.attempts;
+        const unit = Math.floor((10 / progress.pages.length) * 1_000_000) / 1_000_000;
+        const allocated = index === progress.pages.length - 1 ? 10 - unit * (progress.pages.length - 1) : unit;
+        reader.allowArtifactsFor(uuidFromDigest(await sha256(`${page.fingerprint}\ncapture`)));
+        const artifacts = await readStoredCapture({env:reader.env,fulfillmentFingerprint:page.fingerprint,product:"capture",requestedUrl:page.url,
+          grossPriceUsd:allocated,paymentProtocol:"x402-v2-upfront"});
+        const observation = page.observation, proof = observation.proof;
+        if (!artifacts || !proof || proof.url !== page.url || proof.allocated_price_usd !== allocated ||
+            proof.proof_id !== artifacts.manifest.proof_id || proof.bundle_root !== artifacts.manifest.hashes.bundle_root ||
+            proof.observed_at !== artifacts.manifest.capture_completed_at || observation.storage_bytes !== artifacts.manifest.artifact_sizes.total_bytes ||
+            observation.browser_ms !== artifacts.manifest.execution.browser_ms_used || observation.variable_cost_usd !== artifacts.manifest.execution.estimated_variable_cost_usd ||
+            !Number.isFinite(observation.variable_cost_usd) || observation.variable_cost_usd < 0) return base;
+        totalBytes += observation.storage_bytes;
+        observations.push(observation);
+      }
+      if (calls !== progress.browser_calls_reserved || totalBytes > 3 * MAX_TOTAL_ARTIFACT_BYTES) return base;
+      const cost = observations.reduce((sum,value)=>sum+value.variable_cost_usd,0);
+      const expected = {ok:true,product:"guarded_action_pilot",price_usd:10,proofs:observations.map(value=>value.proof),
+        preflight:observations.find(value=>value.preflight)?.preflight,
+        economics:{variable_cost_usd:cost,contribution_margin_usd:10-cost,...(Object.prototype.hasOwnProperty.call(response.economics ?? {},"basis")?{basis:COST_BASIS}:{})}};
+      if (stableJson(expected) !== stableJson(response)) return base;
+      const childProofs = observations.map(value=>({proof_id:value.proof.proof_id,bundle_root:value.proof.bundle_root,observed_at:value.proof.observed_at}));
+      if (new Set(childProofs.map(proof=>proof.proof_id)).size !== childProofs.length) return base;
+      return { ...base, delivered:"confirmed", child_proofs:childProofs,
+        observed_at:childProofs.map(proof=>proof.observed_at).sort().at(-1) };
+    })(),15_000,"accounting_pilot_timeout",reader.cancel);
+  } catch { return base; }
+  finally {reader.cancel();}
 }
 
 export type AuditAttestation = {
@@ -121,9 +204,10 @@ export async function deriveOrderAccounting(input: {
     const cost = audit?.costs && COSTS.every(key => audit.costs![key]) ? COSTS.reduce((sum, key) => sum + BigInt(audit.costs![key]!.raw_usdc), 0n) : null;
     const margin = earned !== null && cost !== null ? earned - cost : null;
     const operating = margin !== null && audit?.costs?.support && audit.costs.acquisition ? margin - BigInt(audit.costs.support.raw_usdc) - BigInt(audit.costs.acquisition.raw_usdc) : null;
-    return { order_id: order.order_id, payment_authorized: valid ? order.payment_authorized : "unknown",
+    return { order_id: order.order_id, product: order.product ?? null, payment_authorized: valid ? order.payment_authorized : "unknown",
       settlement_confirmed: valid ? order.settlement_confirmed : "unknown", treasury_received: receipt ? "confirmed" : "unknown",
       delivered: valid ? order.delivered : "unknown", proof_id: valid ? order.proof_id ?? null : null,
+      child_proofs: valid && order.product === "guarded_action_pilot" ? order.child_proofs ?? null : null,
       settlement_key: valid ? order.settlement_key : null, service_fee_tx: receipt?.tx_hash ?? null, receipt_id: receipt?.receipt_id ?? null,
       treasury_received_raw: money(received), recognized_customer_revenue_raw: money(earned), refund_raw: refundValid ? money(refund) : null,
       actual_variable_cost_raw: money(cost), actual_contribution_margin_raw: money(margin), operating_profit_raw: money(operating),
@@ -133,7 +217,8 @@ export async function deriveOrderAccounting(input: {
       counted_customer_transactions: earned !== null && earned > 0n ? 1 : excluded || (earned === 0n) ? 0 : null,
       exclusion: excluded ? "project_or_platform_test" : null, buyer_evidence_ref: audit?.evidence_ref ?? null,
       external_business_reference: audit?.external_business_reference ?? null,
-      scope: "direct_capture_preflight_only; no prepaid purchase or usage recognition from missing entitlement ledger",
+      scope: order.product === "guarded_action_pilot" ? "one_original_10_USDC_pilot_package; child_proofs_are_not_separate_revenue" :
+        "direct_capture_preflight_only; no prepaid purchase or usage recognition from missing entitlement ledger",
     };
   });
   const sumKnown = (key: "recognized_customer_revenue_raw" | "actual_variable_cost_raw" | "actual_contribution_margin_raw") =>
@@ -142,7 +227,7 @@ export async function deriveOrderAccounting(input: {
     state: checkpoint && rows.length > 0 && rows.every(row => row.recognized_customer_revenue_raw !== null && row.actual_contribution_margin_raw !== null && row.operating_profit_raw !== null) ? "complete" : "partial",
     revenue_reconciliation_state: checkpoint && rows.length > 0 && rows.every(row => row.recognized_customer_revenue_raw !== null) ? "complete" : "partial",
     units: "canonical_Base_USDC_raw_6_decimals", treasury_range: checkpoint ? { from: checkpoint.origin_block, through: checkpoint.checked_through_block, as_of: checkpoint.checked_at } : null,
-    assurance: "Core evidence requires readCoreAccountingEvidence; buyer purpose, refund coverage and invoices are caller-supplied audit attestations, not independently verified by this projection",
+    assurance: "Core evidence requires readCoreAccountingEvidence or readPilotAccountingEvidence; buyer purpose, refund coverage and invoices are caller-supplied audit attestations, not independently verified by this projection",
     input_hash: await sha256(stableJson(input)), rows,
     recognized_customer_revenue_raw: sumKnown("recognized_customer_revenue_raw"), actual_variable_cost_raw: sumKnown("actual_variable_cost_raw"), actual_contribution_margin_raw: sumKnown("actual_contribution_margin_raw") };
   return { ...body, view_hash: await sha256(stableJson(body)) };

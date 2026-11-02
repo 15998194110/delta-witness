@@ -3,6 +3,7 @@ import { sha256, stableJson, uuidFromDigest } from "./crypto";
 import { costModelAssumptions, estimateVariableCost, type CostModelAssumptions } from "./pricing";
 import type { RetentionPolicy } from "./retention";
 import { withinDeadline } from "./deadline";
+import { createOrderReadSnapshot, MetadataReadError, writeOrderObject } from "./order-storage";
 import { isPng } from "./png";
 import {
   assertPublicDns,
@@ -306,16 +307,25 @@ export async function storeCapture(env: RuntimeEnv, artifacts: CaptureArtifacts)
   const id = manifest.proof_id;
   const putImmutable = async (key: string, value: string | Uint8Array, contentType: string) => {
     const expected = typeof value === "string" ? new TextEncoder().encode(value) : value;
-    const written = await env.PROOFS.put(key, value, {
+    const written = await writeOrderObject(env, key, value, {
       onlyIf: { etagDoesNotMatch: "*" }, httpMetadata: { contentType },
     });
     if (written) return;
     // An ambiguous write may already have succeeded. Accept identical bytes,
     // but never replace an earlier observation to make a retry complete.
-    const existing = await env.PROOFS.get(key);
-    if (!existing || existing.size !== expected.byteLength) throw new Error("artifact_identity_conflict");
-    const actual = new Uint8Array(await existing.arrayBuffer());
-    if (actual.byteLength !== expected.byteLength || await sha256(actual) !== await sha256(expected)) throw new Error("artifact_identity_conflict");
+    const snapshot = createOrderReadSnapshot(env);
+    snapshot.allowArtifactsFor(id);
+    try {
+      await withinDeadline((async () => {
+        const actual = await snapshot.readArtifact(key);
+        snapshot.assertActive();
+        if (actual.byteLength !== expected.byteLength || await sha256(actual) !== await sha256(expected)) throw new Error("artifact_identity_conflict");
+        snapshot.assertActive();
+      })(), 15_000, "order_evidence_unavailable", snapshot.cancel);
+    } catch (error) {
+      if (error instanceof Error && error.message === "artifact_identity_conflict") throw error;
+      throw new MetadataReadError();
+    } finally { snapshot.cancel(); }
   };
   await Promise.all([
     putImmutable(`${id}/page.html`, html, "text/html; charset=utf-8"),
@@ -328,7 +338,7 @@ export async function storeCapture(env: RuntimeEnv, artifacts: CaptureArtifacts)
 
 // Recovery reads already-published evidence only. It never captures, settles,
 // rewrites artifacts, or infers success from a manifest without its bytes.
-export async function readStoredCapture(input: {
+type StoredCaptureInput = {
   env: RuntimeEnv;
   fulfillmentFingerprint: string;
   product: ProofProduct;
@@ -336,7 +346,21 @@ export async function readStoredCapture(input: {
   grossPriceUsd: number;
   paymentProtocol: ProofManifest["payment"]["protocol"];
   partner?: string;
-}): Promise<CaptureArtifacts | null> {
+};
+export async function readStoredCapture(input: StoredCaptureInput): Promise<CaptureArtifacts | null> {
+  const snapshot = createOrderReadSnapshot(input.env);
+  try {
+    const id = uuidFromDigest(await sha256(`${input.fulfillmentFingerprint}\n${input.product}`));
+    snapshot.allowArtifactsFor(id);
+    return await withinDeadline((async () => {
+      const result = await readStoredCaptureWithinBounds({ ...input, env: snapshot.env });
+      snapshot.assertActive();
+      return result;
+    })(), 15_000, "order_evidence_unavailable", snapshot.cancel);
+  } catch { throw new MetadataReadError(); }
+  finally { snapshot.cancel(); }
+}
+async function readStoredCaptureWithinBounds(input: StoredCaptureInput): Promise<CaptureArtifacts | null> {
   const id = uuidFromDigest(await sha256(`${input.fulfillmentFingerprint}\n${input.product}`));
   const object = await input.env.PROOFS.get(`${id}/manifest.json`);
   if (!object) return null;

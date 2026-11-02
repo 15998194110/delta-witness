@@ -74,7 +74,7 @@ import { captureFailure, safeErrorCode, MAX_FULFILLMENT_ATTEMPTS } from "./failu
 import { commitClaim, createClaim, lostClaimBody } from "./claims";
 import { parseOrderEnrollment, assertOrderReplay, OrderAccessError, orderStatusResponse, retentionDisclosure, orderRecoveryDisclosure, readOrderBinding, orderRetention, type OrderEnrollment } from "./orders";
 import type { RetentionPolicy } from "./retention";
-import { createOrderReadSnapshot } from "./order-storage";
+import { createOrderReadSnapshot, MetadataReadError, StorageWriteError, readProofManifestMetadata } from "./order-storage";
 import { withinDeadline } from "./deadline";
 import { partnerBusinessIdentity, coordinatePartnerBilling } from "./partner-billing";
 import { exportOrderArtifact } from "./order-export";
@@ -164,9 +164,9 @@ function isProcessingFresh(record: FulfillmentRecord): boolean {
 
 async function loadPriorManifest(env: RuntimeEnv, request: PreflightRequest): Promise<PriorManifest | undefined> {
   if (!request.prior_proof_id) return undefined;
-  const object = await env.PROOFS.get(`${request.prior_proof_id}/manifest.json`);
-  if (!object) throw new Error("prior_proof_not_found");
-  const manifest = await object.json<PriorManifest>();
+  const stored = await readProofManifestMetadata<PriorManifest>(env, request.prior_proof_id);
+  if (!stored) throw new Error("prior_proof_not_found");
+  const manifest = stored.record;
   if (!manifest.hashes?.html || !manifest.hashes?.markdown) throw new Error("prior_proof_invalid");
   if (validateTarget(manifest.requested_url).toString() !== request.url) throw new Error("prior_proof_target_mismatch");
   return manifest;
@@ -319,6 +319,7 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
     await recordEvent(c.env, { event: "repeat_call", route: `/v1/${product}`, channel: c.var.channel, success: true });
     return next();
   } catch (error) {
+    if (error instanceof MetadataReadError || error instanceof StorageWriteError) return noStore(c.json({ ok: false, error: error.message, retryable: false, requires_fulfillment_reconciliation: true }, 503));
     if (error instanceof OrderAccessError) return noStore(c.json({ ok: false, error: error.code }, error.status));
     const reason = safeErrorCode(error);
     const status = reason === "request_too_large" || reason === "body_too_large" ? 413 : 400;
@@ -750,7 +751,7 @@ app.post("/internal/partner/watch", async (c) => {
     const fingerprint = await sha256(`partner-watch\n${partner}\n${idempotencyKey}`);
     const grossPaidUsd = Number(c.req.header("x-delta-gross-usd"));
     const result = await registerWatch({ env: c.env, request, requestHash, fingerprint, partner, channel, grossPaidUsd });
-    c.status(result.status as 200 | 201 | 402 | 409);
+    c.status(result.status as 200 | 201 | 400 | 402 | 409 | 503);
     return noStore(c.json(result.body));
   } catch (error) {
     const reason = message(error);
@@ -833,9 +834,10 @@ app.post("/internal/partner/:product", async (c) => {
       partner,
       priorManifest,
     });
-    c.status(result.status as 200 | 202 | 409 | 502);
+    c.status(result.status as 200 | 202 | 409 | 502 | 503);
     return noStore(c.json(result.body));
   } catch (error) {
+    if (error instanceof MetadataReadError || error instanceof StorageWriteError) return noStore(c.json({ ok: false, error: error.message, retryable: false, requires_fulfillment_reconciliation: true }, 503));
     const reason = message(error);
     const status = reason === "request_too_large" || reason === "body_too_large" ? 413 : 400;
     return c.json({ error: reason }, status);
@@ -1076,6 +1078,7 @@ app.post("/internal/indexnow", async (c) => {
 
 app.notFound((c) => c.json({ error: "not_found" }, 404));
 app.onError((error, c) => {
+  if (error instanceof MetadataReadError || error instanceof StorageWriteError) return noStore(c.json({ ok: false, state: "fulfillment_unknown", error: error.message, retryable: false, requires_fulfillment_reconciliation: true }, 503));
   console.error(JSON.stringify({
     event: "uncaught_request_error",
     path: c.req.path,

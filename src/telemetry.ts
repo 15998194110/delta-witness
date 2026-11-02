@@ -1,6 +1,9 @@
 import type { AnalyticsEventName, RuntimeEnv } from "./env";
 import { sanitizeDimension } from "./security";
 import { safeErrorCode } from "./failures";
+import { withinDeadline } from "./deadline";
+
+export const TELEMETRY_DEADLINE_MS = 1_000;
 
 export type TelemetryEvent = {
   event: AnalyticsEventName;
@@ -23,7 +26,7 @@ function measured(value: number | null | undefined): number | null {
 
 export async function recordEvent(env: RuntimeEnv, event: TelemetryEvent): Promise<void> {
   try {
-    await env.ANALYTICS_DB.prepare(`
+    await withinDeadline(Promise.resolve().then(() => env.ANALYTICS_DB.prepare(`
       INSERT INTO telemetry_events (
         app_version, event, route, channel, partner, success, reason, network,
         event_count, gross_usd, browser_ms, storage_bytes, variable_cost_usd, contribution_margin_usd,
@@ -48,8 +51,8 @@ export async function recordEvent(env: RuntimeEnv, event: TelemetryEvent): Promi
       measured(event.storageBytes),
       measured(event.variableCostUsd),
       typeof event.contributionMarginUsd === "number" && Number.isFinite(event.contributionMarginUsd) ? event.contributionMarginUsd : null,
-    ).run();
+    ).run()), TELEMETRY_DEADLINE_MS, "analytics_write_timeout");
   } catch (error) {
-    console.error(JSON.stringify({ event: "analytics_write_failed", reason: safeErrorCode(error) }));
+    console.error(JSON.stringify({ event: "analytics_write_failed", reason: error instanceof Error && error.message === "analytics_write_timeout" ? "analytics_write_timeout" : safeErrorCode(error) }));
   }
 }

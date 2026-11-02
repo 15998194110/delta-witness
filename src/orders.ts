@@ -3,7 +3,7 @@ import { sha256, stableJson, uuidFromDigest } from "./crypto";
 import { paidRequestHash, parseCaptureRequest, parsePreflightRequest, readFulfillment, fulfillmentRecordKey, verifiedDelivery, recoverDelivery, type PaidRequest, type StoredFulfillment, type DeliveryResponse } from "./fulfillment";
 import { readOrderSettlement, type SettlementRecord } from "./settlement";
 import { withinDeadline } from "./deadline";
-import { createOrderReadSnapshot } from "./order-storage";
+import { createOrderReadSnapshot, readOrderMetadata, writeOrderObject } from "./order-storage";
 import { deliveryDigest } from "./fulfillment";
 import { parseRetentionPolicy, verifyRetentionSnapshot, evaluateRetention, type RetentionPolicy, type RetentionSnapshot } from "./retention";
 
@@ -109,11 +109,10 @@ export async function parseOrderEnrollment(request: Request, env: RuntimeEnv): P
 }
 
 export async function readOrderBinding(env: RuntimeEnv, id: string, expectedTokenDigest?: string): Promise<OrderBinding | null> {
-  const object = await env.PROOFS.get(orderRecordKey(id));
-  if (!object) return null;
-  if (object.size > 32_000) throw new OrderAccessError(expectedTokenDigest ? "order_unavailable" : "order_evidence_inconsistent", expectedTokenDigest ? 404 : 503);
+  const stored = await readOrderMetadata<OrderBinding>(env, orderRecordKey(id));
+  if (!stored) return null;
   try {
-  const record = await object.json<OrderBinding>();
+  const record = stored.record;
   if (expectedTokenDigest && (!record || !sameDigest(expectedTokenDigest, record.token_digest))) throw new OrderAccessError("order_unavailable", 404);
   if (!record || record.schema !== "delta-order-binding/v1" || record.order_id !== id.toLowerCase() || !DIGEST.test(record.token_digest) ||
       !DIGEST.test(record.request_hash) || !DIGEST.test(record.payment_fingerprint) || !SETTLEMENT_KEY.test(record.settlement_key) ||
@@ -178,7 +177,7 @@ export async function bindOrder(env: RuntimeEnv, enrollment: OrderEnrollment, pa
     expires_at: enrollment.expires_at, ...payment,
   };
   assertActive(record);
-  const saved = await env.PROOFS.put(orderRecordKey(record.order_id), JSON.stringify(record), {
+  const saved = await writeOrderObject(env, orderRecordKey(record.order_id), JSON.stringify(record), {
     onlyIf: { etagDoesNotMatch: "*" }, httpMetadata: { contentType: "application/json; charset=utf-8" },
   });
   if (saved) return record;

@@ -24,6 +24,7 @@ const WEBHOOK_LEASE_MS = 30_000;
 const WEBHOOK_MAX_ATTEMPTS = 5;
 const WEBHOOK_MAX_BODY_BYTES = 32_000;
 const WATCH_METADATA_BYTES = 262_144;
+const MAX_REGISTRATION_CAS_ATTEMPTS = 3;
 const WEBHOOK_BACKOFF_MS = [60_000, 300_000, 900_000, 3_600_000];
 
 export type WatchRegistration = {
@@ -162,7 +163,7 @@ async function assertPriorTarget(env: RuntimeEnv, request: WatchRegistration): P
   if (validateTarget(manifest.requested_url).toString() !== request.url) throw new Error("prior_proof_target_mismatch");
 }
 
-export async function registerWatch(input: {
+type WatchRegistrationInput = {
   env: RuntimeEnv;
   request: WatchRegistration;
   requestHash: string;
@@ -170,7 +171,22 @@ export async function registerWatch(input: {
   partner: string;
   channel: string;
   grossPaidUsd: number;
-}): Promise<RegistrationResult> {
+};
+
+export async function registerWatch(input: WatchRegistrationInput): Promise<RegistrationResult> {
+  try {
+    // One bounded view spans every read, CAS conflict/readback and registration
+    // telemetry. A late write may exist, but cannot emit 201 or start a check.
+    return await withNotificationBounds(input.env, bounded => registerWatchWithinBounds({...input,env:bounded},0));
+  } catch (error) {
+    const reason = safeErrorCode(error);
+    if (reason === 'prior_proof_not_found' || reason === 'prior_proof_target_mismatch') return {status:400,body:{error:reason}};
+    return {status:503,body:{error:'watch_registration_unconfirmed',retryable:false,
+      recovery_action:'retain_original_idempotency_key_and_request_for_reconciliation'}};
+  }
+}
+
+async function registerWatchWithinBounds(input: WatchRegistrationInput, conflicts: number): Promise<RegistrationResult> {
   const id = uuidFromDigest(await sha256(`watch\n${input.fingerprint}`));
   const key = watchKey(id);
   const existing = await input.env.PROOFS.get(key);
@@ -214,7 +230,12 @@ export async function registerWatch(input: {
     onlyIf: { etagDoesNotMatch: "*" },
     httpMetadata: { contentType: "application/json; charset=utf-8" },
   });
-  if (!stored) return registerWatch(input);
+  if (!stored) {
+    // A timer cannot interrupt an endless chain of immediately resolved CAS
+    // conflicts. Keep retries finite and never replace/delete the original key.
+    if (conflicts + 1 >= MAX_REGISTRATION_CAS_ATTEMPTS) throw new Error('watch_registration_unconfirmed');
+    return registerWatchWithinBounds(input,conflicts+1);
+  }
   await recordEvent(input.env, {
     event: "watch_registered",
     route: "/partner/watch",

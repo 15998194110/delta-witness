@@ -55,11 +55,11 @@ describe("D08 immutable artifact publication", () => {
     });
     const get = async (key: string) => {
       const bytes = values.get(key);
-      return bytes ? { size: bytes.byteLength, arrayBuffer: async () => bytes.slice().buffer } : null;
+      return bytes ? { size: bytes.byteLength, etag: "test", body: new ReadableStream<Uint8Array>({ start(controller) { controller.enqueue(bytes.slice()); controller.close(); } }), arrayBuffer: async () => bytes.slice().buffer } : null;
     };
     return { values, env: { PROOFS: { put, get } } as unknown as RuntimeEnv };
   }
-  const artifacts = { manifest: { proof_id: "immutable-test" }, html: "original", markdown: "original", screenshot: png() } as unknown as CaptureArtifacts;
+  const artifacts = { manifest: { proof_id: "11111111-1111-4111-8111-111111111111" }, html: "original", markdown: "original", screenshot: png() } as unknown as CaptureArtifacts;
   it("replays identical persisted bytes without replacing any object", async () => {
     const { values, env } = bucket();
     await storeCapture(env, artifacts);

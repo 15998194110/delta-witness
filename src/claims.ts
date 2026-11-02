@@ -1,11 +1,12 @@
 import type { RuntimeEnv } from "./env";
+import { writeOrderObject } from "./order-storage";
 
 export type StoredClaim<T> = { record: T; etag: string };
 
 // The ETag returned by every successful write is the authority for the next
 // transition. A lost or indeterminate write never grants a new lease.
 export async function createClaim<T>(env: RuntimeEnv, key: string, record: T): Promise<StoredClaim<T> | null> {
-  const saved = await env.PROOFS.put(key, JSON.stringify(record), {
+  const saved = await writeOrderObject(env, key, JSON.stringify(record), {
     onlyIf: { etagDoesNotMatch: "*" },
     httpMetadata: { contentType: "application/json; charset=utf-8" },
   });
@@ -13,7 +14,7 @@ export async function createClaim<T>(env: RuntimeEnv, key: string, record: T): P
 }
 
 export async function commitClaim<T>(env: RuntimeEnv, key: string, claim: StoredClaim<T>, record: T): Promise<StoredClaim<T> | null> {
-  const saved = await env.PROOFS.put(key, JSON.stringify(record), {
+  const saved = await writeOrderObject(env, key, JSON.stringify(record), {
     onlyIf: { etagMatches: claim.etag },
     httpMetadata: { contentType: "application/json; charset=utf-8" },
   });

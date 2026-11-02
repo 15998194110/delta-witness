@@ -6,6 +6,7 @@ import { sha256, stableJson, uuidFromDigest } from "./crypto";
 import { createRetentionSnapshot } from "./retention";
 import { bindOrder, orderAuthorityDigest, type OrderBinding, type OrderEnrollment, type OrderPaymentBinding } from "./orders";
 import type { PaidRequest } from "./fulfillment";
+import { readOrderMetadata, StorageWriteError, writeOrderObject } from "./order-storage";
 
 export type SettlementRecord = {
   schema: "delta-settlement/v1";
@@ -94,18 +95,18 @@ export async function readSettlement(env: RuntimeEnv, header: string, allowUnstr
     if (allowUnstructuredLegacy) return null;
     throw error;
   }
-  const object = await env.PROOFS.get(key);
-  if (!object) return null;
-  const record = await object.json<SettlementRecord>();
+  const stored = await readOrderMetadata<SettlementRecord>(env, key);
+  if (!stored) return null;
+  const { record } = stored;
   if (record.schema !== "delta-settlement/v1" || !["settlement_unknown", "settlement_rejected", "settlement_confirmed"].includes(record.state)) throw new Error("invalid_settlement_record");
   if (record.state === "settlement_confirmed" && (!record.result || !receiptMatches(record.result, payload, payload.accepted) || record.result.network !== env.NETWORK || record.amount !== payload.accepted.amount || !/^\d+$/.test(record.amount) || !Number.isSafeInteger(Number(record.amount)) || Number(record.amount) <= 0)) throw new Error("invalid_settlement_record");
   return record;
 }
 
 export async function readOrderSettlement(env: RuntimeEnv, order: OrderBinding): Promise<SettlementRecord> {
-  const object = await env.PROOFS.get(order.settlement_key);
-  if (!object) throw new Error("order_evidence_inconsistent");
-  const record = await object.json<SettlementRecord>();
+  const stored = await readOrderMetadata<SettlementRecord>(env, order.settlement_key);
+  if (!stored) throw new Error("order_evidence_inconsistent");
+  const { record } = stored;
   if (!record || record.schema !== "delta-settlement/v1" || record.order_id !== order.order_id ||
       record.order_binding_hash !== await orderAuthorityDigest(order) ||
       record.request_hash !== order.request_hash || record.payment_fingerprint !== order.payment_fingerprint ||
@@ -143,9 +144,9 @@ export function guardedFacilitator(env: RuntimeEnv, requestHash: string, payment
         payment_fingerprint: paymentFingerprint, purchased_at: order.enrollment.created_at,
       });
       const failure = (): SettleResponse => ({ success: false, errorReason: blocked, transaction: "", network: requirements.network });
-      const existing = await env.PROOFS.get(key);
+      const existing = await readOrderMetadata<SettlementRecord>(env, key);
       if (existing) {
-        const record = await existing.json<SettlementRecord>();
+        const { record } = existing;
         if (record.request_hash !== requestHash || record.payment_fingerprint !== paymentFingerprint || (order && record.order_id !== order.enrollment.order_id)) blocked = "settlement_identity_conflict";
         else if (record.schema === "delta-settlement/v1" && record.state === "settlement_confirmed" && record.amount === requirements.amount && record.result && receiptMatches(record.result, payload, requirements)) return record.result;
         else blocked = record.state === "settlement_rejected" ? "settlement_rejected" : "settlement_unknown";
@@ -166,9 +167,12 @@ export function guardedFacilitator(env: RuntimeEnv, requestHash: string, payment
       };
       // This durable reservation has no expiry. A timed-out POST may have settled.
       // Unknown outcomes require receipt reconciliation; never retry that POST.
-      const reserved = await env.PROOFS.put(key, JSON.stringify(record), {
-        onlyIf: { etagDoesNotMatch: "*" }, httpMetadata: { contentType: "application/json" },
-      });
+      let reserved;
+      try {
+        reserved = await writeOrderObject(env, key, JSON.stringify(record), {
+          onlyIf: { etagDoesNotMatch: "*" }, httpMetadata: { contentType: "application/json" },
+        });
+      } catch { blocked = "settlement_unknown"; return failure(); }
       if (!reserved) { blocked = "settlement_unknown"; return failure(); }
       try {
         // Claim entitlement only at the first verified authorization reservation.
@@ -177,27 +181,30 @@ export function guardedFacilitator(env: RuntimeEnv, requestHash: string, payment
         const result = await upstream.settle(payload, requirements);
         if (receiptMatches(result, payload, requirements)) {
           const confirmedAt = new Date().toISOString();
-          const saved = await env.PROOFS.put(key, JSON.stringify({ ...record, state: "settlement_confirmed", result, updated_at: confirmedAt, confirmed_at: confirmedAt }), {
+          const saved = await writeOrderObject(env, key, JSON.stringify({ ...record, state: "settlement_confirmed", result, updated_at: confirmedAt, confirmed_at: confirmedAt }), {
             onlyIf: { etagMatches: reserved.etag }, httpMetadata: { contentType: "application/json" },
           });
           if (saved) return result;
         } else if (result.success === false) {
           // success:false also covers pending/broadcast transactions. It alone
           // is not evidence of a terminal rejection or permission to submit again.
-          await env.PROOFS.put(key, JSON.stringify({ ...record, failure_class: "reported_failure_unconfirmed", ...transactionHint(result, requirements.network), updated_at: new Date().toISOString() }), {
+          await writeOrderObject(env, key, JSON.stringify({ ...record, failure_class: "reported_failure_unconfirmed", ...transactionHint(result, requirements.network), updated_at: new Date().toISOString() }), {
             onlyIf: { etagMatches: reserved.etag }, httpMetadata: { contentType: "application/json" },
           });
           blocked = "settlement_unknown";
           return failure();
         } else {
-          await env.PROOFS.put(key, JSON.stringify({ ...record, failure_class: "receipt_binding_mismatch", ...transactionHint(result, requirements.network) }), {
+          await writeOrderObject(env, key, JSON.stringify({ ...record, failure_class: "receipt_binding_mismatch", ...transactionHint(result, requirements.network) }), {
             onlyIf: { etagMatches: reserved.etag }, httpMetadata: { contentType: "application/json" },
           });
         }
       } catch (error) {
+        // A confirmation/binding write can commit after its ACK is lost. Keep
+        // the original reservation; do not race it with a failure rewrite.
+        if (error instanceof StorageWriteError) { blocked = "settlement_unknown"; return failure(); }
         // Do not persist/log facilitator bodies, signatures, headers or raw errors.
         try {
-          await env.PROOFS.put(key, JSON.stringify({ ...record, failure_class: facilitatorFailure(error), ...transactionHint(error, requirements.network) }), {
+          await writeOrderObject(env, key, JSON.stringify({ ...record, failure_class: facilitatorFailure(error), ...transactionHint(error, requirements.network) }), {
             onlyIf: { etagMatches: reserved.etag }, httpMetadata: { contentType: "application/json" },
           });
         } catch { /* The original durable unknown record remains the safety gate. */ }

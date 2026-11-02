@@ -35,9 +35,23 @@ jobs:
       - run: node scripts/check-release-version.mjs
       - run: npm ci
       - run: npm run verify
+      - name: Preserve the verified Core bundle
+        run: node scripts/verified-cloudflare-artifact.mjs record "$RUNNER_TEMP/delta-core-verified" core
+      - uses: actions/upload-artifact@v4
+        with:
+          name: core-verified-${{ github.sha }}
+          path: ${{ runner.temp }}/delta-core-verified/
+          if-no-files-found: error
       - name: Verify partner gateway
         working-directory: channels/partner-gateway
         run: npm ci && npm run verify
+      - name: Preserve the verified gateway bundle
+        run: node scripts/verified-cloudflare-artifact.mjs record "$RUNNER_TEMP/delta-gateway-verified" gateway
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gateway-verified-${{ github.sha }}
+          path: ${{ runner.temp }}/delta-gateway-verified/
+          if-no-files-found: error
       - name: Verify and package exact JS client artifact
         working-directory: packages/js-client
         run: |
@@ -71,6 +85,14 @@ jobs:
       - name: Verify Base web app
         working-directory: channels/base-app
         run: npm ci && npm run verify
+      - name: Preserve verified Pages including the signed public manifest
+        run: node scripts/verified-cloudflare-artifact.mjs record "$RUNNER_TEMP/delta-pages-verified" pages
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pages-verified-${{ github.sha }}
+          path: ${{ runner.temp }}/delta-pages-verified/
+          include-hidden-files: true
+          if-no-files-found: error
       - uses: actions/setup-python@v6
         with: { python-version: "3.12" }
       - name: Verify Python distribution
@@ -111,16 +133,27 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       DELTA_PARTNER_GATEWAY_SECRET: ${{ secrets.DELTA_PARTNER_GATEWAY_SECRET }}
       DELTA_INDEXNOW_ADMIN_SECRET: ${{ secrets.DELTA_INDEXNOW_ADMIN_SECRET }}
+      DELTA_EXECUTE_RELEASE: ${{ inputs.execute_release }}
+      DELTA_REQUESTED_SOURCE: ${{ inputs.source_commit }}
+      DELTA_APPROVED_SOURCE: ${{ vars.DELTA_APPROVED_RELEASE_SHA }}
+      DELTA_ROLLBACK_SOURCE: ${{ vars.DELTA_APPROVED_ROLLBACK_SHA }}
+      DELTA_ROLLBACK_ARTIFACT_SHA256: ${{ vars.DELTA_APPROVED_ROLLBACK_ARTIFACT_SHA256 }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with: { node-version: "22" }
       - name: Require Cloudflare bootstrap
         run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID" && test -n "$DELTA_PARTNER_GATEWAY_SECRET" && test -n "$DELTA_INDEXNOW_ADMIN_SECRET"
+      - uses: actions/download-artifact@v4
+        with:
+          name: core-verified-${{ github.sha }}
+          path: ${{ runner.temp }}/delta-core-verified/
       - run: node scripts/check-owner-pricing.mjs
       - name: Re-verify live owner pricing immediately before deployment
         run: node scripts/verify-owner-pricing-live.mjs
       - run: npm ci
+      - name: Verify original Core artifact before any provider mutation
+        run: node scripts/verified-cloudflare-artifact.mjs verify "$RUNNER_TEMP/delta-core-verified" core
       - name: Apply D1 telemetry migrations
         run: npx wrangler d1 migrations apply delta-witness-analytics --remote
       - name: Record rollback version
@@ -129,7 +162,8 @@ jobs:
         run: |
           printf '%s' "$DELTA_PARTNER_GATEWAY_SECRET" | npx wrangler secret put PARTNER_GATEWAY_SECRET
           printf '%s' "$DELTA_INDEXNOW_ADMIN_SECRET" | npx wrangler secret put INDEXNOW_ADMIN_SECRET
-      - run: npx wrangler deploy
+      - name: Submit the original verified Core bundle without rebuilding
+        run: node scripts/verified-cloudflare-artifact.mjs deploy "$RUNNER_TEMP/delta-core-verified" core
       - name: Verify production discovery and existing proof
         run: |
           curl --fail --retry 5 --retry-delay 5 https://delta-witness-api.ruphussten.workers.dev/health
@@ -160,6 +194,11 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
       DELTA_PARTNER_GATEWAY_SECRET: ${{ secrets.DELTA_PARTNER_GATEWAY_SECRET }}
+      DELTA_EXECUTE_RELEASE: ${{ inputs.execute_release }}
+      DELTA_REQUESTED_SOURCE: ${{ inputs.source_commit }}
+      DELTA_APPROVED_SOURCE: ${{ vars.DELTA_APPROVED_RELEASE_SHA }}
+      DELTA_ROLLBACK_SOURCE: ${{ vars.DELTA_APPROVED_ROLLBACK_SHA }}
+      DELTA_ROLLBACK_ARTIFACT_SHA256: ${{ vars.DELTA_APPROVED_ROLLBACK_ARTIFACT_SHA256 }}
     defaults: { run: { working-directory: channels/partner-gateway } }
     steps:
       - uses: actions/checkout@v6
@@ -167,12 +206,19 @@ jobs:
         with: { node-version: "22" }
       - name: Require gateway bootstrap
         run: test -n "$DELTA_PARTNER_SECRET" && test -n "$DELTA_PARTNER_GATEWAY_SECRET"
+      - uses: actions/download-artifact@v4
+        with:
+          name: gateway-verified-${{ github.sha }}
+          path: ${{ runner.temp }}/delta-gateway-verified/
       - run: npm ci
+      - name: Verify original gateway artifact before any provider mutation
+        run: node ../../scripts/verified-cloudflare-artifact.mjs verify "$RUNNER_TEMP/delta-gateway-verified" gateway
       - name: Install gateway secrets
         run: |
           printf '%s' "$DELTA_PARTNER_SECRET" | npx wrangler secret put PARTNER_SECRET
           printf '%s' "$DELTA_PARTNER_GATEWAY_SECRET" | npx wrangler secret put CORE_SERVICE_SECRET
-      - run: npx wrangler deploy
+      - name: Submit the original verified gateway bundle without rebuilding
+        run: node ../../scripts/verified-cloudflare-artifact.mjs deploy "$RUNNER_TEMP/delta-gateway-verified" gateway
       - run: curl --fail --retry 5 --retry-delay 5 https://delta-witness-partner-gateway.ruphussten.workers.dev/health
       - name: Verify authenticated gateway without fulfillment
         run: |
@@ -216,14 +262,23 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DELTA_EXECUTE_RELEASE: ${{ inputs.execute_release }}
+      DELTA_REQUESTED_SOURCE: ${{ inputs.source_commit }}
+      DELTA_APPROVED_SOURCE: ${{ vars.DELTA_APPROVED_RELEASE_SHA }}
+      DELTA_ROLLBACK_SOURCE: ${{ vars.DELTA_APPROVED_ROLLBACK_SHA }}
+      DELTA_ROLLBACK_ARTIFACT_SHA256: ${{ vars.DELTA_APPROVED_ROLLBACK_ARTIFACT_SHA256 }}
     defaults: { run: { working-directory: channels/base-app } }
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with: { node-version: "22" }
+      - uses: actions/download-artifact@v4
+        with:
+          name: pages-verified-${{ github.sha }}
+          path: ${{ runner.temp }}/delta-pages-verified/
       - run: npm ci
-      - run: npm run build
-      - run: npx wrangler pages deploy dist --project-name delta-witness-app --branch master
+      - name: Submit the original verified Pages directory without rebuilding
+        run: node ../../scripts/verified-cloudflare-artifact.mjs deploy "$RUNNER_TEMP/delta-pages-verified" pages
       - run: curl --fail --retry 5 --retry-delay 5 https://delta-witness-app.pages.dev/
       - name: Push Base app IndexNow (diagnostic only)
         continue-on-error: true
@@ -296,7 +351,15 @@ jobs:
 
   mcp-registry:
     runs-on: ubuntu-latest
-    needs: npm-mcp
+    needs: [npm-mcp, authorize-release]
+    env:
+      DELTA_EXECUTE_RELEASE: ${{ inputs.execute_release }}
+      DELTA_REQUESTED_SOURCE: ${{ inputs.source_commit }}
+      DELTA_APPROVED_SOURCE: ${{ vars.DELTA_APPROVED_RELEASE_SHA }}
+      DELTA_ROLLBACK_SOURCE: ${{ vars.DELTA_APPROVED_ROLLBACK_SHA }}
+      DELTA_ROLLBACK_ARTIFACT_SHA256: ${{ vars.DELTA_APPROVED_ROLLBACK_ARTIFACT_SHA256 }}
+      MCP_PUBLISHER_RELEASE_TAG: ${{ vars.MCP_PUBLISHER_RELEASE_TAG }}
+      MCP_PUBLISHER_LINUX_AMD64_SHA256: ${{ vars.MCP_PUBLISHER_LINUX_AMD64_SHA256 }}
     permissions:
       contents: read
       id-token: write
@@ -307,26 +370,23 @@ jobs:
       - run: node scripts/render-mcp-server.mjs
       - run: |
           set -euo pipefail
-          PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
-          URL="https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${PLATFORM}.tar.gz"
-          curl --fail --location --retry 5 --retry-all-errors --retry-delay 3 "$URL" | tar xz mcp-publisher
-          ./mcp-publisher validate server.json
-          if node scripts/check-mcp-registry.mjs server.json; then
-            echo "MCP Registry version already active; skipping publish"
-          else
-            ./mcp-publisher login github-oidc
-            set +e
-            PUBLISH_OUTPUT="$(./mcp-publisher publish server.json 2>&1)"
-            PUBLISH_STATUS=$?
-            set -e
-            printf '%s\n' "$PUBLISH_OUTPUT"
-            if [ "$PUBLISH_STATUS" -ne 0 ] && ! grep -q 'cannot publish duplicate version' <<<"$PUBLISH_OUTPUT"; then
-              exit "$PUBLISH_STATUS"
-            fi
-            if [ "$PUBLISH_STATUS" -ne 0 ]; then
-              echo "MCP Registry already contains this immutable version; treating duplicate publish as idempotent success"
-            fi
+          # Separate release bootstrap: public tag and archive digest must be
+          # independently reviewed/approved; no automatic version selection.
+          if [[ ! "$MCP_PUBLISHER_RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
+             [[ ! "$MCP_PUBLISHER_LINUX_AMD64_SHA256" =~ ^[0-9a-f]{64}$ ]] ||
+             [[ "$MCP_PUBLISHER_LINUX_AMD64_SHA256" =~ ^0+$ ]]; then
+            echo "Approved MCP publisher tag and linux_amd64 SHA256 are required before release" >&2
+            exit 1
           fi
+          URL="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_RELEASE_TAG}/mcp-publisher_linux_amd64.tar.gz"
+          ARCHIVE="$(mktemp "$RUNNER_TEMP/delta-mcp-publisher.XXXXXX.tar.gz")"
+          curl --fail --location --connect-timeout 10 --max-time 60 --retry 3 --retry-all-errors --retry-delay 3 --output "$ARCHIVE" "$URL"
+          printf '%s  %s\n' "$MCP_PUBLISHER_LINUX_AMD64_SHA256" "$ARCHIVE" | sha256sum --check --strict
+          tar -xzf "$ARCHIVE" mcp-publisher
+          ./mcp-publisher validate server.json
+          # Exact active metadata is required before skipping or after one
+          # attempted publication; duplicate error text is never success.
+          node scripts/check-mcp-registry.mjs server.json --publish-if-absent
 
   public-npm-smoke:
     needs: [npm-client, npm-mcp, mcp-registry]

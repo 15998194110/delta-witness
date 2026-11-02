@@ -28,7 +28,7 @@ import { guardedFacilitator, readSettlement, settlementBlockedBody, validatePaym
 import { captureFailure, safeErrorCode, MAX_FULFILLMENT_ATTEMPTS } from "./failures";
 import { commitClaim, createClaim, lostClaimBody } from "./claims";
 import { withinDeadline } from "./deadline";
-import { createOrderReadSnapshot } from "./order-storage";
+import { createOrderReadSnapshot, MetadataReadError, StorageWriteError, readOrderMetadata } from "./order-storage";
 
 export const GUARDED_ACTION_PILOT_PRICE_USD = 10;
 const PILOT_ROUTE = "/v1/guarded-action-pilot";
@@ -252,12 +252,11 @@ function pilotRecordKey(fingerprint: string): string {
 }
 
 async function readPilotRecord(env: RuntimeEnv, key: string): Promise<StoredPilotRecord | null> {
-  const object = await env.PROOFS.get(key);
-  if (!object) return null;
-  if (!Number.isSafeInteger(object.size) || object.size > 32_000) throw new Error("invalid_pilot_record");
-  const record = await object.json<PilotRecord>();
+  const stored = await readOrderMetadata<PilotRecord>(env, key);
+  if (!stored) return null;
+  const { record } = stored;
   if (record.schema !== "delta-guarded-action-pilot/v1") throw new Error("invalid_pilot_record");
-  return { record, etag: object.etag };
+  return stored;
 }
 
 async function recoverPilot(env: RuntimeEnv, key: string, stored: StoredPilotRecord, body: GuardedPilotInput, fingerprint: string): Promise<PilotResponse | null> {
@@ -331,9 +330,21 @@ export async function guardedPilotPrevalidate(c: Context<any>, next: Next): Prom
       if (!reconciled) return noStore(c.json(lostClaimBody(), 503));
       stored = reconciled;
       if (stored.record.progress!.pages.every(page => page.phase === "complete")) {
-        const response = aggregateResponse(stored.record);
-        if (stored.record.response && (stored.record.response_hash !== await responseHash(stored.record, stored.record.response) || stableJson(response) !== stableJson(stored.record.response))) {
-          return noStore(c.json(partialBody(stored.record, "fulfillment_unknown", false), 503));
+        let response = aggregateResponse(stored.record);
+        if (stored.record.response) {
+          const original = stored.record.response;
+          if (!isPlainObject(original.economics) || stored.record.response_hash !== await responseHash(stored.record, original)) {
+            return noStore(c.json(partialBody(stored.record, "fulfillment_unknown", false), 503));
+          }
+          // Original v1 aggregates did not disclose a cost-model basis. Only
+          // that exact legacy shape may omit it: all amounts, proofs, decisions
+          // and other fields must still equal the verified original pages.
+          // Never add a new economics claim to an already hashed response.
+          if (!Object.prototype.hasOwnProperty.call(original.economics, "basis")) delete response.economics.basis;
+          if (stableJson(response) !== stableJson(original)) {
+            return noStore(c.json(partialBody(stored.record, "fulfillment_unknown", false), 503));
+          }
+          response = original;
         }
         if (stored.record.state !== "complete") {
           let completed: StoredPilotRecord | null;
@@ -383,6 +394,7 @@ export async function guardedPilotPrevalidate(c: Context<any>, next: Next): Prom
     await recordEvent(c.env as RuntimeEnv, { event: "repeat_call", route: PILOT_ROUTE, channel, success: true });
     return next();
   } catch (error) {
+    if (error instanceof MetadataReadError || error instanceof StorageWriteError) return noStore(c.json({ ok: false, state: "fulfillment_unknown", error: error.message, retryable: false, requires_fulfillment_reconciliation: true }, 503));
     const reason = safeErrorCode(error);
     const status = reason === "request_too_large" || reason === "body_too_large" ? 413 : 400;
     return c.json({ error: reason }, status);

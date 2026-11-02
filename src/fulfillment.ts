@@ -4,6 +4,7 @@ import { sha256, stableJson } from "./crypto";
 import { validateTarget } from "./security";
 import { decodePaymentSignatureHeader } from "@x402/core/http";
 import { commitClaim, createClaim, type StoredClaim } from "./claims";
+import { readOrderMetadata } from "./order-storage";
 
 export type CaptureRequest = {
   url: string;
@@ -133,11 +134,11 @@ export function fulfillmentRecordKey(fingerprint: string): string {
 }
 
 export async function readFulfillment(env: RuntimeEnv, key: string): Promise<StoredFulfillment | null> {
-  const object = await env.PROOFS.get(key);
-  if (!object) return null;
-  const record = await object.json<FulfillmentRecord>();
+  const stored = await readOrderMetadata<FulfillmentRecord>(env, key);
+  if (!stored) return null;
+  const { record } = stored;
   if (record.schema !== "delta-fulfillment/v1") throw new Error("invalid_fulfillment_record");
-  return { record, etag: object.etag };
+  return stored;
 }
 
 export async function deliveryDigest(record: Pick<FulfillmentRecord, "route" | "request_hash" | "fulfillment_fingerprint">, response: DeliveryResponse): Promise<string> {

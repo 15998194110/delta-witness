@@ -38,6 +38,11 @@ function runtime(browser: { quickAction: ReturnType<typeof vi.fn> }): RuntimeEnv
 
 afterEach(() => vi.unstubAllGlobals());
 
+function storedJson(record: unknown) {
+  const bytes = new TextEncoder().encode(JSON.stringify(record));
+  return { size: bytes.byteLength, etag: "old", body: new ReadableStream<Uint8Array>({ start(controller) { controller.enqueue(bytes); controller.close(); } }), json: async () => record };
+}
+
 function stubTimingSafeEqual(): void {
   const nativeCrypto = crypto;
   vi.stubGlobal("crypto", {
@@ -66,7 +71,7 @@ describe("payment hard gate", () => {
     const fingerprint = await sha256("partner\nexisting\noriginal-order");
     const record = initialFulfillment({ route: "/partner/preflight", requestHash: await paidRequestHash("/partner/preflight", body), requestedUrl: body.url, fulfillmentFingerprint: fingerprint });
     const delivery = { ok: true, proof_id: "existing-partner-proof" };
-    env.PROOFS.get = vi.fn(async (key: string) => key === fulfillmentRecordKey(fingerprint) ? { json: async () => ({ ...record, state: "complete", response: delivery }), etag: "old" } : null) as unknown as R2Bucket["get"];
+    env.PROOFS.get = vi.fn(async (key: string) => key === fulfillmentRecordKey(fingerprint) ? storedJson({ ...record, state: "complete", response: delivery }) : null) as unknown as R2Bucket["get"];
     vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
       if (url.startsWith("https://cloudflare-dns.com/")) return Response.json(new URL(url).searchParams.get("type") === "A" ? { Status: 0, Answer: [{ type: 1, data: "93.184.216.34" }] } : { Status: 0, Answer: [] });
@@ -111,7 +116,7 @@ describe("payment hard gate", () => {
     const record = initialFulfillment({ route: "/v1/preflight", requestHash: await paidRequestHash("/v1/preflight", body), requestedUrl: body.url, fulfillmentFingerprint: fingerprint, paymentFingerprint: fingerprint });
     const delivery = { ok: true, product: "preflight", proof_id: "existing-paid-proof", manifest_url: "https://delta.test/v1/proofs/existing-paid-proof" };
     env.PROOFS.get = vi.fn(async (key: string) => key === fulfillmentRecordKey(fingerprint)
-      ? { json: async () => ({ ...record, state: "complete", response: delivery }), etag: "old" }
+      ? storedJson({ ...record, state: "complete", response: delivery })
       : null) as unknown as R2Bucket["get"];
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);

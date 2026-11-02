@@ -68,7 +68,7 @@ describe('verified npm archive qualification, no real registry or publication',(
     await writeFile(join(directory,'pack.json'),output,{flag:'wx'});
     const manifest=await recordVerifiedNpmArtifact(directory,directory,name,source);
     expect(manifest).toMatchObject({package_name:name,version,source_commit:source});
-  });
+  }, 35_000); // The real, offline child process itself has a 30-second deadline.
   it('a registry denial, oversized body or malformed response cannot authorize publication',async()=>{
     await expect(registryVersion(name,version,async()=>new Response('fixture-secret',{status:403}))).rejects.toThrow('npm_registry_unavailable');
     await expect(registryVersion(name,version,async()=>new Response('x'.repeat(128001)))).rejects.toThrow('npm_registry_response_limit');

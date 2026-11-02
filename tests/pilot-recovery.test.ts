@@ -130,9 +130,16 @@ describe("Pilot original-page recovery (all services isolated)", () => {
   it("whole-operation deadline bounds multi-page persistence and prevents late phase commits", async () => {
     const s = setup(3), put = s.bucket.put.bind(s.bucket);
     const entries = Array.from({ length: 3 }, () => {
-      let entered!: () => void, release!: () => void;
+      let entered!: () => void, release!: () => void, browserEntered!: () => void, browserRelease!: () => void;
       const active = new Promise<void>(resolve => { entered = resolve; }), held = new Promise<void>(resolve => { release = resolve; });
-      return { active, held, entered, release };
+      const browserActive = new Promise<void>(resolve => { browserEntered = resolve; }), browserHeld = new Promise<void>(resolve => { browserRelease = resolve; });
+      return { active, held, entered, release, browserActive, browserHeld, browserEntered, browserRelease };
+    });
+    const browser = s.browser.getMockImplementation()!;
+    let browserIndex = 0;
+    s.browser.mockImplementation(async (...args) => {
+      const entry = entries[browserIndex++]; entry.browserEntered(); await entry.browserHeld;
+      return browser(...args);
     });
     let index = 0;
     s.bucket.put = async (key, value, options) => {
@@ -142,12 +149,20 @@ describe("Pilot original-page recovery (all services isolated)", () => {
     vi.useFakeTimers();
     const running = app.fetch(s.request(), s.env);
     for (let page = 0; page < 2; page++) {
+      await entries[page].browserActive;
+      await vi.advanceTimersByTimeAsync(20_000);
+      entries[page].browserRelease();
       await entries[page].active;
-      await vi.advanceTimersByTimeAsync(30_000);
+      // Each write is below its new15s boundary; only the whole90s budget
+      // expires during page3. Do not weaken either independent constraint.
+      await vi.advanceTimersByTimeAsync(14_000);
       entries[page].release();
     }
+    await entries[2].browserActive;
+    await vi.advanceTimersByTimeAsync(10_000);
+    entries[2].browserRelease();
     await entries[2].active;
-    await vi.advanceTimersByTimeAsync(PILOT_DEADLINE_MS - 60_000 + 1);
+    await vi.advanceTimersByTimeAsync(PILOT_DEADLINE_MS - 78_000 + 1);
     expect((await running).status).toBe(503);
     const record = s.record();
     entries[2].release();
