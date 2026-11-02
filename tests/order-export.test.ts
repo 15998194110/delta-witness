@@ -33,7 +33,7 @@ function request(options: { token?: string | null; id?: string; origin?: string;
   if (options.payment) headers.set("payment-signature", "synthetic-obsolete-payment");
   return new Request(`https://delta.test/v1/orders/${options.id ?? id}/artifacts/html${options.query ?? ""}`, { method: options.method ?? "GET", headers });
 }
-async function fixture(product: "capture" | "preflight" = "capture", originalAmount?: string) {
+async function fixture(product: "capture" | "preflight" = "capture", originalAmount?: string, historicalEmptyMarkdown = false) {
   vi.setSystemTime(now);
   const bucket = new Bucket();
   const env = { PROOFS: bucket, PAY_TO: "0x1990e21bc219696ff7fbc26527dbaed335ac6367", NETWORK: "eip155:8453", PUBLIC_ORIGIN: "https://delta.test",
@@ -48,7 +48,7 @@ async function fixture(product: "capture" | "preflight" = "capture", originalAmo
     asset: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", pay_to: env.PAY_TO, payer: "0x1111111111111111111111111111111111111111", amount: originalAmount ?? (product === "capture" ? "1000000" : "5000000") };
   const price = Number(order.amount) / 1e6;
   const html = encoder.encode('<html><script>fetch("/internal")</script><h1>Original evidence</h1></html>');
-  const md = encoder.encode("# Original evidence\n");
+  const md = encoder.encode(historicalEmptyMarkdown ? '' : "# Original evidence\n");
   const base = {
     schema: "delta-proof-bundle/v0.6.0" as const, proof_id: proofId, product, requested_url: body.url, requested_url_sha256: await sha256(body.url),
     capture_started_at: new Date(now - 5000).toISOString(), capture_completed_at: new Date(now - 4000).toISOString(), observed_http_status: 200,
@@ -78,6 +78,15 @@ async function fixture(product: "capture" | "preflight" = "capture", originalAmo
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("authenticated original order export, isolated R2 fixtures", () => {
+  it('preserves a historical empty markdown artifact under its original hashed manifest without recapture', async () => {
+    const f = await fixture('capture', undefined, true);
+    const before = [...f.bucket.values].map(([key,bytes]) => [key,Array.from(bytes)]);
+    const response = await app.fetch(new Request(`https://delta.test/v1/orders/${id}/artifacts/markdown`, {headers:{'x-delta-recovery-token':token}}),f.env);
+    expect(response.status).toBe(200);
+    expect((await response.arrayBuffer()).byteLength).toBe(0);
+    expect(f.env.BROWSER.quickAction).not.toHaveBeenCalled(); expect(f.bucket.put).not.toHaveBeenCalled();
+    expect([...f.bucket.values].map(([key,bytes]) => [key,Array.from(bytes)])).toEqual(before);
+  });
   it("full API route preserves private attachment sandbox and trusted CORS", async () => {
     const f = await fixture();
     const response = await app.fetch(request({ origin: "https://delta.test" }), f.env);

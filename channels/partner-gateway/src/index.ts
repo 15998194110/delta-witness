@@ -4,7 +4,16 @@ const MAX_BODY_BYTES = 12_288;
 const CORE_TIMEOUT_MS = 120_000;
 const MAX_CORE_RESPONSE_BYTES = 1_048_576;
 
-export type GatewayEnv = Env & {
+// Explicit service contract: importing this thin adapter in Core integration
+// tests must not inherit whichever Worker owns the ambient generated Env.
+export type GatewayEnv = {
+  CORE: Fetcher;
+  PARTNER_RATE_LIMITER: RateLimit;
+  APP_VERSION: string;
+  PARTNER_ID: string;
+  PARTNER_NET_CAPTURE_USD: string;
+  PARTNER_NET_PREFLIGHT_USD: string;
+  PARTNER_NET_WATCH_CHECK_USD: string;
   PARTNER_SECRET?: string;
   CORE_SERVICE_SECRET?: string;
 };
@@ -17,7 +26,8 @@ function gatewayOpenApi(origin: string, version: string): Record<string, unknown
   const authenticatedResponses = {
     "400": { description: "Invalid request or idempotency identity" },
     "401": { description: "Marketplace proxy was not authenticated" },
-    "402": { description: "Partner net price or prepaid amount is below DELTA's live margin floor" },
+    "402": { description: "Partner net price or prepaid amount is below the authorized product price" },
+    "503": { description: "Economics or original evidence unavailable; do not authorize a replacement charge" },
     "429": { description: "Partner or end-user rate limit exceeded" },
     "502": { description: "Observation failed; retry with the same idempotency identity" },
   };
@@ -45,6 +55,21 @@ function gatewayOpenApi(origin: string, version: string): Record<string, unknown
       "/capture": { post: { operationId: "partnerCapture", responses: { "200": { description: "Proof delivered" }, ...authenticatedResponses } } },
       "/preflight": { post: { operationId: "partnerGuard", responses: { "200": { description: "Guard decision and proof delivered" }, ...authenticatedResponses } } },
       "/watch": { post: { operationId: "partnerRegisterWatch", responses: { "201": { description: "Finite prepaid watch registered" }, ...authenticatedResponses } } },
+      "/business/capabilities": { get: { operationId: "partnerBusinessCapabilities", responses: { "200": { description: "Explicit coordinator availability; no capture or charge" }, "401": authenticatedResponses["401"] } } },
+      "/business/{business_order_id}/{product}": { post: { operationId: "partnerBusinessObservation", description: "Stable business order scoped by the authenticated proxy's trusted user identity. Core reuses the original fulfillment.",
+        parameters: [
+          { name: "business_order_id", in: "path", required: true, schema: { type: "string", minLength: 8, maxLength: 128 } },
+          { name: "product", in: "path", required: true, schema: { type: "string", enum: ["capture", "preflight"] } },
+          { name: "x-delta-partner-user", in: "header", required: true, schema: { type: "string" } },
+        ], responses: { "200": { description: "Original completed delivery" }, ...authenticatedResponses } } },
+      "/business/{business_order_id}/{product}/billing": { post: { operationId: "partnerBusinessBilling", description: "Read, reserve one charge attempt, or record an adapter-reported charge against the original fulfillment. Unknown reservations never expire into a new charge. This does not verify platform settlement or revenue.",
+        parameters: [
+          { name: "business_order_id", in: "path", required: true, schema: { type: "string", minLength: 8, maxLength: 128 } },
+          { name: "product", in: "path", required: true, schema: { type: "string", enum: ["capture", "preflight"] } },
+          { name: "x-delta-partner-user", in: "header", required: true, schema: { type: "string" } },
+        ], requestBody: { required: true, content: { "application/json": { schema: { type: "object", additionalProperties: false, required: ["request", "operation"], properties: {
+          request: { type: "object" }, operation: { enum: ["status", "reserve_charge", "confirm_charge"] }, attempt_id: { type: "string", format: "uuid", description: "Required for reserve and confirm; retain the original attempt" },
+        } } } } }, responses: { "200": { description: "Original order and asserted billing state" }, "202": { description: "Original delivery pending" }, "409": { description: "Identity or conditional-write conflict; no fresh charge permission" }, ...authenticatedResponses } } },
       "/watch/{watch_id}": {
         get: {
           operationId: "partnerGetWatch",
@@ -134,18 +159,31 @@ async function boundedBody(request: Request): Promise<Uint8Array> {
   if (!reader) return new Uint8Array();
   const chunks: Uint8Array[] = [];
   let total = 0;
+  let expired = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      total += value.byteLength;
-      if (total > MAX_BODY_BYTES) {
-        void reader.cancel("body_too_large");
-        throw new Error("request_too_large");
-      }
-      chunks.push(value);
-    }
+    await Promise.race([
+      (async () => {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (expired) throw new Error("request_timeout");
+          if (done) break;
+          total += value.byteLength;
+          if (total > MAX_BODY_BYTES) throw new Error("request_too_large");
+          chunks.push(value);
+        }
+      })(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          expired = true;
+          reject(new Error("request_timeout"));
+          void reader.cancel("request_timeout").catch(() => {});
+        }, 10_000);
+      }),
+    ]);
   } finally {
+    clearTimeout(timer);
+    void reader.cancel().catch(() => {});
     reader.releaseLock();
   }
   const result = new Uint8Array(total);
@@ -184,6 +222,7 @@ app.use("/capture", authorized);
 app.use("/preflight", authorized);
 app.use("/watch", authorized);
 app.use("/watch/*", authorized);
+app.use("/business/*", authorized);
 
 app.get("/health", (c) => c.json({ ok: true, version: c.env.APP_VERSION, channel: "partner-gateway", core: "service-binding" }));
 app.get("/openapi.json", (c) => c.json(gatewayOpenApi(new URL(c.req.url).origin, c.env.APP_VERSION)));
@@ -238,6 +277,7 @@ async function forward(product: "capture" | "preflight" | "watch", c: GatewayCon
   } catch (error) {
     const reason = error instanceof Error ? error.message : "internal_error";
     if (reason === "request_too_large") return c.json({ error: reason }, 413);
+    if (reason === "request_timeout") return c.json({ error: reason }, 408);
     if (reason === "content_type_must_be_application_json") return c.json({ error: reason }, 400);
     return c.json({ error: "internal_error" }, 500);
   }
@@ -246,6 +286,42 @@ async function forward(product: "capture" | "preflight" | "watch", c: GatewayCon
 app.post("/capture", (c) => forward("capture", c));
 app.post("/preflight", (c) => forward("preflight", c));
 app.post("/watch", (c) => forward("watch", c));
+
+// Thin transport for Core's original-order billing coordinator. Only Core
+// derives business identities and coordinates charge permission.
+async function forwardBusiness(c: GatewayContext, billing: boolean): Promise<Response> {
+  const product = c.req.param("product"), businessId = c.req.param("businessOrderId") ?? "";
+  if (product !== "capture" && product !== "preflight") return c.json({ error: "unknown_product" }, 404);
+  const user = c.req.header("x-delta-partner-user");
+  if (!user || user.length > 128 || !/^[A-Za-z0-9._:-]{8,128}$/.test(businessId)) return c.json({ error: "valid_business_identity_required" }, 400);
+  try {
+    const bytes = await boundedBody(c.req.raw);
+    const netPrice = Number(product === "capture" ? c.env.PARTNER_NET_CAPTURE_USD : c.env.PARTNER_NET_PREFLIGHT_USD);
+    if (!Number.isFinite(netPrice) || netPrice <= 0) return c.json({ error: "invalid_partner_net_price" }, 503);
+    const response = await fetchCore(c.env, new Request(`https://delta.internal/internal/partner/business/${encodeURIComponent(businessId)}/${product}${billing ? "/billing" : ""}`, {
+      method: "POST", headers: { "content-type": "application/json", "x-delta-core-secret": c.env.CORE_SERVICE_SECRET!,
+        "x-delta-partner": c.env.PARTNER_ID, "x-delta-channel": c.env.PARTNER_ID,
+        "x-delta-partner-user": user, "x-delta-gross-usd": netPrice.toFixed(6) }, body: exactBuffer(bytes),
+    }));
+    return new Response(response.body, { status: response.status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "private, no-store", "x-content-type-options": "nosniff" } });
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "";
+    if (code === "request_too_large") return c.json({ error: code }, 413);
+    if (code === "request_timeout") return c.json({ error: code }, 408);
+    if (code === "content_type_must_be_application_json") return c.json({ error: code }, 400);
+    return coreFailure(c, error);
+  }
+}
+app.get("/business/capabilities", async (c) => {
+  try {
+    const response = await fetchCore(c.env, new Request("https://delta.internal/internal/partner/business/capabilities", { headers: {
+      "x-delta-core-secret": c.env.CORE_SERVICE_SECRET!, "x-delta-partner": c.env.PARTNER_ID,
+    } }));
+    return new Response(response.body, { status: response.status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "private, no-store" } });
+  } catch (error) { return coreFailure(c, error); }
+});
+app.post("/business/:businessOrderId/:product", (c) => forwardBusiness(c, false));
+app.post("/business/:businessOrderId/:product/billing", (c) => forwardBusiness(c, true));
 app.get("/watch/:id", async (c) => {
   const id = c.req.param("id");
   if (!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(id)) return c.json({ error: "invalid_watch_id" }, 400);

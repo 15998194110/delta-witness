@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { writeFile } from "node:fs/promises";
-// JS package deliberately has no TypeScript declaration dependency.
-// @ts-expect-error local JavaScript package integration
+// Execute the actual locally bundled JS client against the Core fixture.
 import { DeltaWitness } from "../packages/js-client/src/index.js";
 import { app } from "../src/index";
 import { sha256 } from "../src/crypto";

@@ -571,11 +571,16 @@ describe("buyer assurance adversarial core", () => {
     expect(settle).toHaveBeenCalledTimes(1);
   });
 
-  it("accepts valid PNG and a genuinely empty markdown string", async () => {
-    const env = runtime(new MemoryBucket());
-    vi.mocked(env.BROWSER.quickAction).mockResolvedValue(Response.json({ success: true, result: { content: "<html></html>", markdown: "", screenshot: png }, meta: { status: 200 } }));
+  it.each([{content:'<html></html>',markdown:''},{content:'<p>Text</p>',markdown:' \n\t'},
+    {content:' \n\t',markdown:'Text'}])("rejects a new blank text snapshot even with a valid PNG: %j", async snapshot => {
+    const bucket = new MemoryBucket(), env = runtime(bucket);
+    vi.mocked(env.BROWSER.quickAction).mockResolvedValue(Response.json({ success: true, result: { ...snapshot, screenshot: png }, meta: { status: 200 } }));
     vi.stubGlobal("fetch", mockNetwork(async () => Response.json({ success: true, transaction: "0x" + "12".repeat(32), network: env.NETWORK, payer })));
-    expect((await app.fetch(request("capture"), env)).status).toBe(200);
+    const response = await app.fetch(request("capture"), env);
+    expect(response.status).toBe(502);
+    expect(await response.json()).toMatchObject({reason:'capture_incomplete'});
+    expect([...bucket.values.keys()].some(key => key.endsWith('/manifest.json'))).toBe(false);
+    expect([...bucket.values].filter(([key]) => key.startsWith('fulfillments/')).some(([,value]) => JSON.parse(value.text).state==='complete')).toBe(false);
   });
 
   it.each(["throw_before", "commit_then_throw", "conditional_conflict"])("never submits settlement without an acknowledged durable reservation (%s)", async (mode) => {

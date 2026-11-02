@@ -15,10 +15,15 @@ SELECT
   sum(CASE WHEN event IN ('capture_completed', 'watch_checked') AND success = 'true' THEN event_count ELSE 0 END) AS delivered,
   sum(CASE WHEN event = 'repeat_call' THEN event_count ELSE 0 END) AS repeat_calls,
   round(sum(CASE WHEN event IN ('capture_completed', 'watch_checked') THEN gross_usd ELSE 0 END), 6) AS telemetry_gross_usd,
-  round(sum(CASE WHEN event IN ('capture_completed', 'watch_checked') THEN variable_cost_usd ELSE 0 END), 6) AS estimated_variable_cost_usd,
-  round(sum(CASE WHEN event IN ('capture_completed', 'watch_checked') THEN contribution_margin_usd ELSE 0 END), 6) AS estimated_contribution_margin_usd,
-  round(sum(CASE WHEN event IN ('capture_completed', 'watch_checked') THEN browser_ms ELSE 0 END), 0) AS browser_ms,
-  round(sum(CASE WHEN event IN ('capture_completed', 'watch_checked') THEN storage_bytes ELSE 0 END), 0) AS storage_bytes
+  sum(CASE WHEN event IN ('capture_completed', 'capture_failed', 'watch_checked') AND modeled_variable_cost_usd IS NULL THEN 1 ELSE 0 END) AS cost_unknown_events,
+  CASE WHEN sum(CASE WHEN event IN ('capture_completed', 'capture_failed', 'watch_checked') AND modeled_variable_cost_usd IS NULL THEN 1 ELSE 0 END) = 0
+    THEN round(sum(CASE WHEN event IN ('capture_completed', 'capture_failed', 'watch_checked') THEN modeled_variable_cost_usd END), 6) END AS estimated_variable_cost_usd,
+  CASE WHEN sum(CASE WHEN event IN ('capture_completed', 'capture_failed', 'watch_checked') AND modeled_contribution_margin_usd IS NULL THEN 1 ELSE 0 END) = 0
+    THEN round(sum(CASE WHEN event IN ('capture_completed', 'capture_failed', 'watch_checked') THEN modeled_contribution_margin_usd END), 6) END AS estimated_contribution_margin_usd,
+  CASE WHEN sum(CASE WHEN event IN ('capture_completed', 'capture_failed', 'watch_checked') AND measured_browser_ms IS NULL THEN 1 ELSE 0 END) = 0
+    THEN sum(CASE WHEN event IN ('capture_completed', 'capture_failed', 'watch_checked') THEN measured_browser_ms END) END AS browser_ms,
+  CASE WHEN sum(CASE WHEN event IN ('capture_completed', 'capture_failed', 'watch_checked') AND measured_storage_bytes IS NULL THEN 1 ELSE 0 END) = 0
+    THEN sum(CASE WHEN event IN ('capture_completed', 'capture_failed', 'watch_checked') THEN measured_storage_bytes END) END AS storage_bytes
 FROM telemetry_events
 WHERE created_at >= datetime('now', '-${days} days')
 GROUP BY channel

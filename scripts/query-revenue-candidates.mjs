@@ -49,7 +49,7 @@ export async function queryD1Read(sql) {
 }
 
 export const telemetryAccountingScope = {
-  accounting_scope: "Telemetry event aggregates only: not deduplicated purchases, confirmed settlement, Treasury receipts, or recognized revenue. Costs and margins are estimates; missing historical costs were stored as zero and cannot be recovered here.",
+  accounting_scope: "Telemetry aggregates are not purchases, settlement, receipts or revenue. V2 nullable metrics distinguish measurements from models; legacy/missing values remain unknown. Actual invoice costs, refunds and independent purpose require the original-order accounting view. Migration 0002 is required; no legacy zero fallback.",
   recognized_customer_revenue_usdc: null,
   actual_variable_cost_usdc: null,
   actual_contribution_margin_usdc: null,
@@ -69,8 +69,9 @@ SELECT
   success,
   count(*) AS rows,
   round(sum(gross_usd), 6) AS telemetry_gross_usd,
-  round(sum(variable_cost_usd), 6) AS estimated_variable_cost_usd,
-  round(sum(contribution_margin_usd), 6) AS estimated_contribution_margin_usd,
+  sum(CASE WHEN modeled_variable_cost_usd IS NULL THEN 1 ELSE 0 END) AS cost_unknown_events,
+  CASE WHEN count(modeled_variable_cost_usd) = count(*) THEN round(sum(modeled_variable_cost_usd), 6) END AS estimated_variable_cost_usd,
+  CASE WHEN count(modeled_contribution_margin_usd) = count(*) THEN round(sum(modeled_contribution_margin_usd), 6) END AS estimated_contribution_margin_usd,
   max(created_at) AS latest
 FROM telemetry_events
 WHERE created_at >= datetime('now', '-2 hours')

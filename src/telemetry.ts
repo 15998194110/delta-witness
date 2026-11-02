@@ -11,19 +11,24 @@ export type TelemetryEvent = {
   reason?: string;
   requestId?: string;
   grossUsd?: number;
-  browserMs?: number;
-  storageBytes?: number;
-  variableCostUsd?: number;
-  contributionMarginUsd?: number;
+  browserMs?: number | null;
+  storageBytes?: number | null;
+  variableCostUsd?: number | null;
+  contributionMarginUsd?: number | null;
 };
+
+function measured(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+}
 
 export async function recordEvent(env: RuntimeEnv, event: TelemetryEvent): Promise<void> {
   try {
     await env.ANALYTICS_DB.prepare(`
       INSERT INTO telemetry_events (
         app_version, event, route, channel, partner, success, reason, network,
-        event_count, gross_usd, browser_ms, storage_bytes, variable_cost_usd, contribution_margin_usd
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)
+        event_count, gross_usd, browser_ms, storage_bytes, variable_cost_usd, contribution_margin_usd,
+        metric_schema, measured_browser_ms, measured_storage_bytes, modeled_variable_cost_usd, modeled_contribution_margin_usd
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       env.APP_VERSION,
       event.event,
@@ -38,6 +43,11 @@ export async function recordEvent(env: RuntimeEnv, event: TelemetryEvent): Promi
       event.storageBytes ?? 0,
       event.variableCostUsd ?? 0,
       event.contributionMarginUsd ?? 0,
+      "delta-metrics/v2",
+      measured(event.browserMs),
+      measured(event.storageBytes),
+      measured(event.variableCostUsd),
+      typeof event.contributionMarginUsd === "number" && Number.isFinite(event.contributionMarginUsd) ? event.contributionMarginUsd : null,
     ).run();
   } catch (error) {
     console.error(JSON.stringify({ event: "analytics_write_failed", reason: safeErrorCode(error) }));

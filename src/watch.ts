@@ -15,6 +15,9 @@ const MAX_INTERVAL_SECONDS = 2_592_000;
 const MAX_PREPAID_CHECKS = 1_000;
 const WATCH_BATCH_SIZE = 25;
 const WATCH_LEASE_MS = 60_000;
+// Includes metadata, DNS, capture, immutable artifacts, final CAS and telemetry.
+// Must expire before the original lease; expiry retains that lease as unknown.
+const WATCH_CHECK_OPERATION_MS = 50_000;
 const WEBHOOK_TIMEOUT_MS = 15_000;
 const NOTIFICATION_OPERATION_MS = 20_000;
 const WEBHOOK_LEASE_MS = 30_000;
@@ -233,11 +236,27 @@ export async function registerWatch(input: {
 }
 
 export async function getWatch(env: RuntimeEnv, id: string, partner: string): Promise<RegistrationResult> {
-  const object = await env.PROOFS.get(watchKey(id));
-  if (!object) return { status: 404, body: { error: "watch_not_found" } };
-  const record = await object.json<WatchRecord>();
-  if (record.partner !== sanitizeDimension(partner, "unknown")) return { status: 404, body: { error: "watch_not_found" } };
-  return { status: 200, body: { ok: true, ...publicWatch(record) } };
+  try {
+    return await withNotificationBounds(env, async bounded => {
+      const object = await bounded.PROOFS.get(watchKey(id));
+      if (!object) return { status: 404, body: { error: "watch_not_found" } };
+      const record = await object.json<WatchRecord>();
+      if (record.partner !== sanitizeDimension(partner, "unknown")) return { status: 404, body: { error: "watch_not_found" } };
+      let notification: Record<string, unknown> | undefined;
+      if (record.webhook_url && record.checks_attempted > 0) {
+        const eventId = uuidFromDigest(await sha256(`watch-event/v1\n${record.watch_id}\n${record.checks_attempted}`));
+        const eventKey = notificationKey(eventId);
+        const saved = await bounded.PROOFS.get(eventKey);
+        const event = saved ? await saved.json<WatchNotification>() : record.pending_notification;
+        if (event && (!await validNotification(event, eventKey) || event.watch_id !== record.watch_id)) throw new Error("watch_notification_invalid");
+        notification = { event_id: eventId, state: event?.state ?? "unknown", attempts: event?.attempts ?? null,
+          next_attempt_at: event && ["queued", "retry_wait"].includes(event.state) ? event.next_attempt_at : null,
+          last_outcome: event?.last_outcome ?? null,
+          recovery_action: !event || event.state === "failed" ? "receiver_reconciliation_required_no_automatic_resend" : "retain_event_id_and_original_check" };
+      }
+      return { status: 200, body: { ok: true, ...publicWatch(record), notification } };
+    });
+  } catch { return {status: 503, body: {error: "watch_evidence_unavailable", retryable: true}}; }
 }
 
 async function loadManifest(env: RuntimeEnv, proofId: string | undefined): Promise<ProofManifest | undefined> {
@@ -387,6 +406,37 @@ async function processNotificationWithinBounds(env: RuntimeEnv, key: string, ope
 }
 
 async function processWatch(env: RuntimeEnv, key: string): Promise<void> {
+  const view = createOrderReadSnapshot(env, WATCH_METADATA_BYTES);
+  const source = env;
+  const bounded = { ...env, PROOFS: {
+    get: async (name: string) => {
+      const proof = /^([0-9a-f-]{36})\/(?:page\.html|page\.md|screenshot\.png|manifest\.json)$/.exec(name);
+      if (proof) view.allowArtifactsFor(proof[1]);
+      const object = await view.env.PROOFS.get(name);
+      if (!object) return null;
+      const bytes = new Uint8Array(await object.arrayBuffer());
+      view.assertActive();
+      return { ...object, body: new ReadableStream<Uint8Array>({start(controller) { controller.enqueue(bytes); controller.close(); }}) };
+    },
+    put: async (name: string, value: Parameters<R2Bucket["put"]>[1], options?: R2PutOptions) => {
+      view.assertActive();
+      const result = await source.PROOFS.put(name, value, options);
+      view.assertActive();
+      return result;
+    },
+  } as R2Bucket, BROWSER: {
+    quickAction: async (...args: Parameters<BrowserRun["quickAction"]>) => {
+      view.assertActive();
+      const response = await source.BROWSER.quickAction(...args);
+      try { view.assertActive(); } catch (error) { void response.body?.cancel().catch(() => {}); throw error; }
+      return response;
+    },
+  } as BrowserRun };
+  try { await withinDeadline(processWatchWithinBounds(bounded, key), WATCH_CHECK_OPERATION_MS, "watch_check_timeout", view.cancel); }
+  finally { view.cancel(); }
+}
+
+async function processWatchWithinBounds(env: RuntimeEnv, key: string): Promise<void> {
   await materializeNotification(env, key);
   const object = await env.PROOFS.get(key);
   if (!object) return;
@@ -434,10 +484,10 @@ async function processWatch(env: RuntimeEnv, key: string): Promise<void> {
 
   const sequence = record.checks_attempted + 1;
   let payload: Record<string, unknown>;
-  let variableCost = 0;
-  let margin = record.prepaid_check_price_usd;
-  let browserMs = 0;
-  let storageBytes = 0;
+  let variableCost: number | null = null;
+  let margin: number | null = null;
+  let browserMs: number | null = null;
+  let storageBytes: number | null = null;
   try {
     const target = await resolvePublicRedirects(record.url);
     const fingerprint = await sha256(`watch\n${record.watch_id}\n${sequence}`);
@@ -520,13 +570,15 @@ export async function runDueWatches(env: RuntimeEnv): Promise<void> {
 async function runWatchChecks(env: RuntimeEnv): Promise<void> {
   try {
     const cursorKey = "ops/watch-list-cursor.json";
-    const cursorObject = await env.PROOFS.get(cursorKey);
-    const saved = cursorObject ? await cursorObject.json<{ cursor?: string }>() : {};
-    const listed = await env.PROOFS.list({ prefix: "watches/", limit: WATCH_BATCH_SIZE, cursor: saved.cursor });
-    await Promise.allSettled(listed.objects.map((object) => processWatch(env, object.key)));
-    await env.PROOFS.put(cursorKey, JSON.stringify({ cursor: listed.truncated ? listed.cursor : undefined }), {
-      httpMetadata: { contentType: "application/json; charset=utf-8" },
+    const listed = await withNotificationBounds(env, async bounded => {
+      const cursorObject = await bounded.PROOFS.get(cursorKey);
+      const saved = cursorObject ? await cursorObject.json<{ cursor?: string }>() : {};
+      return bounded.PROOFS.list({ prefix: "watches/", limit: WATCH_BATCH_SIZE, cursor: saved.cursor });
     });
+    await Promise.allSettled(listed.objects.map((object) => processWatch(env, object.key)));
+    await withNotificationBounds(env, bounded => bounded.PROOFS.put(cursorKey, JSON.stringify({ cursor: listed.truncated ? listed.cursor : undefined }), {
+      httpMetadata: { contentType: "application/json; charset=utf-8" },
+    }));
   } finally {
     // A check-list or cursor-write rejection must not strand earlier events.
     await dispatchNotifications(env);

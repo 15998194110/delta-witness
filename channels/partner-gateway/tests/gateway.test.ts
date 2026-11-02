@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { app, type GatewayEnv } from "../src/index";
 
 function env(coreFetch: (request: Request) => Promise<Response> = vi.fn(async () => Response.json({ ok: true }))): GatewayEnv {
@@ -16,6 +16,23 @@ function env(coreFetch: (request: Request) => Promise<Response> = vi.fn(async ()
 }
 
 describe("thin partner gateway", () => {
+  afterEach(() => vi.useRealTimers());
+  it("bounds a stalled caller body before Core or any paid work", async () => {
+    vi.useFakeTimers();
+    const core = vi.fn(), cancel = vi.fn();
+    const request = new Request("https://gateway.test/capture", {method: "POST",
+      headers: {"content-type": "application/json", "x-delta-partner-secret": "partner-secret", "idempotency-key": "request-123"},
+      body: new ReadableStream({cancel}), duplex: "half"} as RequestInit);
+    const pending = app.fetch(request, env(core));
+    await vi.waitFor(() => expect(request.body?.locked).toBe(true));
+    await vi.advanceTimersByTimeAsync(10_001);
+    const response = await pending;
+    expect(response.status).toBe(408);
+    expect(await response.json()).toEqual({error: "request_timeout"});
+    expect(core).not.toHaveBeenCalled();
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
   it("publishes a machine-readable contract without exposing a secret", async () => {
     const response = await app.request("https://gateway.test/openapi.json", {}, env());
     expect(response.status).toBe(200);

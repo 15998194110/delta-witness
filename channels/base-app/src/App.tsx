@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Address, EIP1193Provider, Hex } from "viem";
+import { DeltaWitness, type OrderResult } from '../../../packages/js-client/src/index.js';
+import { createBrowserOrderStore, ORDER_STORE_KEY } from './order-store';
 import {
   API_ORIGIN,
   assertPaymentStorageAvailable,
@@ -20,6 +22,7 @@ import {
   prepareBrowserPaymentRequest,
   purchaseOutcome,
   requestBody,
+  retentionTerms,
   readPaymentAttempt,
   updatePurchaseSearch,
   validateQuote,
@@ -67,6 +70,17 @@ export default function App() {
   const [walletAddress, setWalletAddress] = useState<Address | null>(null);
   const [savedAttempt, setSavedAttempt] = useState<PaymentAttempt | null>(null);
   const [recoveryBlocked, setRecoveryBlocked] = useState(false);
+  const [savedOrderId, setSavedOrderId] = useState<string | null>(null);
+  const [recovering, setRecovering] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const orderStore = useMemo(() => {
+    try { return createBrowserOrderStore(window.localStorage, navigator.locks); }
+    catch {
+      const denied = () => { throw new BuyerMessageError('Browser order storage is unavailable. No new payment was started.'); };
+      return createBrowserOrderStore({ getItem: denied, setItem: denied, removeItem: denied }, undefined);
+    }
+  }, []);
+  const orderClient = useMemo(() => new DeltaWitness({ baseUrl: API_ORIGIN, orderStore, channel: 'base-app' }), [orderStore]);
   const runInFlight = useRef(false);
   const recoveryRequired = useRef(false);
   const quoteRequest = useRef(0);
@@ -76,14 +90,75 @@ export default function App() {
   const clearPreviousResult = () => {
     setDelivery(null);
     if (!recoveryRequired.current) {
+      setSavedOrderId(null);
       setRunState("idle");
       setError("");
     }
   };
 
+  const finishOrder = useCallback(async (result: OrderResult) => {
+    if (!result.delivery || result.state !== 'complete') throw new BuyerMessageError(PAYMENT_RECOVERY_WARNING);
+    const active = await orderStore.active();
+    const legacy = readPaymentAttempt(window.localStorage);
+    if (legacy) {
+      if (active?.order_id !== result.order_id || active.legacyAttemptId !== legacy.attemptId) throw new BuyerMessageError('A separate legacy attempt still needs review. Keep both original references.');
+      clearPaymentAttempt(window.localStorage, legacy.attemptId);
+    }
+    await orderStore.finish(result.order_id);
+    setDelivery(result.delivery); setProduct(result.product); setRunState('complete');
+    setSavedAttempt(null); setSavedOrderId(result.order_id);
+    setRecoveryBlocked(false); recoveryRequired.current = false; setError('');
+  }, [orderStore]);
+
+  const recoverOriginal = useCallback(async () => {
+    if (runInFlight.current || !navigator.locks) return;
+    setRecovering(true);
+    let unresolved = true;
+    try {
+      await navigator.locks.request(PAYMENT_LOCK_NAME, { ifAvailable: true }, async lock => {
+        if (!lock) return;
+        const active = await orderStore.active();
+        const id = active?.order_id ?? await orderStore.lastCompleted();
+        if (!id) return;
+        unresolved = active !== null;
+        setSavedOrderId(id);
+        if (unresolved) { setRecoveryBlocked(true); recoveryRequired.current = true; }
+        // This client has no signer. A 404, expiry or unavailable original result
+        // remains unconfirmed and can never release the original purchase fence.
+        await finishOrder(await orderClient.recoverOrder(id));
+      });
+    } catch {
+      if (unresolved) {
+        setRecoveryBlocked(true); recoveryRequired.current = true; setRunState('uncertain');
+        setError('The original order is not yet recoverable or its access has expired. No new payment was requested. Keep this browser data and the order reference.');
+      } else {
+        setError('The previously completed order is unavailable or its access has expired. Its saved record is retained; no payment was requested.');
+      }
+    } finally { setRecovering(false); }
+  }, [orderClient, orderStore, finishOrder]);
+
+  const downloadOriginal = async (artifact: 'html' | 'markdown' | 'screenshot' | 'manifest') => {
+    if (!savedOrderId || exporting) return;
+    setExporting(true);
+    try {
+      const file = await orderClient.exportArtifact(savedOrderId, artifact);
+      const objectUrl = URL.createObjectURL(new Blob([new Uint8Array(file.bytes)], { type: file.content_type }));
+      const link = document.createElement('a'); link.href = objectUrl; link.download = file.filename;
+      link.rel = 'noreferrer'; link.click(); setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch {
+      setError('Original file download could not be verified or access has expired. No payment was requested.');
+    } finally { setExporting(false); }
+  };
+
   useEffect(() => {
-    const refresh = () => {
+    const refresh = async () => {
       try {
+        const active = await orderStore.active();
+        if (active) {
+          setSavedOrderId(active.order_id); setRecoveryBlocked(true); recoveryRequired.current = true;
+          if (!runInFlight.current) await recoverOriginal();
+          return;
+        }
         const attempt = readPaymentAttempt(window.localStorage);
         if (attempt) {
           setSavedAttempt(attempt);
@@ -94,19 +169,20 @@ export default function App() {
             setError(`A previous ${attempt.product} attempt needs review. ${PAYMENT_RECOVERY_WARNING}`);
           }
         }
+        else if (await orderStore.lastCompleted() && !runInFlight.current) await recoverOriginal();
       } catch {
         setRecoveryBlocked(true);
         recoveryRequired.current = true;
         setError("Browser recovery storage is unavailable or unreadable. New paid requests are disabled to avoid duplicate payment.");
       }
     };
-    refresh();
+    void refresh();
     const onStorage = (event: StorageEvent) => {
-      if (event.key === PAYMENT_ATTEMPT_KEY || event.key === null) refresh();
+      if (event.key === PAYMENT_ATTEMPT_KEY || event.key === ORDER_STORE_KEY || event.key === null) void refresh();
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  }, [orderStore, recoverOriginal]);
 
   const loadQuote = useCallback(async () => {
     const requestId = ++quoteRequest.current;
@@ -144,9 +220,13 @@ export default function App() {
     runInFlight.current = true;
     let paymentAttempted = false;
     let signatureStarted = false;
+    let scopedOrderId: string | null = null;
+    let paidWork: Promise<Response> | undefined;
+    let paymentSignal: AbortSignal | undefined;
     let attempt: PaymentAttempt | null = null;
     setError("");
     setDelivery(null);
+    setSavedOrderId(null);
     try {
       if (!navigator.locks) {
         setRecoveryBlocked(true);
@@ -157,6 +237,7 @@ export default function App() {
         if (!lock) throw new BuyerMessageError("Another DELTA tab is handling a payment. Wait for that attempt to finish; this tab did not start a payment.");
         try {
           const previous = readPaymentAttempt(window.localStorage);
+          if (await orderStore.active()) throw new BuyerMessageError('The original saved order needs recovery before a new purchase.');
           if (previous) {
             setSavedAttempt(previous);
             setRecoveryBlocked(true);
@@ -203,6 +284,7 @@ export default function App() {
             message: Record<string, unknown>;
           }): Promise<Hex> => {
             if (signatureStarted || paymentAttempted || recoveryRequired.current) throw new BuyerMessageError(PAYMENT_RECOVERY_WARNING);
+            if (paymentSignal?.aborted) throw new BuyerMessageError(PAYMENT_RECOVERY_WARNING);
             // Claim this one authorization synchronously, before any wallet RPC.
             signatureStarted = true;
             if (window.ethereum !== provider) throw new BuyerMessageError("The connected wallet changed. No new payment was signed; reconnect and review the original request.");
@@ -216,7 +298,17 @@ export default function App() {
             }
             // Never release the purchase lock by timing out a wallet prompt.
             // A late signature must still belong to this one active attempt.
-            return wallet.signTypedData({ ...message, account: address } as never) as Promise<Hex>;
+            const signature = await wallet.signTypedData({ ...message, account: address } as never) as Hex;
+            if (paymentSignal?.aborted) throw new BuyerMessageError(PAYMENT_RECOVERY_WARNING);
+            const [signedChain, signedAccounts] = await Promise.all([
+              provider.request({ method: "eth_chainId" }),
+              provider.request({ method: "eth_accounts" }),
+            ]);
+            if (window.ethereum !== provider || Number(signedChain) !== 8453 || !Array.isArray(signedAccounts) ||
+                typeof signedAccounts[0] !== "string" || signedAccounts[0].toLowerCase() !== address.toLowerCase()) {
+              throw new BuyerMessageError("The wallet account or network changed while signing. The signed request was not sent; retain the original order for review.");
+            }
+            return signature;
           },
         };
         const client = new x402Client();
@@ -227,9 +319,11 @@ export default function App() {
         setRunState("paying");
         const paidFetch = wrapFetchWithPayment(async (input, init) => {
           const request = prepareBrowserPaymentRequest(input, init);
+          if (request.signal.aborted || paymentSignal?.aborted) throw new BuyerMessageError(PAYMENT_RECOVERY_WARNING);
           if (request.headers.has("payment-signature") || request.headers.has("x-payment")) {
             try {
               attempt = await markSignedPaymentRequest(request, window.localStorage, product);
+              if (scopedOrderId && attempt) await orderStore.bindAttempt(scopedOrderId, attempt.attemptId);
             } catch {
               setRecoveryBlocked(true);
               recoveryRequired.current = true;
@@ -244,6 +338,31 @@ export default function App() {
           }
           return fetchWithDeadline(request, undefined, 120_000);
         }, client);
+        if (quote.order_recovery?.schema === 'delta-order-recovery/v1' && quote.order_recovery.enabled === true &&
+            quote.order_recovery.payment_on_recovery === false && quote.order_recovery.products.includes(product)) {
+          const prepared = await orderClient.prepareOrder(product, requestBody(product, target.toString(), mustContain), {
+            ...(quote.retention ? { retentionPolicyHash: quote.retention.policy_hash } : {}),
+          });
+          scopedOrderId = prepared.order_id;
+          setSavedOrderId(scopedOrderId);
+          try {
+            const result = await orderClient.executeOrder(scopedOrderId, (input, init) => {
+              paymentSignal = init?.signal ?? undefined;
+              const headers = new Headers(init?.headers); headers.set('x-delta-channel', 'base-app');
+              paidWork = paidFetch(input, { ...init, headers });
+              return paidWork;
+            });
+            await finishOrder(result);
+          } catch {
+            recoveryRequired.current = true; setRecoveryBlocked(true); setRunState('uncertain');
+            setError('The original order needs verification. Use Check original order; do not approve another payment.');
+          } finally {
+            // Keep the existing payment Web Lock until an already-open wallet
+            // prompt settles. The durable order also fences refresh/other tabs.
+            if (paidWork) await paidWork.catch(() => {});
+          }
+          return;
+        }
         const response = await paidFetch(`${API_ORIGIN}/v1/${product === "preflight" ? "preflight" : "capture"}`, {
           method: "POST",
           headers: {
@@ -387,11 +506,15 @@ export default function App() {
               <div><dt>Settlement</dt><dd>Before observation · x402</dd></div>
             </dl>
             <p className="wallet-address"><strong>Payment status:</strong> {paymentStatus}</p>
+            {quote?.order_recovery?.enabled && <p className="wallet-address">Order access is saved privately in this browser for up to {quote.order_recovery.credential_ttl_seconds} seconds from purchase. Keep browser data to retrieve the original order; recovery does not request payment.</p>}
+            {quote?.retention && <p className="wallet-address">Purchase retention terms: {retentionTerms(quote.retention.policy)} File retention does not extend order access.</p>}
 
             {quoteError && <p className="inline-error" role="alert">Quote unavailable: {quoteError} <button onClick={() => void loadQuote()} disabled={locked}>Retry</button></p>}
             {error && <p className="inline-error" role="alert">{error}</p>}
             {savedAttempt && <p className="wallet-address">Attempt started: {savedAttempt.startedAt}<br />Reference: <code style={{ overflowWrap: "anywhere" }}>{savedAttempt.attemptId}</code></p>}
-            {recoveryBlocked && <p className="wallet-address">No automatic recovery is available. <a href="mailto:ruphussten@163.com">Contact DELTA</a> to review the original attempt. Reloading or changing tabs does not resolve a pending payment.</p>}
+            {savedOrderId && <p className="wallet-address">Original order: <code>{savedOrderId}</code></p>}
+            {recoveryBlocked && savedOrderId && <button className="recover-order" disabled={recovering || busy} onClick={() => void recoverOriginal()}>{recovering ? 'Checking original order…' : 'Check original order — no payment'}</button>}
+            {recoveryBlocked && !savedOrderId && <p className="wallet-address">No automatic recovery is available for this legacy attempt. <a href="mailto:ruphussten@163.com">Contact DELTA</a> to review the original attempt. Reloading or changing tabs does not resolve a pending payment.</p>}
 
             <button className="primary-action" onClick={() => void run()} disabled={locked || !quote || !isHttpSourceUrl(url)}>
               {actionLabel}
@@ -409,6 +532,7 @@ export default function App() {
                 <div><dt>Proof ref</dt><dd><code>{compactProof(delivery.proof_id)}</code></dd></div>
                 <div><dt>Verification</dt><dd><a className="verify-proof" href={delivery.public_proof_url} target="_blank" rel="noreferrer">Verify public proof ↗</a></dd></div>
                 <div><dt>Reason</dt><dd className="reason">{delivery.reason ?? "OBSERVATION_RECORDED"}</dd></div>
+                {savedOrderId && <div><dt>Private originals</dt><dd>{(['html', 'markdown', 'screenshot', 'manifest'] as const).map(artifact => <button key={artifact} disabled={exporting} onClick={() => void downloadOriginal(artifact)}>Download {artifact}</button>)}</dd></div>}
               </dl>
             ) : (
               <div className="empty-result">

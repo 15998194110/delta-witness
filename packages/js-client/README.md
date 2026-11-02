@@ -114,7 +114,13 @@ Always obtain the live quote/challenge and check that the chosen product, displa
 
 Observe an authorized, publicly accessible page; inspect the returned comparison and proof; then let your application's own policy and user approvals decide whether to proceed. DELTA does not perform the consequential action in this example. Preflight is a deterministic page observation/comparison, **not a security audit or a guarantee that an action is safe**. Do not treat HTTP 200 or a matching text fragment as an authorization to purchase, transfer funds or submit a form. Do not assume DELTA shares your browser's logged-in session, and do not submit private/authenticated URLs or session credentials.
 
-The SDK also exposes `proof(id)` for returned proof identifiers. A proof or HTTP success alone is not independent chain-receipt verification; retain the payment client's settlement evidence separately. SDK calls carry `x-delta-channel: npm`, a client-reported attribution hint, not evidence of a unique customer or originating marketplace.
+The SDK also exposes `proof(id)` for returned proof identifiers. A proof or HTTP success alone is not independent chain-receipt verification; retain the payment client's settlement evidence separately. SDK calls default to `x-delta-channel: npm`. A thin adapter may set a validated `channel` constructor option; this is a client-reported attribution hint, not authenticated partner identity or evidence of a unique customer.
+
+## Download original artifacts
+
+For a retained scoped order, `await delta.exportArtifact(orderId, "html")` uses the original private capability and ordinary fetch. Supported artifacts are `html`, `markdown`, `screenshot`, and `manifest`. The response returns bounded `bytes`, a SHA-256 `content_sha256`, and a client-generated `filename`; it never invokes a payment adapter. Missing, expired or inconsistent exports fail without creating a new order. Treat downloaded HTML as untrusted data and do not render it in an authenticated application origin.
+
+The SDK checks length and the authenticated response's file hash. Full bundle verification additionally requires all four original files and the `bundle_root` from the authenticated original delivery. The repository's local-only `scripts/verify-export.mjs` verifies those files without network access; a matching hash establishes byte integrity against that root, not the truth of the observed page or a digital signature by an independent attester. TypeScript declarations are included beside the JavaScript implementation.
 
 ## Publication and validation scope
 

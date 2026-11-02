@@ -69,10 +69,14 @@ import { getWatch, parseWatchRegistration, registerWatch, runDueWatches } from "
 import { guardedPilotEconomics, guardedPilotHandler, guardedPilotPrevalidate, guardedPilotProtect } from "./guarded-pilot";
 import { mirrorX402ChallengeBody } from "./x402-compat";
 import { agentJsonManifest } from "./agent-manifest";
-import { guardedFacilitator, readSettlement, settlementBlockedBody, validatePaymentBinding } from "./settlement";
+import { guardedFacilitator, readSettlement, readOrderSettlement, settlementBlockedBody, validatePaymentBinding } from "./settlement";
 import { captureFailure, safeErrorCode, MAX_FULFILLMENT_ATTEMPTS } from "./failures";
 import { commitClaim, createClaim, lostClaimBody } from "./claims";
-import { parseOrderEnrollment, assertOrderReplay, OrderAccessError, orderStatusResponse, retentionDisclosure, type OrderEnrollment } from "./orders";
+import { parseOrderEnrollment, assertOrderReplay, OrderAccessError, orderStatusResponse, retentionDisclosure, orderRecoveryDisclosure, readOrderBinding, orderRetention, type OrderEnrollment } from "./orders";
+import type { RetentionPolicy } from "./retention";
+import { createOrderReadSnapshot } from "./order-storage";
+import { withinDeadline } from "./deadline";
+import { partnerBusinessIdentity, coordinatePartnerBilling } from "./partner-billing";
 import { exportOrderArtifact } from "./order-export";
 
 type PaidProduct = "capture" | "preflight";
@@ -168,13 +172,37 @@ async function loadPriorManifest(env: RuntimeEnv, request: PreflightRequest): Pr
   return manifest;
 }
 
+// Read the original purchased obligation even when signed retries omit newer
+// capability headers. Never charge/capture again after its raw retention ends.
+async function purchasedPolicyForCapture(env: RuntimeEnv, payment: string, product: PaidProduct, fingerprint: string): Promise<RetentionPolicy | undefined> {
+  const snapshot = createOrderReadSnapshot(env);
+  try {
+    return await withinDeadline((async () => {
+      const journal = await readSettlement(snapshot.env, payment);
+      if (!journal?.order_id) return undefined;
+      const order = await readOrderBinding(snapshot.env, journal.order_id);
+      if (!order || order.payment_fingerprint !== fingerprint || order.product !== product) throw new Error("order_evidence_inconsistent");
+      const settlement = await readOrderSettlement(snapshot.env, order);
+      if (settlement.state !== "settlement_confirmed") throw new Error("order_evidence_inconsistent");
+      const retention = await orderRetention(order, settlement, null);
+      snapshot.assertActive();
+      if (retention.state === "expired") throw new OrderAccessError("raw_artifacts_expired", 410);
+      return order.retention_snapshot?.policy;
+    })(), 15_000, "order_evidence_unavailable");
+  } catch (error) {
+    if (error instanceof OrderAccessError) throw error;
+    throw new OrderAccessError("order_evidence_inconsistent", 503);
+  } finally { snapshot.cancel(); }
+}
+
 async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Promise<Response | void> {
   if (c.req.method !== "POST") return next();
-  try { c.set("orderEnrollment", await parseOrderEnrollment(c.req.raw, c.env)); }
+  const enrollmentSnapshot = createOrderReadSnapshot(c.env);
+  try { c.set("orderEnrollment", await withinDeadline(parseOrderEnrollment(c.req.raw, enrollmentSnapshot.env), 15_000, "order_evidence_unavailable")); }
   catch (error) {
     if (error instanceof OrderAccessError) return noStore(c.json({ ok: false, error: error.code }, error.status));
     return noStore(c.json({ ok: false, error: "order_unavailable" }, 503));
-  }
+  } finally { enrollmentSnapshot.cancel(); }
   // Keep the paywall ahead of request validation. Discovery clients (including
   // x402scan) are allowed to probe a paid route without knowing its body yet;
   // they must receive a 402 challenge rather than a validation error. We still
@@ -193,10 +221,17 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
       product === "capture" ? MAX_CAPTURE_BODY_BYTES : MAX_PREFLIGHT_BODY_BYTES,
     );
     const body = product === "capture" ? parseCaptureRequest(value) : parsePreflightRequest(value);
-    const [quote, requestHash] = await Promise.all([
-      quoteProductWithOverride(c.env, product),
-      paidRequestHash(`/v1/${product}`, body),
-    ]);
+    const requestHash = await paidRequestHash(`/v1/${product}`, body);
+    // A current proposal is not authority for an already paid observation.
+    // Complete/draft replay below needs neither a new quote nor live DNS.
+    const originalQuote = async (paidPrice: number, policy?: RetentionPolicy) => {
+      const quote = await quoteProductWithOverride({ ...c.env,
+        RETENTION_POLICY_JSON: policy ? JSON.stringify(policy) : undefined }, product);
+      return { ...quote, grossPriceUsd: paidPrice, estimatedContributionMarginUsd: paidPrice - quote.expectedVariableCostUsd,
+        assumptions: { ...quote.assumptions, ...(quote.assumptions.costModel ? { costModel: {
+          ...quote.assumptions.costModel, storageDurationSource: policy ? "purchased_policy_maximum" as const : "one_month_fallback" as const,
+        } } : {}) } };
+    };
     const prepareCapture = async () => {
       const [target, prior] = await Promise.all([
         resolvePublicRedirects(body.url),
@@ -206,7 +241,6 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
       c.set("priorManifest", prior);
     };
     c.set("paidBody", body);
-    c.set("quote", quote);
     c.set("requestHash", requestHash);
     c.set("channel", referrerChannel(c.req.raw));
     c.set("replayAuthorized", false);
@@ -214,7 +248,8 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
       event: "qualified_request",
       route: `/v1/${product}`,
       channel: c.var.channel,
-      grossUsd: quote.grossPriceUsd,
+      // Qualified requests are not sales; original/new price is assigned only
+      // after the stored payment identity has been classified below.
       success: true,
     });
 
@@ -227,15 +262,20 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
       { product, request_hash: requestHash, payment_fingerprint: paymentFingerprint }, await readSettlement(c.env, payment), Boolean(stored));
     if (!stored) {
       const settlement = await readSettlement(c.env, payment);
-      validatePaymentBinding(c.env, payment, `${origin(c.env)}/v1/${product}`, settlement?.amount ?? String(Math.round(quote.grossPriceUsd * 1_000_000)));
       if (settlement) {
+        validatePaymentBinding(c.env, payment, `${origin(c.env)}/v1/${product}`, settlement.amount);
         if (settlement.request_hash !== requestHash || settlement.payment_fingerprint !== paymentFingerprint) {
           return noStore(c.json(settlementBlockedBody("settlement_identity_conflict"), 409));
         }
         if (settlement.state !== "settlement_confirmed") return noStore(c.json(settlementBlockedBody(settlement.state), 503));
         const paidPrice = Number(settlement.amount) / 1_000_000;
-        c.set("quote", { ...quote, grossPriceUsd: paidPrice, estimatedContributionMarginUsd: paidPrice - quote.expectedVariableCostUsd });
+        const policy = await purchasedPolicyForCapture(c.env, payment, product, paymentFingerprint);
+        c.set("quote", await originalQuote(paidPrice, policy));
         c.set("replayAuthorized", true);
+      } else {
+        const quote = await quoteProductWithOverride(c.env, product);
+        validatePaymentBinding(c.env, payment, `${origin(c.env)}/v1/${product}`, String(Math.round(quote.grossPriceUsd * 1_000_000)));
+        c.set("quote", quote);
       }
       await prepareCapture();
       return next();
@@ -266,7 +306,8 @@ async function prevalidate(product: PaidProduct, c: AppContext, next: Next): Pro
     }
     if (stored.record.state === "processing") return noStore(c.json({ ok: false, state: "fulfillment_unknown", retryable: false, requires_fulfillment_reconciliation: true }, 503));
     const paidPrice = settledRetryPrice(stored.record, payment);
-    c.set("quote", { ...quote, grossPriceUsd: paidPrice, estimatedContributionMarginUsd: paidPrice - quote.expectedVariableCostUsd });
+    const policy = await purchasedPolicyForCapture(c.env, payment, product, paymentFingerprint);
+    c.set("quote", await originalQuote(paidPrice, policy));
     await prepareCapture();
     const claimed = await claimRetry(c.env, key, stored);
     if (!claimed) {
@@ -367,6 +408,7 @@ async function protectWithX402(product: PaidProduct, c: AppContext, next: Next):
   if (middlewareResponse instanceof Response) c.res = middlewareResponse;
   if (c.res.status === 402) {
     c.res = mirrorX402ChallengeBody(c.res, {
+      order_recovery: orderRecoveryDisclosure(c.env),
       retention: await retentionDisclosure(c.env),
       error: "payment_required",
       product,
@@ -399,6 +441,7 @@ async function executeFulfillment(input: {
   existingClaim?: StoredFulfillment;
   partner?: string;
   priorManifest?: PriorManifest;
+  retentionPolicy?: RetentionPolicy;
 }): Promise<{ status: number; body: DeliveryResponse | Record<string, unknown> }> {
   const { env, product, route, requestHash, fingerprint, key } = input;
   let claim = input.existingClaim;
@@ -449,6 +492,7 @@ async function executeFulfillment(input: {
       paymentProtocol: input.paymentProtocol,
       channel: input.channel,
       partner: input.partner,
+      retentionPolicy: input.retentionPolicy,
     });
     const base = `${origin(env)}`;
     const response: DeliveryResponse = {
@@ -535,6 +579,11 @@ async function paidHandler(product: PaidProduct, c: AppContext): Promise<Respons
   const paymentFingerprint = c.var.paymentFingerprint;
   const key = c.var.fulfillmentKey;
   if (!paymentFingerprint || !key) return c.json({ error: "settled_payment_identity_missing" }, 500);
+  let retentionPolicy: RetentionPolicy | undefined;
+  try { retentionPolicy = await purchasedPolicyForCapture(c.env, getPaymentHeader(c.req.raw)!, product, paymentFingerprint); }
+  catch (error) {
+    return noStore(c.json({ ok: false, state: "fulfillment_unknown", error: error instanceof OrderAccessError ? error.code : "order_evidence_inconsistent", retryable: false }, error instanceof OrderAccessError ? error.status : 503));
+  }
   const result = await executeFulfillment({
     env: c.env,
     product,
@@ -549,6 +598,7 @@ async function paidHandler(product: PaidProduct, c: AppContext): Promise<Respons
     paymentProtocol: "x402-v2-upfront",
     existingClaim: c.var.claimedRecord,
     priorManifest: c.var.priorManifest,
+    retentionPolicy,
   });
   c.status(result.status as 200 | 202 | 409 | 500 | 502 | 503);
   return noStore(c.json(result.body));
@@ -618,6 +668,7 @@ app.get("/v1/quote", async (c) => {
     pay_to: c.env.PAY_TO,
     payment_flow: "upfront",
     economics: quote,
+    order_recovery: orderRecoveryDisclosure(c.env),
     retention: await retentionDisclosure(c.env),
   });
 });
@@ -648,6 +699,44 @@ async function partnerAuthorized(c: AppContext, next: Next): Promise<Response | 
 }
 
 app.use("/internal/partner/*", partnerAuthorized);
+
+app.get("/internal/partner/business/capabilities", (c) => noStore(c.json({
+  schema: "delta-partner-billing/v1", enabled: c.env.PARTNER_BILLING_COORDINATION_ENABLED === "true",
+  business_order_id_required: true, trusted_user_id_required: true,
+  charge_permission: "one_winning_original_fulfillment_cas", platform_settlement_verified: false,
+})));
+
+app.post("/internal/partner/business/:businessOrderId/:product", async (c) => {
+  if (c.env.PARTNER_BILLING_COORDINATION_ENABLED !== "true") return noStore(c.json({ error: "partner_billing_not_enabled" }, 503));
+  const product = c.req.param("product");
+  if (product !== "capture" && product !== "preflight") return c.json({ error: "unknown_product" }, 404);
+  try {
+    const identity = await partnerBusinessIdentity(c.req.header("x-delta-partner") ?? "", c.req.header("x-delta-partner-user") ?? "", c.req.param("businessOrderId"));
+    const body = await readJsonRequestBounded(c.req.raw, MAX_PARTNER_BODY_BYTES);
+    const headers = new Headers(c.req.raw.headers);
+    headers.set("idempotency-key", identity.idempotencyKey);
+    headers.delete("content-length");
+    // One existing partner fulfillment engine owns capture, claims and replay.
+    return app.fetch(new Request(`https://delta.internal/internal/partner/${product}`, { method: "POST", headers, body: JSON.stringify(body) }), c.env);
+  } catch { return noStore(c.json({ error: "invalid_partner_business_request" }, 400)); }
+});
+
+app.post("/internal/partner/business/:businessOrderId/:product/billing", async (c) => {
+  if (c.env.PARTNER_BILLING_COORDINATION_ENABLED !== "true") return noStore(c.json({ error: "partner_billing_not_enabled" }, 503));
+  const product = c.req.param("product");
+  if (product !== "capture" && product !== "preflight") return c.json({ error: "unknown_product" }, 404);
+  try {
+    const raw = await readJsonRequestBounded(c.req.raw, MAX_PARTNER_BODY_BYTES);
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error();
+    const body = raw as Record<string, unknown>;
+    if (Object.keys(body).some(key => !["request", "operation", "attempt_id"].includes(key)) || !["status", "reserve_charge", "confirm_charge"].includes(String(body.operation))) throw new Error();
+    const request = product === "capture" ? parseCaptureRequest(body.request) : parsePreflightRequest(body.request);
+    const result = await coordinatePartnerBilling(c.env, { partner: c.req.header("x-delta-partner") ?? "", userId: c.req.header("x-delta-partner-user") ?? "",
+      businessOrderId: c.req.param("businessOrderId"), product, request,
+      operation: body.operation as "status" | "reserve_charge" | "confirm_charge", attemptId: body.attempt_id as string | undefined });
+    return noStore(c.json(result.body, result.status as 200 | 202 | 400 | 404 | 409 | 503));
+  } catch { return noStore(c.json({ error: "invalid_partner_billing_request" }, 400)); }
+});
 
 app.post("/internal/partner/watch", async (c) => {
   try {
@@ -712,11 +801,13 @@ app.post("/internal/partner/:product", async (c) => {
       return noStore(c.json({ ok: false, state: "fulfillment_unknown", error: "historical_prepaid_amount_requires_reconciliation", retryable: false }, 503));
     }
     const gross = stored?.record.paid_price_usd ?? Number(c.req.header("x-delta-gross-usd"));
-    const partnerFloor = product === "preflight"
-      ? Math.max(Number(c.env.PARTNER_PREFLIGHT_BASE_PRICE_USD || "1"), quote.minimumPriceUsd)
-      : quote.grossPriceUsd;
+    const partnerFloor = product === "preflight" ? Number(c.env.PARTNER_PREFLIGHT_BASE_PRICE_USD || "1") : quote.grossPriceUsd;
+    if (!stored && (!Number.isFinite(partnerFloor) || partnerFloor !== 1)) return noStore(c.json({ error: "partner_price_configuration_invalid" }, 503));
     if (!stored && (!Number.isFinite(gross) || gross < partnerFloor)) {
       return c.json({ error: "partner_price_below_floor", minimum_price_usd: partnerFloor }, 402);
+    }
+    if (!stored && (!Number.isFinite(quote.expectedVariableCostUsd) || quote.expectedVariableCostUsd >= partnerFloor)) {
+      return noStore(c.json({ error: "economics_unavailable", retryable: false, price_usd: partnerFloor }, 503));
     }
     const [target, priorManifest] = await Promise.all([
       resolvePublicRedirects(body.url),

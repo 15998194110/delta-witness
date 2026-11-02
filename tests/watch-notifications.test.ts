@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { parseWatchRegistration, registerWatch, runDueWatches, type WatchRecord, type WatchNotification } from "../src/watch";
+import { getWatch, parseWatchRegistration, registerWatch, runDueWatches, type WatchRecord, type WatchNotification } from "../src/watch";
 import { MemoryBucket, orderRuntime } from "./helpers/order-runtime";
 // @ts-expect-error Importable JavaScript sample intentionally has no generated declarations.
 import { receiveWatchWebhook } from "../examples/watch-webhook-receiver.mjs";
@@ -389,5 +389,65 @@ describe("Watch independent notification journal", () => {
     await expect(createOrderReadSnapshot(env).env.PROOFS.get(key)).rejects.toThrow("order_evidence_unavailable");
     const object = await createOrderReadSnapshot(env, 262_144).env.PROOFS.get(key);
     expect((await object!.json<{padding: string}>()).padding).toHaveLength(32_001);
+  });
+
+  it("bounds a hanging Watch inventory and fences late inventory before starting checks", async () => {
+    vi.useFakeTimers();
+    const state = await setup(), list = state.bucket.list.bind(state.bucket);
+    let release!: () => void, reached = false;
+    state.bucket.list = async options => options?.prefix === "watches/" ? new Promise(resolve => {
+      reached = true; release = () => { void list(options).then(resolve); };
+    }) : list(options);
+    const pending = runDueWatches(state.env).catch(error => error);
+    await vi.waitFor(() => expect(reached).toBe(true));
+    await vi.advanceTimersByTimeAsync(20_001);
+    expect((await pending).message).toBe("notification_operation_timeout");
+    release(); await vi.advanceTimersByTimeAsync(1);
+    expect(state.env.BROWSER.quickAction).not.toHaveBeenCalled();
+    expect(state.readWatch()).toMatchObject({checks_attempted: 0, checks_remaining: 1});
+  });
+
+  it.each(["lease", "artifact", "final"])("bounds stalled %s writes without continuing expired work or repeating the slot", async stage => {
+    vi.useFakeTimers(); vi.setSystemTime("2026-11-02T00:00:00Z");
+    const state = await setup(), put = state.bucket.put.bind(state.bucket);
+    let release!: () => void, reached = false;
+    state.bucket.put = async (key, value, options) => {
+      const row = key === state.key ? JSON.parse(String(value)) : null;
+      if (!reached && ((stage === "lease" && row?.lease_until) || (stage === "artifact" && key.endsWith("/page.html")) || (stage === "final" && row?.checks_attempted === 1))) {
+        reached = true;
+        return new Promise(resolve => { release = () => { void put(key, value, options).then(resolve); }; });
+      }
+      return put(key, value, options);
+    };
+    const pending = runDueWatches(state.env);
+    await vi.waitFor(() => expect(reached).toBe(true));
+    await vi.advanceTimersByTimeAsync(50_001); await pending;
+    expect(state.env.BROWSER.quickAction).toHaveBeenCalledTimes(stage === "lease" ? 0 : 1);
+    expect(state.requests).toHaveLength(0);
+    release(); await vi.advanceTimersByTimeAsync(1);
+    expect(state.requests).toHaveLength(0);
+    if (stage !== "final") {
+      vi.setSystemTime(Date.now() + 60_001);
+      await runDueWatches(state.env);
+      expect(state.readWatch()).toMatchObject({state: "recovery_required", checks_attempted: 0, checks_remaining: 1});
+    } else {
+      const original = state.readWatch().last_proof_id;
+      await runDueWatches(state.env);
+      expect(state.readWatch()).toMatchObject({checks_attempted: 1, checks_remaining: 0, last_proof_id: original});
+      expect(state.events()[0].event.state).toBe("delivered");
+    }
+    expect(state.env.BROWSER.quickAction).toHaveBeenCalledTimes(stage === "lease" ? 0 : 1);
+  });
+
+  it("shows terminal notification reconciliation to only the owning partner without resetting attempts", async () => {
+    const state = await setup(async () => new Response(null, {status: 403}));
+    await runDueWatches(state.env);
+    const before = state.events()[0].event;
+    const owned = await getWatch(state.env, state.readWatch().watch_id, "fixture");
+    expect(owned.body.notification).toMatchObject({state: "failed", attempts: 1, last_outcome: "http_403", recovery_action: "receiver_reconciliation_required_no_automatic_resend"});
+    expect(JSON.stringify(owned.body)).not.toContain(state.secret);
+    expect((await getWatch(state.env, state.readWatch().watch_id, "wrong-partner")).status).toBe(404);
+    expect(state.events()[0].event).toEqual(before);
+    expect(state.env.BROWSER.quickAction).toHaveBeenCalledTimes(1);
   });
 });

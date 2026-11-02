@@ -31,6 +31,16 @@ function store() {
 function client(orderStore, fetchImpl = async () => Response.json(envelope())) {
   return new DeltaWitness({baseUrl: origin, orderStore, fetchImpl, requestTimeoutMs: 1000});
 }
+test('thin adapters preserve declared safe attribution without gaining partner identity', async () => {
+  let channel;
+  const delta = new DeltaWitness({ baseUrl: origin, channel: 'mcp', fetchImpl: async (_url, init) => {
+    channel = new Headers(init.headers).get('x-delta-channel');
+    assert.equal(new Headers(init.headers).has('x-delta-partner'), false);
+    return Response.json({ fixture: true });
+  } });
+  await delta.quote(); assert.equal(channel, 'mcp');
+  for (const value of ['\r\nsecret', '', 'a'.repeat(41), 'https://example.com/private']) assert.throws(() => new DeltaWitness({ channel: value }));
+});
 
 test('persists accepted retention terms before signing and rejects term replacement for the same order', async () => {
   const state = store(), delta = client(state), hash = `sha256:${'a'.repeat(64)}`;
@@ -49,6 +59,38 @@ async function prepared(orderStore = store(), product = 'capture', fetchImpl) {
   const delta = client(orderStore, fetchImpl);
   await delta.prepareOrder(product, input, {orderId: id});
   return {delta, orderStore};
+}
+
+test('authorized export uses only original private capability and verifies bounded opaque bytes', async () => {
+  const state = store(); let calls = 0;
+  const bytes = new TextEncoder().encode('<script>fixture-not-executed</script>');
+  const hash = 'sha256:' + Buffer.from(await crypto.subtle.digest('SHA-256', bytes)).toString('hex');
+  const delta = client(state, async (url, init) => {
+    calls++;
+    assert.equal(url, `${origin}/v1/orders/${id}/artifacts/html`);
+    assert.equal(init.method, 'GET'); assert.equal(init.redirect, 'error'); assert.equal(init.body, undefined);
+    assert.equal(init.headers['x-delta-recovery-token'], (await state.load(id)).recovery_token);
+    assert.equal(new Headers(init.headers).has('payment-signature'), false);
+    return new Response(bytes, {headers:{ 'content-disposition': 'attachment; filename="evil-name.html"', 'content-length': String(bytes.length), 'x-delta-content-sha256': hash }});
+  });
+  await delta.prepareOrder('capture', input, {orderId:id});
+  const result = await delta.exportArtifact(id, 'html');
+  assert.deepEqual(result.bytes, bytes); assert.equal(result.content_type, 'application/octet-stream');
+  assert.equal(result.filename, `delta-${id}-page.html`); assert.equal(calls, 1);
+  assert.equal((await state.load(id)).phase, 'prepared');
+});
+for (const mode of ['wrong_hash','truncated','inline','expired','oversized']) {
+  test(`export rejects ${mode} and never changes payment state`, async () => {
+    const state = store();
+    const delta = client(state, async () => new Response(mode === 'oversized' ? new Uint8Array(2_000_001) : 'fixture', {
+      status: mode === 'expired' ? 410 : 200,
+      headers: {'content-disposition': mode === 'inline' ? 'inline' : 'attachment;', 'content-length': mode === 'truncated' ? '100' : '7',
+        'x-delta-content-sha256': mode === 'wrong_hash' ? `sha256:${'0'.repeat(64)}` : 'sha256:' + Buffer.from(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('fixture'))).toString('hex')},
+    }));
+    await delta.prepareOrder('capture', input, {orderId:id});
+    await assert.rejects(delta.exportArtifact(id, 'html'), /order_export_unconfirmed/);
+    assert.equal((await state.load(id)).phase, 'prepared');
+  });
 }
 
 test('durably prepares before the one automatic preauthorized paid call and returns no capability', async () => {
@@ -101,6 +143,19 @@ test('a restarted client always verifies completed orders with Core without call
   const result = await reloaded.executeOrder(id, () => { throw new Error('signer_must_not_be_called'); });
   assert.equal(result.state, 'complete');
   assert.equal(reads, 1);
+});
+
+test('repeated completed recovery reads Core without writing revisions or storage events', async () => {
+  const {delta, orderStore} = await prepared();
+  await delta.executeOrder(id, async () => Response.json(proof()));
+  const original = await orderStore.load(id);
+  let writes = 0, reads = 0;
+  const cas = orderStore.compareAndSet;
+  orderStore.compareAndSet = async (...args) => { writes++; return cas(...args); };
+  const reloaded = client(orderStore, async () => { reads++; return Response.json(envelope()); });
+  for (let n = 0; n < 4; n++) assert.equal((await reloaded.recoverOrder(id)).state,'complete');
+  assert.equal(reads,4); assert.equal(writes,0);
+  assert.deepEqual(await orderStore.load(id),original);
 });
 
 test('CAS persistence failure prevents the signer and is redacted even after the store committed', async () => {

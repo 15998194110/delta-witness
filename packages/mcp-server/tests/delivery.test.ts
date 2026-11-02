@@ -1,18 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const signing = vi.hoisted(() => ({
   sign: vi.fn(async () => '0xfixture-not-a-signature'),
   signer: null as null | { signTypedData: (input: never) => Promise<string> },
-  mode: 'none' as 'none' | 'twice' | 'after_fetch',
+  mode: 'none' as 'none' | 'twice' | 'after_fetch' | 'once_before',
 }));
 vi.mock('@x402/fetch', () => ({
   x402Client: class { setSpendControls() {} registerPolicy() {} },
   wrapFetchWithPayment: (fetchImpl: typeof fetch) => async (input: RequestInfo | URL, init?: RequestInit) => {
-    if (signing.mode === 'twice') await signing.signer!.signTypedData({} as never);
+    if (signing.mode === 'twice' || signing.mode === 'once_before') await signing.signer!.signTypedData({} as never);
     const response = await fetchImpl(input, init);
-    if (signing.mode !== 'none') await signing.signer!.signTypedData({} as never);
+    if (signing.mode !== 'none' && signing.mode !== 'once_before') await signing.signer!.signTypedData({} as never);
     return response;
   },
 }));
@@ -55,6 +58,26 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.clearAllMocks(); });
 
 describe('real MCP paid tool callbacks require completed delivery', () => {
+  it('durable callbacks survive a server restart after original signing without signing again', async () => {
+    const id = '2dc6fc8a-bd23-42b4-8ccc-c42c27cef22f';
+    vi.stubEnv('DELTA_ORDER_STORE_DIR', await mkdtemp(join(tmpdir(), 'delta-mcp-durable-call-')));
+    signing.mode = 'once_before';
+    const transport = vi.fn(async (_url, init) => {
+      if (init?.method === 'POST') throw new Error('synthetic response lost after signature');
+      return Response.json({ ok: true, order_id: id, product: 'capture', state: 'complete',
+        payment: { state: 'settlement_confirmed', treasury_received: null }, fulfillment: { state: 'complete' },
+        recovery: { can_recover: false, expires_at: '2026-11-03T00:00:00Z' }, delivery: delivery() });
+    });
+    vi.stubGlobal('fetch', transport);
+    expect((await call('delta_prepare_order', { order_id: id, product: 'capture', url: 'https://example.com' })).isError).not.toBe(true);
+    expect((await call('delta_execute_order', { order_id: id })).isError).toBe(true);
+    vi.stubEnv('EVM_PRIVATE_KEY',''); vi.stubEnv('DELTA_MAX_USD_PER_CALL','');
+    expect((await call('delta_execute_order', { order_id: id })).structuredContent).toMatchObject({ state: 'complete', order_id: id });
+    expect(signing.sign).toHaveBeenCalledTimes(1);
+    expect(transport).toHaveBeenCalledTimes(2);
+    expect(transport.mock.calls[0][1].headers['x-delta-order-id']).toBe(id);
+    expect(transport.mock.calls[1][1].method).toBe('GET');
+  });
   it('refuses a second SDK authorization for the same call', async () => {
     signing.mode = 'twice';
     const transport = vi.fn(async () => Response.json(delivery()));

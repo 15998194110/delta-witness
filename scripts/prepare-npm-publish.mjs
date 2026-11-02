@@ -11,7 +11,7 @@ const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
 packageJson.repository = {
   ...(typeof packageJson.repository === "object" && packageJson.repository ? packageJson.repository : {}),
   type: "git",
-  url: `https://github.com/${repository}`,
+  url: `git+https://github.com/${repository}.git`,
 };
 fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
 console.log(`Prepared ${packageJson.name} repository metadata for ${repository}`);

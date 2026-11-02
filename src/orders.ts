@@ -67,18 +67,34 @@ export function orderRecordKey(id: string): string {
 
 // A capability is opt-in. No production retention/authentication policy is
 // invented: operators must explicitly configure the credential lifetime.
+export function orderRecoveryDisclosure(env: RuntimeEnv) {
+  const configured = env.ORDER_RECOVERY_TTL_SECONDS;
+  const ttl = configured && /^[0-9]+$/.test(configured) ? Number(configured) : NaN;
+  const enabled = Number.isSafeInteger(ttl) && ttl >= 60 && ttl <= 604800;
+  return { schema: 'delta-order-recovery/v1', enabled, credential_ttl_seconds: enabled ? ttl : null,
+    products: ['capture', 'preflight'], credential_storage: 'buyer_private', payment_on_recovery: false };
+}
+
 export async function parseOrderEnrollment(request: Request, env: RuntimeEnv): Promise<OrderEnrollment | undefined> {
   const id = request.headers.get(ORDER_ID_HEADER);
   const token = request.headers.get(ORDER_TOKEN_HEADER);
   if (id === null && token === null) return undefined;
   if (!id || !token || !ORDER_ID.test(id) || !validToken(token)) throw new OrderAccessError("invalid_order_credentials", 400);
-  const configured = (env as RuntimeEnv & { ORDER_RECOVERY_TTL_SECONDS?: string }).ORDER_RECOVERY_TTL_SECONDS;
-  if (!configured || !/^[0-9]+$/.test(configured)) throw new OrderAccessError("order_recovery_not_configured", 503);
-  const ttl = Number(configured);
-  if (!Number.isSafeInteger(ttl) || ttl < 60 || ttl > 604800) throw new OrderAccessError("order_recovery_not_configured", 503);
   const digest = await tokenDigest(id.toLowerCase(), token), now = Date.now();
-  // Existing orders keep their purchased policy even when current terms change.
+  // A rollback of new-enrollment configuration must not revoke an existing
+  // credential or replace its purchased expiry. Original journal validation
+  // still takes place in assertOrderReplay before any completed result is used.
   const previous = await readOrderBinding(env, id.toLowerCase(), digest);
+  if (previous) {
+    if (!sameDigest(digest, previous.token_digest)) throw new OrderAccessError('order_unavailable', 404);
+    assertActive(previous);
+    return { order_id: previous.order_id, token_digest: digest,
+      ttl_seconds: (Date.parse(previous.expires_at) - Date.parse(previous.created_at)) / 1000,
+      created_at: previous.created_at, expires_at: previous.expires_at };
+  }
+  const ttl = orderRecoveryDisclosure(env).credential_ttl_seconds;
+  if (ttl === null) throw new OrderAccessError("order_recovery_not_configured", 503);
+  // Existing orders keep their purchased policy even when current terms change.
   let policy: RetentionPolicy | undefined;
   if (!previous) {
     try { policy = parseRetentionPolicy(env.RETENTION_POLICY_JSON); }

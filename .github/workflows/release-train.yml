@@ -2,6 +2,15 @@ name: DELTA Release Train
 
 on:
   workflow_dispatch:
+    inputs:
+      execute_release:
+        type: boolean
+        default: false
+        description: Execute an independently approved production release
+      source_commit:
+        type: string
+        required: false
+        description: Exact approved 40-character commit (not a branch or tag)
   push:
     tags: ["v*"]
 
@@ -29,12 +38,33 @@ jobs:
       - name: Verify partner gateway
         working-directory: channels/partner-gateway
         run: npm ci && npm run verify
-      - name: Verify JS client
+      - name: Verify and package exact JS client artifact
         working-directory: packages/js-client
-        run: npm run check && npm test && npm pack --dry-run
-      - name: Verify MCP server
+        run: |
+          node ../../scripts/prepare-npm-publish.mjs
+          npm run prepack
+          mkdir -p "$RUNNER_TEMP/delta-npm-js"
+          npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP/delta-npm-js" > "$RUNNER_TEMP/delta-npm-js/pack.json"
+          node ../../scripts/verified-npm-artifact.mjs record "$RUNNER_TEMP/delta-npm-js" delta-witness-ruphussten
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-js-verified-${{ github.sha }}
+          path: ${{ runner.temp }}/delta-npm-js/
+          if-no-files-found: error
+      - name: Verify and package exact MCP artifact
         working-directory: packages/mcp-server
-        run: npm ci && npm run prepack && npm pack --dry-run
+        run: |
+          npm ci
+          node ../../scripts/prepare-npm-publish.mjs
+          npm run prepack
+          mkdir -p "$RUNNER_TEMP/delta-npm-mcp"
+          npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP/delta-npm-mcp" > "$RUNNER_TEMP/delta-npm-mcp/pack.json"
+          node ../../scripts/verified-npm-artifact.mjs record "$RUNNER_TEMP/delta-npm-mcp" delta-witness-mcp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-mcp-verified-${{ github.sha }}
+          path: ${{ runner.temp }}/delta-npm-mcp/
+          if-no-files-found: error
       - name: Verify Apify actor
         working-directory: channels/apify
         run: npm ci && npm run check
@@ -45,10 +75,36 @@ jobs:
         with: { python-version: "3.12" }
       - name: Verify Python distribution
         working-directory: packages/python-client
-        run: python -m pip install build && python -m compileall -q delta_witness && python -m build
+        run: |
+          python -m pip install --only-binary=:all: -r requirements-validation.txt
+          python -m unittest discover -s tests
+          python scripts/verify_build.py "$RUNNER_TEMP/delta-python-verified"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-verified-${{ github.sha }}
+          path: ${{ runner.temp }}/delta-python-verified/
+          if-no-files-found: error
+
+  authorize-release:
+    needs: verify
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.execute_release }}
+    runs-on: ubuntu-latest
+    environment: production-release
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with: { node-version: "24" }
+      - name: Require exact candidate and separately approved compatible fallback
+        env:
+          DELTA_EXECUTE_RELEASE: ${{ inputs.execute_release }}
+          DELTA_REQUESTED_SOURCE: ${{ inputs.source_commit }}
+          DELTA_APPROVED_SOURCE: ${{ vars.DELTA_APPROVED_RELEASE_SHA }}
+          DELTA_ROLLBACK_SOURCE: ${{ vars.DELTA_APPROVED_ROLLBACK_SHA }}
+          DELTA_ROLLBACK_ARTIFACT_SHA256: ${{ vars.DELTA_APPROVED_ROLLBACK_ARTIFACT_SHA256 }}
+        run: node scripts/check-release-authorization.mjs
 
   core-cloudflare:
-    needs: verify
+    needs: [verify, authorize-release]
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -155,7 +211,7 @@ jobs:
           NODE
 
   base-app:
-    needs: verify
+    needs: [verify, authorize-release]
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -174,7 +230,7 @@ jobs:
         run: node ../../scripts/indexnow-pulse.mjs base-app
 
   npm-client:
-    needs: verify
+    needs: [verify, authorize-release]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -187,18 +243,18 @@ jobs:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
-      - run: node ../../scripts/prepare-npm-publish.mjs
-      - name: Publish JS client when version is new
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          if npm view "delta-witness-ruphussten@$VERSION" version >/dev/null 2>&1; then
-            echo "delta-witness-ruphussten@$VERSION already published; skipping"
-          else
-            npm publish --access public
-          fi
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-js-verified-${{ github.sha }}
+          path: ${{ runner.temp }}/delta-npm-js/
+      - name: Publish or verify the exact reviewed JS archive
+        env:
+          DELTA_EXECUTE_RELEASE: ${{ inputs.execute_release }}
+          DELTA_APPROVED_SOURCE: ${{ vars.DELTA_APPROVED_RELEASE_SHA }}
+        run: node ../../scripts/verified-npm-artifact.mjs publish "$RUNNER_TEMP/delta-npm-js" delta-witness-ruphussten
 
   npm-mcp:
-    needs: verify
+    needs: [verify, authorize-release]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -208,19 +264,18 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with: { node-version: "24", registry-url: "https://registry.npmjs.org", package-manager-cache: false }
-      - run: npm ci
-      - run: node ../../scripts/prepare-npm-publish.mjs
-      - name: Publish MCP package when version is new
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          if npm view "delta-witness-mcp@$VERSION" version >/dev/null 2>&1; then
-            echo "delta-witness-mcp@$VERSION already published; skipping"
-          else
-            npm publish --access public --provenance
-          fi
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-mcp-verified-${{ github.sha }}
+          path: ${{ runner.temp }}/delta-npm-mcp/
+      - name: Publish or verify the exact reviewed MCP archive
+        env:
+          DELTA_EXECUTE_RELEASE: ${{ inputs.execute_release }}
+          DELTA_APPROVED_SOURCE: ${{ vars.DELTA_APPROVED_RELEASE_SHA }}
+        run: node ../../scripts/verified-npm-artifact.mjs publish "$RUNNER_TEMP/delta-npm-mcp" delta-witness-mcp
 
   pypi-client:
-    needs: verify
+    needs: [verify, authorize-release]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -230,11 +285,14 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with: { python-version: "3.12" }
-      - run: python -m pip install build && python -m build
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-verified-${{ github.sha }}
+          path: ${{ runner.temp }}/delta-python-verified/
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: packages/python-client/dist
-          skip-existing: true
+          packages-dir: ${{ runner.temp }}/delta-python-verified/
+          skip-existing: false
 
   mcp-registry:
     runs-on: ubuntu-latest
@@ -293,7 +351,7 @@ jobs:
           python scripts/public-pypi-smoke.py
 
   postman:
-    needs: verify
+    needs: [verify, authorize-release]
     if: ${{ vars.POSTMAN_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     env:
@@ -308,7 +366,7 @@ jobs:
       - run: node scripts/postman-sync.mjs
 
   apify:
-    needs: verify
+    needs: [verify, authorize-release]
     if: ${{ vars.APIFY_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     env:

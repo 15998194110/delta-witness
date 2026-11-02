@@ -3,6 +3,13 @@
   "type": "object",
   "schemaVersion": 1,
   "properties": {
+    "business_order_id": {
+      "title": "Stable business order ID",
+      "type": "string",
+      "description": "Reuse this exact 8–128 character ID across runs for the same purchase and request. A different ID means a new purchase. Your platform user identity is supplied by Apify, never this input.",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$",
+      "editor": "textfield"
+    },
     "product": {
       "title": "Product",
       "type": "string",
@@ -30,5 +37,5 @@
       "editor": "textfield"
     }
   },
-  "required": ["url"]
+  "required": ["business_order_id", "url"]
 }

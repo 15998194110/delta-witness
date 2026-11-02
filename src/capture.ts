@@ -1,6 +1,7 @@
 import type { RuntimeEnv } from "./env";
 import { sha256, stableJson, uuidFromDigest } from "./crypto";
-import { estimateVariableCost } from "./pricing";
+import { costModelAssumptions, estimateVariableCost, type CostModelAssumptions } from "./pricing";
+import type { RetentionPolicy } from "./retention";
 import { withinDeadline } from "./deadline";
 import { isPng } from "./png";
 import {
@@ -46,7 +47,11 @@ export type ProofManifest = {
     total_bytes: number;
   };
   execution: {
-    browser_ms_used: number;
+    browser_ms_used: number | null;
+    browser_ms_source?: "provider_header" | "unknown";
+    estimated_browser_ms?: number;
+    cost_basis?: "model_not_invoice";
+    cost_model?: CostModelAssumptions;
     estimated_variable_cost_usd: number;
     gross_price_usd: number;
     estimated_contribution_margin_usd: number;
@@ -89,6 +94,9 @@ export type CaptureInput = {
   paymentProtocol: ProofManifest["payment"]["protocol"];
   channel: string;
   partner?: string;
+  // Core supplies only the verified original order snapshot. Absence is an
+  // explicit limited one-month estimate, not current-policy retroactivity.
+  retentionPolicy?: RetentionPolicy;
 };
 
 async function base64ToBytes(value: string): Promise<Uint8Array> {
@@ -106,10 +114,10 @@ async function base64ToBytes(value: string): Promise<Uint8Array> {
   return bytes;
 }
 
-function nonNegativeInteger(value: string | null): number {
-  if (!value) return 0;
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+function nonNegativeInteger(value: string | null): number | null {
+  if (value === null || !/^(0|[1-9][0-9]*)$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
 function isSnapshot(value: unknown): value is BrowserRunSnapshotSuccessResponse {
@@ -175,6 +183,7 @@ export async function verifyManifestIntegrity(manifest: unknown): Promise<boolea
 
 export async function capturePage(input: CaptureInput): Promise<CaptureArtifacts> {
   const { env, target, fulfillmentFingerprint } = input;
+  const costModel = costModelAssumptions(env, input.retentionPolicy);
   const captureStartedAt = new Date().toISOString();
   let expired = false;
   const response = await withinDeadline(env.BROWSER.quickAction("snapshot", {
@@ -194,7 +203,7 @@ export async function capturePage(input: CaptureInput): Promise<CaptureArtifacts
     return response;
   }), MAX_BROWSER_MS, "capture_response_timeout", () => { expired = true; });
   const browserMs = nonNegativeInteger(response.headers.get("x-browser-ms-used"));
-  if (browserMs > MAX_BROWSER_MS) throw new Error("browser_cost_limit_exceeded");
+  if (browserMs !== null && browserMs > MAX_BROWSER_MS) throw new Error("browser_cost_limit_exceeded");
   if (response.status !== 200) throw new Error(`capture_upstream_${response.status}`);
 
   const raw = await readJsonResponseBounded(response, MAX_SNAPSHOT_RESPONSE_BYTES);
@@ -204,7 +213,10 @@ export async function capturePage(input: CaptureInput): Promise<CaptureArtifacts
   const html = raw.result.content ?? "";
   const markdown = raw.result.markdown ?? "";
   const screenshotBase64 = raw.result.screenshot ?? "";
-  if (!html || !screenshotBase64) throw new Error("capture_incomplete");
+  // A new capture requires both textual representations and a PNG. A valid
+  // screenshot alone must not turn a missing/blank text snapshot into success.
+  // Historical reads below keep the original manifest contract and bytes.
+  if (!html.trim() || !markdown.trim() || !screenshotBase64) throw new Error("capture_incomplete");
   const screenshot = await base64ToBytes(screenshotBase64);
   const htmlBytes = new TextEncoder().encode(html).byteLength;
   const markdownBytes = new TextEncoder().encode(markdown).byteLength;
@@ -226,7 +238,7 @@ export async function capturePage(input: CaptureInput): Promise<CaptureArtifacts
     sha256(screenshot),
     sha256(target.requestedUrl),
   ]);
-  const variableCost = estimateVariableCost(env, browserMs, totalBytes);
+  const variableCost = estimateVariableCost(env, browserMs ?? MAX_BROWSER_MS, totalBytes, 5, { retentionMonths: costModel.storageMonths });
   const base = {
     schema: "delta-proof-bundle/v0.6.0" as const,
     proof_id: proofId,
@@ -255,6 +267,10 @@ export async function capturePage(input: CaptureInput): Promise<CaptureArtifacts
     },
     execution: {
       browser_ms_used: browserMs,
+      browser_ms_source: browserMs === null ? "unknown" as const : "provider_header" as const,
+      estimated_browser_ms: browserMs ?? MAX_BROWSER_MS,
+      cost_basis: "model_not_invoice" as const,
+      cost_model: costModel,
       estimated_variable_cost_usd: variableCost,
       gross_price_usd: input.grossPriceUsd,
       estimated_contribution_margin_usd: input.grossPriceUsd - variableCost,

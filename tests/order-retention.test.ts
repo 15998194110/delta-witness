@@ -3,7 +3,6 @@ import { app } from "../src/index";
 import { sha256, stableJson } from "../src/crypto";
 import { orderRecordKey } from "../src/orders";
 import { MemoryBucket, orderRuntime, orderRequest, statusRequest, mockOrderNetwork, orderPayment, TEST_ORDER_ID, TEST_RECOVERY_TOKEN } from "./helpers/order-runtime";
-// @ts-expect-error local JS SDK integration
 import { DeltaWitness } from "../packages/js-client/src/index.js";
 
 const policy = { schema: "delta-retention-policy/v1", policy_id: "isolated-test-only", classes: {
@@ -59,7 +58,7 @@ describe("order retention integration (isolated)", () => {
       } };
     const fetchImpl = (url: string, init?: RequestInit) => app.fetch(new Request(url, init), env);
     const client = new DeltaWitness({ baseUrl: "https://delta.test", orderStore: store, fetchImpl });
-    const quote = await client.quote();
+    const quote = await client.quote() as { retention: { policy_hash: string } };
     await client.prepareOrder("capture", { url: "https://example.com/" }, { orderId: TEST_ORDER_ID, retentionPolicyHash: quote.retention.policy_hash });
     let signatures = 0;
     const original = await client.executeOrder(TEST_ORDER_ID, async (url: string, init: RequestInit) => {

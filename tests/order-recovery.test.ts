@@ -24,6 +24,19 @@ function writeRecord(bucket: MemoryBucket, key: string, edits: Record<string, un
 }
 
 describe("scoped order identity and recovery (offline)", () => {
+  it('stops new enrollment without invalidating original credentials, expiry, paid replay or proof bytes', async () => {
+    const { bucket, env, network, delivery } = await complete();
+    const before = new Map([...bucket.values].map(([key, value]) => [key, { text: value.text, bytes: value.bytes?.slice() }]));
+    env.ORDER_RECOVERY_TTL_SECONDS = ''; network.mockClear(); vi.mocked(env.BROWSER.quickAction).mockClear();
+    const quote = await (await app.fetch(new Request('https://delta.test/v1/quote'), env)).json() as any;
+    expect(quote.order_recovery).toMatchObject({ enabled: false, credential_ttl_seconds: null });
+    expect((await app.fetch(orderRequest({ orderId: otherId, token: otherToken, unpaid: true }), env)).status).toBe(503);
+    expect((await app.fetch(orderRequest(), env)).status).toBe(200);
+    const status = await (await app.fetch(statusRequest(), env)).json() as any;
+    expect(status.delivery).toMatchObject(delivery); expect(status.state).toBe('complete');
+    expect(network).not.toHaveBeenCalled(); expect(env.BROWSER.quickAction).not.toHaveBeenCalled();
+    expect(new Map([...bucket.values].map(([key, value]) => [key, { text: value.text, bytes: value.bytes?.slice() }]))).toEqual(before);
+  });
   it("persists only token digest and authenticates a reloaded client without payment or browser work", async () => {
     const { bucket, env, network, delivery } = await complete();
     const record = await readOrderBinding(env, TEST_ORDER_ID);

@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
 import { API_ORIGIN, BASE_NETWORK, PAYMENT_ATTEMPT_KEY, TREASURY } from '../src/domain';
+import { ORDER_STORE_KEY } from '../src/order-store';
 
 const state = vi.hoisted(() => ({
   signer: null as null | { signTypedData: (message: never) => Promise<string> },
@@ -29,6 +30,7 @@ const account = '0x0000000000000000000000000000000000000001';
 const quote = { price: '$1', network: BASE_NETWORK, asset: 'USDC', pay_to: TREASURY, payment_flow: 'upfront', economics: { estimatedContributionMarginUsd: 0.9 } };
 const id = '7d9d12f7-8f91-5f41-9f0c-5ef257d9ea5d';
 const delivery = { ok: true, product: 'capture', proof_id: id, public_proof_url: `${API_ORIGIN}/p/${id}`, manifest_url: `${API_ORIGIN}/v1/proofs/${id}`, bundle_root: `sha256:${'a'.repeat(64)}`, observed_at: '2026-10-04T00:00:00Z' };
+const scopedQuote = { ...quote, order_recovery: { schema: 'delta-order-recovery/v1', enabled: true, credential_ttl_seconds: 3600, payment_on_recovery: false, products: ['capture', 'preflight'] }, retention: null };
 let root: Root;
 let container: HTMLDivElement;
 let walletRequest: ReturnType<typeof vi.fn>;
@@ -71,6 +73,96 @@ beforeEach(() => {
   });
   vi.stubGlobal('fetch', allFetch);
   container = document.createElement('div'); document.body.append(container); root = createRoot(container);
+});
+
+describe('saved browser orders through the shared SDK', () => {
+  it('renders a blocked state when the browser denies the localStorage getter', async () => {
+    vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => { throw new Error('fixture-denied'); });
+    await render();
+    await vi.waitFor(() => expect(container.textContent).toContain('New paid requests are disabled'));
+    expect(walletRequest).not.toHaveBeenCalled(); expect(paid).not.toHaveBeenCalled();
+  });
+  function serveScoped(recovery?: (request: Request) => Response | Promise<Response>) {
+    allFetch.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const request = new Request(input, init);
+      if (request.headers.has('payment-signature')) return paid(request);
+      if (request.url.includes('/v1/orders/')) {
+        expect(request.headers.has('payment-signature')).toBe(false);
+        expect(request.headers.has('x-delta-recovery-token')).toBe(true);
+        expect(request.url).not.toContain(request.headers.get('x-delta-recovery-token'));
+        return recovery ? recovery(request) : Response.json({ error: 'order_unavailable' }, { status: 404 });
+      }
+      return Response.json(scopedQuote);
+    });
+  }
+  async function settled(stateLabel: string) {
+    await vi.waitFor(async () => {
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+      expect(container.querySelector('.result-status')!.textContent).toBe(stateLabel);
+    });
+  }
+  it('persists the original identity before signing and retains it after completion', async () => {
+    serveScoped();
+    state.beforeSign = () => {
+      const store = JSON.parse(window.localStorage.getItem(ORDER_STORE_KEY)!);
+      expect(store.orders[store.active].record.phase).toBe('signing_started');
+    };
+    await render(); await click(); await settled('CAPTURED');
+    const store = JSON.parse(window.localStorage.getItem(ORDER_STORE_KEY)!);
+    expect(store.active).toBeNull();
+    const record = Object.values(store.orders)[0] as any;
+    expect(record.record.phase).toBe('complete');
+    expect(container.textContent).not.toContain(record.record.recovery_token);
+    expect(window.location.href).not.toContain(record.record.recovery_token);
+    expect(state.sign).toHaveBeenCalledTimes(1); expect(paid).toHaveBeenCalledTimes(1);
+  });
+  it('refresh recovers the original negative Preflight with no wallet or new signed request', async () => {
+    const negative = { ...delivery, product: 'preflight', safe: false, changed: true, reason: 'EXPECTED_TEXT_NOT_FOUND' };
+    let originalOrder = '';
+    let calls = 0;
+    serveScoped(request => {
+      calls++;
+      expect(request.url).toBe(`${API_ORIGIN}/v1/orders/${originalOrder}${calls === 2 ? '/recover' : ''}`);
+      const complete = calls === 2;
+      return Response.json({ ok: true, order_id: originalOrder, product: 'preflight',
+        state: complete ? 'complete' : 'recovery_available', payment: { state: 'settlement_confirmed', treasury_received: null },
+        fulfillment: { state: complete ? 'complete' : 'recovery_available' },
+        recovery: { can_recover: !complete, expires_at: '2035-01-01T00:00:00Z' },
+        ...(complete ? { delivery: negative } : { reconciliation_required: true }),
+      }, { status: complete ? 200 : 202 });
+    });
+    allFetch.mockImplementationOnce(async () => Response.json({ ...scopedQuote, price: '$5' }));
+    window.history.replaceState(null, '', '/?product=preflight&url=https%3A%2F%2Fexample.org%2Fterms');
+    paid.mockImplementation(async request => { originalOrder = request.headers.get('x-delta-order-id'); throw new Error('lost response'); });
+    await render(); await click(); await settled('UNCONFIRMED');
+    const originalMarker = window.localStorage.getItem(PAYMENT_ATTEMPT_KEY);
+    expect(originalMarker).not.toBeNull();
+    await act(async () => root.unmount()); root = createRoot(container);
+    delete window.ethereum;
+    await render(); await settled('CHECKS NOT MET');
+    expect(calls).toBe(2); expect(state.sign).toHaveBeenCalledTimes(1); expect(paid).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain('EXPECTED_TEXT_NOT_FOUND');
+    expect(window.localStorage.getItem(PAYMENT_ATTEMPT_KEY)).toBeNull();
+  });
+  it.each([404, 410, 503])('keeps unknown originals fenced after recovery HTTP %s', async status => {
+    serveScoped(() => Response.json({ error: 'synthetic-fixture' }, { status }));
+    paid.mockRejectedValue(new Error('lost response'));
+    await render(); await click(); await settled('UNCONFIRMED');
+    const before = JSON.parse(window.localStorage.getItem(ORDER_STORE_KEY)!);
+    await act(async () => { container.querySelector<HTMLButtonElement>('.recover-order')!.click(); });
+    await vi.waitFor(() => expect(container.textContent).toContain('not yet recoverable'));
+    expect(JSON.parse(window.localStorage.getItem(ORDER_STORE_KEY)!).active).toBe(before.active);
+    expect(container.querySelector<HTMLButtonElement>('.primary-action')!.disabled).toBe(true);
+    expect(state.sign).toHaveBeenCalledTimes(1); expect(paid).toHaveBeenCalledTimes(1);
+  });
+  it('retains the pre-sign order if the wallet declines, without treating it as proof of nonpayment', async () => {
+    serveScoped(); state.sign.mockRejectedValue({ code: 4001 });
+    await render(); await click(); await settled('UNCONFIRMED');
+    expect(paid).not.toHaveBeenCalled();
+    expect(JSON.parse(window.localStorage.getItem(ORDER_STORE_KEY)!).active).toBeTruthy();
+    expect(container.querySelector<HTMLButtonElement>('.primary-action')!.disabled).toBe(true);
+    await click(); expect(state.sign).toHaveBeenCalledTimes(1);
+  });
 });
 afterEach(async () => {
   await act(async () => { root.unmount(); }); container.remove();
@@ -211,5 +303,25 @@ describe('buyer assurance at the wallet and request boundary', () => {
     await finished();
     expect(paid).toHaveBeenCalledTimes(1);
     expect(container.querySelector('.result-status')!.textContent).toBe('CAPTURED');
+  });
+
+  it.each(['account', 'chain', 'provider'])('retains the scoped order and sends nothing when %s changes during the signing prompt', async (kind) => {
+    allFetch.mockResolvedValue(Response.json(scopedQuote));
+    let resolveSignature!: (signature: string) => void;
+    state.sign.mockImplementation(() => new Promise<string>(resolve => { resolveSignature = resolve; }));
+    await render(); await click();
+    await vi.waitFor(() => expect(state.sign).toHaveBeenCalledTimes(1));
+    const original = JSON.parse(window.localStorage.getItem(ORDER_STORE_KEY)!);
+    if (kind === 'account') accounts = ['0x0000000000000000000000000000000000000002'];
+    if (kind === 'chain') chain = '0x1';
+    if (kind === 'provider') window.ethereum = { request: walletRequest } as never;
+    await act(async () => { resolveSignature('0xfixture-not-a-real-signature'); });
+    await finished();
+    const saved = JSON.parse(window.localStorage.getItem(ORDER_STORE_KEY)!);
+    expect(saved.active).toBe(original.active);
+    expect(saved.orders[saved.active].record.phase).toBe('uncertain');
+    expect(paid).not.toHaveBeenCalled(); expect(state.sign).toHaveBeenCalledTimes(1);
+    expect(container.querySelector<HTMLButtonElement>('.primary-action')!.disabled).toBe(true);
+    expect(container.textContent).toContain('original order needs verification');
   });
 });

@@ -102,7 +102,7 @@ function validOrderEnvelope(body, record, status) {
     (!body.recovery.can_recover || body.payment.state === 'settlement_confirmed');
 }
 
-async function boundedResponse(fetchImpl, url, init, timeoutMs, observed = () => {}) {
+async function boundedResponse(fetchImpl, url, init, timeoutMs, observed = () => {}, maxBytes = 1_048_576) {
   const controller = new AbortController();
   let timer;
   let reader;
@@ -127,7 +127,7 @@ async function boundedResponse(fetchImpl, url, init, timeoutMs, observed = () =>
             if (controller.signal.aborted) throw new Error('request_deadline_exceeded');
             if (done) break;
             size += value.byteLength;
-            if (size > 1_048_576) { void reader.cancel().catch(() => {}); throw new Error('response_too_large'); }
+            if (size > maxBytes) { void reader.cancel().catch(() => {}); throw new Error('response_too_large'); }
             chunks.push(value);
           }
         } finally { reader.releaseLock(); }
@@ -142,8 +142,10 @@ async function boundedResponse(fetchImpl, url, init, timeoutMs, observed = () =>
 
 export class DeltaWitness {
   #orderStore;
-  constructor({ baseUrl = "https://delta-witness-api.ruphussten.workers.dev", fetchImpl = fetch, requestTimeoutMs = 120_000, orderStore } = {}) {
+  constructor({ baseUrl = "https://delta-witness-api.ruphussten.workers.dev", fetchImpl = fetch, requestTimeoutMs = 120_000, orderStore, channel = "npm" } = {}) {
     if (!Number.isInteger(requestTimeoutMs) || requestTimeoutMs < 1 || requestTimeoutMs > 120_000) throw new TypeError('requestTimeoutMs must be an integer from 1 through 120000');
+    if (typeof channel !== "string" || !/^[a-z0-9_-]{1,40}$/.test(channel)) throw new TypeError("invalid attribution channel");
+    this.channel = channel;
     this.baseUrl = baseUrl.replace(/\/$/, "");
     this.fetch = fetchImpl;
     this.requestTimeoutMs = requestTimeoutMs;
@@ -200,6 +202,7 @@ export class DeltaWitness {
   async #markOutcome(record, phase) {
     // The durable signing_started marker already prevents another payment.
     // A failed bookkeeping write must not remove it or overwrite a newer result.
+    if (record.phase === phase) return;
     try { await this.#compareAndSet({ ...record, revision: record.revision + 1, phase }, record.revision); } catch { /* Keep original recovery state. */ }
   }
 
@@ -234,7 +237,7 @@ export class DeltaWitness {
     try {
       const response = await boundedResponse(paidFetch, `${record.origin}/v1/${record.product}`, {
         method: 'POST', redirect: 'error',
-        headers: { 'content-type': 'application/json', 'x-delta-channel': 'npm',
+        headers: { 'content-type': 'application/json', 'x-delta-channel': this.channel,
           'x-delta-order-id': id, 'x-delta-recovery-token': record.recovery_token,
           ...(record.retention_policy_hash ? { 'x-delta-retention-policy-hash': record.retention_policy_hash } : {}) },
         body: record.request_json,
@@ -264,7 +267,7 @@ export class DeltaWitness {
       const read = async (recover) => {
         const response = await boundedResponse(this.fetch, `${record.origin}/v1/orders/${id}${recover ? '/recover' : ''}`, {
           method: recover ? 'POST' : 'GET', redirect: 'error',
-          headers: { 'x-delta-channel': 'npm', 'x-delta-recovery-token': record.recovery_token },
+          headers: { 'x-delta-channel': this.channel, 'x-delta-recovery-token': record.recovery_token },
         }, this.requestTimeoutMs, response => { status = response.status; });
         const envelope = await response.json();
         if (!validOrderEnvelope(envelope, record, response.status)) throw new Error();
@@ -283,17 +286,38 @@ export class DeltaWitness {
   }
   async quote(product = "capture") {
     if (!new Set(["capture", "preflight"]).has(product)) throw new TypeError("product must be capture or preflight");
-    const r = await boundedResponse(this.fetch, `${this.baseUrl}/v1/quote?product=${product}`, { headers: { "x-delta-channel": "npm" } }, this.requestTimeoutMs);
+    const r = await boundedResponse(this.fetch, `${this.baseUrl}/v1/quote?product=${product}`, { headers: { "x-delta-channel": this.channel } }, this.requestTimeoutMs);
     if (!r.ok) throw new Error(`DELTA quote failed: ${r.status}`);
     return r.json();
   }
+  async exportArtifact(requestedId, artifact) {
+    const limits = { html: 2_000_000, markdown: 1_000_000, screenshot: 6_000_000, manifest: 1_048_576 };
+    if (!Object.hasOwn(limits, artifact)) throw orderError('invalid_order_artifact');
+    const id = orderId(requestedId), record = await this.#readOrder(id);
+    let status = null;
+    try {
+      const response = await boundedResponse(this.fetch, `${record.origin}/v1/orders/${id}/artifacts/${artifact}`, {
+        method: 'GET', redirect: 'error', headers: { 'x-delta-channel': this.channel, 'x-delta-recovery-token': record.recovery_token },
+      }, this.requestTimeoutMs, response => { status = response.status; }, limits[artifact]);
+      if (status !== 200 || !response.headers.get('content-disposition')?.startsWith('attachment;')) throw new Error();
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      const digest = await crypto.subtle.digest('SHA-256', bytes);
+      const hash = `sha256:${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')}`;
+      if (response.headers.get('x-delta-content-sha256') !== hash || response.headers.get('content-length') !== String(bytes.length)) throw new Error();
+      return { order_id: id, artifact, bytes, content_sha256: hash,
+        filename: `delta-${id}-${{ html: 'page.html', markdown: 'page.md', screenshot: 'screenshot.png', manifest: 'manifest.json' }[artifact]}`,
+        // Download all raw files as opaque data; never execute captured HTML in
+        // the application's origin. The server remains entitlement authority.
+        content_type: 'application/octet-stream' };
+    } catch { throw orderError('order_export_unconfirmed', id, status); }
+  }
   async demo() {
-    const r = await boundedResponse(this.fetch, `${this.baseUrl}/v1/demo`, { headers: { "x-delta-channel": "npm" } }, this.requestTimeoutMs);
+    const r = await boundedResponse(this.fetch, `${this.baseUrl}/v1/demo`, { headers: { "x-delta-channel": this.channel } }, this.requestTimeoutMs);
     if (!r.ok) throw new Error(`DELTA demo failed: ${r.status}`);
     return r.json();
   }
   async proof(id) {
-    const r = await boundedResponse(this.fetch, `${this.baseUrl}/v1/proofs/${encodeURIComponent(id)}`, { headers: { "x-delta-channel": "npm" } }, this.requestTimeoutMs);
+    const r = await boundedResponse(this.fetch, `${this.baseUrl}/v1/proofs/${encodeURIComponent(id)}`, { headers: { "x-delta-channel": this.channel } }, this.requestTimeoutMs);
     if (!r.ok) throw new Error(`DELTA proof failed: ${r.status}`);
     return r.json();
   }
@@ -301,7 +325,7 @@ export class DeltaWitness {
     if (!new Set(["capture", "preflight"]).has(product)) throw new TypeError("product must be capture or preflight");
     const r = await boundedResponse(this.fetch, `${this.baseUrl}/v1/${product}`, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-delta-channel": "npm" },
+      headers: { "content-type": "application/json", "x-delta-channel": this.channel },
       body: JSON.stringify({ url, ...options })
     }, this.requestTimeoutMs);
     if (r.status !== 402) {
@@ -328,7 +352,7 @@ export class DeltaWitness {
     try {
       const r = await boundedResponse(paidFetch, `${this.baseUrl}/v1/${product}`, {
         method: "POST",
-        headers: { "content-type": "application/json", "x-delta-channel": "npm" },
+        headers: { "content-type": "application/json", "x-delta-channel": this.channel },
         body: JSON.stringify(body),
       }, this.requestTimeoutMs, response => { status = response.status; });
       const result = await r.json();

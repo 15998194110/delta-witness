@@ -72,6 +72,7 @@ type PilotResponse = {
   economics: {
     variable_cost_usd: number;
     contribution_margin_usd: number;
+    basis?: "sum_of_proof_cost_models_not_actual_total";
   };
   idempotent_replay?: boolean;
 };
@@ -94,7 +95,7 @@ type PilotRecord = {
 type PilotObservation = {
   proof: PilotProof;
   preflight?: PilotResponse["preflight"];
-  browser_ms: number;
+  browser_ms: number | null;
   storage_bytes: number;
   variable_cost_usd: number;
 };
@@ -169,7 +170,8 @@ function aggregateResponse(record: PilotRecord): PilotResponse {
   const cost = observations.reduce((sum, value) => sum + value.variable_cost_usd, 0);
   return { ok: true, product: "guarded_action_pilot", price_usd: 10, proofs: observations.map(value => value.proof),
     preflight: observations.find(value => value.preflight)?.preflight,
-    economics: { variable_cost_usd: cost, contribution_margin_usd: GUARDED_ACTION_PILOT_PRICE_USD - cost } };
+    economics: { variable_cost_usd: cost, contribution_margin_usd: GUARDED_ACTION_PILOT_PRICE_USD - cost,
+      basis: "sum_of_proof_cost_models_not_actual_total" } };
 }
 function partialBody(record: PilotRecord, state: string, retryable: boolean) {
   return { ok: false, state, retryable, payment_will_not_be_charged_again: true,
@@ -438,7 +440,7 @@ export async function guardedPilotProtect(c: Context<any>, next: Next): Promise<
                   observed_at: "2026-09-07T00:00:00.000Z",
                   allocated_price_usd: 10,
                 }],
-                economics: { variable_cost_usd: 0.004, contribution_margin_usd: 9.996 },
+                economics: { variable_cost_usd: 0.004, contribution_margin_usd: 9.996, basis: "sum_of_proof_cost_models_not_actual_total" },
               },
               schema: GUARDED_ACTION_PILOT_OUTPUT_SCHEMA,
             },
@@ -601,7 +603,7 @@ export async function guardedPilotHandler(c: Context<any>): Promise<Response> {
       if (!await save({ ...claim!.record, state: "complete", response, response_hash: digest, updated_at: new Date().toISOString(), error: undefined })) return noStore(c.json(lostClaimBody(), 503));
       const observations = claim!.record.progress!.pages.map(page => page.observation!);
       await recordEvent(env, { event: "capture_completed", route: PILOT_ROUTE, channel, success: true, grossUsd: 10,
-        browserMs: observations.reduce((sum, value) => sum + value.browser_ms, 0), storageBytes: observations.reduce((sum, value) => sum + value.storage_bytes, 0),
+        browserMs: observations.some(value => value.browser_ms === null) ? null : observations.reduce((sum, value) => sum + value.browser_ms!, 0), storageBytes: observations.reduce((sum, value) => sum + value.storage_bytes, 0),
         variableCostUsd: response.economics.variable_cost_usd, contributionMarginUsd: response.economics.contribution_margin_usd });
       return noStore(c.json(response));
     })(), PILOT_DEADLINE_MS, "pilot_deadline_exceeded", snapshot.cancel);

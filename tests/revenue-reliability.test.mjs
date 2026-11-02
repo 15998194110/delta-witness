@@ -44,6 +44,8 @@ function run(script, fixture = {}, env = {}) {
           const {DatabaseSync} = await import('node:sqlite');
           const db = new DatabaseSync(':memory:');
           db.exec("CREATE TABLE telemetry_events (channel TEXT, event TEXT, success TEXT, event_count INTEGER, gross_usd REAL, variable_cost_usd REAL, contribution_margin_usd REAL, browser_ms REAL, storage_bytes REAL, created_at TEXT DEFAULT CURRENT_TIMESTAMP)");
+          const {readFileSync} = await import('node:fs');
+          db.exec(readFileSync(${JSON.stringify(resolve(root, 'migrations/0002_metric_provenance.sql'))}, 'utf8'));
           for (const row of fixture.sqlRows) db.prepare('INSERT INTO telemetry_events (channel, event, success, event_count, gross_usd, variable_cost_usd, contribution_margin_usd, browser_ms, storage_bytes) VALUES (?,?,?,?,?,?,?,?,?)').run(...row);
           body = {success: true, result: [{success: true, results: db.prepare(request.sql).all()}]};
           db.close();

@@ -1,4 +1,7 @@
 export type RuntimeEnv = Env & {
+  ORDER_RECOVERY_TTL_SECONDS?: string;
+  R2_READ_COST_PER_MILLION_USD?: string;
+  PARTNER_BILLING_COORDINATION_ENABLED?: string;
   RETENTION_POLICY_JSON?: string;
   INDEXNOW_ADMIN_SECRET?: string;
   PARTNER_GATEWAY_SECRET?: string;

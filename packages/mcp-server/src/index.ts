@@ -7,6 +7,8 @@ import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 import { z } from "zod";
 import { approvedPaymentUsd, PUBLIC_PAYMENT_USD, type PaidProduct } from "./payment-config.js";
+import { DeltaWitness } from "../../js-client/src/index.js";
+import { FileOrderStore, saveOrderExport } from "./order-store.js";
 
 const DEFAULT_BASE_URL = "https://delta-witness-api.ruphussten.workers.dev";
 const NETWORK = "eip155:8453";
@@ -208,8 +210,83 @@ function result(body: Json) {
   };
 }
 
+function durableClient() {
+  const directory = process.env.DELTA_ORDER_STORE_DIR;
+  if (!directory) throw new Error('order_store_required');
+  return new DeltaWitness({ baseUrl: baseUrl(), orderStore: new FileOrderStore(directory), fetchImpl: fetch, channel: 'mcp' });
+}
+
+function orderFailure(error: unknown, id?: string) {
+  const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : 'order_configuration_or_storage_unavailable';
+  const allowed = /^order_[a-z_]+$|^payment_outcome_unconfirmed$|^invalid_[a-z_]+$/;
+  return { ...result({ error: allowed.test(code) ? code : 'order_unconfirmed', ...(id ? { order_id: id } : {}),
+    message: 'Retain the original order ID and recover it. No automatic replacement payment is permitted.', retryable: false }), isError: true as const };
+}
+
 export function createServer(): McpServer {
   const server = new McpServer({ name: "DELTA Witness", version: "0.7.1" });
+
+  server.registerTool('delta_prepare_order', {
+    title: 'Prepare persistent DELTA order',
+    description: 'Persist one original Capture/Preflight order before signing. Requires private DELTA_ORDER_STORE_DIR. Reuse the caller business order_id after interruptions; preparation is free and does not sign.',
+    inputSchema: {
+      order_id: z.string().uuid(), product: z.enum(['capture', 'preflight']), url: z.string().url(),
+      prior_proof_id: z.string().uuid().optional(), contains: z.array(z.string().min(1).max(200)).max(10).optional(),
+      excludes: z.array(z.string().min(1).max(200)).max(10).optional(),
+      html_sha256: z.string().regex(/^sha256:[0-9a-f]{64}$/).optional(),
+      markdown_sha256: z.string().regex(/^sha256:[0-9a-f]{64}$/).optional(),
+      freshness_seconds: z.number().int().min(0).max(2_592_000).optional(),
+      retention_policy_hash: z.string().regex(/^sha256:[0-9a-f]{64}$/).optional(),
+    },
+  }, async (input) => {
+    try {
+      if (input.product === 'capture' && ['prior_proof_id', 'contains', 'excludes', 'html_sha256', 'markdown_sha256', 'freshness_seconds'].some(key => input[key as keyof typeof input] !== undefined)) {
+        return orderFailure({ code: 'invalid_order_input' }, input.order_id);
+      }
+      const body = input.product === 'capture' ? { url: input.url } : JSON.parse(JSON.stringify(buildPreflightBody(input)));
+      return result(await durableClient().prepareOrder(input.product, body, { orderId: input.order_id, retentionPolicyHash: input.retention_policy_hash }));
+    } catch (error) { return orderFailure(error, input.order_id); }
+  });
+
+  server.registerTool('delta_execute_order', {
+    title: 'Execute original DELTA order',
+    description: 'Execute a prepared order once under the existing explicit buyer budget. Restarted or uncertain orders use free Core recovery and never sign again. Capture 1 USDC; Preflight 5 USDC.',
+    inputSchema: { order_id: z.string().uuid() },
+  }, async ({ order_id }) => {
+    let active = true;
+    try {
+      const client = durableClient();
+      // prepareOrder is not called here; missing identity cannot create a purchase.
+      // Lazy payment transport means recovery does not require a signer or budget.
+      const transport: typeof fetch = async (url, init) => {
+        const product = new URL(String(url)).pathname === '/v1/capture' ? 'capture' : 'preflight';
+        return paidFetch(product, () => active)(url, init);
+      };
+      return result(await client.executeOrder(order_id, transport));
+    } catch (error) { return orderFailure(error, order_id); }
+    finally { active = false; }
+  });
+
+  server.registerTool('delta_recover_order', {
+    title: 'Recover original DELTA order',
+    description: 'Query and recover the original authenticated order without signing or paying. A missing/expired/unknown order is not permission to buy again.',
+    inputSchema: { order_id: z.string().uuid() },
+  }, async ({ order_id }) => {
+    try { return result(await durableClient().recoverOrder(order_id)); }
+    catch (error) { return orderFailure(error, order_id); }
+  });
+
+  server.registerTool('delta_export_order_artifact', {
+    title: 'Save original private order artifact',
+    description: 'Download an authenticated original artifact to the configured private order store exports directory. No payment, raw bytes, or recovery token are returned to the model. Never executes the file; existing conflicting files are preserved.',
+    inputSchema: { order_id: z.string().uuid(), artifact: z.enum(['html', 'markdown', 'screenshot', 'manifest']) },
+  }, async ({ order_id, artifact }) => {
+    try {
+      const downloaded = await durableClient().exportArtifact(order_id, artifact);
+      const path = await saveOrderExport(process.env.DELTA_ORDER_STORE_DIR!, order_id, downloaded.filename, downloaded.bytes);
+      return result({ order_id, artifact, path, content_sha256: downloaded.content_sha256, size_bytes: downloaded.bytes.length });
+    } catch (error) { return orderFailure(error, order_id); }
+  });
 
   server.registerTool("delta_quote", {
     title: "Quote DELTA observation",

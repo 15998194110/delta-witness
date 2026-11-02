@@ -82,6 +82,8 @@ export type Quote = {
   asset: string;
   pay_to: string;
   payment_flow: string;
+  order_recovery?: { schema: string; enabled: boolean; credential_ttl_seconds: number | null; payment_on_recovery: boolean; products: string[] };
+  retention?: { policy_hash: string; policy: unknown } | null;
   economics: {
     estimatedContributionMarginUsd: number;
   };
@@ -104,7 +106,7 @@ export type PurchaseOutcome =
   | { state: "complete"; delivery: Delivery }
   | { state: "processing" | "retryable_failure" | "uncertain"; message: string };
 
-export const PAYMENT_RECOVERY_WARNING = "Payment status is not confirmed here. Do not approve another payment for this request. Automatic recovery is not available; contact DELTA with the attempt reference before paying again.";
+export const PAYMENT_RECOVERY_WARNING = "Payment status is not confirmed here. Do not approve another payment for this request. Check the saved original order when available; legacy attempts without recovery credentials require review.";
 
 export const PAYMENT_ATTEMPT_KEY = "delta-witness:payment-attempt:v1";
 export const PAYMENT_LOCK_NAME = "delta-witness:paid-request:v1";
@@ -279,7 +281,7 @@ export function requestBody(product: Product, url: string, mustContain: string):
   const expectation = mustContain.trim();
   return {
     url,
-    expected: expectation ? { contains: [expectation] } : undefined,
+    ...(expectation ? { expected: { contains: [expectation] } } : {}),
   };
 }
 
@@ -291,11 +293,38 @@ export function validateQuote(quote: Quote, product: Product): void {
     throw new BuyerMessageError("DELTA returned an unexpected payment destination");
   }
   if (quote.payment_flow !== "upfront") throw new BuyerMessageError("DELTA payment must settle before capture");
+  if (quote.order_recovery !== undefined) {
+    const recovery = quote.order_recovery;
+    if (!isRecord(recovery) || recovery.schema !== 'delta-order-recovery/v1' || typeof recovery.enabled !== 'boolean' ||
+        recovery.payment_on_recovery !== false || !Array.isArray(recovery.products) || !recovery.products.includes(product) ||
+        (recovery.enabled && (!Number.isSafeInteger(recovery.credential_ttl_seconds) || Number(recovery.credential_ttl_seconds) < 60 || Number(recovery.credential_ttl_seconds) > 604800))) {
+      throw new BuyerMessageError('DELTA returned an invalid recovery contract. No payment was started.');
+    }
+  }
+  if (quote.retention != null) {
+    if (!/^sha256:[0-9a-f]{64}$/.test(quote.retention.policy_hash) || !retentionTerms(quote.retention.policy)) {
+      throw new BuyerMessageError('DELTA returned unreadable retention terms. No payment was started.');
+    }
+  }
   const price = Number(quote.price.replace("$", ""));
   const expected = maxPaymentUsd(product);
   if (!Number.isFinite(price) || price !== expected) {
     throw new BuyerMessageError(`${product === "preflight" ? "Guard" : "Capture"} quote must match the current ${expected.toFixed(2)} USDC owner price`);
   }
+}
+
+export function retentionTerms(policy: unknown): string | null {
+  if (!isRecord(policy) || policy.schema !== 'delta-retention-policy/v1' || !isRecord(policy.classes)) return null;
+  const labels = { raw_artifacts: 'Original files', minimal_metadata: 'Minimum metadata', transaction_audit: 'Transaction audit' };
+  const terms: string[] = [];
+  for (const [key, label] of Object.entries(labels)) {
+    const rule = policy.classes[key];
+    if (!isRecord(rule) || !Number.isSafeInteger(rule.retain_seconds) || Number(rule.retain_seconds) <= 0 ||
+        !Number.isSafeInteger(rule.deletion_window_seconds) || Number(rule.deletion_window_seconds) <= 0 ||
+        !['settlement_confirmed', 'fulfillment_completed'].includes(String(rule.start_event))) return null;
+    terms.push(`${label}: ${rule.retain_seconds} seconds from ${rule.start_event === 'settlement_confirmed' ? 'confirmed settlement' : 'completed delivery'}; deletion window ${rule.deletion_window_seconds} seconds after expiry.`);
+  }
+  return terms.join(' ');
 }
 
 export function compactProof(id: string): string {
