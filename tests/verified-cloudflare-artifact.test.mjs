@@ -54,6 +54,20 @@ describe('immutable Cloudflare release payload; no provider calls', () => {
     await writeFile(join(f.root, 'wrangler.jsonc'), JSON.stringify({ name: 'delta-witness-api', main: 'src/index.ts', [key]: {} }));
     await expect(recordCloudflareArtifact(f)).rejects.toThrow('unreviewed_cloudflare_build_config');
   });
+  it.each(['core', 'gateway'])('accepts the default-only %s deployment entry while preserving exact config hashes and rule rejection', async kind => {
+    const f = await fixture(kind), path = join(f.root, 'wrangler.jsonc');
+    const config = { ...JSON.parse(await readFile(path, 'utf8')), main: 'src/entry/index.ts' };
+    await writeFile(path, JSON.stringify(config));
+    const manifest = await recordCloudflareArtifact(f);
+    expect(await loadCloudflareArtifact(f)).toEqual(manifest);
+    expect(manifest.entry).toBe('index.js');
+    await writeFile(path, JSON.stringify({ ...config, main: 'src/index.ts' }));
+    await expect(loadCloudflareArtifact(f)).rejects.toThrow('cloudflare_artifact_mismatch');
+    await writeFile(path, JSON.stringify({ ...config, main: 'src/entry/other.ts' }));
+    await expect(loadCloudflareArtifact(f)).rejects.toThrow('unreviewed_cloudflare_build_config');
+    await writeFile(path, JSON.stringify({ ...config, rules: [] }));
+    await expect(loadCloudflareArtifact(f)).rejects.toThrow('unreviewed_cloudflare_build_config');
+  });
   it('rejects a symlinked payload directory and a private file in public Pages output', async () => {
     const f = await fixture(); await recordCloudflareArtifact(f);
     const redirected = join(f.repository, 'redirected'); await mkdir(redirected);

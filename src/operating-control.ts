@@ -142,6 +142,7 @@ export async function operatingStatus(source:RuntimeEnv,now=Date.now()){
     // corrupt recovery metadata must not erase the other lane observations.
     return {ok:true,report,source_inventory_complete:false,cloud:{enabled_by_configuration:source.OPERATIONS_CLOUD_ENABLED==='true',watchdog:watchdog??null,
       pulse_observation:pulse??null,background_paid_order_recovery_connected:paidRecovery?.enabled_by_configuration===true&&paidRecovery.observation_freshness==='fresh',
+      background_paid_order_recovery_health:paidRecovery?.business_work_health.outcome??'unknown',
       paid_order_draft_recovery:paidRecovery,notification_adapter_configured:false,canonical_operator_pipeline_migrated:false,
       alert_outbox:{enabled_by_configuration:source.OPERATIONS_ALERT_OUTBOX_ENABLED==='true',provider_sender_configured:false,notification_delivered:null},
       failure_rate:null,recovery_count:null,buyer_leads_total:null,qualified_leads_total:null},
