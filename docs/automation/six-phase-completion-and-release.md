@@ -75,3 +75,13 @@ flowchart LR
 | 平台验证/自测入账 | 保留tx证据但不计客户收入 | 把探针当First Stranger Revenue |
 
 官方依据：[R2一致性/原子条件写](https://developers.cloudflare.com/r2/reference/consistency/)、[R2 Workers API](https://developers.cloudflare.com/r2/api/workers/workers-api-reference/)、[GitHub workflow dispatch及2026 API响应](https://docs.github.com/en/rest/actions/workflows)。这些说明提供商接口合同，不证明本部署已启用或验收。
+
+## 本轮本地组合证据
+
+`04-cloud-all-gates-1`：66个测试文件，**994 PASS / 1明确不适用的fallback内部实现用例SKIP**，网络隔离、源码指纹稳定。加载经摘要核验的 `0dbf2b3963ff56641b96e95b8f358591514cb3c4` 兼容候选和 `0a7ef80cf210263ced2ba197c8461535c1ac350b` 历史producer的精确本地构建。TypeScript检查通过。Node混跑不是Cloudflare provider-runtime或线上回退验收。
+
+同时启用原先明示opt-in的有限工作量：200笔synthetic订单、并发8、60,095毫秒、4,088次附加恢复查询；100正常完成、50原单恢复、25结算未知、25原件不一致。每原付款最多一次，Browser mock175次且后续恢复不增加；原件哈希与对象集合保持稳定。Treasury实际到账、真实收入、实际成本与毛利仍null，不把synthetic付款计收入。
+
+扩展混跑第一次保留6个失败：旧测试曾预期注入Webhook失败等场景的Cron仍返回成功。仅更新其观测契约断言：已知失败必须精确报`scheduled_operations_degraded`；真正并发CAS允许成功或该唯一降级，其他错误仍失败。原额度、事件ID、原body/HMAC、通知尝试次数、Browser次数、原件hash与迟到写断言未改，已独立复核。原失败证据保留，随后混跑75 PASS/3当时未加载场景SKIP；完整历史/工作量加载后的最终结果为上述994/1。
+
+构建、源码、命令和私有验收清单在本机 `DELTA-cloud-operations-20261103` 证据目录，均create-only；没有push、provider注册/调用、生产迁移、资金动作或R2删除。当前状态仍是**本地已修、隔离测试通过、待发布、线上待验收、商业待外部验证**。

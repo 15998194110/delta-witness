@@ -51,11 +51,20 @@ class WatchBucket extends MemoryBucket {
 }
 // Invoke the handler in memory only. Noon avoids discovery/IndexNow branches;
 // waitUntil promises are collected rather than scheduling any external task.
-async function tick(worker: typeof currentWorker, env: ReturnType<typeof orderRuntime>) {
+async function tick(worker: typeof currentWorker, env: ReturnType<typeof orderRuntime>, expected: 'success'|'degraded'|'competing' = 'success') {
   const work: Promise<unknown>[] = [];
   await worker.scheduled({cron: '*/15 * * * *', scheduledTime: Date.parse('2026-11-02T12:00:00Z')} as ScheduledController,
     env, {waitUntil(promise: Promise<unknown>) {work.push(promise);}} as ExecutionContext);
-  await Promise.all(work);
+  if(expected==='degraded'){
+    // The new observer must expose the known injected failure. The original
+    // quota/event/artifact assertions below still establish business recovery.
+    await expect(Promise.all(work)).rejects.toThrow('scheduled_operations_degraded');
+  }else if(expected==='competing'){
+    // A real concurrent CAS loser may observe either delivered or deferred.
+    // Only that exact new observation error is allowed; other errors fail.
+    const results=await Promise.allSettled(work);expect(results).toHaveLength(1);
+    for(const result of results)if(result.status==='rejected')expect(result.reason).toMatchObject({message:'scheduled_operations_degraded'});
+  }else await Promise.all(work);
 }
 async function watchFixture(checks = 1, missingMetric = false) {
   vi.useFakeTimers(); vi.setSystemTime('2026-11-02T12:00:00Z');
@@ -112,11 +121,11 @@ function registrationFixture() {
 suite('mixed-runtime Watch and Pilot original-authority compatibility', () => {
   it('current Watch retries one original notification in fallback, then current consumes only the next prepaid slot', async () => {
     const s = await watchFixture(2);
-    await tick(currentWorker, s.env);
+    await tick(currentWorker, s.env, 'degraded');
     const first = s.events()[0].event, originalWatch = s.readWatch(), originalHashes = artifactHashes(s.bucket);
     expect(JSON.parse(first.raw_body)).toMatchObject({safe: false, changed: null});
     s.webhookStatus(204); vi.setSystemTime(Date.parse(first.next_attempt_at) + 1);
-    await Promise.all([tick(fallbackWorker, s.env), tick(currentWorker, s.env)]);
+    await Promise.all([tick(fallbackWorker, s.env), tick(currentWorker, s.env, 'competing')]);
     expect(s.events()[0].event).toMatchObject({event_id: first.event_id, raw_body: first.raw_body, attempts: 2, state: 'delivered'});
     expect(s.readWatch()).toEqual(originalWatch); expect(artifactHashes(s.bucket)).toEqual(originalHashes);
     expect(s.env.BROWSER.quickAction).toHaveBeenCalledTimes(1);
@@ -139,7 +148,7 @@ suite('mixed-runtime Watch and Pilot original-authority compatibility', () => {
     expect(manifest.execution.browser_ms_used).toBeNull();
     expect(manifest.execution.estimated_variable_cost_usd).toBeGreaterThan(0);
     s.webhookStatus(204); vi.setSystemTime(Date.parse(original.next_attempt_at) + 1);
-    await tick(currentWorker, s.env); await tick(fallbackWorker, s.env);
+    await tick(currentWorker, s.env, 'degraded'); await tick(fallbackWorker, s.env);
     expect(s.events()[0].event).toMatchObject({event_id: original.event_id, raw_body: original.raw_body, state: 'delivered'});
     expect(artifactHashes(s.bucket)).toEqual(hashes); expect(s.env.BROWSER.quickAction).toHaveBeenCalledTimes(1);
     expect(s.readWatch()).toMatchObject({checks_attempted: 1, checks_remaining: 0});
@@ -148,7 +157,7 @@ suite('mixed-runtime Watch and Pilot original-authority compatibility', () => {
     const s = await watchFixture(), put = s.bucket.put.bind(s.bucket);
     let fail = true;
     s.bucket.put = async (key, value, options) => {if (fail && key.startsWith('watch-notifications/')) throw new Error('synthetic promotion loss'); return put(key, value, options);};
-    await tick(currentWorker, s.env);
+    await tick(currentWorker, s.env, 'degraded');
     const pending = s.readWatch().pending_notification!, hashes = artifactHashes(s.bucket);
     expect(pending).toBeDefined(); expect(s.requests).toHaveLength(0);
     fail = false; s.webhookStatus(204);
@@ -158,7 +167,7 @@ suite('mixed-runtime Watch and Pilot original-authority compatibility', () => {
     expect(artifactHashes(s.bucket)).toEqual(hashes); expect(s.env.BROWSER.quickAction).toHaveBeenCalledTimes(1);
   });
   it('fallback bounds a hung Watch inventory while original notification dispatch still completes', async () => {
-    const s = await watchFixture(); await tick(currentWorker, s.env);
+    const s = await watchFixture(); await tick(currentWorker, s.env, 'degraded');
     const first = s.events()[0].event, list = s.bucket.list.bind(s.bucket);
     s.webhookStatus(204); vi.setSystemTime(Date.parse(first.next_attempt_at) + 1);
     let release!: () => void, reached = false, finished = false, outcome: unknown;
@@ -194,7 +203,7 @@ suite('mixed-runtime Watch and Pilot original-authority compatibility', () => {
     expect(bounded).toBe(true); expect(s.requests).toHaveLength(0);
     const hashes = artifactHashes(s.bucket); s.webhookStatus(204);
     if (stage !== 'final') vi.setSystemTime(Date.now() + 60_001);
-    await tick(currentWorker, s.env); await tick(fallbackWorker, s.env);
+    await tick(currentWorker, s.env, stage==='final'?'success':'degraded'); await tick(fallbackWorker, s.env);
     expect(s.env.BROWSER.quickAction).toHaveBeenCalledTimes(stage === 'lease' ? 0 : 1);
     expect(artifactHashes(s.bucket)).toEqual(hashes);
     expect(s.readWatch()).toMatchObject(stage === 'final' ? {checks_attempted: 1, checks_remaining: 0} : {state: 'recovery_required', checks_attempted: 0, checks_remaining: 1});
