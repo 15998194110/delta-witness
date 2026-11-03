@@ -81,10 +81,12 @@ import { exportOrderArtifact } from "./order-export";
 import { orderExportAuthorizationResponse } from "./order-export-authorization";
 import { runScheduledOperations, scheduledStatus, scheduledFetch, readScheduledJson, type ScheduledWorkResult } from "./scheduled-operations";
 import { pulseWatchdog } from "./pulse-watchdog";
-import { operatingStatus, recordOperatingPulse, operatingPulseReceipt, readOperatingJson, recordWatchdogObservation } from "./operating-control";
+import { operatingStatus, recordOperatingPulse, operatingPulseReceipt, readOperatingJson, recordWatchdogObservation,persistOperatingAlertCandidates } from "./operating-control";
 import { operatingDashboard } from "./operating-dashboard";
 import { handleTreasuryCustody } from "./treasury-custody";
 import { scheduledPaidOrderRecovery, paidOrderRecoveryStatus } from "./paid-recovery-control";
+import {enqueuePaidRecoveryPriority} from './paid-recovery-priority';
+import {enqueueOperatingAlert,readOperatingAlert,acknowledgeOperatingAlert} from './operating-alert-outbox';
 
 type PaidProduct = "capture" | "preflight";
 type PriorManifest = Pick<ProofManifest, "proof_id" | "requested_url" | "capture_completed_at" | "hashes">;
@@ -587,9 +589,18 @@ async function paidHandler(product: PaidProduct, c: AppContext): Promise<Respons
   const paymentFingerprint = c.var.paymentFingerprint;
   const key = c.var.fulfillmentKey;
   if (!paymentFingerprint || !key) return c.json({ error: "settled_payment_identity_missing" }, 500);
+  const deferUnfinished=()=>{
+    if(c.env.OPERATIONS_CLOUD_ENABLED!=='true'||c.env.PAID_ORDER_DRAFT_RECOVERY_ENABLED!=='true'||!c.var.orderEnrollment)return;
+    // Enroll only an unfinished paid response, keeping healthy completed traffic
+    // out of pending capacity. Abrupt process loss is covered by the old sweep.
+    try{const context=c.executionCtx;context.waitUntil(enqueuePaidRecoveryPriority(c.env,c.var.orderEnrollment.order_id,{deadlineMs:3000}).then(result=>{
+      if(result.outcome==='degraded')throw new Error('paid_priority_enrollment_unconfirmed');
+    }));}catch{/* no provider context: original bounded sweep remains */}
+  };
   let retentionPolicy: RetentionPolicy | undefined;
   try { retentionPolicy = await purchasedPolicyForCapture(c.env, getPaymentHeader(c.req.raw)!, product, paymentFingerprint); }
   catch (error) {
+    deferUnfinished();
     return noStore(c.json({ ok: false, state: "fulfillment_unknown", error: error instanceof OrderAccessError ? error.code : "order_evidence_inconsistent", retryable: false }, error instanceof OrderAccessError ? error.status : 503));
   }
   const result = await executeFulfillment({
@@ -607,7 +618,8 @@ async function paidHandler(product: PaidProduct, c: AppContext): Promise<Respons
     existingClaim: c.var.claimedRecord,
     priorManifest: c.var.priorManifest,
     retentionPolicy,
-  });
+  }).catch(error=>{deferUnfinished();throw error;});
+  if(result.status!==200)deferUnfinished();
   c.status(result.status as 200 | 202 | 409 | 500 | 502 | 503);
   return noStore(c.json(result.body));
 }
@@ -1106,6 +1118,23 @@ app.get('/internal/operations/paid-recovery',async c=>{
   if(new URL(c.req.url).search)return c.json({error:'operating_input_forbidden'},400);
   try{return c.json(await paidOrderRecoveryStatus(c.env));}catch{return c.json({error:'operating_evidence_unavailable'},503);}
 });
+app.post('/internal/operations/alerts/observe',async c=>{
+  if(c.env.OPERATIONS_ALERT_OUTBOX_ENABLED!=='true')return c.json({error:'alert_outbox_not_enabled'},503);
+  if(new URL(c.req.url).search)return c.json({error:'operating_input_forbidden'},400);
+  try{const input=await readOperatingJson(c.req.raw);const d=c.env.OPERATIONS_ALERT_DESTINATION_ID&&c.env.OPERATIONS_ALERT_DESTINATION_DIGEST?
+    {id:c.env.OPERATIONS_ALERT_DESTINATION_ID,digest:c.env.OPERATIONS_ALERT_DESTINATION_DIGEST}:null;
+    return c.json(await enqueueOperatingAlert(c.env,input as any,d));}catch{return c.json({error:'alert_observation_unconfirmed'},503);}
+});
+app.post('/internal/operations/alerts/read',async c=>{
+  if(new URL(c.req.url).search)return c.json({error:'operating_input_forbidden'},400);
+  try{const input=await readOperatingJson(c.req.raw) as any;if(!input||Object.keys(input).join(',')!=='dedupe_key')return c.json({error:'alert_input_invalid'},400);
+    return c.json({alert:await readOperatingAlert(c.env,input.dedupe_key)});}catch{return c.json({error:'alert_evidence_unavailable'},503);}
+});
+app.post('/internal/operations/alerts/acknowledge',async c=>{
+  if(new URL(c.req.url).search)return c.json({error:'operating_input_forbidden'},400);
+  try{const input=await readOperatingJson(c.req.raw) as any;if(!input||Object.keys(input).sort().join(',')!=='acknowledgment,dedupe_key')return c.json({error:'alert_input_invalid'},400);
+    return c.json(await acknowledgeOperatingAlert(c.env,input.dedupe_key,input.acknowledgment));}catch{return c.json({error:'alert_ack_unconfirmed'},503);}
+});
 
 app.post("/internal/indexnow", async (c) => {
   if (!c.env.INDEXNOW_ADMIN_SECRET) return c.json({ error: "indexnow_admin_not_configured" }, 503);
@@ -1214,6 +1243,9 @@ export { app };
 export default {
   fetch: app.fetch,
   async scheduled(controller: ScheduledController, env: RuntimeEnv, ctx: ExecutionContext): Promise<void> {
+    if(controller.cron==='*/15 * * * *'&&env.OPERATIONS_CLOUD_ENABLED==='true'&&env.OPERATIONS_ALERT_OUTBOX_ENABLED==='true'){
+      ctx.waitUntil(persistOperatingAlertCandidates(env));
+    }
     if(controller.cron==='*/15 * * * *'&&env.OPERATIONS_CLOUD_ENABLED==='true'&&env.PAID_ORDER_DRAFT_RECOVERY_ENABLED==='true'){
       ctx.waitUntil(scheduledPaidOrderRecovery(env,controller.scheduledTime).then(result=>{
         if(result.outcome==='degraded')throw new Error('paid_order_draft_recovery_degraded');

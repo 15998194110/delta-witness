@@ -39,7 +39,7 @@ export type PaidOrderRecoveryResult = {
   items: PaidOrderRecoveryItem[];
 };
 
-export type PaidOrderRecoveryOptions = { cursor?: string; maxOrders?: number; deadlineMs?: number; signal?: AbortSignal };
+export type PaidOrderRecoveryOptions = { cursor?: string; orderIds?: string[]; maxOrders?: number; deadlineMs?: number; signal?: AbortSignal };
 
 function validCursor(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= 2_048 && !/[\u0000-\u001f\u007f]/.test(value);
@@ -107,10 +107,12 @@ export function validatePaidOrderRecoveryResult(value: unknown): value is PaidOr
 // evidence of complete historical inventory. The caller owns durable scan state.
 // Only the existing original-fulfillment CAS may change a business record here.
 export async function runPaidOrderRecovery(env: RuntimeEnv, options: PaidOrderRecoveryOptions = {}): Promise<PaidOrderRecoveryResult> {
-  const maxOrders = options.maxOrders ?? 5, deadlineMs = options.deadlineMs ?? 60_000;
+  const maxOrders = options.maxOrders ?? options.orderIds?.length ?? 5, deadlineMs = options.deadlineMs ?? 60_000;
   if (!Number.isSafeInteger(maxOrders) || maxOrders < 1 || maxOrders > 10 ||
       !Number.isSafeInteger(deadlineMs) || deadlineMs < 1 || deadlineMs > 120_000 ||
-      options.cursor !== undefined && !validCursor(options.cursor)) throw new Error("invalid_paid_order_recovery_options");
+      options.cursor !== undefined && !validCursor(options.cursor) ||
+      options.orderIds !== undefined && (!Array.isArray(options.orderIds) || options.orderIds.length < 1 || options.orderIds.length > maxOrders ||
+        options.orderIds.some(id => typeof id !== "string" || !UUID.test(id)) || new Set(options.orderIds).size !== options.orderIds.length || options.cursor !== undefined)) throw new Error("invalid_paid_order_recovery_options");
   // Reserve a share for inventory/final reporting so a stalled first item does
   // not repeatedly starve every later item on the same opaque inventory page.
   const itemDeadlineMs = Math.max(1, Math.min(PAID_ORDER_RECOVERY_ITEM_MAX_MS, Math.floor(deadlineMs / (maxOrders + 1))));
@@ -199,7 +201,10 @@ export async function runPaidOrderRecovery(env: RuntimeEnv, options: PaidOrderRe
     assertActive();
     await withinDeadline(Promise.race([(async () => {
       let page: R2Objects;
-      try { page = await env.PROOFS.list({ prefix: PREFIX, limit: maxOrders, ...(options.cursor ? { cursor: options.cursor } : {}) }); }
+      // Priority entries select original identities only. They never become
+      // proof of a full inventory or authority to settle/capture anything.
+      try { page = options.orderIds ? { objects: options.orderIds.map(id => ({ key: `${PREFIX}${id}.json` })), truncated: false } as R2Objects :
+        await env.PROOFS.list({ prefix: PREFIX, limit: maxOrders, ...(options.cursor ? { cursor: options.cursor } : {}) }); }
       catch { assertActive(); result.outcome = "degraded"; result.reason = "inventory_unavailable"; return; }
       assertActive();
       if (!page || !Array.isArray(page.objects) || page.objects.length > maxOrders || typeof page.truncated !== "boolean" ||

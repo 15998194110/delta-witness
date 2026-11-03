@@ -7,6 +7,7 @@ import { createOrderReadSnapshot, readOrderMetadata } from './order-storage';
 import { sha256, stableJson } from './crypto';
 import { withinDeadline } from './deadline';
 import { runPaidOrderRecovery, validatePaidOrderRecoveryResult, type PaidOrderRecoveryResult } from './paid-order-recovery';
+import {drainPaidRecoveryPriority,enqueuePaidRecoveryPriority,paidRecoveryPriorityStatus} from './paid-recovery-priority';
 
 export const PAID_RECOVERY_PREFIX = 'operations/paid-order-recovery/';
 const MAX_BYTES = 16_384;
@@ -50,7 +51,15 @@ export async function scheduledPaidOrderRecovery(source:RuntimeEnv,scheduledTime
       started_at:new Date().toISOString(),state:'started',result:null,result_hash:null};
     const reserved=await createClaim(env,key,initial);check();
     if(!reserved)return {outcome:'skipped',reason:'event_reservation_conflict'};
-    const result=await runPaidOrderRecovery(source,{...(prior?.record.cursor?{cursor:prior.record.cursor}:{}),maxOrders:5,deadlineMs:60_000,signal:controller.signal});check();
+    // Spend the first business-work budget on known paid obligations. The
+    // bounded compatibility sweep still discovers older unindexed originals.
+    const priority=await drainPaidRecoveryPriority(source,{maxOrders:3,deadlineMs:30000,signal:controller.signal});check();
+    const result=await runPaidOrderRecovery(source,{...(prior?.record.cursor?{cursor:prior.record.cursor}:{}),maxOrders:5,deadlineMs:20000,signal:controller.signal});check();
+    for(const item of result.items){
+      if(['reconciliation_required','write_unconfirmed','concurrent'].includes(item.state)){
+        await enqueuePaidRecoveryPriority(source,item.order_id,{deadlineMs:1000,signal:controller.signal});check();
+      }
+    }
     const observed:Observation={...initial,state:'observed',result,result_hash:await sha256(stableJson(result))};
     // One final CAS. If the ACK is lost only the exact original record is read;
     // no new reservation or final-write attempt is made under another identity.
@@ -73,20 +82,20 @@ export async function scheduledPaidOrderRecovery(source:RuntimeEnv,scheduledTime
       const saved=latest?await commitClaim(env,latestKey,latest,observed):await createClaim(env,latestKey,observed);check();
       if(!saved)return {outcome:'degraded',reason:'latest_projection_conflict',run_id:initial.run_id,cursor_state:cursorState};
     }
-    return {outcome:result.outcome==='success'&&!['conflict','unconfirmed'].includes(cursorState)?'success':'degraded',
-      reason:result.reason,run_id:initial.run_id,cursor_state:cursorState,counts:result.counts,inventory_complete:false};
+    return {outcome:priority.outcome==='success'&&result.outcome==='success'&&!['conflict','unconfirmed'].includes(cursorState)?'success':'degraded',
+      reason:priority.outcome==='degraded'?'priority_requires_reconciliation':result.reason,run_id:initial.run_id,cursor_state:cursorState,counts:result.counts,priority_counts:priority.counts,inventory_complete:false};
   })(),90_000,'paid_recovery_control_deadline',stop);}catch{return {outcome:'degraded',reason:'control_unconfirmed'};}finally{stop();}
 }
 
 export async function paidOrderRecoveryStatus(source:RuntimeEnv){
   const snapshot=createOrderReadSnapshot(source,MAX_BYTES),env=snapshot.env;
   try{return await withinDeadline((async()=>{
-    const [latest,current]=await Promise.all([readOrderMetadata<Observation>(env,`${PAID_RECOVERY_PREFIX}latest.json`,MAX_BYTES),
-      readOrderMetadata<Cursor>(env,`${PAID_RECOVERY_PREFIX}cursor.json`,MAX_BYTES)]);snapshot.assertActive();
+    const [latest,current,priority]=await Promise.all([readOrderMetadata<Observation>(env,`${PAID_RECOVERY_PREFIX}latest.json`,MAX_BYTES),
+      readOrderMetadata<Cursor>(env,`${PAID_RECOVERY_PREFIX}cursor.json`,MAX_BYTES),paidRecoveryPriorityStatus(source).catch(()=>null)]);snapshot.assertActive();
     if(latest&&!await validObservation(latest.record)||current&&!validCursor(current.record))throw new Error('paid_recovery_status_invalid');
     return {scope:'original_scoped_capture_preflight_delivery_drafts_only',enabled_by_configuration:source.OPERATIONS_CLOUD_ENABLED==='true'&&source.PAID_ORDER_DRAFT_RECOVERY_ENABLED==='true',
       latest:latest?.record??null,observation_freshness:!latest?'unknown':Date.now()-Date.parse(latest.record.result?.completed_at??latest.record.started_at)>3600_000?'stale':'fresh',
       cursor_checkpoint:current?{version:current.record.version,run_id:current.record.run_id,updated_at:current.record.updated_at}:null,
-      inventory_complete:false,settlement_retries:false,new_captures:false,customer_revenue:null};
+      priority,inventory_complete:false,settlement_retries:false,new_captures:false,customer_revenue:null};
   })(),10_000,'paid_recovery_status_deadline',snapshot.cancel);}finally{snapshot.cancel();}
 }

@@ -1,7 +1,7 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {app} from '../src/index';
 import {MemoryBucket,orderRuntime} from './helpers/order-runtime';
-import {operatingStatus,recordOperatingPulse,recordWatchdogObservation} from '../src/operating-control';
+import {operatingStatus,recordOperatingPulse,recordWatchdogObservation,persistOperatingAlertCandidates} from '../src/operating-control';
 import {operatingDashboard} from '../src/operating-dashboard';
 import {createHash} from 'node:crypto';
 const now=Date.parse('2026-11-03T12:00:00.000Z'),release='a'.repeat(40),credential='fixture-operating-credential';
@@ -51,4 +51,24 @@ it('fresh watchdog provider facts and stale run can signal a gap without inventi
 it('dashboard escapes evidence and visibly keeps missing state distinct',async()=>{
   const {env}=fixture(),snapshot=await operatingStatus(env);snapshot.report.limitations.push('<img src=x onerror=fixture>');
   const html=operatingDashboard(snapshot.report);expect(html).toContain('unknown');expect(html).not.toContain('<script');expect(html).not.toContain('<img');expect(html).toContain('&lt;img');expect(html).toContain('总数未知');
+});
+it('protected owner-alert intake persists a blocked intent and only an exact explicit ACK suppresses it',async()=>{
+  const {env,bucket}=fixture();env.OPERATIONS_ALERT_OUTBOX_ENABLED='true';
+  const e={dedupe_key:'delta:paid_undelivered:order-1:episode-1',code:'paid_undelivered',subject:'order-1',severity:'SEV1',stage:'initial',first_seen_at:new Date(now-600000).toISOString(),evidence_ref:'fixture-original-order'};
+  expect((await app.fetch(request('alerts/observe',e,{origin:'https://other.test'}),env)).status).toBe(400);
+  expect((await (await app.fetch(request('alerts/observe',e),env)).json() as any).state).toBe('blocked');
+  const read=await app.fetch(request('alerts/read',{dedupe_key:e.dedupe_key}),env),row=(await read.json() as any).alert;
+  expect(row).toMatchObject({state:'blocked',receipt:null,acknowledgment:null});expect(read.headers.get('cache-control')).toBe('private, no-store');
+  const ack={notification_id:row.notification_id,payload_hash:row.payload_hash,actor_ref:'owner-approved',evidence_ref:'explicit-ack',observed_at:new Date(now).toISOString()};
+  expect((await (await app.fetch(request('alerts/acknowledge',{dedupe_key:e.dedupe_key,acknowledgment:ack}),env)).json() as any).state).toBe('acknowledged');
+  expect((await (await app.fetch(request('alerts/observe',e),env)).json() as any).state).toBe('suppressed');
+  expect([...bucket.values.keys()].every(k=>k.startsWith('operations/alerts/'))).toBe(true);expect(env.BROWSER.quickAction).not.toHaveBeenCalled();
+});
+it('actual scheduler-gap evidence creates a durable blocked alert without inventing provider permission or delivery',async()=>{
+  const {env,bucket}=fixture();env.OPERATIONS_ALERT_OUTBOX_ENABLED='true';
+  await recordOperatingPulse(env,pulse('99','success',-4*3600000));await recordWatchdogObservation(env,{outcome:'checked',reason:'fixture_gap',provider_scheduler_enabled:true});
+  expect(await persistOperatingAlertCandidates(env)).toMatchObject({state:'observations_checked',selected:1,notification_delivered:null});
+  const keys=[...bucket.values.keys()].filter(k=>k.startsWith('operations/alerts/'));expect(keys).toHaveLength(1);
+  expect(JSON.parse(bucket.values.get(keys[0])!.text)).toMatchObject({state:'blocked',destination:null,receipt:null});
+  const before=bucket.values.get(keys[0])!.text;await persistOperatingAlertCandidates(env);expect(bucket.values.get(keys[0])!.text).toBe(before);
 });

@@ -5,6 +5,7 @@ import { stableJson,sha256 } from './crypto';
 import { withinDeadline } from './deadline';
 import { projectOperatingReport, type OperatingReportInput, type RunOutcome } from './operating-report';
 import { paidOrderRecoveryStatus } from './paid-recovery-control';
+import {enqueueOperatingAlert,type AlertObservation} from './operating-alert-outbox';
 
 const PREFIX='operations/control/';
 const MAX_BYTES=65_536;
@@ -142,7 +143,26 @@ export async function operatingStatus(source:RuntimeEnv,now=Date.now()){
     return {ok:true,report,source_inventory_complete:false,cloud:{enabled_by_configuration:source.OPERATIONS_CLOUD_ENABLED==='true',watchdog:watchdog??null,
       pulse_observation:pulse??null,background_paid_order_recovery_connected:paidRecovery?.enabled_by_configuration===true&&paidRecovery.observation_freshness==='fresh',
       paid_order_draft_recovery:paidRecovery,notification_adapter_configured:false,canonical_operator_pipeline_migrated:false,
+      alert_outbox:{enabled_by_configuration:source.OPERATIONS_ALERT_OUTBOX_ENABLED==='true',provider_sender_configured:false,notification_delivered:null},
       failure_rate:null,recovery_count:null,buyer_leads_total:null,qualified_leads_total:null},
       financial_scope:'Source snapshots are not a ledger. Original orders, receipts, refunds and actual invoices must be joined separately.'};
   })(),15_000,'operating_status_deadline',snapshot.cancel);}finally{snapshot.cancel();}
+}
+
+// Persist incident intent independently. Provider permission/delivery is not
+// inferred from destination configuration, and this function has no transport.
+export async function persistOperatingAlertCandidates(source:RuntimeEnv){
+  if(source.OPERATIONS_CLOUD_ENABLED!=='true'||source.OPERATIONS_ALERT_OUTBOX_ENABLED!=='true')return {state:'disabled'};
+  const snapshot=createOrderReadSnapshot(source,65_536),env=snapshot.env;
+  try{return await withinDeadline((async()=>{
+    const status=await operatingStatus(env);snapshot.assertActive();
+    const candidates=status.report.alerts.filter(a=>a.notification_decision.action!=='local_only').slice(0,5);
+    const destination=source.OPERATIONS_ALERT_DESTINATION_ID&&source.OPERATIONS_ALERT_DESTINATION_DIGEST?
+      {id:source.OPERATIONS_ALERT_DESTINATION_ID,digest:source.OPERATIONS_ALERT_DESTINATION_DIGEST}:null;
+    const results=[];
+    for(const alert of candidates){snapshot.assertActive();const e:AlertObservation={dedupe_key:alert.dedupe_key,code:alert.code as AlertObservation['code'],
+      subject:alert.subject,severity:alert.severity,stage:alert.escalation.state==='due'?'escalated':'initial',first_seen_at:alert.first_seen_at,evidence_ref:alert.evidence_ids[0]};
+      results.push(await enqueueOperatingAlert(env,e,destination));snapshot.assertActive();}
+    return {state:'observations_checked',selected:candidates.length,results,notification_delivered:null};
+  })(),40000,'alert_projection_deadline',snapshot.cancel);}finally{snapshot.cancel();}
 }
