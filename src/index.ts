@@ -85,6 +85,8 @@ import { operatingStatus, recordOperatingPulse, operatingPulseReceipt, readOpera
 import { operatingDashboard } from "./operating-dashboard";
 import { handleTreasuryCustody } from "./treasury-custody";
 import { scheduledPaidOrderRecovery, paidOrderRecoveryStatus } from "./paid-recovery-control";
+import { observeCronInvocation, cronObservationStatus } from "./cron-observer";
+import { processOwnerAlertQueue } from "./operating-alert-delivery";
 import {enqueuePaidRecoveryPriority} from './paid-recovery-priority';
 import {enqueueOperatingAlert,readOperatingAlert,acknowledgeOperatingAlert} from './operating-alert-outbox';
 
@@ -1098,6 +1100,11 @@ app.get('/internal/operations/status',async c=>{
   if(new URL(c.req.url).search)return c.json({error:'operating_input_forbidden'},400);
   try{return c.json(await operatingStatus(c.env));}catch{return c.json({error:'operating_evidence_unavailable'},503);}
 });
+app.get('/internal/operations/cron',async c=>{
+  if(new URL(c.req.url).search)return c.json({error:'operating_input_forbidden'},400);
+  try{const result=await cronObservationStatus(c.env);return c.json(result,result.ok?200:503);}
+  catch{return c.json({error:'cron_observation_unavailable'},503);}
+});
 app.get('/internal/operations/dashboard',async c=>{
   if(new URL(c.req.url).search)return c.json({error:'operating_input_forbidden'},400);
   try{const snapshot=await operatingStatus(c.env);return c.html(operatingDashboard(snapshot.report),200,{
@@ -1243,21 +1250,31 @@ export { app };
 export default {
   fetch: app.fetch,
   async scheduled(controller: ScheduledController, env: RuntimeEnv, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(observeCronInvocation(env,controller,async()=>{
+    const jobs:Promise<unknown>[]=[];
     if(controller.cron==='*/15 * * * *'&&env.OPERATIONS_CLOUD_ENABLED==='true'&&env.OPERATIONS_ALERT_OUTBOX_ENABLED==='true'){
-      ctx.waitUntil(persistOperatingAlertCandidates(env));
+      jobs.push(persistOperatingAlertCandidates(env).then(result=>{
+        if('results' in result&&result.results?.some(r=>['blocked','conflict','unconfirmed','failed'].includes(r.state)))throw new Error('alert_persistence_degraded');
+        return result;
+      }));
+    }
+    if(controller.cron==='*/15 * * * *'&&env.OPERATIONS_CLOUD_ENABLED==='true'&&env.OPERATIONS_ALERT_OUTBOX_ENABLED==='true'&&env.OPERATIONS_ALERT_DELIVERY_ENABLED==='true'){
+      jobs.push(processOwnerAlertQueue(env).then(result=>{
+        if(result.state!=='observed')throw new Error('owner_alert_delivery_degraded');
+      }));
     }
     if(controller.cron==='*/15 * * * *'&&env.OPERATIONS_CLOUD_ENABLED==='true'&&env.PAID_ORDER_DRAFT_RECOVERY_ENABLED==='true'){
-      ctx.waitUntil(scheduledPaidOrderRecovery(env,controller.scheduledTime).then(result=>{
+      jobs.push(scheduledPaidOrderRecovery(env,controller.scheduledTime).then(result=>{
         if(result.outcome==='degraded')throw new Error('paid_order_draft_recovery_degraded');
       }));
     }
     if(controller.cron==='*/15 * * * *'&&env.OPERATIONS_CLOUD_ENABLED==='true'&&env.PULSE_WATCHDOG_ENABLED==='true'){
-      ctx.waitUntil(pulseWatchdog(env).then(async result=>{
+      jobs.push(pulseWatchdog(env).then(async result=>{
         await recordWatchdogObservation(env,result);
         if(['degraded','recovery_required'].includes(result.outcome))throw new Error('canonical_pulse_watchdog_degraded');
       }));
     }
-    ctx.waitUntil(runScheduledOperations(env, controller, {
+    jobs.push(runScheduledOperations(env, controller, {
       meshkore: signal => meshKoreHeartbeat(env, signal),
       watch: async () => {
         const counts = await runDueWatches(env);
@@ -1276,6 +1293,11 @@ export default {
       // marked degraded. No failure disables Cron or starts replacement work.
       if (results.some(result => ["failed", "timeout", "degraded"].includes(result.outcome) ||
           ["unconfirmed", "conflict"].includes(result.observation))) throw new Error("scheduled_operations_degraded");
+    }));
+    const results=await Promise.allSettled(jobs);
+    const failure=results.find((result):result is PromiseRejectedResult=>result.status==='rejected');
+    if(failure)throw failure.reason;
+    return results;
     }));
   },
 } satisfies ExportedHandler<RuntimeEnv>;

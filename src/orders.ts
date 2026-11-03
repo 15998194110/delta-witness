@@ -297,6 +297,27 @@ export function orderPrivateHeaders(env: RuntimeEnv, request: Request): Headers 
   return headers;
 }
 
+async function assertEmptyRecoveryInput(request: Request): Promise<void> {
+  if (request.headers.has("payment-signature") || request.headers.has("x-payment")) throw new OrderAccessError("order_recovery_input_forbidden", 400);
+  // Native HTTP POST can expose a non-null stream containing zero bytes.
+  // Inspect actual bytes without buffering or accepting a replacement payload.
+  if (!request.body) return;
+  const reader = request.body.getReader();
+  try {
+    await withinDeadline((async () => {
+      for (let reads = 0; reads < 64; reads++) {
+        const { done, value } = await reader.read();
+        if (done) return;
+        if (value.byteLength !== 0) throw new OrderAccessError("order_recovery_input_forbidden", 400);
+      }
+      throw new OrderAccessError("order_recovery_input_forbidden", 400);
+    })(), 1_000, "order_recovery_input_unavailable", () => { void reader.cancel().catch(() => {}); });
+  } finally {
+    void reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
+}
+
 export async function orderStatusResponse(env: RuntimeEnv, request: Request, id?: string, recover = false): Promise<Response> {
   let headers = new Headers({ "cache-control": "private, no-store", "x-robots-tag": "noindex, nofollow", vary: "Origin" });
   const snapshot = createOrderReadSnapshot(env), boundedEnv = snapshot.env;
@@ -312,7 +333,7 @@ export async function orderStatusResponse(env: RuntimeEnv, request: Request, id?
     return await withinDeadline((async () => {
       const order = await authenticateOrder(boundedEnv, id ?? "", request);
       if (!order.scope.includes(recover ? "recover" : "status")) throw new OrderAccessError("order_scope_forbidden", 403);
-      if (request.headers.has("payment-signature") || request.headers.has("x-payment") || request.body !== null) throw new OrderAccessError("order_recovery_input_forbidden", 400);
+      await assertEmptyRecoveryInput(request);
       snapshot.allowArtifactsFor(uuidFromDigest(await sha256(`${order.payment_fingerprint}\n${order.product}`)));
       const journal = await readOrderSettlement(boundedEnv, order);
       const original = await readFulfillment(boundedEnv, fulfillmentRecordKey(order.payment_fingerprint));

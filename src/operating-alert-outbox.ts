@@ -14,7 +14,7 @@ const STATES=['blocked','queued','sending','unconfirmed','provider_accepted','de
 type State=typeof STATES[number];
 type Destination={id:string;digest:string};
 export type AlertObservation={dedupe_key:string;code:typeof CODES[number];subject:string;severity:Severity;stage:'initial'|'escalated';first_seen_at:string;evidence_ref:string};
-export type AlertReceipt={notification_id:string;payload_hash:string;destination_digest:string;status:'provider_accepted'|'delivered'|'not_applied';receipt_id:string;observed_at:string};
+export type AlertReceipt={notification_id:string;payload_hash:string;destination_digest:string;status:'provider_accepted'|'delivered'|'failed'|'not_applied';receipt_id:string;observed_at:string};
 type Ack={notification_id:string;payload_hash:string;severity:Severity;actor_ref:string;evidence_ref:string;observed_at:string};
 type History={state:State;generation:number;run_id:string|null;at:string;notification_id:string;payload_hash:string;episode:AlertObservation;
   destination:Destination|null;receipt:AlertReceipt|null;acknowledgment:Ack|null;created_at:string};
@@ -39,7 +39,7 @@ async function identity(e:AlertObservation){return uuidFromDigest(await sha256(`
 async function keyFor(episodeKey:string){if(typeof episodeKey!=='string'||episodeKey.length>300)throw new Error('alert_identity_invalid');return `${ALERT_OUTBOX_PREFIX}episodes/${(await sha256(episodeKey)).slice(7)}.json`;}
 function receiptValid(v:AlertReceipt,r:AlertOutboxRecord,now:number):boolean{return exact(v,['notification_id','payload_hash','destination_digest','status','receipt_id','observed_at'])&&
   v.notification_id===r.notification_id&&v.payload_hash===r.payload_hash&&v.destination_digest===r.destination?.digest&&
-  ['provider_accepted','delivered','not_applied'].includes(v.status)&&opaque(v.receipt_id)&&iso(v.observed_at)&&Date.parse(v.observed_at)>=Date.parse(r.created_at)&&Date.parse(v.observed_at)<=now;}
+  ['provider_accepted','delivered','failed','not_applied'].includes(v.status)&&opaque(v.receipt_id)&&iso(v.observed_at)&&Date.parse(v.observed_at)>=Date.parse(r.created_at)&&Date.parse(v.observed_at)<=now;}
 async function valid(r:AlertOutboxRecord,episodeKey:string,now:number):Promise<boolean>{
   if(!exact(r,['schema','episode','notification_id','payload_hash','destination','state','generation','run_id','lease_until','created_at','updated_at','receipt','acknowledgment','history'])||
     r.schema!=='delta-owner-alert-outbox/v1'||!observation(r.episode)||r.episode.dedupe_key!==episodeKey||r.notification_id!==await identity(r.episode)||
@@ -60,7 +60,7 @@ async function valid(r:AlertOutboxRecord,episodeKey:string,now:number):Promise<b
       !iso(ack.observed_at)||Date.parse(ack.observed_at)<Date.parse(h.created_at)||Date.parse(ack.observed_at)>now))return false;
   }
   if(r.receipt!==null&&!receiptValid(r.receipt,r,now))return false;
-  if(r.state==='provider_accepted'&&r.receipt?.status!=='provider_accepted'||r.state==='delivered'&&r.receipt?.status!=='delivered'||r.state==='failed'&&r.receipt?.status!=='not_applied')return false;
+  if(r.state==='provider_accepted'&&r.receipt?.status!=='provider_accepted'||r.state==='delivered'&&r.receipt?.status!=='delivered'||r.state==='failed'&&!['not_applied','failed'].includes(r.receipt?.status??''))return false;
   if(stableJson(r.history.at(-1))!==stableJson(frame(r)))return false;
   const a=r.acknowledgment;
   return a===null||exact(a,['notification_id','payload_hash','severity','actor_ref','evidence_ref','observed_at'])&&a.notification_id===r.notification_id&&a.payload_hash===r.payload_hash&&
@@ -122,8 +122,8 @@ export async function acknowledgeOperatingAlert(source:RuntimeEnv,episodeKey:str
   });
 }
 
-// No caller in the production router supplies an adapter. A later approved
-// provider must verify its receipts and implement exact-original-ID readback.
+// The separately gated owner consumer supplies a verified provider adapter.
+// Native receipts and exact-original-ID readback remain its responsibility.
 export async function processOperatingAlert(source:RuntimeEnv,episodeKey:string,adapter:AlertAdapter){
   const controller=new AbortController(),now=Date.now();
   if(!adapter||!destination(adapter.destination)||adapter.permission?.state!=='available'||!iso(adapter.permission.observed_at)||!opaque(adapter.permission.evidence_ref)||

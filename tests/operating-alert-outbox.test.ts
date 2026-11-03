@@ -92,3 +92,9 @@ it('provider proof of non-application records failure distinctly and never autom
   const s=fixture();await enqueueOperatingAlert(s.env,episode,dest);const a=exactAdapter('not_applied');await processOperatingAlert(s.env,episode.dedupe_key,a);
   expect((await readOperatingAlert(s.env,episode.dedupe_key))?.state).toBe('failed');await processOperatingAlert(s.env,episode.dedupe_key,a);expect(a.send).toHaveBeenCalledTimes(1);
 });
+it('native delivery failure remains distinct from provider non-application and never automatically resends',async()=>{
+  const s=fixture();await enqueueOperatingAlert(s.env,episode,dest);const a=exactAdapter('failed');
+  expect(await processOperatingAlert(s.env,episode.dedupe_key,a)).toMatchObject({state:'failed'});
+  expect((await readOperatingAlert(s.env,episode.dedupe_key))?.receipt?.status).toBe('failed');
+  await processOperatingAlert(s.env,episode.dedupe_key,a);expect(a.send).toHaveBeenCalledTimes(1);
+});

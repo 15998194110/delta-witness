@@ -276,6 +276,47 @@ describe("scoped order identity and recovery (offline)", () => {
     expect((await app.fetch(body, env)).status).toBe(400); expect(network).not.toHaveBeenCalled();
   });
 
+  it.each(["no-body", "length-zero", "empty-bytes", "empty-string"])("recovers the original draft through a zero-byte POST (%s)", async kind => {
+    const { bucket, env, network, delivery } = await complete();
+    const key = [...bucket.values.keys()].find(key => key.startsWith("fulfillments/"))!;
+    writeRecord(bucket, key, { state: "processing" });
+    const original = JSON.parse(bucket.values.get(key)!.text), before = new Map(bucket.values);
+    network.mockClear(); vi.mocked(env.BROWSER.quickAction).mockClear();
+    const headers = new Headers({ "x-delta-recovery-token": TEST_RECOVERY_TOKEN });
+    if (kind === "length-zero") headers.set("content-length", "0");
+    const request = new Request(statusRequest({ recover: true }).url, { method: "POST", headers,
+      ...(kind === "empty-bytes" ? { body: new Uint8Array() } : kind === "empty-string" ? { body: "" } : {}) });
+    const response = await app.fetch(request, env);
+    expect(response.status).toBe(200); expect(await response.json()).toMatchObject({ state: "complete", delivery });
+    expect(JSON.parse(bucket.values.get(key)!.text)).toEqual({ ...original, state: "complete", updated_at: expect.any(String) });
+    expect([...bucket.values].filter(([name]) => name !== key)).toEqual([...before].filter(([name]) => name !== key));
+    expect(network).not.toHaveBeenCalled(); expect(env.BROWSER.quickAction).not.toHaveBeenCalled();
+  });
+
+  it.each(["space", "late-byte", "endless-empty", "payment-signature", "x-payment"])("rejects recovery input before any original write (%s)", async kind => {
+    const { bucket, env, network } = await complete(); const before = new Map(bucket.values);
+    network.mockClear(); vi.mocked(env.BROWSER.quickAction).mockClear();
+    const headers = new Headers({ "x-delta-recovery-token": TEST_RECOVERY_TOKEN });
+    if (kind === "payment-signature" || kind === "x-payment") headers.set(kind, "forbidden");
+    let pulls = 0;
+    const body = kind === "space" ? " " : new ReadableStream<Uint8Array>({ pull(controller) {
+      controller.enqueue(kind === "late-byte" && pulls++ > 0 ? new Uint8Array([1]) : new Uint8Array());
+    } });
+    const request = new Request(statusRequest({ recover: true }).url, { method: "POST", headers, body, duplex: "half" } as RequestInit);
+    const response = await app.fetch(request, env);
+    expect(response.status).toBe(400); expect(await response.json()).toMatchObject({ error: "order_recovery_input_forbidden" });
+    expect(bucket.values).toEqual(before); expect(network).not.toHaveBeenCalled(); expect(env.BROWSER.quickAction).not.toHaveBeenCalled();
+  });
+
+  it("bounds a stalled recovery request stream without completing or charging the order", async () => {
+    const { bucket, env, network } = await complete(); const before = new Map(bucket.values);
+    network.mockClear(); vi.mocked(env.BROWSER.quickAction).mockClear();
+    const cancel = vi.fn(), body = new ReadableStream<Uint8Array>({ pull() { return new Promise(() => {}); }, cancel });
+    const request = new Request(statusRequest({ recover: true }).url, { method: "POST", headers: { "x-delta-recovery-token": TEST_RECOVERY_TOKEN }, body, duplex: "half" } as RequestInit);
+    expect((await app.fetch(request, env)).status).toBe(503); expect(cancel).toHaveBeenCalled();
+    expect(bucket.values).toEqual(before); expect(network).not.toHaveBeenCalled(); expect(env.BROWSER.quickAction).not.toHaveBeenCalled();
+  });
+
   it("bounds hanging status storage reads to a controlled503", async () => {
     const { env, bucket } = setup(); vi.useFakeTimers();
     bucket.get = async () => new Promise(() => undefined);

@@ -1,0 +1,38 @@
+# INACTIVE candidate. Adding a schedule/setting activation variables requires
+# separate production authorization. This is not a second business/Pulse loop.
+name: DELTA Independent Operations Observer
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: delta-independent-observer
+  cancel-in-progress: false
+jobs:
+  observe:
+    if: ${{ vars.DELTA_INDEPENDENT_MONITOR_ENABLED == 'true' && vars.DELTA_APPROVED_MONITOR_SHA == github.sha }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Observe Core and signal separate deadman monitor
+        env:
+          DELTA_INDEPENDENT_MONITOR_ENABLED: ${{ vars.DELTA_INDEPENDENT_MONITOR_ENABLED }}
+          DELTA_APPROVED_MONITOR_SHA: ${{ vars.DELTA_APPROVED_MONITOR_SHA }}
+          DELTA_MONITOR_ACTIVE_SINCE: ${{ vars.DELTA_MONITOR_ACTIVE_SINCE }}
+          DELTA_OPERATIONS_ADMIN_SECRET: ${{ secrets.DELTA_OPERATIONS_ADMIN_SECRET }}
+          DELTA_MONITOR_HEALTHCHECKS_PING_URL: ${{ secrets.DELTA_MONITOR_HEALTHCHECKS_PING_URL }}
+        run: node scripts/independent-monitor.mjs "$RUNNER_TEMP/delta-independent-observation.json"
+      - name: Retain evidence independently of Cloudflare availability
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-independent-observation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/delta-independent-observation.json
+          if-no-files-found: error
+          retention-days: 30
