@@ -2,6 +2,8 @@
 
 This is a local candidate on top of the v1.1 repair branch. It has not been deployed to Cloudflare or merged into GitHub master. A successful local test, an existing green workflow, a submitted listing and an issued 402 are different evidence classes.
 
+The follow-on six-layer implementation, exact remaining integrations, complete alert policy and provider acceptance matrix are in [six-phase-completion-and-release.md](six-phase-completion-and-release.md). This includes an optional cloud watchdog for this same Pulse, shared durable task coordination, append-only Treasury custody, and a private operating status/dashboard. None is silently enabled by saving code.
+
 ## Authority and responsibilities
 
 | Authority | Responsibility | Evidence limit |
@@ -28,7 +30,7 @@ The current pricing authority remains [the owner policy](../pricing-policy-2026-
 ## Required release checks
 
 1. Authenticate Cloudflare with the owner's provider OAuth flow. Read back deployed version, both real Cron triggers, invocation outcomes and existing bindings without exporting credentials.
-2. Inspect the existing hosted ChatGPT main task, its actual enabled state, error, recent run and next run. Apply the prepared reporting prompt to that same task only after its identity/state can be verified; test actual result persistence and notification delivery.
+2. Optionally inspect the existing hosted ChatGPT main task and apply the prepared reporting prompt only after identity/state can be verified. This is auxiliary management, not a Core release or execution dependency. Do not enable a replacement task or gate cloud operations on a successful GPT run.
 3. Review the aggregate v1.1 changes against current remote master; do not ship the whole unpublished repair branch as an incidental prompt update. Preserve any current production drift and original data/policy.
 4. Migrate maintenance authorization and approve any persistent observation budget/retention policy. Verify live $1/$5/$10 challenges and existing prepaid recovery without new signing or owner-funded purchases.
 5. Run provider-level fault/isolation/recovery acceptance on the exact release, including interrupted settled orders, original historical records and notification acknowledgements. Local mocks cannot certify those provider effects.

@@ -30,6 +30,12 @@ const sources = entries.map(entry=>{
   return {path:match[3],git_blob:match[2]};
 });
 sources.push(...['wrangler.jsonc','package.json','package-lock.json'].map(path=>({path})));
+// Core reuses the original pure Treasury validators instead of forking them.
+// Copy only these explicitly reviewed Git objects; never broad-copy scripts,
+// credentials, local state or the caller's working tree into an artifact.
+for(const path of ['scripts/treasury-reconciliation.mjs','scripts/treasury-checkpoint-store.mjs']){
+  if(git('ls-tree',commit,'--',path).toString().trim())sources.push({path});
+}
 const sourceFiles = [];
 for (const source of sources) {
   const path = source.path, destination = resolve(output,path);

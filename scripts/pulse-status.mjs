@@ -131,17 +131,17 @@ export async function readBoundedJson(path, maximum = 16_000_000) {
   finally { await file?.close(); }
 }
 
-export function pulseGate(report, outcomes) {
+export function pulseGate(report, outcomes, cloudEnabled = false) {
   return report?.schema === 'delta-pulse-status/v1' && report.critical_ok === true && report.reporting?.phase === 'final' &&
     report.reporting.canonical_artifact === 'success' && ['report_status', 'report_final', 'canonical_artifact', 'status_artifact']
-      .every(key => outcome(outcomes, key) === 'success');
+      .every(key => outcome(outcomes, key) === 'success') && (!cloudEnabled || outcome(outcomes, 'operating_publish') === 'success');
 }
 
 async function main() {
   if (process.argv[2] === 'gate') {
     let outcomes = {};
     try { outcomes = JSON.parse(process.env.DELTA_STEP_OUTCOMES || '{}'); } catch { /* fail closed */ }
-    if (!process.argv[3] || !pulseGate(await readBoundedJson(join(process.argv[3], 'delta-pulse-status-final.json')), outcomes)) {
+    if (!process.argv[3] || !pulseGate(await readBoundedJson(join(process.argv[3], 'delta-pulse-status-final.json')), outcomes, process.env.DELTA_OPERATIONS_CLOUD_ENABLED === 'true')) {
       console.error('pulse_core_financial_or_reporting_evidence_unverified'); process.exitCode = 1;
     }
     return;

@@ -38,6 +38,13 @@ for (const entry of entries) {
   files.push({path:relative,git_blob:match[2],sha256:digest(bytes)});
 }
 const artifact = resolve(output,'fallback-core.mjs');
+for(const relative of ['scripts/treasury-reconciliation.mjs','scripts/treasury-checkpoint-store.mjs']){
+  const entry=git('ls-tree',commit,'--',relative).toString().trim();
+  if(!entry)continue;
+  const bytes=git('show',`${commit}:${relative}`),destination=resolve(output,relative);
+  await mkdir(dirname(destination),{recursive:true});await writeFile(destination,bytes,{flag:'wx'});
+  files.push({path:relative,sha256:digest(bytes)});
+}
 await build({ entryPoints:[resolve(output,'src/index.ts')], bundle:true, platform:'node', format:'esm',
   target:'es2022', outfile:artifact, nodePaths:[resolve(repository,'node_modules')], logLevel:'silent' });
 const evidence = { schema:'delta-isolated-fallback-build/v1', commit, dependency_lock_sha256:digest(lock),

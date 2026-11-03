@@ -1,6 +1,7 @@
 import { pathToFileURL } from 'node:url';
 import { createRpcClient, reconcileTreasury, failure } from './treasury-reconciliation.mjs';
 import { fileCheckpointStore } from './treasury-checkpoint.mjs';
+import { configuredRemoteCheckpointStore } from './treasury-custody-http.mjs';
 
 // Importing this CLI is inert. State is opt-in and is never inferred from a
 // marketing handoff, credential file, or a previously green workflow.
@@ -23,6 +24,11 @@ export async function runTreasuryCli(env = process.env, dependencies = {}) {
   // CHECKPOINT_BLOCK compatibility means an explicit inclusive scan boundary,
   // not a fabricated persisted/block-hash-verified checkpoint.
   if (env.DELTA_TREASURY_STATE_DIRECTORY) options.checkpointStore = dependencies.checkpointStore ?? fileCheckpointStore(env.DELTA_TREASURY_STATE_DIRECTORY);
+  if(env.DELTA_TREASURY_STATE_MODE==='remote'){
+    if(env.DELTA_TREASURY_STATE_DIRECTORY||initial!==undefined&&initial!=='')throw failure('ambiguous_checkpoint_authority');
+    const remote=await (dependencies.remoteCheckpointStore??configuredRemoteCheckpointStore)(env,dependencies);
+    options.checkpointStore=remote.checkpointStore;options.initialBlock=remote.initialBlock;
+  }else if(env.DELTA_TREASURY_STATE_MODE&&env.DELTA_TREASURY_STATE_MODE!=='local')throw failure('invalid_checkpoint_authority');
   options.rpc = dependencies.rpc ?? createRpcClient({ ...dependencies, scanTimeoutMs: options.scanTimeoutMs, log });
   return reconcileTreasury(options);
 }

@@ -1,11 +1,23 @@
 # Canonical revenue-first pulse. Reuse this workflow; never create a parallel growth loop.
 # Operator evidence export added for read-only reconciliation and complete repository-contact dedupe.
 name: DELTA Discovery Pulse
+run-name: ${{ inputs.delta_watchdog_run && format('DELTA Pulse watchdog {0}', inputs.delta_watchdog_run) || format('DELTA Pulse {0}', github.run_id) }}
 on:
   schedule:
     - cron: '21 0-2,4-23 * * *'
     - cron: '21 3 * * *'
   workflow_dispatch:
+    inputs:
+      delta_watchdog_run:
+        description: 'Original Cloudflare watchdog correlation UUID; empty for ordinary manual diagnostics'
+        required: false
+        type: string
+        default: ''
+      delta_watchdog_release:
+        description: 'Exact expected release SHA for a watchdog-triggered diagnostic'
+        required: false
+        type: string
+        default: ''
   push:
     branches: ["master"]
     paths:
@@ -27,6 +39,9 @@ concurrency:
 
 jobs:
   ping:
+    # Resolve a mutable master ref only when the resulting run matches the
+    # watchdog's approved release. A drifted dispatch performs no runner work.
+    if: ${{ !inputs.delta_watchdog_run || (inputs.delta_watchdog_release != '' && inputs.delta_watchdog_release == github.sha) }}
     runs-on: ubuntu-latest
     # Sum of bounded steps leaves time for always-run evidence/reporting.
     timeout-minutes: 55
@@ -35,6 +50,8 @@ jobs:
         shell: bash --noprofile --norc -euo pipefail {0}
     env:
       DELTA_EVENT_SCHEDULE: ${{ github.event.schedule }}
+      DELTA_OPERATIONS_CLOUD_ENABLED: ${{ vars.DELTA_OPERATIONS_CLOUD_ENABLED }}
+      DELTA_TREASURY_STATE_MODE: ${{ vars.DELTA_TREASURY_STATE_MODE }}
       # Candidate activation requires migration of existing channel authority;
       # this is one durable config flag, never a per-order approval.
       DELTA_DAILY_MAINTENANCE_ENABLED: ${{ vars.DELTA_DAILY_MAINTENANCE_ENABLED }}
@@ -104,6 +121,8 @@ jobs:
         if: ${{ !cancelled() }}
         continue-on-error: true
         timeout-minutes: 5
+        env:
+          DELTA_OPERATIONS_ADMIN_SECRET: ${{ secrets.DELTA_OPERATIONS_ADMIN_SECRET }}
         shell: bash --noprofile --norc -euo pipefail {0}
         run: |
           set -o pipefail
@@ -345,6 +364,14 @@ jobs:
             printf '%s\n' '{"schema":"delta-pulse-status/v1","critical_ok":false,"reporting":{"phase":"final","state":"unavailable","notification":"unknown"}}' > /tmp/delta-pulse-status-final.json
             exit 1
           fi
+      - name: Persist original pulse observation to cloud and verify readback
+        id: operating_publish
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 1
+        env:
+          DELTA_OPERATIONS_ADMIN_SECRET: ${{ secrets.DELTA_OPERATIONS_ADMIN_SECRET }}
+        run: node scripts/publish-operating-pulse.mjs /tmp/delta-pulse-status-final.json /tmp/delta-pulse-status-operating-persistence.json
       - name: Upload allowlisted operational status
         id: status_artifact
         if: always()

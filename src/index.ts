@@ -80,6 +80,10 @@ import { partnerBusinessIdentity, coordinatePartnerBilling } from "./partner-bil
 import { exportOrderArtifact } from "./order-export";
 import { orderExportAuthorizationResponse } from "./order-export-authorization";
 import { runScheduledOperations, scheduledStatus, scheduledFetch, readScheduledJson, type ScheduledWorkResult } from "./scheduled-operations";
+import { pulseWatchdog } from "./pulse-watchdog";
+import { operatingStatus, recordOperatingPulse, operatingPulseReceipt, readOperatingJson, recordWatchdogObservation } from "./operating-control";
+import { operatingDashboard } from "./operating-dashboard";
+import { handleTreasuryCustody } from "./treasury-custody";
 
 type PaidProduct = "capture" | "preflight";
 type PriorManifest = Pick<ProofManifest, "proof_id" | "requested_url" | "capture_completed_at" | "hashes">;
@@ -1066,6 +1070,38 @@ app.get("/internal/scheduled/status", async (c) => {
   return c.json(result, result.ok === true ? 200 : 503, headers);
 });
 
+// One private operations surface. No query-string credentials, browser token
+// storage, payment authority, arbitrary task execution or proof export is added.
+app.use('/internal/operations/*', async (c,next)=>{
+  const headers={'cache-control':'private, no-store','x-robots-tag':'noindex, nofollow'};
+  if(c.env.OPERATIONS_CLOUD_ENABLED!=='true'||!c.env.OPERATIONS_ADMIN_SECRET)return c.json({error:'operating_control_not_configured'},503,headers);
+  if(c.req.header('origin')||c.req.header('payment-signature')||c.req.header('x-payment'))return c.json({error:'operating_input_forbidden'},400,headers);
+  const presented=c.req.header('authorization')?.replace(/^Bearer\s+/i,'')??'';
+  if(!(await timingSafeEqualSecret(presented,c.env.OPERATIONS_ADMIN_SECRET)))return c.json({error:'unauthorized'},401,headers);
+  c.header('cache-control','private, no-store');c.header('x-robots-tag','noindex, nofollow');
+  return next();
+});
+app.get('/internal/operations/status',async c=>{
+  if(new URL(c.req.url).search)return c.json({error:'operating_input_forbidden'},400);
+  try{return c.json(await operatingStatus(c.env));}catch{return c.json({error:'operating_evidence_unavailable'},503);}
+});
+app.get('/internal/operations/dashboard',async c=>{
+  if(new URL(c.req.url).search)return c.json({error:'operating_input_forbidden'},400);
+  try{const snapshot=await operatingStatus(c.env);return c.html(operatingDashboard(snapshot.report),200,{
+    'content-security-policy':"default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"});}
+  catch{return c.json({error:'operating_evidence_unavailable'},503);}
+});
+app.post('/internal/operations/pulse',async c=>{
+  if(new URL(c.req.url).search)return c.json({error:'operating_input_forbidden'},400);
+  let input:unknown;try{input=await readOperatingJson(c.req.raw);}catch{return c.json({error:'operating_input_invalid'},400);}
+  try{return c.json(await recordOperatingPulse(c.env,input));}catch{return c.json({error:'operating_persistence_unconfirmed'},503);}
+});
+app.get('/internal/operations/pulse/:id',async c=>{
+  if(new URL(c.req.url).search)return c.json({error:'operating_input_forbidden'},400);
+  try{return c.json(await operatingPulseReceipt(c.env,c.req.param('id')));}catch{return c.json({error:'operating_evidence_unavailable'},503);}
+});
+app.all('/internal/operations/treasury/*',c=>handleTreasuryCustody(c.req.raw,c.env));
+
 app.post("/internal/indexnow", async (c) => {
   if (!c.env.INDEXNOW_ADMIN_SECRET) return c.json({ error: "indexnow_admin_not_configured" }, 503);
   const presented = c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
@@ -1173,6 +1209,12 @@ export { app };
 export default {
   fetch: app.fetch,
   async scheduled(controller: ScheduledController, env: RuntimeEnv, ctx: ExecutionContext): Promise<void> {
+    if(controller.cron==='*/15 * * * *'&&env.OPERATIONS_CLOUD_ENABLED==='true'&&env.PULSE_WATCHDOG_ENABLED==='true'){
+      ctx.waitUntil(pulseWatchdog(env).then(async result=>{
+        await recordWatchdogObservation(env,result);
+        if(['degraded','recovery_required'].includes(result.outcome))throw new Error('canonical_pulse_watchdog_degraded');
+      }));
+    }
     ctx.waitUntil(runScheduledOperations(env, controller, {
       meshkore: signal => meshKoreHeartbeat(env, signal),
       watch: async () => {
