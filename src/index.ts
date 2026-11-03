@@ -84,6 +84,7 @@ import { pulseWatchdog } from "./pulse-watchdog";
 import { operatingStatus, recordOperatingPulse, operatingPulseReceipt, readOperatingJson, recordWatchdogObservation } from "./operating-control";
 import { operatingDashboard } from "./operating-dashboard";
 import { handleTreasuryCustody } from "./treasury-custody";
+import { scheduledPaidOrderRecovery, paidOrderRecoveryStatus } from "./paid-recovery-control";
 
 type PaidProduct = "capture" | "preflight";
 type PriorManifest = Pick<ProofManifest, "proof_id" | "requested_url" | "capture_completed_at" | "hashes">;
@@ -1101,6 +1102,10 @@ app.get('/internal/operations/pulse/:id',async c=>{
   try{return c.json(await operatingPulseReceipt(c.env,c.req.param('id')));}catch{return c.json({error:'operating_evidence_unavailable'},503);}
 });
 app.all('/internal/operations/treasury/*',c=>handleTreasuryCustody(c.req.raw,c.env));
+app.get('/internal/operations/paid-recovery',async c=>{
+  if(new URL(c.req.url).search)return c.json({error:'operating_input_forbidden'},400);
+  try{return c.json(await paidOrderRecoveryStatus(c.env));}catch{return c.json({error:'operating_evidence_unavailable'},503);}
+});
 
 app.post("/internal/indexnow", async (c) => {
   if (!c.env.INDEXNOW_ADMIN_SECRET) return c.json({ error: "indexnow_admin_not_configured" }, 503);
@@ -1209,6 +1214,11 @@ export { app };
 export default {
   fetch: app.fetch,
   async scheduled(controller: ScheduledController, env: RuntimeEnv, ctx: ExecutionContext): Promise<void> {
+    if(controller.cron==='*/15 * * * *'&&env.OPERATIONS_CLOUD_ENABLED==='true'&&env.PAID_ORDER_DRAFT_RECOVERY_ENABLED==='true'){
+      ctx.waitUntil(scheduledPaidOrderRecovery(env,controller.scheduledTime).then(result=>{
+        if(result.outcome==='degraded')throw new Error('paid_order_draft_recovery_degraded');
+      }));
+    }
     if(controller.cron==='*/15 * * * *'&&env.OPERATIONS_CLOUD_ENABLED==='true'&&env.PULSE_WATCHDOG_ENABLED==='true'){
       ctx.waitUntil(pulseWatchdog(env).then(async result=>{
         await recordWatchdogObservation(env,result);

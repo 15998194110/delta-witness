@@ -4,6 +4,7 @@ import { createClaim, commitClaim } from './claims';
 import { stableJson,sha256 } from './crypto';
 import { withinDeadline } from './deadline';
 import { projectOperatingReport, type OperatingReportInput, type RunOutcome } from './operating-report';
+import { paidOrderRecoveryStatus } from './paid-recovery-control';
 
 const PREFIX='operations/control/';
 const MAX_BYTES=65_536;
@@ -118,7 +119,8 @@ export async function recordWatchdogObservation(source:RuntimeEnv,value:Record<s
 export async function operatingStatus(source:RuntimeEnv,now=Date.now()){
   const snapshot=createOrderReadSnapshot(source,MAX_BYTES),env=snapshot.env;
   try{return await withinDeadline((async()=>{
-    const [p,w,s]=await Promise.all([readOrderMetadata<Pulse>(env,`${PREFIX}pulse/latest.json`,MAX_BYTES),readOrderMetadata<Watchdog>(env,`${PREFIX}watchdog/latest.json`,8_192),readOrderMetadata<Pulse>(env,`${PREFIX}pulse/last-success.json`,MAX_BYTES)]);snapshot.assertActive();
+    const [p,w,s,paidRecovery]=await Promise.all([readOrderMetadata<Pulse>(env,`${PREFIX}pulse/latest.json`,MAX_BYTES),readOrderMetadata<Watchdog>(env,`${PREFIX}watchdog/latest.json`,8_192),readOrderMetadata<Pulse>(env,`${PREFIX}pulse/last-success.json`,MAX_BYTES),
+      paidOrderRecoveryStatus(source).catch(()=>null)]);snapshot.assertActive();
     if(p&&!validStoredPulse(p.record))throw new Error('operating_snapshot_invalid');
     if(s&&(!validStoredPulse(s.record)||s.record.outcome!=='success'))throw new Error('operating_snapshot_invalid');
     const watchdog=w?.record;
@@ -135,8 +137,11 @@ export async function operatingStatus(source:RuntimeEnv,now=Date.now()){
     const report=projectOperatingReport({schedulers:[scheduler,{id:'cloudflare-cron'}],
       ...(pulse?.treasury.state==='verified_declared_interval'?{rpc_coverage:evidence({status:'complete',from_block:pulse.treasury.from!,through_block:pulse.treasury.through!},pulse.observed_at,`treasury-run-${pulse.run_id}`)}:{}),
       ...(p||w?{persistence:evidence('stored',new Date(now).toISOString(),'r2-operating-readback')}:{})},now);
+    // The independent consumer observation is not a financial join. Missing or
+    // corrupt recovery metadata must not erase the other lane observations.
     return {ok:true,report,source_inventory_complete:false,cloud:{enabled_by_configuration:source.OPERATIONS_CLOUD_ENABLED==='true',watchdog:watchdog??null,
-      pulse_observation:pulse??null,background_paid_order_recovery_connected:false,notification_adapter_configured:false,canonical_operator_pipeline_migrated:false,
+      pulse_observation:pulse??null,background_paid_order_recovery_connected:paidRecovery?.enabled_by_configuration===true&&paidRecovery.observation_freshness==='fresh',
+      paid_order_draft_recovery:paidRecovery,notification_adapter_configured:false,canonical_operator_pipeline_migrated:false,
       failure_rate:null,recovery_count:null,buyer_leads_total:null,qualified_leads_total:null},
       financial_scope:'Source snapshots are not a ledger. Original orders, receipts, refunds and actual invoices must be joined separately.'};
   })(),15_000,'operating_status_deadline',snapshot.cancel);}finally{snapshot.cancel();}
