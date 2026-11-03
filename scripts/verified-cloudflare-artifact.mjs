@@ -70,7 +70,7 @@ async function metadata(repository, kind, source, files) {
     const parsed = JSON.parse(config.toString());
     const allowed = new Set(['$schema', 'name', 'main', 'compatibility_date', 'compatibility_flags', 'workers_dev', 'observability',
       ...(kind === 'core' ? ['browser', 'r2_buckets', 'd1_databases', 'vars', 'triggers'] : ['services', 'ratelimits', 'vars'])]);
-    if (Object.keys(parsed).some(key => !allowed.has(key)) || parsed.name !== def.name || !['src/index.ts', 'src/entry/index.ts'].includes(parsed.main)) fail('unreviewed_cloudflare_build_config');
+    if (Object.keys(parsed).some(key => !allowed.has(key)) || parsed.name !== def.name || parsed.main !== 'src/index.ts') fail('unreviewed_cloudflare_build_config');
   }
   return { schema: 'delta-verified-cloudflare/v1', source_commit: source, kind, project_name: def.name,
     entry: def.entry, dependency_lock_sha256: hash(lock), wrangler_version: locked,

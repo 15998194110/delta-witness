@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "delta-witness-partner-gateway",
-  "main": "src/entry/index.ts",
+  "main": "src/index.ts",
   "compatibility_date": "2026-08-31",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,

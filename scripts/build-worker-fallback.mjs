@@ -22,7 +22,7 @@ const configBytes = git('show',`${commit}:wrangler.jsonc`), config = JSON.parse(
 // Reject build hooks, container builds, asset traversal and optional features
 // before passing the exact public config to the reviewed CLI dry-run branch.
 const allowed = new Set(['$schema','name','main','compatibility_date','compatibility_flags','workers_dev','observability','browser','r2_buckets','d1_databases','vars','triggers']);
-if (Object.keys(config).some(key=>!allowed.has(key)) || !['src/index.ts','src/entry/index.ts'].includes(config.main) || config.name !== 'delta-witness-api') throw new Error('unreviewed_fallback_config');
+if (Object.keys(config).some(key=>!allowed.has(key)) || config.main !== 'src/index.ts' || config.name !== 'delta-witness-api') throw new Error('unreviewed_fallback_config');
 const entries = git('ls-tree','-rz',commit,'src').toString('utf8').split('\0').filter(Boolean);
 const sources = entries.map(entry=>{
   const match = /^(100644) blob ([a-f0-9]{40})\t(src\/[a-zA-Z0-9_./-]+\.ts)$/.exec(entry);
