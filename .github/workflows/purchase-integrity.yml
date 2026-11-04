@@ -10,6 +10,8 @@ on:
       - "docs/pricing-policy-2026-09-10.md"
       - "scripts/check-owner-pricing.mjs"
       - "scripts/verify-owner-pricing-live.mjs"
+      - "scripts/verify-public-release-readback.mjs"
+      - "tests/public-release-readback.test.ts"
       - "packages/mcp-server/**"
       - "packages/js-client/**"
       - "channels/base-app/**"
@@ -20,6 +22,8 @@ on:
     paths:
       - ".github/workflows/purchase-integrity.yml"
       - "scripts/check-owner-pricing.mjs"
+      - "scripts/verify-public-release-readback.mjs"
+      - "tests/public-release-readback.test.ts"
       - "packages/mcp-server/**"
       - "packages/js-client/**"
       - "channels/base-app/**"
@@ -77,4 +81,21 @@ jobs:
         with:
           node-version: '22'
       - name: Verify current live public quote and 402 amounts without payment
+        env:
+          PRICING_AUDIT_OUTPUT: ${{ runner.temp }}/public-pricing.json
         run: node scripts/verify-owner-pricing-live.mjs
+      - name: Read public Core version, Gateway and original proof without payment
+        if: ${{ !cancelled() }}
+        env:
+          PUBLIC_READBACK_OUTPUT: ${{ runner.temp }}/public-release-readback.json
+        run: node scripts/verify-public-release-readback.mjs
+      - name: Preserve independent public readback evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: delta-public-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/public-pricing.json
+            ${{ runner.temp }}/public-release-readback.json
+          if-no-files-found: error
+          retention-days: 30
