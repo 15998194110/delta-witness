@@ -1,6 +1,6 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {createResendAlertAdapter,resendAlertConfigurationDigest,RESEND_ALERT_PREFIX,type ResendAlertConfig} from '../src/operating-alert-resend';
-import {enqueueOperatingAlert,processOperatingAlert,readOperatingAlert,type AlertObservation} from '../src/operating-alert-outbox';
+import {enqueueOperatingAlert,processOperatingAlert,readOperatingAlert,type AlertObservation,type TreasuryNotificationObservation} from '../src/operating-alert-outbox';
 import {MemoryBucket,orderRuntime} from './helpers/order-runtime';
 import {processOwnerAlertQueue,type OwnerAlertDeliveryEnv,ALERT_DELIVERY_PREFIX} from '../src/operating-alert-delivery';
 import {receiveResendAlertWebhook,ALERT_WEBHOOK_PREFIX} from '../src/operating-alert-webhook';
@@ -9,6 +9,13 @@ const now=Date.parse('2026-11-04T00:00:00.000Z');
 const episode:AlertObservation={dedupe_key:'delta:paid_undelivered:order-1:episode-1',code:'paid_undelivered',subject:'order-1',severity:'SEV1',stage:'initial',
   first_seen_at:new Date(now-600000).toISOString(),evidence_ref:'original-paid-order'};
 const providerID='11111111-1111-4111-8111-111111111111';
+function receiptEpisode():TreasuryNotificationObservation{const tx=`0x${'1'.repeat(64)}`;
+  return{dedupe_key:'delta:treasury_received:receipt-1:observation-1',code:'treasury_received',subject:'receipt-1',severity:'INFO',stage:'initial',
+    first_seen_at:new Date(now-1000).toISOString(),evidence_ref:'custody-original-1',receipt:{network:'eip155:8453',occurrence:'initial_observation',asset:'0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+      treasury:'0x1990e21bc219696ff7fbc26527dbaed335ac6367',receipt_id:`eip155:8453:0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:${tx}:2`,tx_hash:tx,log_index:2,
+      block_number:123456,block_hash:`0x${'2'.repeat(64)}`,raw_amount:'1000001',usdc_decimal:'1.000001',confirmation_depth:12,observed_at:new Date(now-1000).toISOString(),
+      custody_revision:1,custody_digest:'a'.repeat(64),payer_classification:'unclassified',customer_revenue:'UNKNOWN',actual_cost:'UNKNOWN',contribution_margin:'UNKNOWN',fulfillment:'UNKNOWN',correction:null}};
+}
 const webhookSecret=`whsec_${btoa('isolated-synthetic-key-32-bytes!!!')}`;
 async function webhookRequest(value:unknown,id='msg_original_event',time=Math.floor(Date.now()/1000),secret=webhookSecret){
   const body=JSON.stringify(value),key=await crypto.subtle.importKey('raw',Uint8Array.from(atob(secret.slice(6)),c=>c.charCodeAt(0)),{name:'HMAC',hash:'SHA-256'},false,['sign']);
@@ -44,6 +51,64 @@ async function fixture(){
 }
 beforeEach(()=>{vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(now);vi.stubGlobal('fetch',vi.fn(()=>{throw Error('unexpected_real_transport');}));});
 afterEach(()=>{expect(fetch).not.toHaveBeenCalled();vi.useRealTimers();vi.unstubAllGlobals();vi.restoreAllMocks();});
+
+it('legacy fault message bytes, request hash and original ID remain compatible with a54d095',async()=>{
+  const s=await fixture();await s.enqueue();const a=(await s.adapter())!;await processOperatingAlert(s.env,episode.dedupe_key,a);
+  const row=JSON.parse([...s.bucket.values.entries()].find(([key])=>key.startsWith(RESEND_ALERT_PREFIX))![1].text);
+  expect(row.notification_id).toBe('4159cdbe-5d0f-5272-ad95-d778e097434c');
+  expect(row.payload_hash).toBe('sha256:8662fc1be5b87570b03a32c5fac3945b54ce453f3d0b8e4c159cda4fa41ecd8a');
+  expect(row.request_hash).toBe('sha256:b9200621f1ae7a6fb5e35f872a3bdfcf5389f08bf34322bf85e3db99a5920850');
+  s.emails.get(providerID).last_event='delivered';expect(await processOperatingAlert(s.env,episode.dedupe_key,a)).toMatchObject({state:'delivered'});expect(s.posts).toHaveLength(1);
+});
+it('normal receipt email states exact public funds evidence and UNKNOWN revenue without a fault label',async()=>{
+  const s=await fixture(),e=receiptEpisode();await enqueueOperatingAlert(s.env,e,{id:s.config.destination_id,digest:s.config.destination_digest});const a=(await s.adapter())!;
+  expect(await processOperatingAlert(s.env,e.dedupe_key,a)).toMatchObject({state:'provider_accepted',recipient_acknowledged:false});const body=s.posts[0];
+  expect(body.subject).toContain('Treasury observed 1.000001 USDC receipt');expect(body.subject).not.toMatch(/SEV|alert|incident/);
+  for(const text of ['1000001 raw, 6 decimals',e.receipt.treasury,`https://basescan.org/tx/${e.receipt.tx_hash}`,'Log index: 2','not absolute finality',
+    'Buyer attribution: UNKNOWN','Fulfillment: UNKNOWN','Customer revenue: UNKNOWN','Actual cost: UNKNOWN','Contribution margin: UNKNOWN'])expect(body.text).toContain(text);
+  expect(body.text).not.toContain('https://delta-witness-api');s.emails.get(providerID).last_event='delivered';
+  expect(await processOperatingAlert(s.env,e.dedupe_key,a)).toMatchObject({state:'delivered',recipient_acknowledged:false});expect(s.posts).toHaveLength(1);
+  const stored=JSON.stringify([...s.bucket.values.values()]);expect(stored).not.toContain(s.config.api_key);expect(stored).not.toContain(s.config.to);
+});
+it.each(['unclassified','payapi_platform_verification'] as const)('re-observed receipt is expressly not another payment with %s attribution',async payer_classification=>{
+  const s=await fixture(),e=receiptEpisode();e.receipt.occurrence='reobserved_after_removal';e.receipt.custody_revision=3;e.receipt.payer_classification=payer_classification;
+  e.receipt.customer_revenue=payer_classification==='unclassified'?'UNKNOWN':'EXCLUDED';e.dedupe_key='delta:treasury_received:receipt-1:observation-3';
+  await enqueueOperatingAlert(s.env,e,{id:s.config.destination_id,digest:s.config.destination_digest});const a=(await s.adapter())!;
+  await processOperatingAlert(s.env,e.dedupe_key,a);const body=s.posts[0];
+  expect(body.subject).toContain('re-observed previous receipt - NOT another payment');expect(body.text).toContain('restored / re-observed previous receipt - NOT another payment');
+  expect(body.text).toContain('Observed amount: 1.000001 USDC');expect(body.text).toContain('Deduplicate payments by network/token/transaction/log index, not notification ID.');
+  expect(body.text).toContain(`Customer revenue: ${e.receipt.customer_revenue}`);expect(body.text).toContain('Actual cost: UNKNOWN');expect(body.text).toContain('Contribution margin: UNKNOWN');
+  expect(body.text).toContain(`https://basescan.org/tx/${e.receipt.tx_hash}`);s.emails.get(providerID).last_event='delivered';
+  expect(await processOperatingAlert(s.env,e.dedupe_key,a)).toMatchObject({state:'delivered',recipient_acknowledged:false});expect(s.posts).toHaveLength(1);
+});
+it.each(['removed','replaced'] as const)('receipt %s mail is an explicit correction, never a second receipt or revenue',async kind=>{
+  const s=await fixture(),e=receiptEpisode(),previous=e.receipt.block_hash;
+  e.code='treasury_receipt_corrected';e.dedupe_key='delta:treasury_receipt_corrected:receipt-1:correction-1';
+  e.receipt.correction={kind,previous_block_hash:previous,previous_raw_amount:e.receipt.raw_amount};if(kind==='replaced')e.receipt.block_hash=`0x${'3'.repeat(64)}`;
+  await enqueueOperatingAlert(s.env,e,{id:s.config.destination_id,digest:s.config.destination_digest});await processOperatingAlert(s.env,e.dedupe_key,(await s.adapter())!);
+  expect(s.posts[0].subject).toContain('receipt correction');expect(s.posts[0].subject).not.toContain('Treasury received');
+  expect(s.posts[0].text).toContain('NOT a new incoming payment');expect(s.posts[0].text).toContain(`Correction: ${kind}`);expect(s.posts[0].text).toContain(previous);
+  expect(s.posts[0].text).toContain('Customer revenue: UNKNOWN');expect(s.posts[0].text).toContain(kind==='removed'?'historical, not a current receipt':'do not count it as another payment');
+});
+it('receipt email lost POST response resolves exact original content without a new send',async()=>{
+  const s=await fixture(),e=receiptEpisode(),normal=s.network.getMockImplementation()!;
+  await enqueueOperatingAlert(s.env,e,{id:s.config.destination_id,digest:s.config.destination_digest});
+  s.network.mockImplementation(async(input,init)=>{const response=await normal(input,init);if(init?.method==='POST')throw Error('lost-receipt-ACK');return response;});
+  const a=(await s.adapter())!;expect(await processOperatingAlert(s.env,e.dedupe_key,a)).toMatchObject({state:'unconfirmed'});
+  s.emails.get(providerID).last_event='delivered';expect(await processOperatingAlert(s.env,e.dedupe_key,a)).toMatchObject({state:'delivered'});expect(s.posts).toHaveLength(1);
+});
+it('receipt event retains the same authenticated provider webhook binding and no automatic owner ACK',async()=>{
+  const s=await fixture(),e=receiptEpisode();await enqueueOperatingAlert(s.env,e,{id:s.config.destination_id,digest:s.config.destination_digest});
+  await processOperatingAlert(s.env,e.dedupe_key,(await s.adapter())!);
+  const response=await receiveResendAlertWebhook(webhookEnv(s),await webhookRequest(webhookEvent(s)));
+  expect(response.status).toBe(200);expect((await readOperatingAlert(s.env,e.dedupe_key))?.acknowledgment).toBeNull();expect(s.posts).toHaveLength(1);
+});
+it.each(['nohumans_platform_verification','payapi_platform_verification'] as const)('known %s receipt is disclosed and excluded from customer revenue',async payer_classification=>{
+  const s=await fixture(),e=receiptEpisode();e.receipt.payer_classification=payer_classification;e.receipt.customer_revenue='EXCLUDED';
+  await enqueueOperatingAlert(s.env,e,{id:s.config.destination_id,digest:s.config.destination_digest});await processOperatingAlert(s.env,e.dedupe_key,(await s.adapter())!);
+  expect(s.posts[0].text).toContain(`Buyer attribution: ${payer_classification}`);expect(s.posts[0].text).toContain('platform verification; excluded from customer revenue');
+  expect(s.posts[0].text).toContain('Customer revenue: EXCLUDED');expect(s.posts[0].text).toContain('Actual cost: UNKNOWN');expect(s.posts[0].text).toContain('Contribution margin: UNKNOWN');
+});
 
 it('disabled or unapproved transport never sends, reads credentials from disk or invents provider permission',async()=>{
   const s=await fixture();s.config.enabled=false;expect(await s.adapter()).toBeNull();expect(s.network).not.toHaveBeenCalled();expect(s.bucket.values.size).toBe(0);

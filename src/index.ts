@@ -87,6 +87,7 @@ import { handleTreasuryCustody } from "./treasury-custody";
 import { scheduledPaidOrderRecovery, paidOrderRecoveryStatus } from "./paid-recovery-control";
 import { observeCronInvocation, cronObservationStatus } from "./cron-observer";
 import { processOwnerAlertQueue } from "./operating-alert-delivery";
+import { persistTreasuryReceiptNotifications } from "./treasury-receipt-notification";
 import { receiveResendAlertWebhook } from "./operating-alert-webhook";
 import {enqueuePaidRecoveryPriority} from './paid-recovery-priority';
 import {enqueueOperatingAlert,readOperatingAlert,acknowledgeOperatingAlert} from './operating-alert-outbox';
@@ -1135,7 +1136,11 @@ app.get('/internal/operations/paid-recovery',async c=>{
 app.post('/internal/operations/alerts/observe',async c=>{
   if(c.env.OPERATIONS_ALERT_OUTBOX_ENABLED!=='true')return c.json({error:'alert_outbox_not_enabled'},503);
   if(new URL(c.req.url).search)return c.json({error:'operating_input_forbidden'},400);
-  try{const input=await readOperatingJson(c.req.raw);const d=c.env.OPERATIONS_ALERT_DESTINATION_ID&&c.env.OPERATIONS_ALERT_DESTINATION_DIGEST?
+  try{const input=await readOperatingJson(c.req.raw);
+    // Administrative incident entry is not an on-chain receipt authority.
+    if(input&&typeof input==='object'&&('receipt' in input||('code' in input&&['treasury_received','treasury_receipt_corrected'].includes(String(input.code)))))
+      return c.json({error:'treasury_notification_source_required'},400);
+    const d=c.env.OPERATIONS_ALERT_DESTINATION_ID&&c.env.OPERATIONS_ALERT_DESTINATION_DIGEST?
     {id:c.env.OPERATIONS_ALERT_DESTINATION_ID,digest:c.env.OPERATIONS_ALERT_DESTINATION_DIGEST}:null;
     return c.json(await enqueueOperatingAlert(c.env,input as any,d));}catch{return c.json({error:'alert_observation_unconfirmed'},503);}
 });
@@ -1259,6 +1264,14 @@ export default {
   async scheduled(controller: ScheduledController, env: RuntimeEnv, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(observeCronInvocation(env,controller,async()=>{
     const jobs:Promise<unknown>[]=[];
+    // Project original, durable receipt evidence into the existing owner queue.
+    // This lane never settles, scans RPCs, changes customer revenue or retries a
+    // payment. Failure remains visible while entitled recovery runs independently.
+    if(controller.cron==='*/15 * * * *'&&env.OPERATIONS_CLOUD_ENABLED==='true'&&env.OPERATIONS_ALERT_OUTBOX_ENABLED==='true'&&env.OPERATIONS_TREASURY_NOTIFICATIONS_ENABLED==='true'){
+      jobs.push(persistTreasuryReceiptNotifications(env).then(result=>{
+        if(result.state!=='observed')throw new Error('treasury_receipt_notification_degraded');
+      }));
+    }
     if(controller.cron==='*/15 * * * *'&&env.OPERATIONS_CLOUD_ENABLED==='true'&&env.OPERATIONS_ALERT_OUTBOX_ENABLED==='true'){
       jobs.push(persistOperatingAlertCandidates(env).then(result=>{
         if('results' in result&&result.results?.some(r=>['blocked','conflict','unconfirmed','failed'].includes(r.state)))throw new Error('alert_persistence_degraded');

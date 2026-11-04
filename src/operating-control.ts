@@ -5,8 +5,9 @@ import { stableJson,sha256 } from './crypto';
 import { withinDeadline } from './deadline';
 import { projectOperatingReport, type OperatingReportInput, type RunOutcome } from './operating-report';
 import { paidOrderRecoveryStatus } from './paid-recovery-control';
-import {enqueueOperatingAlert,type AlertObservation} from './operating-alert-outbox';
+import {enqueueOperatingAlert,type FaultObservation} from './operating-alert-outbox';
 import {readPaidAlertSource,checkpointPaidAlertSource,type PaidAlertSource} from './operating-paid-alert-source';
+import {readTreasuryReceiptNotificationStatus} from './treasury-receipt-notification';
 
 const PREFIX='operations/control/';
 const MAX_BYTES=65_536;
@@ -121,8 +122,8 @@ export async function recordWatchdogObservation(source:RuntimeEnv,value:Record<s
 export async function operatingStatus(source:RuntimeEnv,now=Date.now(),paidAlertPage?:PaidAlertSource){
   const snapshot=createOrderReadSnapshot(source,MAX_BYTES),env=snapshot.env;
   try{return await withinDeadline((async()=>{
-    const [p,w,s,paidRecovery,paidAlerts]=await Promise.all([readOrderMetadata<Pulse>(env,`${PREFIX}pulse/latest.json`,MAX_BYTES),readOrderMetadata<Watchdog>(env,`${PREFIX}watchdog/latest.json`,8_192),readOrderMetadata<Pulse>(env,`${PREFIX}pulse/last-success.json`,MAX_BYTES),
-      paidOrderRecoveryStatus(source).catch(()=>null),paidAlertPage??readPaidAlertSource(source)]);snapshot.assertActive();
+    const [p,w,s,paidRecovery,paidAlerts,receiptNotifications]=await Promise.all([readOrderMetadata<Pulse>(env,`${PREFIX}pulse/latest.json`,MAX_BYTES),readOrderMetadata<Watchdog>(env,`${PREFIX}watchdog/latest.json`,8_192),readOrderMetadata<Pulse>(env,`${PREFIX}pulse/last-success.json`,MAX_BYTES),
+      paidOrderRecoveryStatus(source).catch(()=>null),paidAlertPage??readPaidAlertSource(source),readTreasuryReceiptNotificationStatus(source,now)]);snapshot.assertActive();
     if(p&&!validStoredPulse(p.record))throw new Error('operating_snapshot_invalid');
     if(s&&(!validStoredPulse(s.record)||s.record.outcome!=='success'))throw new Error('operating_snapshot_invalid');
     const watchdog=w?.record;
@@ -148,6 +149,7 @@ export async function operatingStatus(source:RuntimeEnv,now=Date.now(),paidAlert
         selected:paidAlerts.observation?.items.length??null,observed_at:paidAlerts.observation?.observed_at??null,
         unknown:paidAlerts.observation?.items.filter(item=>!item.summary||item.summary.state==='unknown').length??null},
       notification_adapter_configured:null,canonical_operator_pipeline_migrated:false,
+      treasury_receipt_notifications:receiptNotifications,
       alert_outbox:{enabled_by_configuration:source.OPERATIONS_ALERT_OUTBOX_ENABLED==='true',provider_sender_configured:null,
         delivery_enabled_by_configuration:source.OPERATIONS_ALERT_DELIVERY_ENABLED==='true',adapter_implementation:'resend/v1',notification_delivered:null},
       failure_rate:null,recovery_count:null,buyer_leads_total:null,qualified_leads_total:null},
@@ -167,7 +169,7 @@ export async function persistOperatingAlertCandidates(source:RuntimeEnv){
     const destination=source.OPERATIONS_ALERT_DESTINATION_ID&&source.OPERATIONS_ALERT_DESTINATION_DIGEST?
       {id:source.OPERATIONS_ALERT_DESTINATION_ID,digest:source.OPERATIONS_ALERT_DESTINATION_DIGEST}:null;
     const results=[];
-    for(const alert of candidates){snapshot.assertActive();const e:AlertObservation={dedupe_key:alert.dedupe_key,code:alert.code as AlertObservation['code'],
+    for(const alert of candidates){snapshot.assertActive();const e:FaultObservation={dedupe_key:alert.dedupe_key,code:alert.code as FaultObservation['code'],
       subject:alert.subject,severity:alert.severity,stage:alert.escalation.state==='due'?'escalated':'initial',first_seen_at:alert.first_seen_at,evidence_ref:alert.evidence_ids[0]};
       results.push(await enqueueOperatingAlert(env,e,destination));snapshot.assertActive();}
     const established=results.every(result=>'notification_id' in result&&!!result.notification_id);

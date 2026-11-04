@@ -1,5 +1,7 @@
 # DELTA — single final production decision
 
+**Latest receipt-notification correction (2026-11-04):** [closure record](DELTA_RECEIPT_NOTIFICATION_CLOSURE.md) supersedes any implication below that normal Treasury receipts already reach notifications or that the current source still has the old Core binary hash. This follow-up fixes that missing producer locally and produces a new offline Worker. The previous approval ZIP/native/fallback artifacts below are historical supporting evidence, not approval for this new runtime. Production remains **NO_GO / NOT DEPLOYED**; real send/delivery, rollout and new-runtime rollback qualification remain required.
+
 Decision date: 2026-11-04 Asia/Shanghai. **Local candidate qualified within the stated scope / PRODUCTION NOT DEPLOYED / REVENUE NOT VALIDATED.** Broad production approval remains **NO-GO** until the external prerequisites below are established. This is the single decision for this handoff; historical reports are supporting history, not competing release instructions.
 
 ## Current approval package

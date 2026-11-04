@@ -77,6 +77,10 @@ These runs verified shared uncommitted candidates after baseline `b20f1b1`; each
 
 The independent OS-process stop/deadman rehearsal in the historical P0 report was a local fixture test, not cloud production evidence. A fresh final rehearsal and aggregate tests belong to the final release manifest; this document does not relabel old evidence as a new run.
 
+## Normal Treasury receipt notification follow-up
+
+The earlier incident projection did not notify on normal Treasury receipts. The [receipt closure](DELTA_RECEIPT_NOTIFICATION_CLOSURE.md) now adds a validated custody-to-existing-Outbox producer and normal INFO templates, with correction/re-observation semantics and known platform exclusions. It remains default-off and unverified externally. This extends the runtime/record contract; previous native/fallback evidence does not certify the new notification record reader. Sender backlog and end-to-end latency must be measured before activation or expansion.
+
 ## External acceptance still required
 
 1. Read-only Cloudflare access has established actual deployment/bindings/Cron/flags and current secret **names** in the linked readback. Refresh this observation before approved writes; no repeat login is requested. Source configuration does not prove activation.

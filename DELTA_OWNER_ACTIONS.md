@@ -2,6 +2,8 @@
 
 **Cloudflare login is completed. Do not log in again for this work.** Current decision is NO_GO; the [production approval package](DELTA_RELEASE_APPROVAL.md) defines the exact evidence and proposed scopes. This list does not authorize execution or turn ordinary authorized buyer purchases into per-order approvals.
 
+The [normal receipt notification wiring](DELTA_RECEIPT_NOTIFICATION_CLOSURE.md) is now implemented locally. It has not sent a real message or been enabled. Item 1 must identify the actual owner destination; account-login email addresses elsewhere are not silently chosen as alert recipients. Item 3 must use the new exact runtime and retain its notification readers after records exist; the archived a54d095 package is not the new deployment approval object.
+
 | Item | Minimum owner input or approval | Codex's remaining work |
 |---|---|---|
 | 1. Existing monitoring and alert accounts | Identify/authorize the existing third-domain monitoring and notification accounts, one approved sender and owner recipient. Enter any needed credentials directly into the relevant provider secret store. Approve the bounded isolated heartbeat and single-recipient notification qualification in the package, with no new paid plan | Reuse the prepared four checks and existing Outbox adapter; read provider configuration, verify actual expiry, message ID, delivery and separate owner ACK. Do not create duplicate accounts. Current connected-mailbox searches found no setup evidence, which means UNKNOWN, not proof that no account exists |

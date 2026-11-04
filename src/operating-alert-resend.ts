@@ -5,7 +5,7 @@ import {sha256,stableJson} from './crypto';
 import {createClaim,commitClaim,type StoredClaim} from './claims';
 import {createOrderReadSnapshot,readOrderMetadata} from './order-storage';
 import {withinDeadline} from './deadline';
-import {readOperatingAlert,type AlertAdapter,type AlertObservation,type AlertReceipt} from './operating-alert-outbox';
+import {readOperatingAlert,validOperatingNotification,type AlertAdapter,type AlertObservation,type AlertReceipt} from './operating-alert-outbox';
 
 export const RESEND_ALERT_PREFIX='operations/alerts/resend/';
 const API='https://api.resend.com';
@@ -32,16 +32,28 @@ export async function resendAlertConfigurationDigest(config:Pick<ResendAlertConf
 }
 function email(config:ResendAlertConfig,row:Pick<Transport,'notification_id'|'payload_hash'|'destination_digest'|'alert'>){
   const alert=row.alert;
+  if('receipt'in alert){
+    const r=alert.receipt,corrected=alert.code==='treasury_receipt_corrected',prior=r.correction,reobserved=r.occurrence==='reobserved_after_removal';
+    const attribution=r.payer_classification==='unclassified'?'UNKNOWN':`${r.payer_classification} (platform verification; excluded from customer revenue)`;
+    const amount=(raw:string)=>`${BigInt(raw)/1000000n}.${(BigInt(raw)%1000000n).toString().padStart(6,'0')}`;
+    const details=corrected?
+      `DELTA Treasury receipt correction - NOT a new incoming payment\nCorrection: ${prior!.kind}\nPrevious observation: ${amount(prior!.previous_raw_amount)} USDC\nPrevious block hash: ${prior!.previous_block_hash}\n${prior!.kind==='removed'?'The prior receipt observation is no longer present in the verified scan. Its amount below is historical, not a current receipt.':'The receipt observation was replaced. The amount below describes the replacement; do not count it as another payment.'}`:
+      `${reobserved?'DELTA Treasury restored / re-observed previous receipt - NOT another payment':'DELTA Treasury observed a USDC receipt'}\nObserved amount: ${r.usdc_decimal} USDC\nThis records an observed transfer at the source checkpoint time; it may be historical. It is not recognized customer revenue. Deduplicate payments by network/token/transaction/log index, not notification ID.`;
+    return {from:config.from,to:[config.to],subject:corrected?`DELTA Treasury receipt correction ${row.notification_id}`:
+      reobserved?`DELTA Treasury re-observed previous receipt - NOT another payment ${row.notification_id}`:`DELTA Treasury observed ${r.usdc_decimal} USDC receipt ${row.notification_id}`,
+      text:`${details}\nAmount in this observation: ${r.usdc_decimal} USDC (${r.raw_amount} raw, 6 decimals)\nNetwork: Base mainnet (${r.network})\nCanonical USDC: ${r.asset}\nTreasury: ${r.treasury}\nTransaction: ${r.tx_hash}\nExplorer: https://basescan.org/tx/${r.tx_hash}\nLog index: ${r.log_index}\nBlock: ${r.block_number}\nBlock hash: ${r.block_hash}\nObserved at: ${r.observed_at}\nConfirmation policy depth: ${r.confirmation_depth} blocks; not absolute finality. Later chain corrections remain possible.\nBuyer attribution: ${attribution}\nFulfillment: UNKNOWN\nCustomer revenue: ${r.customer_revenue}\nActual cost: UNKNOWN\nContribution margin: UNKNOWN\n\nNotification: ${row.notification_id}\nEvidence reference: ${alert.evidence_ref}\nCustody revision: ${r.custody_revision}\nCustody digest: ${r.custody_digest}\nPayload: ${row.payload_hash}\nProvider acceptance, delivery and owner acknowledgment are separate states.`,
+      tags:[{name:'delta_notification',value:row.notification_id},{name:'delta_payload',value:row.payload_hash.slice(7)},
+        {name:'delta_destination',value:row.destination_digest.slice(7)}]};
+  }
+  // Do not change this legacy branch: original provider request hashes/readback
+  // depend on the exact historical subject, text and tags.
   return {from:config.from,to:[config.to],subject:`DELTA ${alert.severity} alert ${row.notification_id}`,
     text:`DELTA operational alert\nNotification: ${row.notification_id}\nCondition: ${alert.code}\nSubject: ${alert.subject}\nSeverity: ${alert.severity}\nStage: ${alert.stage}\nFirst observed: ${alert.first_seen_at}\nEvidence reference: ${alert.evidence_ref}\nPayload: ${row.payload_hash}\n\nProvider delivery does not mean owner acknowledgment. Review the private operating evidence before acting.`,
     tags:[{name:'delta_notification',value:row.notification_id},{name:'delta_payload',value:row.payload_hash.slice(7)},
       {name:'delta_destination',value:row.destination_digest.slice(7)}]};
 }
 function sameIdentity(row:Transport,operation:Identity){return row.notification_id===operation.notification_id&&row.payload_hash===operation.payload_hash&&row.destination_digest===operation.destination_digest;}
-function validAlert(alert:AlertObservation){return exact(alert,['dedupe_key','code','subject','severity','stage','first_seen_at','evidence_ref'])&&
-  ['scheduler_stale','scheduler_consecutive_failures','paid_undelivered','receipt_unmatched','rpc_coverage_gap','permission_expired','negative_margin'].includes(alert.code)&&
-  opaque(alert.subject)&&['SEV1','SEV2','SEV3'].includes(alert.severity)&&['initial','escalated'].includes(alert.stage)&&iso(alert.first_seen_at)&&opaque(alert.evidence_ref)&&
-  new RegExp(`^delta:${alert.code}:${alert.subject.replaceAll('.','\\.') }:[A-Za-z0-9._-]{1,96}$`).test(alert.dedupe_key);}
+const validAlert=validOperatingNotification;
 async function valid(row:Transport,config:ResendAlertConfig,configurationHash:string){
   return exact(row,['schema','notification_id','payload_hash','destination_digest','configuration_hash','alert','request_hash','state','attempts','owner_run_id','owner_generation','provider_email_id','rejection_code','created_at','updated_at'])&&
     row.schema==='delta-owner-alert-resend/v1'&&uuid(row.notification_id)&&hash(row.payload_hash)&&row.destination_digest===config.destination_digest&&row.configuration_hash===configurationHash&&

@@ -13,9 +13,19 @@ const CODES=['scheduler_stale','scheduler_consecutive_failures','paid_undelivere
 const STATES=['blocked','queued','sending','unconfirmed','provider_accepted','delivered','failed'] as const;
 type State=typeof STATES[number];
 type Destination={id:string;digest:string};
-export type AlertObservation={dedupe_key:string;code:typeof CODES[number];subject:string;severity:Severity;stage:'initial'|'escalated';first_seen_at:string;evidence_ref:string};
+export type OwnerNotificationSeverity=Severity|'INFO';
+export type FaultObservation={dedupe_key:string;code:typeof CODES[number];subject:string;severity:Severity;stage:'initial'|'escalated';first_seen_at:string;evidence_ref:string};
+export type TreasuryNotificationReceipt={network:'eip155:8453';asset:'0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';treasury:'0x1990e21bc219696ff7fbc26527dbaed335ac6367';
+  occurrence:'initial_observation'|'reobserved_after_removal';
+  receipt_id:string;tx_hash:string;log_index:number;block_number:number;block_hash:string;raw_amount:string;usdc_decimal:string;confirmation_depth:number;
+  observed_at:string;custody_revision:number;custody_digest:string;payer_classification:'unclassified'|'nohumans_platform_verification'|'payapi_platform_verification';
+  customer_revenue:'UNKNOWN'|'EXCLUDED';actual_cost:'UNKNOWN';contribution_margin:'UNKNOWN';fulfillment:'UNKNOWN';
+  correction:null|{kind:'removed'|'replaced';previous_block_hash:string;previous_raw_amount:string}};
+export type TreasuryNotificationObservation={dedupe_key:string;code:'treasury_received'|'treasury_receipt_corrected';subject:string;severity:'INFO';stage:'initial';
+  first_seen_at:string;evidence_ref:string;receipt:TreasuryNotificationReceipt};
+export type AlertObservation=FaultObservation|TreasuryNotificationObservation;
 export type AlertReceipt={notification_id:string;payload_hash:string;destination_digest:string;status:'provider_accepted'|'delivered'|'failed'|'not_applied';receipt_id:string;observed_at:string};
-type Ack={notification_id:string;payload_hash:string;severity:Severity;actor_ref:string;evidence_ref:string;observed_at:string};
+type Ack={notification_id:string;payload_hash:string;severity:OwnerNotificationSeverity;actor_ref:string;evidence_ref:string;observed_at:string};
 type History={state:State;generation:number;run_id:string|null;at:string;notification_id:string;payload_hash:string;episode:AlertObservation;
   destination:Destination|null;receipt:AlertReceipt|null;acknowledgment:Ack|null;created_at:string};
 export type AlertOutboxRecord={schema:'delta-owner-alert-outbox/v1';episode:AlertObservation;notification_id:string;payload_hash:string;
@@ -29,10 +39,40 @@ const hash=(v:unknown):v is string=>typeof v==='string'&&/^sha256:[0-9a-f]{64}$/
 const iso=(v:unknown):v is string=>typeof v==='string'&&Number.isFinite(Date.parse(v))&&new Date(v).toISOString()===v;
 const uuid=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
 const exact=(v:unknown,fields:string[])=>!!v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join(',')===[...fields].sort().join(',');
-const rank={SEV1:3,SEV2:2,SEV3:1};
-function observation(v:AlertObservation):boolean{return exact(v,['dedupe_key','code','subject','severity','stage','first_seen_at','evidence_ref'])&&
-  CODES.includes(v.code)&&opaque(v.subject)&&['SEV1','SEV2','SEV3'].includes(v.severity)&&['initial','escalated'].includes(v.stage)&&iso(v.first_seen_at)&&
-  opaque(v.evidence_ref)&&v.dedupe_key.startsWith(`delta:${v.code}:${v.subject}:`)&&/^delta:[a-z_]+:[A-Za-z0-9._-]{1,96}:[A-Za-z0-9._-]{1,96}$/.test(v.dedupe_key);}
+const rank={SEV1:3,SEV2:2,SEV3:1,INFO:0};
+const chainHash=(v:unknown):v is string=>typeof v==='string'&&/^0x[0-9a-f]{64}$/.test(v);
+const uint256=(v:unknown):v is string=>typeof v==='string'&&/^(0|[1-9][0-9]{0,77})$/.test(v)&&BigInt(v)<(1n<<256n);
+function treasuryReceipt(v:TreasuryNotificationReceipt,code:TreasuryNotificationObservation['code'],at:string):boolean{
+  if(!exact(v,['network','asset','treasury','occurrence','receipt_id','tx_hash','log_index','block_number','block_hash','raw_amount','usdc_decimal','confirmation_depth','observed_at',
+    'custody_revision','custody_digest','payer_classification','customer_revenue','actual_cost','contribution_margin','fulfillment','correction'])||v.network!=='eip155:8453'||
+    v.asset!=='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'||v.treasury!=='0x1990e21bc219696ff7fbc26527dbaed335ac6367'||!chainHash(v.tx_hash)||!chainHash(v.block_hash)||
+    !Number.isSafeInteger(v.log_index)||v.log_index<0||!Number.isSafeInteger(v.block_number)||v.block_number<0||
+    v.receipt_id!==`${v.network}:${v.asset}:${v.tx_hash}:${v.log_index}`||!uint256(v.raw_amount)||
+    v.usdc_decimal!==`${BigInt(v.raw_amount)/1000000n}.${(BigInt(v.raw_amount)%1000000n).toString().padStart(6,'0')}`||
+    !Number.isSafeInteger(v.confirmation_depth)||v.confirmation_depth<1||v.confirmation_depth>10000||!iso(v.observed_at)||v.observed_at>at||
+    !Number.isSafeInteger(v.custody_revision)||v.custody_revision<1||typeof v.custody_digest!=='string'||!/^[0-9a-f]{64}$/.test(v.custody_digest)||
+    !['initial_observation','reobserved_after_removal'].includes(v.occurrence)||
+    !['unclassified','nohumans_platform_verification','payapi_platform_verification'].includes(v.payer_classification)||
+    v.customer_revenue!==(v.payer_classification==='unclassified'?'UNKNOWN':'EXCLUDED')||
+    [v.actual_cost,v.contribution_margin,v.fulfillment].some(value=>value!=='UNKNOWN'))return false;
+  if(code==='treasury_received')return v.correction===null;
+  if(v.occurrence!=='initial_observation')return false;
+  const c=v.correction;
+  return !!c&&exact(c,['kind','previous_block_hash','previous_raw_amount'])&&chainHash(c.previous_block_hash)&&uint256(c.previous_raw_amount)&&
+    (c.kind==='removed'?v.block_hash===c.previous_block_hash&&v.raw_amount===c.previous_raw_amount:
+      c.kind==='replaced'&&(v.block_hash!==c.previous_block_hash||v.raw_amount!==c.previous_raw_amount));
+}
+// Existing fault observations retain their original bytes, hashes and identities.
+export function validOperatingNotification(value:unknown):value is AlertObservation{
+  if(!value||typeof value!=='object'||Array.isArray(value))return false;
+  const v=value as AlertObservation,receiptEvent=v.code==='treasury_received'||v.code==='treasury_receipt_corrected';
+  if(!exact(v,['dedupe_key','code','subject','severity','stage','first_seen_at','evidence_ref',...(receiptEvent?['receipt']:[])])||
+    !opaque(v.subject)||!iso(v.first_seen_at)||!opaque(v.evidence_ref)||typeof v.dedupe_key!=='string'||
+    !v.dedupe_key.startsWith(`delta:${v.code}:${v.subject}:`)||!/^delta:[a-z_]+:[A-Za-z0-9._-]{1,96}:[A-Za-z0-9._-]{1,96}$/.test(v.dedupe_key))return false;
+  return receiptEvent?v.severity==='INFO'&&v.stage==='initial'&&treasuryReceipt(v.receipt,v.code,v.first_seen_at):
+    (CODES as readonly string[]).includes(v.code)&&['SEV1','SEV2','SEV3'].includes(v.severity)&&['initial','escalated'].includes(v.stage);
+}
+const observation=validOperatingNotification;
 function destination(v:Destination):boolean{return exact(v,['id','digest'])&&opaque(v.id)&&hash(v.digest);}
 const payload=(e:AlertObservation,d:Destination|null)=>({alert:e,destination:d});
 async function identity(e:AlertObservation){return uuidFromDigest(await sha256(`delta-owner-alert/v1\n${e.dedupe_key}\n${e.severity}\n${e.stage}`));}
@@ -85,11 +125,13 @@ export async function readOperatingAlert(source:RuntimeEnv,episodeKey:string){re
 // provider permission; enqueue cannot send, acknowledge, or prove delivery.
 export async function enqueueOperatingAlert(source:RuntimeEnv,e:AlertObservation,d:Destination|null=null){
   if(!observation(e)||Date.parse(e.first_seen_at)>Date.now()||d!==null&&!destination(d))throw new Error('alert_input_invalid');
+  e=structuredClone(e);
   return access(source,async(env,check)=>{
     const key=await keyFor(e.dedupe_key),prior=await readOrderMetadata<AlertOutboxRecord>(env,key);check();
     if(prior&&!await valid(prior.record,e.dedupe_key,Date.now()))throw new Error('alert_original_invalid');
     if(prior){const r=prior.record;
       if(r.episode.first_seen_at!==e.first_seen_at)throw new Error('alert_episode_conflict');
+      if(('receipt'in r.episode||'receipt'in e)&&stableJson(r.episode)!==stableJson(e))throw new Error('notification_receipt_conflict');
       if(r.acknowledgment&&rank[r.acknowledgment.severity]>=rank[e.severity])return {state:'suppressed',reason:'explicit_acknowledgment',notification_id:r.notification_id};
       if(rank[e.severity]<rank[r.episode.severity])return {state:r.state,reason:'original_higher_severity_retained',notification_id:r.notification_id};
       const worsened=rank[e.severity]>rank[r.episode.severity]||e.stage==='escalated'&&r.episode.stage==='initial';
