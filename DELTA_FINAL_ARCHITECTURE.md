@@ -6,7 +6,7 @@ Reviewed 2026-11-04 Asia/Shanghai. This document describes the local candidate, 
 
 The working repository is `C:/Users/10122/Documents/ChatGPT/DELTA-local-repair-v1.1`. At intake HEAD was `b20f1b1`, clean, on `codex/cloud-operations-20261103`. Fetch confirmed remote master `455f7be8278205f78e2099b85c45867ba39163b6` is an ancestor, 21 local commits ahead, zero remote-only commits. This is not evidence of the deployed Worker revision. Other worktrees remain unchanged. [Inventory](../DELTA-final-production-20261104/baseline-inventory.json) records all 45 workflow definitions and their hashes.
 
-Only Discovery Pulse has a recurring GitHub schedule: its two cron expressions partition the 24 hourly slots. The separate operations observer is dispatch-only until separately configured. Historical one-shot workflows are not another recurring engine, but publishing changes to their path triggers could run them: exclude them from release scope. Hosted ChatGPT reporting is auxiliary and was not changed.
+Discovery Pulse remains the only business loop; its two candidate cron expressions partition the 24 hourly slots. The existing read-only operations observer now has a candidate five-minute schedule, gated at job level by both a default-off enable flag and exact approved SHA. Its publication and activation are not authorized by this document. The canonical Pulse additionally reports its own critical completion to an independent fourth deadman check. Historical one-shot workflows are not another recurring engine, but publishing changes to their path triggers could run them: exclude them from release scope. Hosted ChatGPT reporting is auxiliary and was not changed.
 
 Post-login [production readback](docs/repair/cloudflare-readonly-20261104.md) now records live Core0.7.0/Gateway0.6.1, original resources, private proof preservation and actual Cron execution. The deployed Core annotation is a release side branch; the current candidate is not deployed. Current remote master has one hourly Pulse schedule and no candidate operations-observer workflow. The paragraph above describes the local candidate's workflows, not their live activation.
 
@@ -27,6 +27,7 @@ flowchart LR
   Deadman[Third provider timers] --> Owner[Approved alert recipient]
   Cron --> Deadman
   Observer --> Deadman
+  Pulse --> Deadman
   R2 --> Notice[Original alert outbox + Resend adapter]
   Notice --> Owner
 ```

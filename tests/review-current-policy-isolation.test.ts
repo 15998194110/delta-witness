@@ -64,4 +64,21 @@ describe('original signed replay is isolated from a malformed new retention prop
     expect(await (await app.fetch(orderRequest({legacy:true}),env)).json()).toEqual({...original,idempotent_replay:true});
     expect(network).not.toHaveBeenCalled();expect(env.BROWSER.quickAction).not.toHaveBeenCalled();expect([...bucket.values]).toEqual(before);
   });
+  it.each(['capture','preflight'])('preserves the observed historical %s complete-record shape without inventing receipts or repricing',async product=>{
+    const bucket=new MemoryBucket(),env=orderRuntime(bucket),network=mockOrderNetwork();vi.stubGlobal('fetch',network);
+    const request=()=>orderRequest({legacy:true,product});
+    const original=await (await app.fetch(request(),env)).json<Record<string,unknown>>();
+    // Synthetic reconstruction of the two shape-only live readbacks. No customer
+    // payload/payment signature is imported and no real storage is changed.
+    const [key,value]=[...bucket.values].find(([name])=>name.startsWith('fulfillments/'))!;
+    const historical=JSON.parse(value.text);delete historical.response_hash;delete historical.payment_response_header;
+    if(product==='preflight')delete historical.paid_price_usd;else historical.paid_price_usd=0.03;
+    await bucket.put(key,JSON.stringify(historical));
+    for(const name of [...bucket.values.keys()])if(name.startsWith('settlements/'))bucket.values.delete(name);
+    const before=[...bucket.values];network.mockClear();vi.mocked(env.BROWSER.quickAction).mockClear();
+    const replay=await app.fetch(request(),env);expect(replay.status).toBe(200);
+    expect(await replay.json()).toEqual({...original,idempotent_replay:true});
+    expect(replay.headers.has('payment-response')).toBe(false);
+    expect(network).not.toHaveBeenCalled();expect(env.BROWSER.quickAction).not.toHaveBeenCalled();expect([...bucket.values]).toEqual(before);
+  });
 });

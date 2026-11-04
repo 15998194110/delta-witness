@@ -2,6 +2,10 @@
 
 Decision date: 2026-11-04 Asia/Shanghai. **Local candidate qualified within the stated scope / PRODUCTION NOT DEPLOYED / REVENUE NOT VALIDATED.** Broad production approval remains **NO-GO** until the external prerequisites below are established. This is the single decision for this handoff; historical reports are supporting history, not competing release instructions.
 
+## Current approval package
+
+[DELTA_RELEASE_APPROVAL.md](DELTA_RELEASE_APPROVAL.md) consolidates the four remaining gates, exact proposed mutation scopes and owner actions. The follow-up preserves Core/fallback product bytes and adds only canonical Pulse deadman wiring, release configuration protection, targeted verification and evidence. The package manifest records the resulting automation commit separately from the original Core build provenance. No production action is authorized. Real monitor activation, real notification receipts, itemized costs and Browser provider qualification remain unverified; the decision is still NO_GO.
+
 ## Post-login production observation
 
 Cloudflare OAuth and read-only access are now verified. [Production readback](docs/repair/cloudflare-readonly-20261104.md) confirms live Core 0.7.0 / Gateway 0.6.1, public 200 responses via the existing Windows proxy, formal 1/5/10 quotes, private R2 and 9/9 original artifact hashes. Both Cron expressions have actual provider records, but one 3-minute record is absent and GitHub hourly Pulse has gaps up to 10.563h. New operations/observer/alert wiring is not deployed; D1 still has only 0001. All three billing APIs return 403. Two observed legacy fulfilled payments remain excluded platform verification, not first customer revenue.
@@ -10,9 +14,9 @@ This closes login/inventory uncertainty, not external monitoring, notification r
 
 ## Exact candidate and preserved baseline
 
-Runtime source: **`770449062da06d844a14aefabebbc2601677550d`**, branch `codex/cloud-operations-20261103`. Parent `b20f1b1`; previous local fixes remain in its ancestry. Fetch confirmed remote master `455f7be8278205f78e2099b85c45867ba39163b6`, with no remote-only commits. No reset, push, merge, deployment, data migration, secret update, real notification, payment or channel registration was performed. Documentation-only commits after this runtime snapshot do not change the tested candidate.
+Core product source: **`770449062da06d844a14aefabebbc2601677550d`**, branch `codex/cloud-operations-20261103`. Parent `b20f1b1`; previous local fixes remain in its ancestry. Refreshed fetch on 2026-11-04 again confirmed remote master `455f7be8278205f78e2099b85c45867ba39163b6`, with no remote-only commits. No reset, push, merge, deployment, data migration, secret update, real notification, payment or channel registration was performed. The final automation changes are reviewed separately; they do not change the stored Core/fallback product bundles.
 
-Frozen source fingerprint: `d226274ee9666c4ae8f3cee821dcdce3bc02492e6863bd7e365c69c58eaebe38`. This fingerprint covers source, tests, scripts, package locks and workflows, not the subsequently written reports.
+Original qualification fingerprint: `d226274ee9666c4ae8f3cee821dcdce3bc02492e6863bd7e365c69c58eaebe38`. It covers source, tests, scripts, package locks and workflows at the original qualification, not reports or the later focused automation changes. It must not be used as the full-tree fingerprint of the new approval candidate; the current package file manifest is authoritative for those bytes.
 
 | Exact built artifact | SHA256 / provenance |
 |---|---|

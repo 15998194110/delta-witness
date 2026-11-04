@@ -6,6 +6,7 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { assertReleaseAuthorization } from './check-release-authorization.mjs';
+import { reviewedCoreConfig, reviewedCoreDeployment, coreMetadataReader } from './cloudflare-live-config-guard.mjs';
 
 const definitions = {
   core: { root: '.', config: 'wrangler.jsonc', entry: 'index.js', name: 'delta-witness-api' },
@@ -103,30 +104,67 @@ export async function loadCloudflareArtifact({ directory, repository, kind, sour
   if (JSON.stringify(manifest) !== JSON.stringify(expected)) fail('cloudflare_artifact_mismatch');
   return manifest;
 }
-export async function deployCloudflareArtifact({ directory, repository, kind, source, authorization, variablesPolicy, run }) {
+export async function prepareCoreReleaseConfig({ directory, repository, source, variablesPolicy, expectedCoreVersion, expectedCoreDeployment, readLiveCore }) {
+  await loadCloudflareArtifact({ directory, repository, kind: 'core', source });
+  if (typeof readLiveCore !== 'function') fail('core_live_readback_required');
+  const config = JSON.parse((await readBounded(join(repository, definitions.core.config), 128_000)).toString());
+  const live = await readLiveCore(); reviewedCoreDeployment(live, expectedCoreDeployment);
+  const reviewed = reviewedCoreConfig({ config, root: repository, live, expectedAppVersion: expectedCoreVersion, variablesPolicy });
+  const bytes = Buffer.from(JSON.stringify(reviewed, null, 2) + '\n');
+  // Only checked-in nonsecret configuration plus two reviewed public settings.
+  // Never serialize the provider readback (which contains secret binding names).
+  const path = join(directory, 'reviewed-core-config.json');
+  const file = await open(path, 'wx');
+  try { await file.writeFile(bytes); await file.sync(); } finally { await file.close(); }
+  return { path, sha256: hash(bytes), preview_urls: reviewed.preview_urls, redact_query_string: reviewed.observability.redact_query_string };
+}
+export async function deployCloudflareArtifact({ directory, repository, kind, source, authorization, variablesPolicy, expectedCoreVersion, expectedCoreDeployment, readLiveCore, run }) {
   assertReleaseAuthorization({ ...authorization, source });
   if (kind !== 'pages' && !['preserve-reviewed', 'replace-reviewed'].includes(variablesPolicy)) fail('reviewed_variable_policy_required');
   const manifest = await loadCloudflareArtifact({ directory, repository, kind, source });
   const def = definitions[kind], root = resolve(repository, def.root);
+  let configPath = join(root, def.config || ''); let reviewedBytes, reviewedConfig, deployment;
+  if (kind === 'core') {
+    if (typeof readLiveCore !== 'function') fail('core_live_readback_required');
+    configPath = join(directory, 'reviewed-core-config.json');
+    reviewedBytes = await readBounded(configPath, 128_000);
+    reviewedConfig = JSON.parse(reviewedBytes.toString());
+    const config = JSON.parse((await readBounded(join(root, def.config), 128_000)).toString());
+    const live = await readLiveCore(); reviewedCoreDeployment(live, expectedCoreDeployment);
+    const fresh = reviewedCoreConfig({ config, root, live, expectedAppVersion: expectedCoreVersion,
+      variablesPolicy, previousPreview: reviewedConfig.preview_urls });
+    if (JSON.stringify(fresh) !== JSON.stringify(reviewedConfig)) fail('reviewed_core_configuration_changed');
+  }
   const cli = join(root, 'node_modules/wrangler/bin/wrangler.js');
   const args = kind === 'pages'
     ? [cli, 'pages', 'deploy', resolve(directory, 'payload'), '--project-name', def.name, '--branch', 'master']
-    : [cli, 'deploy', resolve(directory, 'payload', def.entry), '--no-bundle', '--config', join(root, def.config), ...(variablesPolicy === 'preserve-reviewed' ? ['--keep-vars'] : [])];
+    : [cli, 'deploy', resolve(directory, 'payload', def.entry), '--no-bundle', '--config', configPath, ...(variablesPolicy === 'preserve-reviewed' ? ['--keep-vars'] : [])];
   // Trusted isolated CI directory, not an arbitrary-writer filesystem CAS.
   // No build callback and no retry after an uncertain provider result.
   await run(process.execPath, args, { cwd: root });
   await loadCloudflareArtifact({ directory, repository, kind, source });
-  return { submission_completed: true, online_acceptance: false, manifest };
+  if (kind === 'core') {
+    if (!(await readBounded(configPath, 128_000)).equals(reviewedBytes)) fail('reviewed_core_configuration_changed');
+    const live = await readLiveCore(); deployment = reviewedCoreDeployment(live, expectedCoreDeployment, true);
+    reviewedCoreConfig({ config: reviewedConfig, root, live, expectedAppVersion: reviewedConfig.vars.APP_VERSION,
+      variablesPolicy, previousPreview: reviewedConfig.preview_urls });
+  }
+  return { submission_completed: true, online_acceptance: false, manifest, ...(deployment ? { observed_deployment:deployment } : {}) };
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
     const [mode, directory, kind] = process.argv.slice(2);
     const repository = fileURLToPath(new URL('..', import.meta.url));
     const input = { directory: resolve(directory), repository, kind, source: process.env.GITHUB_SHA };
+    const liveInputs = () => ({ variablesPolicy: process.env.DELTA_VARIABLES_POLICY,
+      expectedCoreVersion: process.env.DELTA_APPROVED_CORE_PREVIOUS_APP_VERSION,
+      expectedCoreDeployment: {deploymentId:process.env.DELTA_APPROVED_CORE_PREVIOUS_DEPLOYMENT_ID,versionId:process.env.DELTA_APPROVED_CORE_PREVIOUS_VERSION_ID},
+      readLiveCore: coreMetadataReader({ account: process.env.CLOUDFLARE_ACCOUNT_ID, token: process.env.CLOUDFLARE_API_TOKEN }) });
     let result;
     if (mode === 'record') result = await recordCloudflareArtifact(input);
     else if (mode === 'verify') result = await loadCloudflareArtifact(input);
-    else if (mode === 'deploy' && process.env.GITHUB_ACTIONS === 'true') result = await deployCloudflareArtifact({ ...input, variablesPolicy: process.env.DELTA_VARIABLES_POLICY,
+    else if (mode === 'guard-core' && kind === 'core' && process.env.GITHUB_ACTIONS === 'true') result = await prepareCoreReleaseConfig({ ...input, ...liveInputs() });
+    else if (mode === 'deploy' && process.env.GITHUB_ACTIONS === 'true') result = await deployCloudflareArtifact({ ...input, variablesPolicy: process.env.DELTA_VARIABLES_POLICY, ...(kind === 'core' ? liveInputs() : {}),
       authorization: { event: process.env.GITHUB_EVENT_NAME, execute: process.env.DELTA_EXECUTE_RELEASE,
         requested: process.env.DELTA_REQUESTED_SOURCE, approved: process.env.DELTA_APPROVED_SOURCE,
         rollbackSource: process.env.DELTA_ROLLBACK_SOURCE, rollbackArtifact: process.env.DELTA_ROLLBACK_ARTIFACT_SHA256 },

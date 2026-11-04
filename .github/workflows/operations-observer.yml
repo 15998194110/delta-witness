@@ -1,7 +1,10 @@
-# INACTIVE candidate. Adding a schedule/setting activation variables requires
-# separate production authorization. This is not a second business/Pulse loop.
+# Default-off candidate. The schedule is prepared locally; publishing this exact
+# source and setting activation variables require separate production approval.
+# This observes the existing business/Pulse loop; it never executes that work.
 name: DELTA Independent Operations Observer
 on:
+  schedule:
+    - cron: '2-59/5 * * * *'
   workflow_dispatch:
 permissions:
   contents: read
