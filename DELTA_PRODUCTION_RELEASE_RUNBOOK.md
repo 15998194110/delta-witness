@@ -2,6 +2,10 @@
 
 Status: preparation only; no deployment, remote migration, secret write, task activation or external publication authorized by this file. Final source/artifact hashes and local qualification are in [GO/NO-GO](DELTA_FINAL_GO_NO_GO.md). Never run the whole train merely to publish Core.
 
+## Completed read-only intake and refresh boundary
+
+[2026-11-04 intake](docs/repair/cloudflare-readonly-20261104.md) records actual deployments, private storage, existing D1 schema, legacy proof integrity, Cron events and Actions gaps. Core is 0.7.0, Gateway 0.6.1; local candidate is 0.7.1. Live Core annotation comes from a release side branch, not assumed current master. Preserve the actual observed settings, including the explicitly preserved historical query-redaction setting, unless a reviewed configuration change is separately approved. Billing remains access-denied. This intake is not an atomic backup; repeat version/ETag/in-flight-order checks immediately before an approved release. Do not use `wrangler d1 migrations list --remote` for read-only inspection: the installed CLI initializes the migration table; query existing tables with SELECT instead.
+
 ## Read-only intake after provider access
 
 1. Use the existing Cloudflare account login; never copy Treasury keys or production secrets into the workspace. Record account identity, Worker deployment/version IDs, effective non-secret vars, binding identities, both Cron definitions, secret **names** and permissions. Compare against the exact candidate config. Remote Git HEAD is not the deployed version.

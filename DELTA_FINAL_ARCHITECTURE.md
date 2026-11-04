@@ -8,6 +8,8 @@ The working repository is `C:/Users/10122/Documents/ChatGPT/DELTA-local-repair-v
 
 Only Discovery Pulse has a recurring GitHub schedule: its two cron expressions partition the 24 hourly slots. The separate operations observer is dispatch-only until separately configured. Historical one-shot workflows are not another recurring engine, but publishing changes to their path triggers could run them: exclude them from release scope. Hosted ChatGPT reporting is auxiliary and was not changed.
 
+Post-login [production readback](docs/repair/cloudflare-readonly-20261104.md) now records live Core0.7.0/Gateway0.6.1, original resources, private proof preservation and actual Cron execution. The deployed Core annotation is a release side branch; the current candidate is not deployed. Current remote master has one hourly Pulse schedule and no candidate operations-observer workflow. The paragraph above describes the local candidate's workflows, not their live activation.
+
 ## Actual runtime
 
 ```mermaid
@@ -43,4 +45,4 @@ Persistence actually used: private R2 `PROOFS`, D1 `ANALYTICS_DB`, remote `BROWS
 | Buyer relationship and suppression | Existing canonical operator pipeline and Gmail thread evidence | New invented CRM, directory presence |
 | Release authority | Owner exact revision/scope approval + protected release environment | Local commit, tag, test count |
 
-The operating dashboard remains a bounded private projection, not a new ledger. Missing or stale sources must remain UNKNOWN/STALE. Provider configuration, current production inventory and canonical operator freshness remain external verification prerequisites. See [finance](DELTA_TREASURY_AND_COST_AUDIT.md), [notifications](DELTA_MONITORING_AND_ALERTING.md) and [business rules](DELTA_REVENUE_OPERATIONS.md).
+The operating dashboard remains a bounded private projection, not a new ledger. Missing or stale sources must remain UNKNOWN/STALE. Initial provider/resource inventory is now observed; a fresh pre-release snapshot, real external wiring and canonical operator freshness remain prerequisites. See [finance](DELTA_TREASURY_AND_COST_AUDIT.md), [notifications](DELTA_MONITORING_AND_ALERTING.md) and [business rules](DELTA_REVENUE_OPERATIONS.md).

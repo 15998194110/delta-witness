@@ -10,6 +10,10 @@ The [Treasury scanner](scripts/treasury-reconciliation.mjs) supplies receipt can
 
 No fresh production receipt history or complete billing lines were acquired in this increment. Prior [P0 report](PRODUCTION_BLOCKER_CLOSURE_REPORT.md) and private `../DELTA-financial-evidence-20261104/real-notice-receipt-2.json` preserve the real Cloudflare invoice **notice**, not per-order actual cost. Zero amount due does not establish zero compute/storage/browser fees. Actual aggregate customer revenue/cost/margin remain UNKNOWN until matched evidence exists; this is not an all-time zero-income claim.
 
+### Post-login update
+
+[2026-11-04 readback](docs/repair/cloudflare-readonly-20261104.md) now verifies D1/R2 inventory and two complete legacy fulfillments. Existing PayAPI classification excludes both historical 0.03-USDC platform probes from customer revenue. No fresh all-history chain reconciliation was performed. Billing/history, billable-usage and billable-usage/info each return 403/10000 with the working OAuth; actual costs and total recognized revenue/margin remain UNKNOWN. Successful login is not Billing Read access. D1's 0002 migration is absent and was not applied.
+
 ## Treasury controls and residual scope
 
 | Risk | Existing implementation and actual test evidence |

@@ -2,6 +2,10 @@
 
 2026-11-04. **Local implementation verified; external activation and real delivery NOT VERIFIED.** This document supersedes the monitoring implementation gaps in the historical [P0 report](PRODUCTION_BLOCKER_CLOSURE_REPORT.md), not its retained historical evidence. No production flags, schedules, provider account, recipient, secret or billing plan was changed. No real notification was sent.
 
+## Post-login observation
+
+[Production readback](docs/repair/cloudflare-readonly-20261104.md) confirms both existing Cron lanes execute in Cloudflare. Provider success does not prove downstream business success; one 3-minute record is missing from the observed interval. GitHub's declared hourly Pulse has a 10.563-hour maximum observed gap, and the candidate independent observer workflow is not on remote master. Live Core lacks the candidate operational/alert wiring. Therefore this audit establishes existing cloud execution, not candidate activation or real notification delivery. No task was enabled or replaced.
+
 ## Actual architecture and authority
 
 | Component | Responsibility and durable evidence | Boundary |
