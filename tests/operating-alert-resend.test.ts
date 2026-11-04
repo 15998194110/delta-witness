@@ -2,7 +2,7 @@ import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {createResendAlertAdapter,resendAlertConfigurationDigest,RESEND_ALERT_PREFIX,type ResendAlertConfig} from '../src/operating-alert-resend';
 import {enqueueOperatingAlert,processOperatingAlert,readOperatingAlert,type AlertObservation,type TreasuryNotificationObservation} from '../src/operating-alert-outbox';
 import {MemoryBucket,orderRuntime} from './helpers/order-runtime';
-import {processOwnerAlertQueue,type OwnerAlertDeliveryEnv,ALERT_DELIVERY_PREFIX} from '../src/operating-alert-delivery';
+import {processOwnerAlertQueue,type OwnerAlertDeliveryEnv,ALERT_DELIVERY_PREFIX,ALERT_DELIVERY_LIMITS} from '../src/operating-alert-delivery';
 import {receiveResendAlertWebhook,ALERT_WEBHOOK_PREFIX} from '../src/operating-alert-webhook';
 
 const now=Date.parse('2026-11-04T00:00:00.000Z');
@@ -226,14 +226,74 @@ it('actual queue consumer stays default-off without provider or storage IO',asyn
   expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({state:'disabled',provider_calls:0});
   expect(get).not.toHaveBeenCalled();expect(s.network).not.toHaveBeenCalled();expect(s.bucket.values.size).toBe(0);
 });
-it('queue consumer processes two bounded original episodes and a fresh invocation continues the persistent cursor',async()=>{
+it('queue consumer crosses bounded pages and later readback confirms original deliveries without new sends',async()=>{
   const s=await fixture(),env=deliveryEnv(s);for(let n=1;n<=3;n++)await enqueueOperatingAlert(env,{...episode,subject:`order-${n}`,dedupe_key:`delta:paid_undelivered:order-${n}:episode-${n}`},
     {id:s.config.destination_id,digest:s.config.destination_digest});
-  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({state:'observed',counts:{scanned:2,processed:2,provider_accepted:2},cursor_state:'advanced',notification_delivered:null});
-  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({state:'observed',counts:{scanned:1,processed:1,provider_accepted:1},cursor_state:'advanced'});
+  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({state:'observed',counts:{scanned:3,processed:3,provider_accepted:3},cursor_state:'advanced',notification_delivered:null});
+  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({state:'observed',counts:{scanned:3,processed:3,provider_accepted:3},cursor_state:'advanced'});
   expect(s.posts).toHaveLength(3);const cursor=JSON.parse(s.bucket.values.get(`${ALERT_DELIVERY_PREFIX}cursor.json`)!.text);expect(cursor).toMatchObject({version:2,cursor:null});
   for(const value of s.emails.values())value.last_event='delivered';
-  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({counts:{delivered:2},notification_delivered:null});expect(s.posts).toHaveLength(3);
+  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({counts:{delivered:3},notification_delivered:null});expect(s.posts).toHaveLength(3);
+  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({counts:{delivered:0,terminal_delivered:3},counts_scope:'this_run_observations_not_cumulative'});
+});
+async function manyQueued(s:Awaited<ReturnType<typeof fixture>>,count:number){
+  const env=deliveryEnv(s);for(let n=0;n<count;n++)await enqueueOperatingAlert(env,{...episode,subject:`batch-${n}`,dedupe_key:`delta:paid_undelivered:batch-${n}:original`},
+    {id:s.config.destination_id,digest:s.config.destination_digest});
+  return{env,rows:[...s.bucket.values.entries()].filter(([key])=>key.includes('/episodes/')).sort(([a],[b])=>a.localeCompare(b)).map(([key,value])=>({key,row:JSON.parse(value.text)}))};
+}
+async function terminalRows(s:Awaited<ReturnType<typeof fixture>>,rows:Array<{row:any}>){
+  const a={destination:{id:s.config.destination_id,digest:s.config.destination_digest},permission:{state:'available' as const,observed_at:new Date().toISOString(),evidence_ref:'synthetic-delivery-evidence'},
+    send:async(op:any)=>({notification_id:op.notification_id,payload_hash:op.payload_hash,destination_digest:op.destination_digest,status:'delivered' as const,receipt_id:'synthetic-original-receipt',observed_at:new Date().toISOString()}),readOriginal:async()=>null};
+  for(const {row} of rows)await processOperatingAlert(s.env,row.episode.dedupe_key,a);
+}
+it('twenty historical delivered records no longer consume the active budget ahead of four new notifications',async()=>{
+  const s=await fixture(),{env,rows}=await manyQueued(s,24);await terminalRows(s,rows.slice(0,20));
+  const result=await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch});
+  expect(result).toMatchObject({state:'observed',counts:{scanned:24,processed:4,terminal_delivered:20,provider_accepted:4},active_attempts:4,scan_budget_limited:false});
+  expect(s.posts).toHaveLength(4);expect(result.provider_calls).toBeLessThanOrEqual(ALERT_DELIVERY_LIMITS.provider_calls);
+  expect('storage_reads'in result&&result.storage_reads).toBeLessThanOrEqual(ALERT_DELIVERY_LIMITS.storage_reads);
+  expect('storage_bytes'in result&&result.storage_bytes).toBeLessThanOrEqual(ALERT_DELIVERY_LIMITS.storage_bytes);
+});
+it('active-send limit checkpoints the original page and subsequent invocation advances without repeating POST',async()=>{
+  const s=await fixture(),{env}=await manyQueued(s,12);
+  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({state:'degraded',counts:{scanned:8,processed:8},active_attempts:8,scan_budget_limited:true,cursor_state:'advanced',remaining_inventory:'not_yet_scanned'});
+  const first=new Set(s.posts.map(p=>p.tags.find((t:any)=>t.name==='delta_notification').value));expect(first.size).toBe(8);
+  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({state:'observed',counts:{scanned:4,processed:4},active_attempts:4,cursor_state:'advanced'});
+  expect(s.posts).toHaveLength(12);expect(new Set(s.posts.map(p=>p.tags.find((t:any)=>t.name==='delta_notification').value)).size).toBe(12);
+  expect(JSON.parse(s.bucket.values.get(`${ALERT_DELIVERY_PREFIX}cursor.json`)!.text)).toMatchObject({schema:'delta-alert-delivery-cursor/v1',version:2,cursor:null});
+});
+it('terminal history scanning itself remains bounded and does not masquerade as cumulative delivered totals',async()=>{
+  const s=await fixture(),{env,rows}=await manyQueued(s,40);await terminalRows(s,rows);
+  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({state:'degraded',counts:{scanned:32,processed:0,terminal_delivered:32,delivered:0},active_attempts:0,scan_budget_limited:true,counts_scope:'this_run_observations_not_cumulative'});
+  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({state:'observed',counts:{scanned:8,processed:0,terminal_delivered:8,delivered:0}});
+  expect(s.posts).toHaveLength(0);
+});
+it('working deadline preserves the partially examined page and late source reads cannot dispatch',async()=>{
+  const s=await fixture(),{env,rows}=await manyQueued(s,5),get=s.bucket.get.bind(s.bucket),blocked=new Set(rows.slice(0,3).map(x=>x.key));
+  const starts:Array<()=>void>=[],ready=Array.from({length:3},(_,n)=>new Promise<void>(resolve=>{starts[n]=resolve;})),releases:Array<()=>void>=[];let entered=0;
+  s.bucket.get=async key=>{if(blocked.has(key)){starts[entered++]?.();await new Promise<void>(resolve=>releases.push(resolve));}return get(key);};
+  vi.useRealTimers();vi.useFakeTimers();vi.setSystemTime(now);
+  const pending=processOwnerAlertQueue(env,{fetch:s.network as typeof fetch});await ready[0];await vi.advanceTimersByTimeAsync(15001);
+  await ready[1];await vi.advanceTimersByTimeAsync(15001);await ready[2];await vi.advanceTimersByTimeAsync(5001);
+  const result=await pending;expect(result).toMatchObject({state:'degraded',scan_budget_limited:true,cursor_state:'advanced',counts:{unknown:3,processed:0},remaining_inventory:'not_yet_scanned'});
+  expect(JSON.parse(s.bucket.values.get(`${ALERT_DELIVERY_PREFIX}cursor.json`)!.text).cursor).toBe('fixture:2');expect(s.posts).toHaveLength(0);
+  blocked.clear();for(const release of releases)release();await vi.advanceTimersByTimeAsync(1);expect(s.posts).toHaveLength(0);
+  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({counts:{processed:3,provider_accepted:3},cursor_state:'advanced'});expect(s.posts).toHaveLength(3);
+});
+it('cyclic provider inventory cannot silently loop and preserves the original cursor',async()=>{
+  const s=await fixture(),{env,rows}=await manyQueued(s,3);await terminalRows(s,rows);
+  let calls=0;Object.assign(s.bucket,{list:async()=>({objects:[{key:rows[Math.min(calls++,2)].key}],truncated:true,cursor:'cyclic'})});
+  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({state:'unavailable'});
+  expect(calls).toBe(2);expect(s.bucket.values.has(`${ALERT_DELIVERY_PREFIX}cursor.json`)).toBe(false);expect(s.posts).toHaveLength(0);
+});
+it('aggregate metadata byte limit retains progress uncertainty without removing valid oversized-history records',async()=>{
+  const s=await fixture(),{env,rows}=await manyQueued(s,40);await terminalRows(s,rows);
+  for(const {key} of rows){const value=s.bucket.values.get(key)!;s.bucket.values.set(key,{...value,text:value.text.padEnd(31999,' ')});}
+  const originals=rows.map(({key})=>s.bucket.values.get(key)!.text),result=await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch});
+  expect(result).toMatchObject({state:'degraded',notification_delivered:null});expect(result.counts.unknown).toBeGreaterThan(0);
+  expect('storage_bytes'in result&&result.storage_bytes).toBeLessThanOrEqual(ALERT_DELIVERY_LIMITS.storage_bytes);
+  expect('storage_reads'in result&&result.storage_reads).toBeLessThanOrEqual(ALERT_DELIVERY_LIMITS.storage_reads);
+  expect('hole_refs'in result&&result.hole_refs.length).toBeGreaterThan(0);expect(rows.map(({key})=>s.bucket.values.get(key)!.text)).toEqual(originals);expect(s.posts).toHaveLength(0);
 });
 it('a temporary native permission/read rejection retains the cursor and recovers on a later invocation',async()=>{
   const s=await fixture(),env=deliveryEnv(s),normal=s.network.getMockImplementation()!;await s.enqueue();let unavailable=true;
@@ -270,17 +330,16 @@ it('confirmed immutable holes let the third episode progress and a later wrap re
     if(stalled&&key===first){entered();await new Promise<void>(resolve=>{release=resolve;});}return get(key);};
   vi.useRealTimers();vi.useFakeTimers();vi.setSystemTime(now);const pending=processOwnerAlertQueue(env,{fetch:s.network as typeof fetch});await ready;
   await vi.advanceTimersByTimeAsync(15001);const firstPass=await pending;
-  expect(firstPass).toMatchObject({state:'degraded',counts:{scanned:2,provider_accepted:1,unknown:1},cursor_state:'advanced',page_complete:false,unresolved_reference_count:1,inventory_complete:false});
+  expect(firstPass).toMatchObject({state:'degraded',counts:{scanned:3,provider_accepted:2,unknown:1},cursor_state:'advanced',page_complete:false,unresolved_reference_count:1,inventory_complete:false});
   expect(firstPass).toHaveProperty('hole_refs');if(!('hole_refs'in firstPass))throw Error('missing-hole-evidence');expect(firstPass.hole_refs).toHaveLength(1);
   const holeText=s.bucket.values.get(firstPass.hole_refs[0].key)!.text,hole=JSON.parse(holeText);
   expect(hole).toMatchObject({original_key:first,phase:'reference_read',original_notification_id:null,original_payload_hash:null,dispatch_authority:false,retry_authority:false,recipient_acknowledged:false});
   expect(s.bucket.values.get(first)!.text).toBe(original);
-  // The unchanged first reference is still unreadable; pagination nevertheless
-  // reaches the third original episode on the next invocation.
-  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({state:'observed',counts:{scanned:1,provider_accepted:1},cursor_state:'advanced'});expect(s.posts).toHaveLength(2);
+  // The third original episode now progresses in this same bounded invocation.
+  expect(s.posts).toHaveLength(2);
   release();await vi.advanceTimersByTimeAsync(1);expect(s.posts).toHaveLength(2);
   expect(s.bucket.values.get(first)!.text).toBe(original);stalled=false;
-  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({counts:{scanned:2,provider_accepted:2},cursor_state:'advanced'});
+  expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({counts:{scanned:3,provider_accepted:3},cursor_state:'advanced'});
   const healed=JSON.parse(s.bucket.values.get(first)!.text);expect(healed.notification_id).toBe(originalIdentity);expect(healed.state).toBe('provider_accepted');
   expect(s.posts).toHaveLength(3);expect(new Set(s.posts.map(p=>p.tags.find((t:any)=>t.name==='delta_notification').value)).size).toBe(3);
   expect(s.bucket.values.get(firstPass.hole_refs[0].key)!.text).toBe(holeText);expect(s.env.BROWSER.quickAction).not.toHaveBeenCalled();
@@ -296,11 +355,11 @@ it.each(['write_not_applied','write_ack_lost','readback_unavailable'])('hole %s 
   s.bucket.get=async k=>{if(mode==='readback_unavailable'&&k.startsWith(`${ALERT_DELIVERY_PREFIX}holes/`))throw Error('hole-storage-unavailable');return get(k);};
   const result=await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch});
   expect(result).toMatchObject({state:'degraded',page_complete:false,unresolved_reference_count:1,inventory_complete:false,cursor_state:mode==='write_ack_lost'?'advanced':'retained'});
-  expect(holeWrites).toBe(1);expect(s.bucket.values.get(first)!.text).toBe(corrupt);expect(s.posts).toHaveLength(1);
+  expect(holeWrites).toBe(1);expect(s.bucket.values.get(first)!.text).toBe(corrupt);expect(s.posts).toHaveLength(mode==='write_ack_lost'?2:1);
   if(!('hole_refs'in result))throw Error('missing-hole-result');expect(result.hole_refs).toHaveLength(mode==='write_ack_lost'?1:0);
   const holes=[...s.bucket.values.entries()].filter(([key])=>key.startsWith(`${ALERT_DELIVERY_PREFIX}holes/`));
   expect(JSON.stringify(holes)).not.toContain('must-not-copy-to-hole');expect(JSON.stringify(holes)).not.toContain('private-detail');
-  if(mode==='write_ack_lost')expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({counts:{scanned:1,provider_accepted:1}});
+  if(mode==='write_ack_lost')expect(await processOwnerAlertQueue(env,{fetch:s.network as typeof fetch})).toMatchObject({counts:{scanned:3,provider_accepted:2,unknown:1}});
   else expect(s.bucket.values.has(`${ALERT_DELIVERY_PREFIX}cursor.json`)).toBe(false);
 });
 it('four-second hole timeout retains cursor and a late create cannot retroactively advance it',async()=>{
