@@ -1,8 +1,8 @@
 {
-  "updated_at_cst": "2026-10-27T19:05:00+08:00",
-  "updated_at_scope": "Current-run EurusPay buyer qualification action plus a failed Treasury incremental attempt. The last complete Treasury checkpoint remains block 53153717; the interval after it is unverified.",
-  "latest_handoff": "docs/channel-status/distribution-expansion-2026-10-27-1905.json",
-  "previous_latest_actual_handoff": "docs/channel-status/distribution-expansion-2026-10-27-1840.json",
+  "updated_at_cst": "2026-11-04T19:03:00+08:00",
+  "updated_at_scope": "Current-run Liquid Logic X buyer qualification action plus a failed Treasury incremental attempt. The last complete Treasury checkpoint remains block 53153717; the interval after it is unverified.",
+  "latest_handoff": "docs/channel-status/distribution-expansion-2026-11-04-1903.json",
+  "previous_latest_actual_handoff": "docs/channel-status/distribution-expansion-2026-10-27-1905.json",
   "previous_pointer_handoff": "docs/channel-status/revenue-expansion-2026-09-29-1316-chat.json",
   "owner_delegation_document": "docs/owner-delegation-2026-09-27.md",
   "instruction": "Continue hourly. Reconcile Treasury and buyer/platform replies first. Do not follow up Treza, Invoica/Kognai or PayAgentic without new inbound. Recheck x402mpp public indexing, then execute one deduped free public distribution action with readback or qualify one new independent budgeted buyer-agent workflow. Never self-pay, pay listing fees, sign, KYC, create duplicate identities, fund canaries or manufacture demand.",
@@ -69,7 +69,7 @@
   ],
   "live_pricing_reverified_this_run": false,
   "latest_actionable_buyer_intent": false,
-  "latest_actionable_buyer_intent_scope": "EurusPay received one deduped first inquiry, but its published x402 agent example is explicitly illustrative; no reply, funded intent, payment or delivery is verified.",
+  "latest_actionable_buyer_intent_scope": "Liquid Logic X received one deduped qualification inquiry. No reply, funded task, payment authorization, fulfillment or Treasury receipt is verified.",
   "latest_verified_funded_native_request": false,
   "latest_verified_funded_native_request_scope": "No funded request verified.",
   "latest_run_new_external_listings_confirmed": 0,
@@ -186,8 +186,8 @@
   },
   "current_reconciliation_gap": {
     "from_block": 53153718,
-    "detected_at_cst": "2026-10-27T19:01:00+08:00",
-    "reason": "Fresh Blockscout read failed: web retrieval unavailable and direct HTTPS returned HTTP 403 after 18.5 seconds.",
+    "detected_at_cst": "2026-11-04T19:00:00+08:00",
+    "reason": "Fresh Blockscout and BaseScan address/token-transfer reads were inaccessible through the current web retrieval path.",
     "effect": "No current-interval revenue conclusion; retain the last complete checkpoint at block 53153717."
   },
   "latest_promotion_scope": "MCP Market pre-existing DELTA listing id 56835 was confirmed through the public dedupe API after live 1/5/10 pricing checks; duplicate submission was blocked. Treza Labs buyer-agent workflow received one deduped nonpriced qualification inquiry.",
@@ -262,13 +262,13 @@
     "verified_customer_receipts": 0
   },
   "latest_run": {
-    "path": "docs/channel-status/distribution-expansion-2026-10-27-1905.json",
-    "commit_sha": "65c7274ddcd4ff14788c1351ec594ad508e6cbbc",
-    "target": "EurusPay / basenode.io GmbH",
+    "path": "docs/channel-status/distribution-expansion-2026-11-04-1903.json",
+    "commit_sha": "99f99405b85b7eb956b63bd16b40e7656ccd5282",
+    "target": "Liquid Logic X LLC",
     "inbound_scope": "No new buyer or platform reply in the DELTA/x402/payment inbox search.",
-    "external_surface": "Official corporate business contact for a published x402 agent-wallet workflow",
-    "external_action": "One deduped first qualification inquiry, read back with Gmail SENT label and exact recipient.",
-    "state": "Message 1a17d08ca6fe0b8e is SENT; delivery/reply/funded intent/payment/fulfillment/Treasury receipt remain unverified."
+    "external_surface": "Active Base-USDC/x402 agent policy with merchant allowlist, spending limits and public audit ledger",
+    "external_action": "One deduped nonpriced first qualification inquiry, read back with Gmail SENT label and exact official recipient.",
+    "state": "Message 1a1a639ef6dffd6b is SENT; delivery/reply/funded intent/payment/fulfillment/Treasury receipt remain unverified."
   },
   "latest_actionable_intent_scope": "Treza was newly qualified and contacted, but no reply or funded intent exists yet. Invoica/Kognai and PayAgentic remain pending with no new inbound.",
   "latest_verified_funded_request": false,
@@ -313,18 +313,18 @@
     "state": "priceConflict true; live origin quotes are current and unchanged; no external listing or price mutation attempted"
   },
   "latest_agent_routing": {
-    "checked_at_cst": "2026-10-27T19:05:00+08:00",
-    "primary_surface": "EurusPay / basenode.io GmbH",
+    "checked_at_cst": "2026-11-04T19:03:00+08:00",
+    "primary_surface": "Liquid Logic X LLC",
     "direct_buyer_thread": {
-      "message_id": "1a17d08ca6fe0b8e",
-      "thread_id": "1a17d08ca6fe0b8e",
-      "recipient": "hello@basenode.io",
+      "message_id": "1a1a639ef6dffd6b",
+      "thread_id": "1a1a639ef6dffd6b",
+      "recipient": "hello@liquidlogicx.com",
       "sent_label": true,
       "recipient_readback_verified": true,
       "delivery_confirmed": false,
       "reply": false
     },
-    "qualification": "Published x402 agent-wallet flow is illustrative; inquiry asks whether an actual production or funded-pilot workflow exists.",
+    "qualification": "Active public x402 spending controls and merchant allowlist create a concrete pre-approval source-record use case; current DELTA buying intent remains unverified.",
     "funded_buyer_intent": false,
     "paid_invocation": false,
     "fulfillment": false,
@@ -442,5 +442,56 @@
       "treasury_receipt": false,
       "issue": "Marketplace pricing display is stale/misleading relative to live x402 routes."
     }
+  },
+  "operational_addendum_2026_11_04": {
+    "status": "business_followup_started; production_candidate_not_deployed",
+    "checked_date_cst": "2026-11-04",
+    "context": "Interactive resumption and one immediate inline business run; NOT evidence of any future automatic task execution",
+    "chatgpt_task": {
+      "id": "6a9699b9f8308191a104d805bfa57c43",
+      "schedule": "hourly",
+      "enable_write_success": true,
+      "enable_state_readback": true,
+      "next_run_time": null,
+      "historical_last_run_result": "failed 2026-10-27; no newly recorded timed success",
+      "caveat": "do not depend on ChatGPT scheduler for unattended production operations"
+    },
+    "github_pulse": {
+      "run_id": 41786588756,
+      "observed_run_url": "https://github.com/15998194110/delta-witness/actions/runs/41786588756",
+      "conclusion": "success",
+      "scope": "Existing remote master, not local unpushed production candidate",
+      "cadence": "multi-hour observed gaps, not reliably hourly"
+    },
+    "treasury_scope": {
+      "direct_new_scan_performed_in_this_interactive_run": false,
+      "latest_readback_job_run": 41786588756,
+      "latest_successful_scanned_blocks": [
+        53442412,
+        53492411
+      ],
+      "raw_transfer_candidates_in_that_range": 0,
+      "revenue_interpretation": "No inbound canonical USDC transfer candidates in this 50k-block range. Not an all-history zero or proof of new customer revenue."
+    },
+    "inbound_reply_scope": "Gmail query after 2026-10-26 found no matching inbound DELTA/platform replies; does not prove a message was delivered",
+    "outbound": {
+      "company": "Ampersend / Edge & Node",
+      "official_source": "https://ampersend.ai/faq",
+      "to": "ampersend@edgeandnode.com",
+      "message_id": "1a1a60f8bd7bc7cc",
+      "thread_id": "1a1a60f8bd7bc7cc",
+      "subject": "DELTA Witness × Ampersend: $1 public-source proof before agent purchases",
+      "send_and_sent_label_readback": true,
+      "delivery_verified": false,
+      "reply_verified": false,
+      "funded_workflow_verified": false,
+      "payment_verified": false,
+      "ask": "Do existing owner-approved procurement/research/browser agents have a pre-action public-page verification need and can they buy via their own x402 budget?",
+      "duplicate_contact_check": "Gmail in:anywhere Ampersend/Edge & Node returned no prior message; no Ampersend GitHub index match. Other local unpushed operator records not readable."
+    },
+    "exclusions_and_dedupe": "AGCX preexisting outreach had delivery-failure notice; Anchor Browser and Skyvern already contacted. The402 announced paused paid activity and pending closure; no new outreach to these.",
+    "no_paid_testing_or_signatures": true,
+    "no_production_change": true,
+    "next_owner_action": "None required for free qualification outreach; retain NO_GO on unapproved production candidate."
   }
 }
