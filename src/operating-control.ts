@@ -6,6 +6,7 @@ import { withinDeadline } from './deadline';
 import { projectOperatingReport, type OperatingReportInput, type RunOutcome } from './operating-report';
 import { paidOrderRecoveryStatus } from './paid-recovery-control';
 import {enqueueOperatingAlert,type AlertObservation} from './operating-alert-outbox';
+import {readPaidAlertSource,checkpointPaidAlertSource,type PaidAlertSource} from './operating-paid-alert-source';
 
 const PREFIX='operations/control/';
 const MAX_BYTES=65_536;
@@ -117,11 +118,11 @@ export async function recordWatchdogObservation(source:RuntimeEnv,value:Record<s
     const saved=current?await commitClaim(env,key,current,row):await createClaim(env,key,row);snapshot.assertActive();if(!saved)throw new Error('watchdog_observation_conflict');
   })(),10_000,'operating_persistence_deadline',snapshot.cancel);}finally{snapshot.cancel();}
 }
-export async function operatingStatus(source:RuntimeEnv,now=Date.now()){
+export async function operatingStatus(source:RuntimeEnv,now=Date.now(),paidAlertPage?:PaidAlertSource){
   const snapshot=createOrderReadSnapshot(source,MAX_BYTES),env=snapshot.env;
   try{return await withinDeadline((async()=>{
-    const [p,w,s,paidRecovery]=await Promise.all([readOrderMetadata<Pulse>(env,`${PREFIX}pulse/latest.json`,MAX_BYTES),readOrderMetadata<Watchdog>(env,`${PREFIX}watchdog/latest.json`,8_192),readOrderMetadata<Pulse>(env,`${PREFIX}pulse/last-success.json`,MAX_BYTES),
-      paidOrderRecoveryStatus(source).catch(()=>null)]);snapshot.assertActive();
+    const [p,w,s,paidRecovery,paidAlerts]=await Promise.all([readOrderMetadata<Pulse>(env,`${PREFIX}pulse/latest.json`,MAX_BYTES),readOrderMetadata<Watchdog>(env,`${PREFIX}watchdog/latest.json`,8_192),readOrderMetadata<Pulse>(env,`${PREFIX}pulse/last-success.json`,MAX_BYTES),
+      paidOrderRecoveryStatus(source).catch(()=>null),paidAlertPage??readPaidAlertSource(source)]);snapshot.assertActive();
     if(p&&!validStoredPulse(p.record))throw new Error('operating_snapshot_invalid');
     if(s&&(!validStoredPulse(s.record)||s.record.outcome!=='success'))throw new Error('operating_snapshot_invalid');
     const watchdog=w?.record;
@@ -135,15 +136,18 @@ export async function operatingStatus(source:RuntimeEnv,now=Date.now()){
       ...(s?{last_success:evidence(s.record.completed_at,s.record.observed_at,`github-success-${s.record.run_id}`)}:{})};
     // Missing joins/invoices never become zero. Even a verified Treasury
     // interval below supplies coverage, not customer revenue or actual costs.
-    const report=projectOperatingReport({schedulers:[scheduler,{id:'cloudflare-cron'}],
+    const report=projectOperatingReport({schedulers:[scheduler,{id:'cloudflare-cron'}],business:{paid_undelivered:paidAlerts.issues},
       ...(pulse?.treasury.state==='verified_declared_interval'?{rpc_coverage:evidence({status:'complete',from_block:pulse.treasury.from!,through_block:pulse.treasury.through!},pulse.observed_at,`treasury-run-${pulse.run_id}`)}:{}),
-      ...(p||w?{persistence:evidence('stored',new Date(now).toISOString(),'r2-operating-readback')}:{})},now);
+      ...(p||w?{persistence:evidence('stored',new Date(now).toISOString(),'r2-operating-readback')}:{})},Math.max(now,Date.now()));
     // The independent consumer observation is not a financial join. Missing or
     // corrupt recovery metadata must not erase the other lane observations.
     return {ok:true,report,source_inventory_complete:false,cloud:{enabled_by_configuration:source.OPERATIONS_CLOUD_ENABLED==='true',watchdog:watchdog??null,
       pulse_observation:pulse??null,background_paid_order_recovery_connected:paidRecovery?.enabled_by_configuration===true&&paidRecovery.observation_freshness==='fresh',
       background_paid_order_recovery_health:paidRecovery?.business_work_health.outcome??'unknown',
-      paid_order_draft_recovery:paidRecovery,notification_adapter_configured:null,canonical_operator_pipeline_migrated:false,
+      paid_order_draft_recovery:paidRecovery,paid_alert_source:{state:paidAlerts.state,scope:paidAlerts.scope,inventory_complete:false,
+        selected:paidAlerts.observation?.items.length??null,observed_at:paidAlerts.observation?.observed_at??null,
+        unknown:paidAlerts.observation?.items.filter(item=>!item.summary||item.summary.state==='unknown').length??null},
+      notification_adapter_configured:null,canonical_operator_pipeline_migrated:false,
       alert_outbox:{enabled_by_configuration:source.OPERATIONS_ALERT_OUTBOX_ENABLED==='true',provider_sender_configured:null,
         delivery_enabled_by_configuration:source.OPERATIONS_ALERT_DELIVERY_ENABLED==='true',adapter_implementation:'resend/v1',notification_delivered:null},
       failure_rate:null,recovery_count:null,buyer_leads_total:null,qualified_leads_total:null},
@@ -157,14 +161,17 @@ export async function persistOperatingAlertCandidates(source:RuntimeEnv){
   if(source.OPERATIONS_CLOUD_ENABLED!=='true'||source.OPERATIONS_ALERT_OUTBOX_ENABLED!=='true')return {state:'disabled'};
   const snapshot=createOrderReadSnapshot(source,65_536),env=snapshot.env;
   try{return await withinDeadline((async()=>{
-    const status=await operatingStatus(env);snapshot.assertActive();
-    const candidates=status.report.alerts.filter(a=>a.notification_decision.action!=='local_only').slice(0,5);
+    const paidPage=await readPaidAlertSource(source);snapshot.assertActive();
+    const status=await operatingStatus(source,Date.now(),paidPage);snapshot.assertActive();
+    const candidates=status.report.alerts.filter(a=>a.notification_decision.action!=='local_only').sort((a,b)=>Number(b.code==='paid_undelivered')-Number(a.code==='paid_undelivered')).slice(0,5);
     const destination=source.OPERATIONS_ALERT_DESTINATION_ID&&source.OPERATIONS_ALERT_DESTINATION_DIGEST?
       {id:source.OPERATIONS_ALERT_DESTINATION_ID,digest:source.OPERATIONS_ALERT_DESTINATION_DIGEST}:null;
     const results=[];
     for(const alert of candidates){snapshot.assertActive();const e:AlertObservation={dedupe_key:alert.dedupe_key,code:alert.code as AlertObservation['code'],
       subject:alert.subject,severity:alert.severity,stage:alert.escalation.state==='due'?'escalated':'initial',first_seen_at:alert.first_seen_at,evidence_ref:alert.evidence_ids[0]};
       results.push(await enqueueOperatingAlert(env,e,destination));snapshot.assertActive();}
-    return {state:'observations_checked',selected:candidates.length,results,notification_delivered:null};
+    const established=results.every(result=>'notification_id' in result&&!!result.notification_id);
+    const paidSourceCheckpoint=established?await checkpointPaidAlertSource(source,paidPage):{state:'retained',reason:'alert_intent_unconfirmed'};snapshot.assertActive();
+    return {state:'observations_checked',selected:candidates.length,results,paid_source_checkpoint:paidSourceCheckpoint,notification_delivered:null};
   })(),40000,'alert_projection_deadline',snapshot.cancel);}finally{snapshot.cancel();}
 }

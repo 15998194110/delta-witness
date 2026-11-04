@@ -103,14 +103,15 @@ export async function loadCloudflareArtifact({ directory, repository, kind, sour
   if (JSON.stringify(manifest) !== JSON.stringify(expected)) fail('cloudflare_artifact_mismatch');
   return manifest;
 }
-export async function deployCloudflareArtifact({ directory, repository, kind, source, authorization, run }) {
+export async function deployCloudflareArtifact({ directory, repository, kind, source, authorization, variablesPolicy, run }) {
   assertReleaseAuthorization({ ...authorization, source });
+  if (kind !== 'pages' && !['preserve-reviewed', 'replace-reviewed'].includes(variablesPolicy)) fail('reviewed_variable_policy_required');
   const manifest = await loadCloudflareArtifact({ directory, repository, kind, source });
   const def = definitions[kind], root = resolve(repository, def.root);
   const cli = join(root, 'node_modules/wrangler/bin/wrangler.js');
   const args = kind === 'pages'
     ? [cli, 'pages', 'deploy', resolve(directory, 'payload'), '--project-name', def.name, '--branch', 'master']
-    : [cli, 'deploy', resolve(directory, 'payload', def.entry), '--no-bundle', '--config', join(root, def.config)];
+    : [cli, 'deploy', resolve(directory, 'payload', def.entry), '--no-bundle', '--config', join(root, def.config), ...(variablesPolicy === 'preserve-reviewed' ? ['--keep-vars'] : [])];
   // Trusted isolated CI directory, not an arbitrary-writer filesystem CAS.
   // No build callback and no retry after an uncertain provider result.
   await run(process.execPath, args, { cwd: root });
@@ -125,7 +126,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     let result;
     if (mode === 'record') result = await recordCloudflareArtifact(input);
     else if (mode === 'verify') result = await loadCloudflareArtifact(input);
-    else if (mode === 'deploy' && process.env.GITHUB_ACTIONS === 'true') result = await deployCloudflareArtifact({ ...input,
+    else if (mode === 'deploy' && process.env.GITHUB_ACTIONS === 'true') result = await deployCloudflareArtifact({ ...input, variablesPolicy: process.env.DELTA_VARIABLES_POLICY,
       authorization: { event: process.env.GITHUB_EVENT_NAME, execute: process.env.DELTA_EXECUTE_RELEASE,
         requested: process.env.DELTA_REQUESTED_SOURCE, approved: process.env.DELTA_APPROVED_SOURCE,
         rollbackSource: process.env.DELTA_ROLLBACK_SOURCE, rollbackArtifact: process.env.DELTA_ROLLBACK_ARTIFACT_SHA256 },

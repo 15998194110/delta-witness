@@ -56,6 +56,23 @@ it('actual scheduled consumer is independently gated and configuration failure i
   const status=await cronObservationStatus(env);if(!('tasks'in status))throw Error('status');
   expect(status.tasks[1].runs[0].outcome).toBe('degraded');expect(net).not.toHaveBeenCalled();expect(env.BROWSER.quickAction).not.toHaveBeenCalled();
 });
+it.each(['inventory','checkpoint'])('a failed paid-debt %s cannot be hidden by healthy independent Cron lanes',async fault=>{
+  const {env,bucket}=fixture();
+  Object.assign(env,{OPERATIONS_CLOUD_ENABLED:'true',OPERATIONS_ALERT_OUTBOX_ENABLED:'true'});
+  Object.assign(env.PROOFS,{list:async()=>{if(fault==='inventory')throw new Error('synthetic inventory outage');return {objects:[],truncated:false};}});
+  const put=bucket.put.bind(bucket);
+  vi.spyOn(bucket,'put').mockImplementation(async(key,value,options)=>{
+    if(fault==='checkpoint'&&key==='operations/alerts/sources/paid/cursor.json')throw new Error('synthetic cursor outage');
+    return put(key,value,options);
+  });
+  const net=vi.fn();vi.stubGlobal('fetch',net);const pending:Promise<unknown>[]=[];
+  await worker.scheduled({cron:'*/15 * * * *',scheduledTime:event} as ScheduledController,env,{waitUntil(p:Promise<unknown>){pending.push(p);}} as ExecutionContext);
+  await expect(Promise.all(pending)).rejects.toThrow('cron_control_degraded');
+  const status=await cronObservationStatus(env);if(!('tasks'in status))throw Error('status');
+  expect(status.tasks[1].runs[0]).toMatchObject({outcome:'degraded',last_success_at:null});
+  expect(bucket.values.has('operations/alerts/sources/paid/cursor.json')).toBe(false);
+  expect(net).not.toHaveBeenCalled();expect(env.BROWSER.quickAction).not.toHaveBeenCalled();
+});
 it('heartbeat failure cannot report recipient delivery or leak bearer URL in log',async()=>{
   const {env}=fixture();Object.assign(env,{CRON_EXTERNAL_HEARTBEAT_ENABLED:'true',CRON15_HEALTHCHECKS_PING_URL:ping});
   const net=vi.fn(async()=>new Response('OK (rate limited)',{status:200}));vi.stubGlobal('fetch',net);

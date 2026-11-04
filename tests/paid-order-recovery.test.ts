@@ -123,10 +123,11 @@ describe("bounded original paid-order background recovery (isolated)", () => {
     expect(bytes(state.bucket)).toEqual(before); expect(state.bucket.successfulWrites).toEqual([]); noPurchaseWork(state);
   });
 
-  it("skips revoked indexes without recovering or reading proof bytes", async () => {
+  it("retains revoked indexes as unresolved responsibilities without reading proof bytes", async () => {
     const state = await draft(); edit(state.bucket, orderRecordKey(TEST_ORDER_ID), { revoked_at: new Date().toISOString() });
     const get = vi.spyOn(state.bucket, "get"), before = bytes(state.bucket), result = await runPaidOrderRecovery(state.env);
-    expect(result.items[0]).toMatchObject({ state: "skipped", reason: "order_revoked" });
+    expect(result.items[0]).toMatchObject({ state: "reconciliation_required", reason: "order_revoked" });
+    expect(result.outcome).toBe("degraded"); expect(validatePaidOrderRecoveryResult(result)).toBe(true);
     expect(get.mock.calls.some(([key]) => key.endsWith("/manifest.json"))).toBe(false);
     expect(bytes(state.bucket)).toEqual(before); noPurchaseWork(state);
   });
@@ -139,7 +140,8 @@ describe("bounded original paid-order background recovery (isolated)", () => {
     vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(Date.parse(settlement.confirmed_at) + 60_000);
     state.network.mockClear(); vi.mocked(state.env.BROWSER.quickAction).mockClear(); state.bucket.successfulWrites = [];
     const get = vi.spyOn(state.bucket, "get"), before = bytes(state.bucket), result = await runPaidOrderRecovery(state.env);
-    expect(result.items[0]).toMatchObject({ state: "skipped", reason: "raw_artifacts_expired" });
+    expect(result.items[0]).toMatchObject({ state: "reconciliation_required", reason: "raw_artifacts_expired" });
+    expect(result.outcome).toBe("degraded"); expect(validatePaidOrderRecoveryResult(result)).toBe(true);
     expect(get.mock.calls.some(([key]) => /\/(page\.html|page\.md|screenshot\.png|manifest\.json)$/.test(key))).toBe(false);
     expect(bytes(state.bucket)).toEqual(before); expect(state.bucket.successfulWrites).toEqual([]); noPurchaseWork(state);
   });

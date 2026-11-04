@@ -7,6 +7,10 @@ on:
         type: boolean
         default: false
         description: Execute an independently approved production release
+      release_scopes:
+        type: string
+        default: '[]'
+        description: Exact JSON list of separately approved release operations
       source_commit:
         type: string
         required: false
@@ -25,19 +29,19 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with: { node-version: "22" }
       - name: Check current owner pricing policy
         run: node scripts/check-owner-pricing.mjs
       - name: Verify live owner pricing before release
         run: node scripts/verify-owner-pricing-live.mjs
       - run: node scripts/check-release-version.mjs
-      - run: npm ci
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run verify
       - name: Preserve the verified Core bundle
         run: node scripts/verified-cloudflare-artifact.mjs record "$RUNNER_TEMP/delta-core-verified" core
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: core-verified-${{ github.sha }}
           path: ${{ runner.temp }}/delta-core-verified/
@@ -47,7 +51,7 @@ jobs:
         run: npm ci && npm run verify
       - name: Preserve the verified gateway bundle
         run: node scripts/verified-cloudflare-artifact.mjs record "$RUNNER_TEMP/delta-gateway-verified" gateway
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: gateway-verified-${{ github.sha }}
           path: ${{ runner.temp }}/delta-gateway-verified/
@@ -60,7 +64,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/delta-npm-js"
           npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP/delta-npm-js" > "$RUNNER_TEMP/delta-npm-js/pack.json"
           node ../../scripts/verified-npm-artifact.mjs record "$RUNNER_TEMP/delta-npm-js" delta-witness-ruphussten
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: npm-js-verified-${{ github.sha }}
           path: ${{ runner.temp }}/delta-npm-js/
@@ -74,7 +78,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/delta-npm-mcp"
           npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP/delta-npm-mcp" > "$RUNNER_TEMP/delta-npm-mcp/pack.json"
           node ../../scripts/verified-npm-artifact.mjs record "$RUNNER_TEMP/delta-npm-mcp" delta-witness-mcp
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: npm-mcp-verified-${{ github.sha }}
           path: ${{ runner.temp }}/delta-npm-mcp/
@@ -87,13 +91,13 @@ jobs:
         run: npm ci && npm run verify
       - name: Preserve verified Pages including the signed public manifest
         run: node scripts/verified-cloudflare-artifact.mjs record "$RUNNER_TEMP/delta-pages-verified" pages
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: pages-verified-${{ github.sha }}
           path: ${{ runner.temp }}/delta-pages-verified/
           include-hidden-files: true
           if-no-files-found: error
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with: { python-version: "3.12" }
       - name: Verify Python distribution
         working-directory: packages/python-client
@@ -101,7 +105,7 @@ jobs:
           python -m pip install --only-binary=:all: -r requirements-validation.txt
           python -m unittest discover -s tests
           python scripts/verify_build.py "$RUNNER_TEMP/delta-python-verified"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: python-verified-${{ github.sha }}
           path: ${{ runner.temp }}/delta-python-verified/
@@ -112,9 +116,12 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.execute_release }}
     runs-on: ubuntu-latest
     environment: production-release
+    outputs:
+      scopes: ${{ steps.scope.outputs.scopes }}
+      variables_policy: ${{ steps.scope.outputs.variables_policy }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with: { node-version: "24" }
       - name: Require exact candidate and separately approved compatible fallback
         env:
@@ -124,11 +131,20 @@ jobs:
           DELTA_ROLLBACK_SOURCE: ${{ vars.DELTA_APPROVED_ROLLBACK_SHA }}
           DELTA_ROLLBACK_ARTIFACT_SHA256: ${{ vars.DELTA_APPROVED_ROLLBACK_ARTIFACT_SHA256 }}
         run: node scripts/check-release-authorization.mjs
+      - name: Require exact approved operation scope
+        id: scope
+        env:
+          DELTA_REQUESTED_SCOPES: ${{ inputs.release_scopes }}
+          DELTA_APPROVED_SCOPES: ${{ vars.DELTA_APPROVED_RELEASE_SCOPES }}
+          DELTA_VARIABLES_POLICY: ${{ vars.DELTA_APPROVED_VARIABLES_POLICY }}
+        run: node scripts/release-scope.mjs
 
   core-cloudflare:
     needs: [verify, authorize-release]
+    if: ${{ contains(fromJSON(needs.authorize-release.outputs.scopes || '[]'), 'core-cloudflare') }}
     runs-on: ubuntu-latest
     env:
+      DELTA_VARIABLES_POLICY: ${{ needs.authorize-release.outputs.variables_policy }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       DELTA_PARTNER_GATEWAY_SECRET: ${{ secrets.DELTA_PARTNER_GATEWAY_SECRET }}
@@ -139,12 +155,12 @@ jobs:
       DELTA_ROLLBACK_SOURCE: ${{ vars.DELTA_APPROVED_ROLLBACK_SHA }}
       DELTA_ROLLBACK_ARTIFACT_SHA256: ${{ vars.DELTA_APPROVED_ROLLBACK_ARTIFACT_SHA256 }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with: { node-version: "22" }
       - name: Require Cloudflare bootstrap
-        run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID" && test -n "$DELTA_PARTNER_GATEWAY_SECRET" && test -n "$DELTA_INDEXNOW_ADMIN_SECRET"
-      - uses: actions/download-artifact@v4
+        run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: core-verified-${{ github.sha }}
           path: ${{ runner.temp }}/delta-core-verified/
@@ -155,10 +171,12 @@ jobs:
       - name: Verify original Core artifact before any provider mutation
         run: node scripts/verified-cloudflare-artifact.mjs verify "$RUNNER_TEMP/delta-core-verified" core
       - name: Apply D1 telemetry migrations
+        if: ${{ contains(fromJSON(needs.authorize-release.outputs.scopes || '[]'), 'd1-migration') }}
         run: npx wrangler d1 migrations apply delta-witness-analytics --remote
       - name: Record rollback version
         run: npx wrangler versions list
       - name: Install core secrets
+        if: ${{ contains(fromJSON(needs.authorize-release.outputs.scopes || '[]'), 'core-secrets') }}
         run: |
           printf '%s' "$DELTA_PARTNER_GATEWAY_SECRET" | npx wrangler secret put PARTNER_GATEWAY_SECRET
           printf '%s' "$DELTA_INDEXNOW_ADMIN_SECRET" | npx wrangler secret put INDEXNOW_ADMIN_SECRET
@@ -173,6 +191,7 @@ jobs:
       - name: Verify owner pricing after deployment
         run: node scripts/verify-owner-pricing-live.mjs
       - name: Verify Watch prepaid floor without registration
+        if: ${{ contains(fromJSON(needs.authorize-release.outputs.scopes || '[]'), 'partner-probe') }}
         run: |
           status="$(curl --silent --show-error --output /tmp/delta-watch-floor.json --write-out '%{http_code}' \
             --request POST https://delta-witness-api.ruphussten.workers.dev/internal/partner/watch \
@@ -187,9 +206,11 @@ jobs:
           grep --quiet '"watch_prepaid_amount_below_floor"' /tmp/delta-watch-floor.json
 
   partner-gateway:
-    needs: [verify, core-cloudflare]
+    needs: [verify, authorize-release, core-cloudflare]
+    if: ${{ contains(fromJSON(needs.authorize-release.outputs.scopes || '[]'), 'partner-gateway') }}
     runs-on: ubuntu-latest
     env:
+      DELTA_VARIABLES_POLICY: ${{ needs.authorize-release.outputs.variables_policy }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
@@ -201,12 +222,12 @@ jobs:
       DELTA_ROLLBACK_ARTIFACT_SHA256: ${{ vars.DELTA_APPROVED_ROLLBACK_ARTIFACT_SHA256 }}
     defaults: { run: { working-directory: channels/partner-gateway } }
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with: { node-version: "22" }
       - name: Require gateway bootstrap
         run: test -n "$DELTA_PARTNER_SECRET" && test -n "$DELTA_PARTNER_GATEWAY_SECRET"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: gateway-verified-${{ github.sha }}
           path: ${{ runner.temp }}/delta-gateway-verified/
@@ -214,6 +235,7 @@ jobs:
       - name: Verify original gateway artifact before any provider mutation
         run: node ../../scripts/verified-cloudflare-artifact.mjs verify "$RUNNER_TEMP/delta-gateway-verified" gateway
       - name: Install gateway secrets
+        if: ${{ contains(fromJSON(needs.authorize-release.outputs.scopes || '[]'), 'gateway-secrets') }}
         run: |
           printf '%s' "$DELTA_PARTNER_SECRET" | npx wrangler secret put PARTNER_SECRET
           printf '%s' "$DELTA_PARTNER_GATEWAY_SECRET" | npx wrangler secret put CORE_SERVICE_SECRET
@@ -221,6 +243,7 @@ jobs:
         run: node ../../scripts/verified-cloudflare-artifact.mjs deploy "$RUNNER_TEMP/delta-gateway-verified" gateway
       - run: curl --fail --retry 5 --retry-delay 5 https://delta-witness-partner-gateway.ruphussten.workers.dev/health
       - name: Verify authenticated gateway without fulfillment
+        if: ${{ contains(fromJSON(needs.authorize-release.outputs.scopes || '[]'), 'partner-probe') }}
         run: |
           status="$(curl --silent --show-error --output /tmp/delta-gateway-smoke.json --write-out '%{http_code}' \
             --request POST https://delta-witness-partner-gateway.ruphussten.workers.dev/watch \
@@ -235,7 +258,7 @@ jobs:
     needs: core-cloudflare
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with: { node-version: "22" }
       - name: Audit deployed x402 discovery
         run: npx -y @agentcash/discovery@1.7.5 discover https://delta-witness-api.ruphussten.workers.dev --json > /tmp/delta-x402-discovery.json
@@ -258,6 +281,7 @@ jobs:
 
   base-app:
     needs: [verify, authorize-release]
+    if: ${{ contains(fromJSON(needs.authorize-release.outputs.scopes || '[]'), 'base-app') }}
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -269,10 +293,10 @@ jobs:
       DELTA_ROLLBACK_ARTIFACT_SHA256: ${{ vars.DELTA_APPROVED_ROLLBACK_ARTIFACT_SHA256 }}
     defaults: { run: { working-directory: channels/base-app } }
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with: { node-version: "22" }
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: pages-verified-${{ github.sha }}
           path: ${{ runner.temp }}/delta-pages-verified/
@@ -281,24 +305,26 @@ jobs:
         run: node ../../scripts/verified-cloudflare-artifact.mjs deploy "$RUNNER_TEMP/delta-pages-verified" pages
       - run: curl --fail --retry 5 --retry-delay 5 https://delta-witness-app.pages.dev/
       - name: Push Base app IndexNow (diagnostic only)
+        if: ${{ contains(fromJSON(needs.authorize-release.outputs.scopes || '[]'), 'indexnow') }}
         continue-on-error: true
         run: node ../../scripts/indexnow-pulse.mjs base-app
 
   npm-client:
     needs: [verify, authorize-release]
+    if: ${{ contains(fromJSON(needs.authorize-release.outputs.scopes || '[]'), 'npm-client') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     defaults: { run: { working-directory: packages/js-client } }
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: npm-js-verified-${{ github.sha }}
           path: ${{ runner.temp }}/delta-npm-js/
@@ -310,16 +336,17 @@ jobs:
 
   npm-mcp:
     needs: [verify, authorize-release]
+    if: ${{ contains(fromJSON(needs.authorize-release.outputs.scopes || '[]'), 'npm-mcp') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     defaults: { run: { working-directory: packages/mcp-server } }
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with: { node-version: "24", registry-url: "https://registry.npmjs.org", package-manager-cache: false }
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: npm-mcp-verified-${{ github.sha }}
           path: ${{ runner.temp }}/delta-npm-mcp/
@@ -331,20 +358,21 @@ jobs:
 
   pypi-client:
     needs: [verify, authorize-release]
+    if: ${{ contains(fromJSON(needs.authorize-release.outputs.scopes || '[]'), 'pypi-client') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     defaults: { run: { working-directory: packages/python-client } }
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with: { python-version: "3.12" }
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: python-verified-${{ github.sha }}
           path: ${{ runner.temp }}/delta-python-verified/
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
         with:
           packages-dir: ${{ runner.temp }}/delta-python-verified/
           skip-existing: false
@@ -352,6 +380,7 @@ jobs:
   mcp-registry:
     runs-on: ubuntu-latest
     needs: [npm-mcp, authorize-release]
+    if: ${{ contains(fromJSON(needs.authorize-release.outputs.scopes || '[]'), 'mcp-registry') }}
     env:
       DELTA_EXECUTE_RELEASE: ${{ inputs.execute_release }}
       DELTA_REQUESTED_SOURCE: ${{ inputs.source_commit }}
@@ -364,8 +393,8 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with: { node-version: "22" }
       - run: node scripts/render-mcp-server.mjs
       - run: |
@@ -392,8 +421,8 @@ jobs:
     needs: [npm-client, npm-mcp, mcp-registry]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with: { node-version: "24", package-manager-cache: false }
       - run: node scripts/public-npm-smoke.mjs
 
@@ -401,8 +430,8 @@ jobs:
     needs: pypi-client
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with: { python-version: "3.12" }
       - name: Install and call the public PyPI client
         run: |
@@ -412,29 +441,29 @@ jobs:
 
   postman:
     needs: [verify, authorize-release]
-    if: ${{ vars.POSTMAN_ENABLED == 'true' }}
+    if: ${{ contains(fromJSON(needs.authorize-release.outputs.scopes || '[]'), 'postman') && vars.POSTMAN_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     env:
       POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
       POSTMAN_WORKSPACE_ID: ${{ vars.POSTMAN_WORKSPACE_ID }}
       POSTMAN_COLLECTION_ID: ${{ vars.POSTMAN_COLLECTION_ID }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with: { node-version: "22" }
       - run: test -n "$POSTMAN_API_KEY"
       - run: node scripts/postman-sync.mjs
 
   apify:
     needs: [verify, authorize-release]
-    if: ${{ vars.APIFY_ENABLED == 'true' }}
+    if: ${{ contains(fromJSON(needs.authorize-release.outputs.scopes || '[]'), 'apify') && vars.APIFY_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     env:
       APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
     defaults: { run: { working-directory: channels/apify } }
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with: { node-version: "22" }
       - run: test -n "$APIFY_TOKEN"
       - run: npm ci

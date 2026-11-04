@@ -148,6 +148,14 @@ export async function processOperatingAlert(source:RuntimeEnv,episodeKey:string,
     }
     receipt=structuredClone(receipt);
     if(!receiptValid(receipt,current.record,Date.now()))throw new Error('alert_receipt_identity_conflict');
+    // Polling an unchanged native result is not a state transition. Appending
+    // every accepted observation exhausted the bounded history and prevented a
+    // later delivered result from being recorded in a long-running episode.
+    const previous=current.record.receipt;
+    if(previous&&previous.status===receipt.status&&previous.receipt_id===receipt.receipt_id){
+      return {state:current.record.state,receipt_id:previous.receipt_id,recipient_acknowledged:!!current.record.acknowledgment,
+        reason:'original_receipt_unchanged'};
+    }
     const row=next(current.record,{state:receipt.status==='not_applied'?'failed':receipt.status,receipt,lease_until:null},Date.now());
     try{await commitClaim(env,key,current,row);}catch{/* only original record readback */}
     const actual=await readOrderMetadata<AlertOutboxRecord>(env,key);check();

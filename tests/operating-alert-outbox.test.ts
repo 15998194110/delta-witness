@@ -47,6 +47,17 @@ it('explicit ACK binds exact episode, notification, payload and owner evidence',
   expect(await enqueueOperatingAlert(s.env,episode,dest)).toMatchObject({state:'suppressed'});
   const a=exactAdapter();await processOperatingAlert(s.env,episode.dedupe_key,a);expect(a.send).not.toHaveBeenCalled();
 });
+it('many unchanged accepted polls preserve transition capacity for eventual delivery and explicit ACK',async()=>{
+  const s=fixture();await enqueueOperatingAlert(s.env,episode,dest);const a=exactAdapter('provider_accepted');
+  await processOperatingAlert(s.env,episode.dedupe_key,a);const original=(await readOperatingAlert(s.env,episode.dedupe_key))!;
+  a.readOriginal=vi.fn(async()=>({...original.receipt!,observed_at:new Date().toISOString()}));
+  for(let n=0;n<40;n++){vi.setSystemTime(now+n*1000);expect(await processOperatingAlert(s.env,episode.dedupe_key,a)).toMatchObject({state:'provider_accepted',reason:'original_receipt_unchanged'});}
+  expect(await readOperatingAlert(s.env,episode.dedupe_key)).toEqual(original);
+  a.readOriginal=vi.fn(async()=>({...original.receipt!,status:'delivered' as const,observed_at:new Date().toISOString()}));
+  expect(await processOperatingAlert(s.env,episode.dedupe_key,a)).toMatchObject({state:'delivered',recipient_acknowledged:false});
+  expect(await acknowledgeOperatingAlert(s.env,episode.dedupe_key,{notification_id:original.notification_id,payload_hash:original.payload_hash,actor_ref:'owner',evidence_ref:'owner-confirmation',observed_at:new Date().toISOString()})).toMatchObject({state:'acknowledged'});
+  expect(a.send).toHaveBeenCalledTimes(1);expect((await readOperatingAlert(s.env,episode.dedupe_key))?.history).toHaveLength(original.history.length+2);
+});
 it('unknown send preserves the original operation and absence of provider receipt never permits resending',async()=>{
   const s=fixture();await enqueueOperatingAlert(s.env,episode,dest);const a=exactAdapter();a.send=vi.fn(async()=>{throw new Error('provider-secret-must-not-escape');});
   expect(await processOperatingAlert(s.env,episode.dedupe_key,a)).toMatchObject({state:'unconfirmed'});

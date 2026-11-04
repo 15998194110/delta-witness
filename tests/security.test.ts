@@ -4,6 +4,8 @@ import {
   readJsonRequestBounded,
   resolvePublicRedirects,
   validateTarget,
+  isNonPublicIpv6,
+  BROWSER_REJECT_PATTERNS,
 } from "../src/security";
 
 describe("public URL policy", () => {
@@ -26,6 +28,13 @@ describe("public URL policy", () => {
     "http://203.0.113.1/",
     "http://[::1]/",
     "http://[fd00::1]/",
+    "http://[::ffff:127.0.0.1]/",
+    "http://[::ffff:7f00:1]/",
+    "http://[::ffff:a9fe:a9fe]/",
+    "http://[0:0:0:0:0:0:0:1]/",
+    "http://[64:ff9b::a00:1]/",
+    "http://[2002:7f00:1::]/",
+    "http://[2001:db8::1]/",
     "http://user:pass@example.com/",
     "http://example.com:8080/",
     "file:///etc/passwd",
@@ -42,6 +51,30 @@ describe("public URL policy", () => {
         : { Status: 0, Answer: [] }, init);
     }) as unknown as typeof fetch;
     await expect(assertPublicDns("rebinding.example", fetchImpl)).rejects.toThrow("private_dns_target_not_allowed");
+  });
+
+  it("keeps ordinary global unicast IPv6 available", () => {
+    expect(isNonPublicIpv6("2606:4700:4700::1111")).toBe(false);
+    expect(validateTarget("https://[2606:4700:4700::1111]/").hostname).toBe("[2606:4700:4700::1111]");
+  });
+
+  it.each(["::ffff:7f00:1", "0:0:0:0:0:0:0:1", "0:0:0:0:0:ffff:192.168.1.1", "fe80:0:0:0:0:0:0:1"])("rejects non-public AAAA %s even with a public A", async address => {
+    const dns = vi.fn(async (url: string | URL | Request) => Response.json({Status:0, Answer:[new URL(String(url)).searchParams.get("type") === "A" ? {type:1,data:"93.184.216.34"} : {type:28,data:address}]})) as unknown as typeof fetch;
+    await expect(assertPublicDns("example.com", dns)).rejects.toThrow("private_dns_target_not_allowed");
+  });
+
+  it.each(["failed", "servfail", "malformed_v4", "malformed_v6"])("does not proceed with incomplete DNS assurance: %s", async variant => {
+    const dns = vi.fn(async (url: string | URL | Request) => {
+      if (new URL(String(url)).searchParams.get("type") === "A") return Response.json({Status:0,Answer:[{type:1,data:"93.184.216.34"}]});
+      if (variant === "failed") return new Response("unavailable", {status:503});
+      if (variant === "servfail") return Response.json({Status:2});
+      return Response.json({Status:0,Answer:[variant === "malformed_v4" ? {type:1,data:"999.1.1.1"} : {type:28,data:"not-an-ip"}]});
+    }) as unknown as typeof fetch;
+    await expect(assertPublicDns("example.com", dns)).rejects.toThrow("dns_resolution_failed");
+  });
+
+  it.each(["http://[::ffff:7f00:1]/", "http://[64:ff9b::a00:1]/", "http://[2002:7f00:1::]/", "http://a.b.local/", "http://user:pass@public.example/", "http://198.18.1.1/"])("rejects unsafe browser subresource %s", url => {
+    expect(BROWSER_REJECT_PATTERNS.some(pattern => new RegExp(pattern).test(url))).toBe(true);
   });
 
   it("uses a Workers-compatible manual redirect policy for DNS resolution", async () => {

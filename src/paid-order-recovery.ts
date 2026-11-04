@@ -49,7 +49,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{1
 const STATES_AND_REASONS: Record<PaidOrderRecoveryItem["state"], PaidOrderRecoveryItem["reason"][]> = {
   recovered: ["original_delivery_recovered"], complete: ["already_complete"],
   reconciliation_required: ["settlement_unknown", "settlement_rejected", "fulfillment_missing", "delivery_draft_missing",
-    "fulfillment_not_processing", "order_missing", "evidence_inconsistent", "evidence_unavailable", "order_changed"],
+    "fulfillment_not_processing", "order_missing", "evidence_inconsistent", "evidence_unavailable", "order_changed", "raw_artifacts_expired", "order_revoked"],
   skipped: ["raw_artifacts_expired", "order_revoked"], write_unconfirmed: ["original_write_unconfirmed"], concurrent: ["original_cas_conflict"],
 };
 function exactObject(value: unknown, keys: string[]): value is Record<string, unknown> {
@@ -157,21 +157,22 @@ export async function runPaidOrderRecovery(env: RuntimeEnv, options: PaidOrderRe
       if (!order) return item("reconciliation_required", "order_missing");
       // Credential expiry is not a new grant or an excuse to delete a paid
       // obligation. No buyer credential is created/read/extended by this worker.
-      if (order.revoked_at) return item("skipped", "order_revoked");
+      // Revoking a credential is not evidence that a paid obligation ended.
+      if (order.revoked_at) return item("reconciliation_required", "order_revoked");
       const journal = await readOrderSettlement(bounded, order); assertActive();
       if (journal.state !== "settlement_confirmed") return item("reconciliation_required", journal.state);
       const original = await readFulfillment(bounded, fulfillmentRecordKey(order.payment_fingerprint)); assertActive();
-      if ((await orderRetention(order, journal, original)).state === "expired") return item("skipped", "raw_artifacts_expired");
+      if ((await orderRetention(order, journal, original)).state === "expired") return item(original?.record.state === "complete" ? "skipped" : "reconciliation_required", "raw_artifacts_expired");
       snapshot.allowArtifactsFor(uuidFromDigest(await sha256(`${order.payment_fingerprint}\n${order.product}`)));
       const entitlement = await readOrderEntitlement(bounded, order); assertActive();
       if (entitlement.settlement.state !== "settlement_confirmed") return item("reconciliation_required", entitlement.settlement.state);
-      if ((await orderRetention(order, entitlement.settlement, entitlement.fulfillment)).state === "expired") return item("skipped", "raw_artifacts_expired");
+      if ((await orderRetention(order, entitlement.settlement, entitlement.fulfillment)).state === "expired") return item(entitlement.fulfillment?.record.state === "complete" ? "skipped" : "reconciliation_required", "raw_artifacts_expired");
       if (!entitlement.fulfillment) return item("reconciliation_required", "fulfillment_missing");
       if (entitlement.fulfillment.record.state === "complete" && entitlement.delivery) return item("complete", "already_complete");
       if (entitlement.fulfillment.record.state !== "processing") return item("reconciliation_required", "fulfillment_not_processing");
       if (!entitlement.delivery) return item("reconciliation_required", "delivery_draft_missing");
       await assertOriginal(order);
-      if ((await orderRetention(order, entitlement.settlement, entitlement.fulfillment)).state === "expired") return item("skipped", "raw_artifacts_expired");
+      if ((await orderRetention(order, entitlement.settlement, entitlement.fulfillment)).state === "expired") return item("reconciliation_required", "raw_artifacts_expired");
       assertActive(); snapshot.assertActive();
       originalCompletionStarted = true;
       const recovered = await recoverDelivery(bounded, fulfillmentRecordKey(order.payment_fingerprint), entitlement.fulfillment,

@@ -1,3 +1,5 @@
+import {pathToFileURL} from 'node:url';
+import {fetchTextBounded} from './bounded-http.mjs';
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const USER_AGENT = 'DELTA-Revenue-Demand-Scanner/1.3';
@@ -14,32 +16,37 @@ const GENERIC_RESEARCH = /\b(research|compile|comparison|compare|survey|list\s+\
 const PREFLIGHT_SIGNAL = /\b(preflight|before\s+(?:checkout|purchase|submit|submission|action|execution)|expected\s+(?:text|content|state)|must\s+contain|must\s+not\s+contain|compare\s+(?:state|hash|content))\b/i;
 const PILOT_SIGNAL = /\bguarded[- ]action\s+pilot\b/i;
 
-async function fetchJson(url) {
+async function fetchJson(url, fetchImpl, pause) {
   let lastError = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const res = await fetch(url, {
+      const {response:res,text} = await fetchTextBounded(fetchImpl,url, {
         headers: { accept: 'application/json', 'user-agent': USER_AGENT },
-        signal: AbortSignal.timeout(15000),
-      });
-      const text = await res.text();
+        redirect:'error',
+      },{timeoutMs:15000,maxBytes:2_000_000});
       let body = null;
-      try { body = text ? JSON.parse(text) : null; } catch { body = { raw: text.slice(0, 2000) }; }
+      try { body = JSON.parse(text); } catch { throw new Error('invalid_inventory_json'); }
+      if(!body || typeof body!=='object')throw new Error('invalid_inventory_json');
       if ([429, 500, 502, 503, 504].includes(res.status)) throw new Error(`http_${res.status}`);
       return { ok: res.ok, status: res.status, body, attempt, url };
     } catch (error) {
-      lastError = error instanceof Error ? error.message : String(error);
-      if (attempt < 3) await sleep(1000 * 2 ** (attempt - 1));
+      const message=error instanceof Error?error.message:'';
+      lastError=/^(?:http_(?:429|500|502|503|504)|read_size_limit|invalid_inventory_json)$/.test(message)?message:'bounded_inventory_read_failed';
+      if (attempt < 3) await pause(1000 * 2 ** (attempt - 1));
     }
   }
   return { ok: false, status: null, body: null, error: lastError, url };
 }
 
-function deepObjects(value, out = []) {
-  if (!value || typeof value !== 'object') return out;
-  if (!Array.isArray(value)) out.push(value);
-  for (const child of Object.values(value)) {
-    if (child && typeof child === 'object') deepObjects(child, out);
+export function deepObjects(value) {
+  const out=[],stack=[{value,depth:0}];let visited=0;
+  while(stack.length){const item=stack.pop();if(!item.value||typeof item.value!=='object')continue;
+    if(++visited>10000||item.depth>32)throw new Error('inventory_structure_limit');
+    if(!Array.isArray(item.value))out.push(item.value);
+    for(const child of Object.values(item.value))if(child&&typeof child==='object'){
+      if(stack.length>=10000)throw new Error('inventory_structure_limit');
+      stack.push({value:child,depth:item.depth+1});
+    }
   }
   return out;
 }
@@ -232,7 +239,8 @@ const sources = [
   },
 ];
 
-const fetched = await Promise.all(sources.map((s) => fetchJson(s.url)));
+export async function scanExternalDemand({fetchImpl=fetch,pause=sleep}={}){
+const fetched = await Promise.all(sources.map((s) => fetchJson(s.url,fetchImpl,pause)));
 const results = sources.map((source, i) => {
   const response = fetched[i];
   if (!response.ok) {
@@ -245,7 +253,7 @@ const results = sources.map((source, i) => {
       delta_native_raw_requests: [],
       delta_native_price_incompatible_requests: [],
       delta_native_funded_requests: [],
-      delta_native_funded_count: 0,
+      delta_native_funded_count: null,
       evidence_quality: response.status ? 'B_official_public_api_error' : 'C_channel_degraded',
       mutation: false,
     };
@@ -256,12 +264,12 @@ const results = sources.map((source, i) => {
       channel: source.channel,
       discovery_status: 'degraded_recoverable',
       http: response.status,
-      error: `parse_error:${error instanceof Error ? error.message : String(error)}`,
+      error: error?.message==='inventory_structure_limit'?'inventory_structure_limit':'inventory_parse_failed',
       adjacent_funded_requests: [],
       delta_native_raw_requests: [],
       delta_native_price_incompatible_requests: [],
       delta_native_funded_requests: [],
-      delta_native_funded_count: 0,
+      delta_native_funded_count: null,
       evidence_quality: 'C_parse_unknown',
       mutation: false,
     };
@@ -286,21 +294,28 @@ const results = sources.map((source, i) => {
     delta_native_funded_requests: compatible.slice(0, 20),
     funded_semantics: source.funded_semantics,
     action_boundary: source.action_boundary,
-    evidence_quality: 'A_official_public_api_current',
+    evidence_quality: 'official_public_inventory_observed_not_independent_budget_verification',
+    buyer_budget_verified: false,
     mutation: false,
   };
 });
 
-console.log(JSON.stringify({
-  ok: true,
+const complete=results.every(r=>r.discovery_status==='present');
+return {
+  ok: complete,
+  coverage_complete:complete,
   checked_at: new Date().toISOString(),
   purpose: 'revenue_first_funded_buyer_demand',
   compatibility_rule: 'funded compatible requires existing DELTA Capture/Preflight/Watch/Pilot fulfillment fit AND a known buyer budget at or above the unchanged owner price; generic code/research and unknown/under-floor budgets are excluded',
   owner_price_usdc: OWNER_PRICE,
   results,
-  total_delta_native_raw_requests: results.reduce((sum, r) => sum + (r.delta_native_raw_count || 0), 0),
-  total_delta_native_price_incompatible_requests: results.reduce((sum, r) => sum + (r.delta_native_price_incompatible_count || 0), 0),
-  total_delta_native_funded_requests: results.reduce((sum, r) => sum + (r.delta_native_funded_count || 0), 0),
-  total_adjacent_funded_requests: results.reduce((sum, r) => sum + (r.adjacent_funded_count || 0), 0),
+  total_delta_native_raw_requests: complete?results.reduce((sum, r) => sum + (r.delta_native_raw_count || 0), 0):null,
+  total_delta_native_price_incompatible_requests: complete?results.reduce((sum, r) => sum + (r.delta_native_price_incompatible_count || 0), 0):null,
+  total_delta_native_funded_requests: complete?results.reduce((sum, r) => sum + (r.delta_native_funded_count || 0), 0):null,
+  total_adjacent_funded_requests: complete?results.reduce((sum, r) => sum + (r.adjacent_funded_count || 0), 0):null,
+  observed_delta_native_funded_requests:results.reduce((sum,r)=>sum+(r.delta_native_funded_count||0),0),
+  budget_assurance:'provider_inventory_claims_only; require original current escrow/buyer authorization before commercial action',
   financial_or_signature_action_taken: false,
-}, null, 2));
+};
+}
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)console.log(JSON.stringify(await scanExternalDemand(),null,2));

@@ -228,10 +228,23 @@ export async function readFinancialAccounting(env:RuntimeEnv,input:{as_of?:strin
     catch{check();orders.push({order_id:id,source:'core_original_records',state:'unknown',read_at:new Date().toISOString(),payment_authorized:'unknown',settlement_confirmed:'unknown',delivered:'unknown'});}
     finally{snapshot.cancel();snapshots.delete(snapshot);}}
   const effectiveAsOf=asOf(),accounting=await deriveOrderAccounting({as_of:effectiveAsOf,orders,treasury_checkpoint:input.treasury_checkpoint,attestations:audits});
+  // Evidence review, not an executor or an authorization to spend. A selected
+  // positive order never establishes complete inventory/channel economics.
+  const negative=accounting.rows.filter(r=>r.actual_contribution_margin_raw!==null&&BigInt(r.actual_contribution_margin_raw)<0n).map(r=>r.order_id);
+  const unknown=accounting.rows.filter(r=>r.recognized_customer_revenue_raw===null||r.actual_variable_cost_raw===null||r.actual_contribution_margin_raw===null).map(r=>r.order_id);
+  const nonpositive=accounting.rows.filter(r=>r.actual_contribution_margin_raw!==null&&BigInt(r.actual_contribution_margin_raw)<=0n).map(r=>r.order_id);
+  const expansionGate={schema:'delta-selected-economics-gate/v1',decision:negative.length?'block_negative_margin':'hold',
+    scope:'selected_orders_only_not_global_inventory',as_of:effectiveAsOf,accounting_view_hash:accounting.view_hash,
+    reasons:[...(negative.length?['evidenced_negative_margin']:[]),...(unknown.length?['actual_economics_unknown']:[]),
+      ...(!negative.length&&nonpositive.length?['positive_margin_not_demonstrated']:[]),
+      ...(sources.some(s=>s.source.collection==='synthetic_fixture')?['synthetic_evidence_not_commercial_validation']:[]),'inventory_and_external_gates_not_verified'],
+    negative_margin_order_ids:negative,unknown_economics_order_ids:unknown,
+    selected_positive_economics:unknown.length===0&&nonpositive.length===0&&accounting.rows.length>0,
+    mutates_pricing:false,blocks_original_paid_fulfillment:false,authorizes_spend:false};
   check();return{schema:'delta-financial-evidence-view/v1',authority:'original_accounting_derivation_not_a_second_ledger',as_of:effectiveAsOf,requested_as_of:input.as_of??null,
     evidence_environment:sources.some(s=>s.source.collection==='synthetic_fixture')?'synthetic_not_customer_activity':'selected_source_observations_only',
     selected_order_ids:[...input.order_ids],inventory_complete:false,all_time_verified:false,source_hashes:[...input.source_hashes],missing_sources:missing,
     source_observations:sources.map(s=>({source_hash:s.source_hash,kind:s.source.kind,collection:s.source.collection,observed_at:s.source.observed_at})),
-    audit_qualifications:qualifications,source_verifier_configured:!!verify,accounting};
+    audit_qualifications:qualifications,source_verifier_configured:!!verify,expansion_gate:expansionGate,accounting};
   })(),60_000,'financial_join_deadline',stop);}finally{stop();}
 }

@@ -87,6 +87,7 @@ import { handleTreasuryCustody } from "./treasury-custody";
 import { scheduledPaidOrderRecovery, paidOrderRecoveryStatus } from "./paid-recovery-control";
 import { observeCronInvocation, cronObservationStatus } from "./cron-observer";
 import { processOwnerAlertQueue } from "./operating-alert-delivery";
+import { receiveResendAlertWebhook } from "./operating-alert-webhook";
 import {enqueuePaidRecoveryPriority} from './paid-recovery-priority';
 import {enqueueOperatingAlert,readOperatingAlert,acknowledgeOperatingAlert} from './operating-alert-outbox';
 
@@ -1087,6 +1088,12 @@ app.get("/internal/scheduled/status", async (c) => {
 
 // One private operations surface. No query-string credentials, browser token
 // storage, payment authority, arbitrary task execution or proof export is added.
+// Provider-authenticated receipt only; never a bypass for admin operations.
+app.post('/internal/operations/alerts/resend-webhook', async c => {
+  if(c.req.header('origin') || c.req.header('authorization') || c.req.header('payment-signature') || c.req.header('x-payment'))
+    return c.json({error:'receipt_input_forbidden'},400,{'cache-control':'no-store','x-robots-tag':'noindex, nofollow'});
+  return receiveResendAlertWebhook(c.env,c.req.raw);
+});
 app.use('/internal/operations/*', async (c,next)=>{
   const headers={'cache-control':'private, no-store','x-robots-tag':'noindex, nofollow'};
   if(c.env.OPERATIONS_CLOUD_ENABLED!=='true'||!c.env.OPERATIONS_ADMIN_SECRET)return c.json({error:'operating_control_not_configured'},503,headers);
@@ -1255,6 +1262,7 @@ export default {
     if(controller.cron==='*/15 * * * *'&&env.OPERATIONS_CLOUD_ENABLED==='true'&&env.OPERATIONS_ALERT_OUTBOX_ENABLED==='true'){
       jobs.push(persistOperatingAlertCandidates(env).then(result=>{
         if('results' in result&&result.results?.some(r=>['blocked','conflict','unconfirmed','failed'].includes(r.state)))throw new Error('alert_persistence_degraded');
+        if('paid_source_checkpoint' in result&&result.paid_source_checkpoint?.state==='retained')throw new Error('paid_alert_observation_degraded');
         return result;
       }));
     }

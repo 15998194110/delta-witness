@@ -85,7 +85,7 @@ describe('verified npm archive qualification, no real registry or publication',(
     expect(workflow.match(/verified-npm-artifact\.mjs record/g)).toHaveLength(2);
     expect(workflow.match(/verified-npm-artifact\.mjs publish/g)).toHaveLength(2);
     for(const block of workflow.split(/(?=^  [a-z][a-z0-9-]*:\s*$)/m).filter(value=>/^  npm-(client|mcp):/m.test(value))){
-      expect(block).toContain('actions/download-artifact@v4');expect(block).not.toContain('npm publish');expect(block).not.toContain('npm ci');expect(block).toContain('authorize-release');
+      expect(block).toMatch(/actions\/download-artifact@[a-f0-9]{40}/);expect(block).not.toContain('npm publish');expect(block).not.toContain('npm ci');expect(block).toContain('authorize-release');
     }
     expect(workflow.indexOf('prepare-npm-publish.mjs')).toBeLessThan(workflow.indexOf('verified-npm-artifact.mjs record'));
   });

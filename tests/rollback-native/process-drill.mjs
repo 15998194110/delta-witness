@@ -212,6 +212,12 @@ const response=await original.fetch(request,bound,local);await Promise.allSettle
       if(scenario==='unknown'){assert.equal(view.payment.state,'settlement_unknown');assert.equal(view.fulfillment.state,'not_started');assert.equal(view.reconciliation_required,true);}
       const replay=await invokeOriginal();const replayBody=await replay.json();
       if(scenario==='preproof'){
+        if(stage==='preproof-forward'){
+          assert.equal(view.remediation?.state,'needs_intervention');assert.equal(view.remediation?.obligation,'original_paid_delivery_unresolved');
+          assert.equal(view.remediation?.historical_evidence_loss_confirmed,null);assert.equal(view.remediation?.additional_payment_required,false);
+          assert.equal(view.remediation?.replacement_observation.authorized,false);assert.equal(view.remediation?.refund.authorized,false);
+          assert.equal(view.remediation?.customer_revenue_recognized,null);
+        }
         assert([202,503].includes(replay.status));assert.notEqual(replayBody.idempotent_replay,true);
         assert(['processing','fulfillment_unknown'].includes(replayBody.state));assert.equal(replayBody.proof_id,undefined);
       }else assert.equal(replay.status,503);

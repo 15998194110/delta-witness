@@ -47,6 +47,16 @@ it('verified exact-source audit composes the original accounting kernel with sep
     actual_variable_cost_raw:'700',actual_contribution_margin_raw:'999300',operating_profit_raw:'999100',counted_customer_transactions:1});
   expect(result.accounting.rows[0].service_fee_tx).toBe(tx);expect(result.audit_qualifications[0].state).toBe('qualified');expect(f.bucket.sequence).toBe(before);
   expect(f.network).not.toHaveBeenCalled();expect(f.env.BROWSER.quickAction).not.toHaveBeenCalled();
+  expect(result.expansion_gate).toMatchObject({decision:'hold',selected_positive_economics:true,accounting_view_hash:result.accounting.view_hash,authorizes_spend:false,blocks_original_paid_fulfillment:false});
+  expect(result.expansion_gate.reasons).toContain('synthetic_evidence_not_commercial_validation');
+});
+it('actual loss blocks expansion review while unknown expenses remain hold and original fulfillment remains intact',async()=>{
+  const candidate=audit();(candidate.payload as any).costs.browser.raw_usdc='2000000';
+  const f=await fixture([candidate,support('buyer_contract','fixture-buyer'),support('refund_ledger','fixture-refunds'),support('cost_allocation','fixture-allocation')]);
+  const before=f.bucket.sequence,unknown=await readFinancialAccounting(f.env,f.input),loss=await readFinancialAccounting(f.env,f.input,verifier);
+  expect(unknown.expansion_gate).toMatchObject({decision:'hold',unknown_economics_order_ids:[TEST_ORDER_ID]});
+  expect(loss.expansion_gate).toMatchObject({decision:'block_negative_margin',negative_margin_order_ids:[TEST_ORDER_ID],selected_positive_economics:false,mutates_pricing:false,blocks_original_paid_fulfillment:false});
+  expect(loss.accounting.rows[0].delivered).toBe('confirmed');expect(f.bucket.sequence).toBe(before);expect(f.network).not.toHaveBeenCalled();
 });
 it('an invoice notification with zero due cannot certify cost, refund coverage or customer purpose even if a verifier is mistaken',async()=>{
   const candidate=audit();Object.assign(candidate.payload,{evidence_ref:'fixture-invoice-notice',refunds:{coverage:'complete',raw_amount:'0',evidence_ref:'fixture-invoice-notice'},

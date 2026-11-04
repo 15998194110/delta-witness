@@ -16,16 +16,16 @@
     "verify": "node scripts/check-owner-pricing.mjs && npm run pricing-authority && npm run types && npm run check && npm test && npm run build"
   },
   "dependencies": {
-    "@x402/core": "^2.0.0",
-    "@x402/evm": "^2.0.0",
-    "@x402/hono": "^2.0.0",
-    "@x402/extensions": "^2.0.0",
-    "hono": "^4.0.0"
+    "@x402/core": "2.29.0",
+    "@x402/evm": "2.29.0",
+    "@x402/extensions": "2.29.0",
+    "@x402/hono": "2.29.0",
+    "hono": "4.13.16"
   },
   "devDependencies": {
     "@types/node": "latest",
-    "vitest": "latest",
     "typescript": "latest",
-    "wrangler": "latest"
+    "vitest": "4.1.12",
+    "wrangler": "4.157.0"
   }
 }

@@ -49,14 +49,30 @@ export function isNonPublicIpv4(host: string): boolean {
   );
 }
 
+function ipv6Words(host: string): number[] | null {
+  try {
+    // WHATWG canonicalization handles expanded/IPv4-tail forms consistently
+    // with the HTTP client; a text prefix check misses ::ffff:7f00:1.
+    const canonical = normalizeHost(new URL(`http://[${normalizeHost(host)}]/`).hostname);
+    const sides = canonical.split("::");
+    const left = sides[0] ? sides[0].split(":").map(x => parseInt(x, 16)) : [];
+    const right = sides.length === 2 && sides[1] ? sides[1].split(":").map(x => parseInt(x, 16)) : [];
+    const words = sides.length === 2 ? [...left, ...Array(8-left.length-right.length).fill(0), ...right] : left;
+    return words.length === 8 && words.every(n => Number.isInteger(n) && n >= 0 && n <= 65535) ? words : null;
+  } catch { return null; }
+}
+
 export function isNonPublicIpv6(host: string): boolean {
-  const value = normalizeHost(host);
-  if (!value.includes(":")) return false;
-  if (value === "::" || value === "::1") return true;
-  if (value.startsWith("fc") || value.startsWith("fd") || /^fe[89ab]/.test(value)) return true;
-  if (value.startsWith("ff")) return true;
-  const mapped = value.match(/^(?:::ffff:)?(\d{1,3}(?:\.\d{1,3}){3})$/i);
-  return mapped ? isNonPublicIpv4(mapped[1]) : false;
+  if (!normalizeHost(host).includes(":")) return false;
+  const words = ipv6Words(host);
+  if (!words) return true;
+  // Conservative public-web policy: global unicast only, excluding special,
+  // documentation and transition ranges. This also denies mapped/NAT64 local
+  // destinations; it does not infer public reachability from encoded IPv4.
+  // IANA IPv6 special-purpose registry (reviewed 2026-11-04).
+  return (words[0] & 0xe000) !== 0x2000 ||
+    (words[0] === 0x2001 && (words[1] < 0x200 || words[1] === 0xdb8)) ||
+    words[0] === 0x2002 || words[0] === 0x3ffe || (words[0] === 0x3fff && words[1] < 0x1000);
 }
 
 export function validateTarget(raw: unknown): URL {
@@ -115,18 +131,25 @@ export async function assertPublicDns(
       await response.body?.cancel();
       throw new Error("dns_resolver_redirect_not_allowed");
     }
-    if (!response.ok) continue;
+    if (!response.ok) {
+      void response.body?.cancel().catch(() => {});
+      throw new Error("dns_resolution_failed");
+    }
     const body = (await readJsonResponseBounded(response, 64_000)) as {
       Status?: number;
       Answer?: Array<{ type?: number; data?: string }>;
     };
-    if (body.Status !== undefined && body.Status !== 0) continue;
+    // A public A response cannot excuse an unavailable/private AAAA view.
+    if (!body || body.Status !== 0 || (body.Answer !== undefined && !Array.isArray(body.Answer))) throw new Error("dns_resolution_failed");
     for (const answer of body.Answer ?? []) {
-      if (answer.type === 1 && answer.data) {
+      if (!answer || typeof answer !== "object") throw new Error("dns_resolution_failed");
+      if (answer.type === 1) {
+        if (typeof answer.data !== "string" || !parseIpv4(answer.data)) throw new Error("dns_resolution_failed");
         sawAddress = true;
         if (isNonPublicIpv4(answer.data)) throw new Error("private_dns_target_not_allowed");
       }
-      if (answer.type === 28 && answer.data) {
+      if (answer.type === 28) {
+        if (typeof answer.data !== "string" || !ipv6Words(answer.data)) throw new Error("dns_resolution_failed");
         sawAddress = true;
         if (isNonPublicIpv6(answer.data)) throw new Error("private_dns_target_not_allowed");
       }
@@ -269,9 +292,12 @@ export function referrerChannel(request: Request): string {
 }
 
 export const BROWSER_REJECT_PATTERNS = [
-  "^https?://(?:[^@/]+@)?(?:localhost|[^./]+\\.localhost|[^./]+\\.local)(?::|/|$)",
+  "^https?://[^/]*@",
+  "^https?://(?:localhost|(?:[^./]+\\.)+(?:localhost|local))(?::|/|$)",
   "^https?://(?:0|10|127|169\\.254|172\\.(?:1[6-9]|2[0-9]|3[01])|192\\.168)(?:\\.|:|/|$)",
   "^https?://(?:100\\.(?:6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7]))(?:\\.|:|/|$)",
   "^https?://\\[(?:::1|f[cd][0-9a-f:]*|fe[89ab][0-9a-f:]*|ff[0-9a-f:]*)\\](?::|/|$)",
+  "^https?://\\[(?:::|::ffff:|64:ff9b:|100:|2001:(?:0:|1:|2:|10:|20:|30:|db8:)|2002:|3ffe:|3fff:|5f00:)[^\\]]*\\]",
+  "^https?://(?:192\\.0\\.(?:0|2)|192\\.88\\.99|198\\.(?:18|19)|198\\.51\\.100|203\\.0\\.113)(?:\\.|:|/|$)",
   "^https?://(?:169\\.254\\.169\\.254|metadata\\.google\\.internal|instance-data\\.ec2\\.internal)(?::|/|$)",
 ];

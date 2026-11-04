@@ -53,6 +53,25 @@ async function valid(row:Transport,config:ResendAlertConfig,configurationHash:st
     (row.state==='prepared'?row.attempts===0:row.attempts>=1)&&(!['accepted','delivered','failed'].includes(row.state)||row.provider_email_id!==null);
 }
 
+// Signed webhook custody can corroborate only an already-known original
+// provider email. It cannot bind an unknown POST outcome to an arbitrary ID.
+// Native GET readback remains responsible for resolving that unknown outcome.
+export async function readResendAlertWebhookBinding(source:RuntimeEnv,config:ResendAlertConfig,data:unknown){
+  if(!config.enabled||!data||typeof data!=='object'||Array.isArray(data))return null;
+  const d=data as Record<string,unknown>,tags=d.tags as Record<string,unknown>;
+  if(!tags||!uuid(tags.delta_notification)||!uuid(d.email_id))return null;
+  const configurationHash=await resendAlertConfigurationDigest(config);
+  if(config.destination_digest!==configurationHash||config.approved_configuration_digest!==configurationHash||!opaque(config.approval_evidence_ref))return null;
+  const stored=await readOrderMetadata<Transport>(source,key(tags.delta_notification),MAX_RECORD);
+  if(!stored||!await valid(stored.record,config,configurationHash))return null;
+  const row=stored.record,expected=email(config,row);
+  if(row.provider_email_id!==d.email_id||d.from!==expected.from||stableJson(d.to)!==stableJson(expected.to)||d.subject!==expected.subject||
+    stableJson(tags)!==stableJson(Object.fromEntries(expected.tags.map(t=>[t.name,t.value])))||
+    typeof d.created_at!=='string'||!Number.isFinite(Date.parse(d.created_at))||Date.parse(d.created_at)<Date.parse(row.created_at)-5000||Date.parse(d.created_at)>Date.now())return null;
+  return {notification_id:row.notification_id,payload_hash:row.payload_hash,destination_digest:row.destination_digest,
+    provider_email_id:row.provider_email_id,original_created_at:row.created_at};
+}
+
 // Disabled returns before network/storage. Explicit approval binds the precise
 // sender and destination; live native readback verifies usable full-access key
 // plus a verified sending domain. Quota/acceptance are still checked per POST.

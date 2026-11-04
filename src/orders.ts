@@ -5,6 +5,7 @@ import { readOrderSettlement, type SettlementRecord } from "./settlement";
 import { withinDeadline } from "./deadline";
 import { createOrderReadSnapshot, readOrderMetadata, writeOrderObject } from "./order-storage";
 import { deliveryDigest } from "./fulfillment";
+import { orderRemediation } from "./order-remediation";
 import { parseRetentionPolicy, verifyRetentionSnapshot, evaluateRetention, type RetentionPolicy, type RetentionSnapshot } from "./retention";
 
 export const ORDER_ID_HEADER = "x-delta-order-id";
@@ -286,6 +287,39 @@ export async function readOrderEntitlement(env: RuntimeEnv, order: OrderBinding)
   return { settlement, fulfillment, ...(delivery ? { delivery } : {}) };
 }
 
+// Internal bounded projection of an existing obligation. The caller supplies
+// selected original IDs from its authenticated operational inventory. It is
+// not a global debt scan, a customer credential, or permission to do work.
+export async function readOrderRemediationSummary(env: RuntimeEnv, id: string) {
+  const snapshot = createOrderReadSnapshot(env);
+  let identity: { order_id: string; episode_id: string; first_seen_at: string; first_seen_source: string } | null = null;
+  const summary = (state: 'pending_original_delivery' | 'needs_intervention' | 'unknown', reason: string) => identity &&
+    ({ ...identity, state, reason, observed_at: new Date().toISOString(), inventory_complete: false as const });
+  try { return await withinDeadline((async () => {
+    const order = await readOrderBinding(snapshot.env, id); snapshot.assertActive();
+    if (!order) return null;
+    const journal = await readOrderSettlement(snapshot.env, order); snapshot.assertActive();
+    if (journal.state !== 'settlement_confirmed') return null;
+    const first = journal.confirmed_at ?? order.created_at;
+    if (!Number.isFinite(Date.parse(first)) || Date.parse(first) > Date.now()) throw new Error('order_time_unavailable');
+    identity = { order_id: order.order_id, episode_id: await sha256(stableJson({ order_id: id,
+      payment_fingerprint: order.payment_fingerprint, settlement_key: order.settlement_key })),
+      first_seen_at: first, first_seen_source: journal.confirmed_at ? 'original_settlement_confirmed_at' : 'original_binding_created_at' };
+    const original = await readFulfillment(snapshot.env, fulfillmentRecordKey(order.payment_fingerprint)); snapshot.assertActive();
+    const retention = await orderRetention(order, journal, original);
+    if (retention.state === 'expired') return original?.record.state === 'complete' ? summary('unknown', 'historical_delivery_not_reverified') : summary('needs_intervention', 'raw_artifacts_expired');
+    snapshot.allowArtifactsFor(uuidFromDigest(await sha256(`${order.payment_fingerprint}\n${order.product}`)));
+    const entitlement = await readOrderEntitlement(snapshot.env, order); snapshot.assertActive();
+    if (entitlement.fulfillment?.record.state === 'complete' && entitlement.delivery) return null;
+    if (order.revoked_at) return summary('needs_intervention', 'order_revoked');
+    return summary(entitlement.fulfillment?.record.state === 'processing' ? 'pending_original_delivery' : 'needs_intervention',
+      entitlement.delivery ? 'original_delivery_recoverable' : entitlement.fulfillment?.record.state === 'processing' ? 'original_delivery_pending' : 'original_delivery_failed');
+  })(), 5_000, 'order_remediation_unavailable', snapshot.cancel); }
+  catch (error) {
+    return error instanceof OrderAccessError && error.code === 'order_evidence_inconsistent' ? summary('needs_intervention', 'original_evidence_unverified') : summary('unknown', 'evidence_unavailable');
+  } finally { snapshot.cancel(); }
+}
+
 export function orderPrivateHeaders(env: RuntimeEnv, request: Request): Headers {
   const headers = new Headers({ "cache-control": "private, no-store", "x-robots-tag": "noindex, nofollow", vary: "Origin" });
   const origin = request.headers.get("origin");
@@ -343,9 +377,21 @@ export async function orderStatusResponse(env: RuntimeEnv, request: Request, id?
         return Response.json({ ok: true, order_id: order.order_id, product: order.product, state: "raw_artifacts_expired",
           payment: { state: journal.state, treasury_received: null }, retention,
           fulfillment: { state: original?.record.state ?? "not_started" },
+          ...(journal.state === "settlement_confirmed" && original?.record.state !== "complete" ? { remediation: orderRemediation("raw_artifacts_expired") } : {}),
           recovery: { expires_at: order.expires_at, can_recover: false } }, { status: 200, headers });
       }
-      let entitlement = await readOrderEntitlement(boundedEnv, order);
+      let entitlement: OrderEntitlement;
+      try { entitlement = await readOrderEntitlement(boundedEnv, order); }
+      catch (error) {
+        if (!(error instanceof OrderAccessError) || error.code !== "order_evidence_inconsistent" || journal.state !== "settlement_confirmed") throw error;
+        await assertCurrent(order);
+        // Keep the established HTTP/error contract. The additive remedy view
+        // gives the buyer a real responsibility path without claiming loss,
+        // minting a replacement observation, or authorizing a second charge.
+        return Response.json({ ok: false, state: error.code, error: error.code,
+          order_id: order.order_id, payment: { state: journal.state, treasury_received: null },
+          remediation: orderRemediation("original_evidence_unverified", original?.record.state === "complete") }, { status: 503, headers });
+      }
       if (recover && entitlement.fulfillment?.record.state === "processing" && entitlement.delivery) {
         await assertCurrent(order);
         await recoverDelivery(boundedEnv, fulfillmentRecordKey(order.payment_fingerprint), entitlement.fulfillment, order.request_body, order.product, order.payment_fingerprint);
@@ -361,6 +407,8 @@ export async function orderStatusResponse(env: RuntimeEnv, request: Request, id?
         recovery: { expires_at: order.expires_at, can_recover: available },
         retention: await orderRetention(order, entitlement.settlement, entitlement.fulfillment),
         ...(complete ? { delivery: entitlement.delivery } : { reconciliation_required: true }),
+        ...(!complete && !available && entitlement.settlement.state === "settlement_confirmed" ? {
+          remediation: orderRemediation(entitlement.fulfillment?.record.state === "processing" ? "original_delivery_pending" : "original_delivery_failed") } : {}),
       }, { status: complete ? 200 : 202, headers });
     })(), 15_000, "order_evidence_unavailable", snapshot.cancel);
   } catch (error) {

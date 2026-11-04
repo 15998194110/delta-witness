@@ -28,7 +28,7 @@ describe('immutable Cloudflare release payload; no provider calls', () => {
     const f = await fixture(kind), manifest = await recordCloudflareArtifact(f);
     await writeFile(join(f.root, 'dist', manifest.entry), 'unverified second build');
     const run = vi.fn(async () => {});
-    const result = await deployCloudflareArtifact({ ...f, authorization, run });
+    const result = await deployCloudflareArtifact({ ...f, authorization, variablesPolicy: 'preserve-reviewed', run });
     expect(result).toMatchObject({ submission_completed: true, online_acceptance: false, manifest });
     expect(run).toHaveBeenCalledTimes(1);
     const args = run.mock.calls[0][1];
@@ -46,7 +46,7 @@ describe('immutable Cloudflare release payload; no provider calls', () => {
     if (mutation === 'config') await writeFile(join(f.root, 'wrangler.jsonc'), JSON.stringify({ name: 'delta-witness-api', main: 'src/index.ts', vars: { CHANGED: true } }));
     if (mutation === 'cli') await writeFile(join(f.root, 'node_modules/wrangler/package.json'), '{"version":"99.0.0"}');
     const run = vi.fn();
-    await expect(deployCloudflareArtifact({ ...f, ...(mutation === 'source' ? { source: 'd'.repeat(40) } : {}), authorization, run })).rejects.toThrow();
+    await expect(deployCloudflareArtifact({ ...f, ...(mutation === 'source' ? { source: 'd'.repeat(40) } : {}), authorization, variablesPolicy: 'preserve-reviewed', run })).rejects.toThrow();
     expect(run).not.toHaveBeenCalled();
   });
   it.each(['build', 'rules', 'env', 'migrations', 'assets', 'wasm_modules'])('rejects unreviewed config %s before recording any payload', async key => {
@@ -65,15 +65,24 @@ describe('immutable Cloudflare release payload; no provider calls', () => {
   });
   it('never retries an uncertain submission and never grants authority merely from a valid manifest', async () => {
     const f = await fixture(); await recordCloudflareArtifact(f); const run = vi.fn(async () => { throw new Error('uncertain'); });
-    await expect(deployCloudflareArtifact({ ...f, authorization: { ...authorization, execute: 'false' }, run })).rejects.toThrow();
+    await expect(deployCloudflareArtifact({ ...f, authorization: { ...authorization, execute: 'false' }, variablesPolicy: 'preserve-reviewed', run })).rejects.toThrow();
     expect(run).not.toHaveBeenCalled();
-    await expect(deployCloudflareArtifact({ ...f, authorization, run })).rejects.toThrow('uncertain'); expect(run).toHaveBeenCalledTimes(1);
+    await expect(deployCloudflareArtifact({ ...f, authorization, variablesPolicy: 'preserve-reviewed', run })).rejects.toThrow('uncertain'); expect(run).toHaveBeenCalledTimes(1);
+  });
+  it('requires explicit var policy before callback and preserves reviewed live flags only when selected', async () => {
+    const f = await fixture(); await recordCloudflareArtifact(f); const run = vi.fn(async () => {});
+    await expect(deployCloudflareArtifact({ ...f, authorization, run })).rejects.toThrow('reviewed_variable_policy_required');
+    expect(run).not.toHaveBeenCalled();
+    await deployCloudflareArtifact({ ...f, authorization, variablesPolicy: 'preserve-reviewed', run });
+    expect(run.mock.calls[0][1]).toContain('--keep-vars');
+    await deployCloudflareArtifact({ ...f, authorization, variablesPolicy: 'replace-reviewed', run });
+    expect(run.mock.calls[1][1]).not.toContain('--keep-vars');
   });
   it('release jobs download the verified payload; Pages association remains in the uploaded hidden path', async () => {
     const workflow = await readFile(new URL('../.github/workflows/release-train.yml', import.meta.url), 'utf8');
     const jobs = new Map(workflow.split(/(?=^  [a-z][a-z0-9-]*:\s*$)/m).map(block => [/^  ([a-z][a-z0-9-]*):/m.exec(block)?.[1], block]));
     for (const [job, kind] of [['core-cloudflare', 'core'], ['partner-gateway', 'gateway'], ['base-app', 'pages']]) {
-      const body = jobs.get(job); expect(body).toContain('actions/download-artifact@v4'); expect(body).toContain(`${kind}-verified-`);
+      const body = jobs.get(job); expect(body).toMatch(/actions\/download-artifact@[a-f0-9]{40}/); expect(body).toContain(`${kind}-verified-`);
       expect(body).toContain(`verified-cloudflare-artifact.mjs deploy "$RUNNER_TEMP/delta-${kind}-verified" ${kind}`);
       expect(body).not.toMatch(/run: (?:npx wrangler (?:deploy|pages deploy)|npm run (?:build|verify))/);
     }

@@ -13,12 +13,12 @@
     "verify": "node ../../scripts/check-owner-pricing.mjs && npm run types && npm run check && npm test && npm run build"
   },
   "dependencies": {
-    "hono": "^4.0.0"
+    "hono": "4.13.16"
   },
   "devDependencies": {
     "@types/node": "latest",
-    "vitest": "latest",
     "typescript": "latest",
-    "wrangler": "latest"
+    "vitest": "4.1.12",
+    "wrangler": "4.157.0"
   }
 }

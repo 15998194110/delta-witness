@@ -3,11 +3,22 @@ import {createResendAlertAdapter,resendAlertConfigurationDigest,RESEND_ALERT_PRE
 import {enqueueOperatingAlert,processOperatingAlert,readOperatingAlert,type AlertObservation} from '../src/operating-alert-outbox';
 import {MemoryBucket,orderRuntime} from './helpers/order-runtime';
 import {processOwnerAlertQueue,type OwnerAlertDeliveryEnv,ALERT_DELIVERY_PREFIX} from '../src/operating-alert-delivery';
+import {receiveResendAlertWebhook,ALERT_WEBHOOK_PREFIX} from '../src/operating-alert-webhook';
 
 const now=Date.parse('2026-11-04T00:00:00.000Z');
 const episode:AlertObservation={dedupe_key:'delta:paid_undelivered:order-1:episode-1',code:'paid_undelivered',subject:'order-1',severity:'SEV1',stage:'initial',
   first_seen_at:new Date(now-600000).toISOString(),evidence_ref:'original-paid-order'};
 const providerID='11111111-1111-4111-8111-111111111111';
+const webhookSecret=`whsec_${btoa('isolated-synthetic-key-32-bytes!!!')}`;
+async function webhookRequest(value:unknown,id='msg_original_event',time=Math.floor(Date.now()/1000),secret=webhookSecret){
+  const body=JSON.stringify(value),key=await crypto.subtle.importKey('raw',Uint8Array.from(atob(secret.slice(6)),c=>c.charCodeAt(0)),{name:'HMAC',hash:'SHA-256'},false,['sign']);
+  const mac=new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(`${id}.${time}.${body}`)));
+  return new Request('https://delta.example/internal/operations/alerts/resend-webhook',{method:'POST',headers:{'content-type':'application/json','svix-id':id,'svix-timestamp':String(time),'svix-signature':`v1,${btoa(String.fromCharCode(...mac))}`},body});
+}
+function webhookEnv(s:Awaited<ReturnType<typeof fixture>>){return {...s.env,OPERATIONS_CLOUD_ENABLED:'true',OPERATIONS_ALERT_OUTBOX_ENABLED:'true',OPERATIONS_ALERT_DELIVERY_ENABLED:'true',OPERATIONS_ALERT_WEBHOOK_ENABLED:'true',OPERATIONS_ALERT_RESEND_WEBHOOK_SECRET:webhookSecret,
+  OPERATIONS_ALERT_RESEND_FROM:s.config.from,OPERATIONS_ALERT_RESEND_TO:s.config.to,OPERATIONS_ALERT_DESTINATION_ID:s.config.destination_id,OPERATIONS_ALERT_DESTINATION_DIGEST:s.config.destination_digest,
+  OPERATIONS_ALERT_RESEND_APPROVED_CONFIGURATION_DIGEST:s.config.approved_configuration_digest,OPERATIONS_ALERT_RESEND_APPROVAL_EVIDENCE_REF:s.config.approval_evidence_ref};}
+function webhookEvent(s:Awaited<ReturnType<typeof fixture>>){const e=s.emails.get(providerID);return {type:'email.delivered',created_at:new Date().toISOString(),data:{email_id:providerID,created_at:e.created_at,from:e.from,to:e.to,subject:e.subject,tags:Object.fromEntries(e.tags.map((t:any)=>[t.name,t.value]))}};}
 async function fixture(){
   const bucket=new MemoryBucket(),env=orderRuntime(bucket),emails=new Map<string,any>(),posts:any[]=[];
   const config:ResendAlertConfig={enabled:true,api_key:'re_fixture_private_runtime_only',from:'alerts@delta.example',to:'owner@inbox.example',destination_id:'approved-owner-email',
@@ -236,4 +247,53 @@ it('four-second hole timeout retains cursor and a late create cannot retroactive
   await vi.advanceTimersByTimeAsync(4001);expect(await pending).toMatchObject({state:'degraded',cursor_state:'retained',page_complete:false,hole_refs:[]});
   expect(s.bucket.values.has(`${ALERT_DELIVERY_PREFIX}cursor.json`)).toBe(false);release();await vi.advanceTimersByTimeAsync(1);
   expect(s.bucket.values.has(`${ALERT_DELIVERY_PREFIX}cursor.json`)).toBe(false);expect(s.posts).toHaveLength(0);
+});
+
+it('signed webhook records original provider evidence once, without sending, ACK or outbox promotion',async()=>{
+  const s=await fixture();await s.enqueue();await processOperatingAlert(s.env,episode.dedupe_key,(await s.adapter())!);
+  const original=await readOperatingAlert(s.env,episode.dedupe_key),event=webhookEvent(s),env=webhookEnv(s);s.network.mockClear();
+  const responses=await Promise.all([receiveResendAlertWebhook(env,await webhookRequest(event)),receiveResendAlertWebhook(env,await webhookRequest(event))]);
+  expect(responses.map(r=>r.status)).toEqual([200,200]);
+  const keys=[...s.bucket.values.keys()].filter(k=>k.startsWith(ALERT_WEBHOOK_PREFIX));expect(keys).toHaveLength(1);
+  expect(await readOperatingAlert(s.env,episode.dedupe_key)).toEqual(original);expect(s.network).not.toHaveBeenCalled();expect(s.posts).toHaveLength(1);
+  const before=s.bucket.values.get(keys[0])!.text;vi.setSystemTime(now+60000);
+  expect(await (await receiveResendAlertWebhook(env,await webhookRequest(event))).json()).toMatchObject({state:'duplicate_recorded'});
+  expect(s.bucket.values.get(keys[0])!.text).toBe(before);
+  for(const secret of [webhookSecret,s.config.from,s.config.to,s.config.api_key])expect(before).not.toContain(secret);
+  expect(JSON.parse(before)).toMatchObject({event_type:'email.delivered',outbox_transition_authority:false,recipient_acknowledged:false});
+});
+it.each(['tamper','old','future','wrong-key','wrong-email','wrong-destination','wrong-tags'])('rejects untrusted signed receipt %s',async kind=>{
+  const s=await fixture();await s.enqueue();await processOperatingAlert(s.env,episode.dedupe_key,(await s.adapter())!);const event=webhookEvent(s);
+  if(kind==='wrong-email')event.data.email_id=crypto.randomUUID();if(kind==='wrong-destination')event.data.to=['different@example.test'];if(kind==='wrong-tags')event.data.tags.delta_payload='b'.repeat(64);
+  const request=await webhookRequest(event,'msg_original_event',Math.floor(now/1000)+(kind==='old'?-301:kind==='future'?301:0),kind==='wrong-key'?`whsec_${btoa('other-isolated-synthetic-key!!!!')}`:webhookSecret);
+  const altered=kind==='tamper'?new Request(request.url,{method:'POST',headers:request.headers,body:JSON.stringify({...event,type:'email.failed'})}):request;
+  expect((await receiveResendAlertWebhook(webhookEnv(s),altered)).status).toBe(kind.startsWith('wrong-')&&kind!=='wrong-key'?409:401);
+  expect([...s.bucket.values.keys()].filter(k=>k.startsWith(ALERT_WEBHOOK_PREFIX))).toHaveLength(0);expect(s.posts).toHaveLength(1);
+});
+it('same signed event ID with changed body conflicts without replacing prior evidence',async()=>{
+  const s=await fixture();await s.enqueue();await processOperatingAlert(s.env,episode.dedupe_key,(await s.adapter())!);const event=webhookEvent(s),env=webhookEnv(s);
+  expect((await receiveResendAlertWebhook(env,await webhookRequest(event))).status).toBe(200);
+  const key=[...s.bucket.values.keys()].find(k=>k.startsWith(ALERT_WEBHOOK_PREFIX))!,prior=s.bucket.values.get(key)!.text;
+  expect((await receiveResendAlertWebhook(env,await webhookRequest({...event,type:'email.failed'}))).status).toBe(409);expect(s.bucket.values.get(key)!.text).toBe(prior);
+});
+it('lost webhook custody write ACK reads original identity instead of rewriting or dispatching',async()=>{
+  const s=await fixture();await s.enqueue();await processOperatingAlert(s.env,episode.dedupe_key,(await s.adapter())!);const put=s.bucket.put.bind(s.bucket);let writes=0;
+  s.bucket.put=async(k,v,o)=>{const answer=await put(k,v,o);if(k.startsWith(ALERT_WEBHOOK_PREFIX)){writes++;throw Error('lost-ack');}return answer;};
+  expect((await receiveResendAlertWebhook(webhookEnv(s),await webhookRequest(webhookEvent(s)))).status).toBe(200);expect(writes).toBe(1);expect(s.posts).toHaveLength(1);
+});
+it('webhook off, unsigned oversized body and unavailable storage cannot create accepted evidence',async()=>{
+  const s=await fixture(),env=webhookEnv(s);expect((await receiveResendAlertWebhook({...env,OPERATIONS_ALERT_WEBHOOK_ENABLED:'false'},await webhookRequest({}))).status).toBe(404);
+  expect(s.bucket.values.size).toBe(0);
+  expect((await receiveResendAlertWebhook(env,new Request('https://delta.example/receive',{method:'POST',headers:{'content-type':'application/json'},body:'x'.repeat(16385)}))).status).toBe(413);
+  await s.enqueue();await processOperatingAlert(s.env,episode.dedupe_key,(await s.adapter())!);s.bucket.get=async()=>{throw Error('storage-down');};
+  expect((await receiveResendAlertWebhook(env,await webhookRequest(webhookEvent(s)))).status).toBe(503);
+});
+it('real app route isolates provider signature authority from admin, browser and payment authority',async()=>{
+  const {app}=await import('../src/index');const s=await fixture(),env=webhookEnv(s);
+  expect((await app.fetch(await webhookRequest({}),s.env)).status).toBe(404);
+  await s.enqueue();await processOperatingAlert(s.env,episode.dedupe_key,(await s.adapter())!);
+  expect((await app.fetch(await webhookRequest(webhookEvent(s)),env)).status).toBe(200);
+  for(const header of ['origin','authorization','payment-signature','x-payment']){const r=await webhookRequest(webhookEvent(s));r.headers.set(header,'synthetic-forbidden');expect((await app.fetch(r,env)).status).toBe(400);}
+  const request=await webhookRequest(webhookEvent(s));request.headers.set('svix-signature','v1,invalid');expect((await app.fetch(request,env)).status).toBe(401);
+  expect(s.posts).toHaveLength(1);expect([...s.bucket.values.keys()].filter(k=>k.startsWith(ALERT_WEBHOOK_PREFIX))).toHaveLength(1);
 });

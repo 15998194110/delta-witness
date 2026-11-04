@@ -5,16 +5,18 @@ import {resolve,dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 const repo=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
-const consumer='149c302d278ce83c9faeae4d058f318777a97e0c';
+const comparison='149c302d278ce83c9faeae4d058f318777a97e0c';
 const mode=process.argv[3]??'compatible';if(!['compatible','candidate'].includes(mode))throw Error('invalid_composition_mode');
-const base=mode==='compatible'?'0dbf2b3963ff56641b96e95b8f358591514cb3c4':consumer;
+const base=mode==='compatible'?'0dbf2b3963ff56641b96e95b8f358591514cb3c4':comparison;
 const output=resolve(process.argv[2]??'');
 if(!process.argv[2]||!process.env.NODE_OPTIONS?.includes('offline-guard.cjs'))throw Error('fresh_output_and_offline_runner_required');
 await mkdir(output,{recursive:false});
 const git=(...args)=>execFileSync('git',['-C',repo,...args],{maxBuffer:20_000_000});
+const consumer=process.argv[4]??git('rev-parse','HEAD').toString().trim();
+if(!/^[0-9a-f]{40}$/.test(consumer)||git('rev-parse',`${consumer}^{commit}`).toString().trim()!==consumer)throw Error('exact_recovery_commit_required');
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const files=[],patches=[];
-const currentOrders=(await readFile(join(repo,'src/orders.ts'),'utf8')).replace(/\r\n/g,'\n');
+const currentOrders=git('show',`${consumer}:src/orders.ts`).toString().replace(/\r\n/g,'\n');
 const emptyInputGuard=currentOrders.match(/async function assertEmptyRecoveryInput\(request: Request\): Promise<void> \{[\s\S]*?\n\}\n/ )?.[0];
 if(!emptyInputGuard)throw Error('reviewed_zero_byte_input_guard_missing');
 const oldInputGuard='if (request.headers.has("payment-signature") || request.headers.has("x-payment") || request.body !== null) throw new OrderAccessError("order_recovery_input_forbidden", 400);';
@@ -24,6 +26,7 @@ for(const path of [...paths,'package.json','package-lock.json','worker-configura
   if(!/^(src\/[\w./-]+\.ts|package(?:-lock)?\.json|worker-configuration\.d\.ts|tsconfig\.json|scripts\/treasury-(reconciliation|checkpoint-store)\.mjs)$/.test(path))throw Error('unreviewed_source');
   let bytes=git('show',`${base}:${path}`);
   let source=base;
+  if(path==='package.json'||path==='package-lock.json'){bytes=git('show',`${consumer}:${path}`);source=consumer;}
   if(path==='src/env.ts'&&mode==='compatible'){bytes=Buffer.from(bytes.toString().replace('export type RuntimeEnv = Env & {','export type RuntimeEnv = Env & {\n  OPERATIONS_CLOUD_ENABLED?: string;\n  PAID_ORDER_DRAFT_RECOVERY_ENABLED?: string;'));source=`${base}+two_optional_type_fields`;}
   if(path==='src/orders.ts'){
     const original=bytes,text=bytes.toString(),entry='export async function orderStatusResponse(';
@@ -35,10 +38,10 @@ for(const path of [...paths,'package.json','package-lock.json','worker-configura
   await save(path,bytes,source);
 }
 const currentLock=JSON.parse(await readFile(join(repo,'package-lock.json'),'utf8'));
-if(JSON.stringify(currentLock)!==JSON.stringify(JSON.parse(git('show',`${base}:package-lock.json`))))throw Error('dependency_lock_drift');
+if(JSON.stringify(currentLock)!==JSON.stringify(JSON.parse(git('show',`${consumer}:package-lock.json`))))throw Error('candidate_dependency_lock_drift');
 if(mode==='compatible'){
   for(const name of ['paid-order-recovery.ts','paid-recovery-priority.ts','paid-recovery-control.ts'])await save(`src/${name}`,git('show',`${consumer}:src/${name}`),consumer);
-  await save('src/rollback-continuity.ts',await readFile(join(repo,'src/rollback-continuity.ts')),'reviewed_local_adapter');
+  await save('src/rollback-continuity.ts',git('show',`${consumer}:src/rollback-continuity.ts`),consumer);
   await save('src/rollback/index.ts',Buffer.from("import original from '../index';\nimport {withPaidRecoveryContinuity} from '../rollback-continuity';\nexport default withPaidRecoveryContinuity(original);\n"),'default_handler_composition');
 }
 const config=JSON.parse(git('show',`${base}:wrangler.jsonc`));if(mode==='compatible')config.main='src/rollback/index.ts';
@@ -52,7 +55,8 @@ const log=execFileSync(process.execPath,[join(repo,'node_modules/wrangler/bin/wr
 if(!log.toString().includes('--dry-run: exiting now.'))throw Error('dry_run_not_confirmed');
 await writeFile(join(output,'build.log'),log,{flag:'wx'});
 const artifacts=[];for(const name of await readdir(join(output,'worker'))){const bytes=await readFile(join(output,'worker',name));artifacts.push({path:`worker/${name}`,sha256:sha(bytes),bytes:bytes.length});}
-const report={schema:'delta-rollback-continuity-build/v1',mode,base_commit:base,consumer_commit:consumer,source_files:files,source_patches:patches,artifacts,config_flags_unchanged:true,
+const toolchain={};for(const name of ['wrangler','miniflare','workerd'])toolchain[name]=JSON.parse(await readFile(join(repo,'node_modules',name,'package.json'),'utf8')).version;
+const report={schema:'delta-rollback-continuity-build/v1',mode,base_commit:base,consumer_commit:consumer,dependency_source_commit:consumer,toolchain,source_files:files,source_patches:patches,artifacts,config_flags_unchanged:true,
   deployed:false,remote_uploads:0,network:'offline-guard',scope:mode==='compatible'?'old_product_plus_original_scoped_paid_recovery_and_zero_byte_input_guard':'baseline_plus_zero_byte_input_guard',production_qualified:false};
 await writeFile(join(output,'build-evidence.json'),JSON.stringify(report,null,2)+'\n',{flag:'wx'});
 console.log(JSON.stringify({base,consumer,artifacts,remote_uploads:0}));

@@ -55,7 +55,7 @@ function validIndex(value: unknown): value is Index {
     new Set(value.entries.map(entry => entry.order_id)).size === value.entries.length;
 }
 const RESOLVED = ['original_delivery_recovered', 'already_complete', 'raw_artifacts_expired', 'order_revoked'];
-const QUARANTINED = ['order_missing', 'order_changed', 'evidence_inconsistent', 'settlement_unknown', 'settlement_rejected'];
+const QUARANTINED = ['order_missing', 'order_changed', 'evidence_inconsistent', 'settlement_unknown', 'settlement_rejected', 'raw_artifacts_expired', 'order_revoked'];
 function validObservation(value: unknown): value is Observation {
   return exact(value, ['schema', 'order_id', 'identity_hash', 'state', 'reason', 'observed_at', 'attempts']) &&
     value.schema === 'delta-paid-recovery-priority-order/v1' && typeof value.order_id === 'string' && UUID.test(value.order_id) &&
@@ -154,7 +154,7 @@ async function finish(ctx: Context, entry: Entry, result: PaidOrderRecoveryItem)
   const current = await readIndex(ctx);
   if (!current?.record.entries.some(row => currentOwner(row, entry)))
     return { order_id: entry.order_id, state: 'conflict', reason: 'priority_lease_changed' };
-  const resolved = RESOLVED.includes(result.reason), quarantined = QUARANTINED.includes(result.reason);
+  const resolved = result.state !== 'reconciliation_required' && RESOLVED.includes(result.reason), quarantined = !resolved && QUARANTINED.includes(result.reason);
   if (resolved || quarantined) {
     const observed = await saveObservation(ctx, entry, resolved ? 'resolved' : 'quarantined', result.reason);
     if (!observed) return { order_id: entry.order_id, state: 'write_unconfirmed', reason: 'observation_unconfirmed' };
@@ -219,7 +219,7 @@ export async function drainPaidRecoveryPriority(source: RuntimeEnv, options: Pai
           reason: error instanceof MetadataReadError ? 'evidence_unavailable' : 'evidence_inconsistent' }); }
         if (!original.identity || original.identity !== entry.identity_hash) return finish(itemCtx, entry,
           { order_id: entry.order_id, state: 'reconciliation_required', reason: original.reason ?? 'order_changed' });
-        if (original.revoked) return finish(itemCtx, entry, { order_id: entry.order_id, state: 'skipped', reason: 'order_revoked' });
+        if (original.revoked) return finish(itemCtx, entry, { order_id: entry.order_id, state: 'reconciliation_required', reason: 'order_revoked' });
         // The selector invokes the original consumer and all its original proof,
         // retention, settlement and CAS validation. No alternate capture path.
         const observed = await runPaidOrderRecovery(source, { orderIds: [entry.order_id], maxOrders: 1, deadlineMs: Math.max(1, Math.floor(executionMs / 2)), signal: itemCtx.signal });
