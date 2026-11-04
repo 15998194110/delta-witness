@@ -442,5 +442,56 @@
       "treasury_receipt": false,
       "issue": "Marketplace pricing display is stale/misleading relative to live x402 routes."
     }
+  },
+  "operational_addendum_2026_11_04": {
+    "status": "business_followup_started; production_candidate_not_deployed",
+    "checked_date_cst": "2026-11-04",
+    "context": "Interactive resumption and one immediate inline business run; NOT evidence of any future automatic task execution",
+    "chatgpt_task": {
+      "id": "6a9699b9f8308191a104d805bfa57c43",
+      "schedule": "hourly",
+      "enable_write_success": true,
+      "enable_state_readback": true,
+      "next_run_time": null,
+      "historical_last_run_result": "failed 2026-10-27; no newly recorded timed success",
+      "caveat": "do not depend on ChatGPT scheduler for unattended production operations"
+    },
+    "github_pulse": {
+      "run_id": 41786588756,
+      "observed_run_url": "https://github.com/15998194110/delta-witness/actions/runs/41786588756",
+      "conclusion": "success",
+      "scope": "Existing remote master, not local unpushed production candidate",
+      "cadence": "multi-hour observed gaps, not reliably hourly"
+    },
+    "treasury_scope": {
+      "direct_new_scan_performed_in_this_interactive_run": false,
+      "latest_readback_job_run": 41786588756,
+      "latest_successful_scanned_blocks": [
+        53442412,
+        53492411
+      ],
+      "raw_transfer_candidates_in_that_range": 0,
+      "revenue_interpretation": "No inbound canonical USDC transfer candidates in this 50k-block range. Not an all-history zero or proof of new customer revenue."
+    },
+    "inbound_reply_scope": "Gmail query after 2026-10-26 found no matching inbound DELTA/platform replies; does not prove a message was delivered",
+    "outbound": {
+      "company": "Ampersend / Edge & Node",
+      "official_source": "https://ampersend.ai/faq",
+      "to": "ampersend@edgeandnode.com",
+      "message_id": "1a1a60f8bd7bc7cc",
+      "thread_id": "1a1a60f8bd7bc7cc",
+      "subject": "DELTA Witness × Ampersend: $1 public-source proof before agent purchases",
+      "send_and_sent_label_readback": true,
+      "delivery_verified": false,
+      "reply_verified": false,
+      "funded_workflow_verified": false,
+      "payment_verified": false,
+      "ask": "Do existing owner-approved procurement/research/browser agents have a pre-action public-page verification need and can they buy via their own x402 budget?",
+      "duplicate_contact_check": "Gmail in:anywhere Ampersend/Edge & Node returned no prior message; no Ampersend GitHub index match. Other local unpushed operator records not readable."
+    },
+    "exclusions_and_dedupe": "AGCX preexisting outreach had delivery-failure notice; Anchor Browser and Skyvern already contacted. The402 announced paused paid activity and pending closure; no new outreach to these.",
+    "no_paid_testing_or_signatures": true,
+    "no_production_change": true,
+    "next_owner_action": "None required for free qualification outreach; retain NO_GO on unapproved production candidate."
   }
 }
