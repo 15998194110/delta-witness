@@ -1,4 +1,5 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
+import {sha256,stableJson} from '../src/crypto';
 import {createResendAlertAdapter,resendAlertConfigurationDigest,RESEND_ALERT_PREFIX,type ResendAlertConfig} from '../src/operating-alert-resend';
 import {enqueueOperatingAlert,processOperatingAlert,readOperatingAlert,type AlertObservation,type TreasuryNotificationObservation} from '../src/operating-alert-outbox';
 import {MemoryBucket,orderRuntime} from './helpers/order-runtime';
@@ -51,6 +52,59 @@ async function fixture(){
 }
 beforeEach(()=>{vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(now);vi.stubGlobal('fetch',vi.fn(()=>{throw Error('unexpected_real_transport');}));});
 afterEach(()=>{expect(fetch).not.toHaveBeenCalled();vi.useRealTimers();vi.unstubAllGlobals();vi.restoreAllMocks();});
+
+async function scopedFixture(){
+  const s=await fixture();
+  const evidence={schema:'delta-resend-sending-domain/v1',domain:'delta.example',domain_id:providerID,
+    status:'verified',sending:'enabled',key_permission:'sending_access',key_domain_id:providerID,
+    configuration_digest:s.config.destination_digest,verified_at:new Date().toISOString(),evidence_ref:s.config.approval_evidence_ref};
+  const digest=await sha256(stableJson(evidence));
+  const evidenceKey=`operations/alerts/resend-domain-approvals/${digest.slice(7)}.json`;
+  await s.bucket.put(evidenceKey,JSON.stringify(evidence));
+  Object.assign(s.config,{mode:'sending_only',domain_evidence_digest:digest});
+  Object.assign(s.env,webhookEnv(s),{OPERATIONS_ALERT_RESEND_MODE:'sending_only',OPERATIONS_ALERT_RESEND_DOMAIN_EVIDENCE_DIGEST:digest});
+  const normal=s.network.getMockImplementation()!;
+  s.network.mockImplementation(async(input,init)=>init?.method==='GET'?Response.json({name:'restricted_api_key'},{status:403}):normal(input,init));
+  return {...s,evidence,evidenceKey};
+}
+it.each([['email.delivered','delivered'],['email.bounced','failed']])('scoped mode processes signed %s once without provider read permission',async(type,state)=>{
+  const s=await scopedFixture();await s.enqueue();const a=(await s.adapter())!;
+  expect(await processOperatingAlert(s.env,episode.dedupe_key,a)).toMatchObject({state:'provider_accepted'});
+  const event={...webhookEvent(s),type};
+  expect((await receiveResendAlertWebhook(s.env,await webhookRequest(event))).status).toBe(200);
+  expect((await receiveResendAlertWebhook(s.env,await webhookRequest(event))).status).toBe(200);
+  expect(await processOperatingAlert(s.env,episode.dedupe_key,a)).toMatchObject({state});
+  expect((await readOperatingAlert(s.env,episode.dedupe_key))?.acknowledgment).toBeNull();
+  expect(s.network.mock.calls.map(call=>call[1]?.method)).toEqual(['POST']);expect(s.posts).toHaveLength(1);
+});
+it('holds a scoped lost POST ACK unknown without resending or adopting an unbound event ID',async()=>{
+  const s=await scopedFixture();const normal=s.network.getMockImplementation()!;
+  s.network.mockImplementation(async(input,init)=>{await normal(input,init);throw Error('response lost');});await s.enqueue();
+  const a=(await s.adapter())!;
+  expect(await processOperatingAlert(s.env,episode.dedupe_key,a)).toMatchObject({state:'unconfirmed'});
+  expect((await receiveResendAlertWebhook(s.env,await webhookRequest(webhookEvent(s)))).status).toBe(409);
+  expect(await processOperatingAlert(s.env,episode.dedupe_key,a)).toMatchObject({state:'unconfirmed'});
+  expect(s.network).toHaveBeenCalledTimes(1);
+});
+it('refuses scoped delivery without its pinned domain evidence and signed webhook',async()=>{
+  const s=await scopedFixture();
+  s.env.OPERATIONS_ALERT_WEBHOOK_ENABLED='false';await expect(s.adapter()).rejects.toThrow();
+  s.env.OPERATIONS_ALERT_WEBHOOK_ENABLED='true';await s.bucket.put(s.evidenceKey,JSON.stringify({...s.evidence,domain:'other.example'}));
+  await expect(s.adapter()).rejects.toThrow('resend_scoped_domain_unverified');expect(s.network).not.toHaveBeenCalled();
+});
+it('replayed signed receipt finishes the original transport after custody succeeded but terminal CAS failed',async()=>{
+  const s=await scopedFixture();const a=(await s.adapter())!;await s.enqueue();
+  await processOperatingAlert(s.env,episode.dedupe_key,a);const event=webhookEvent(s);
+  const normal=s.bucket.put.bind(s.bucket);let interrupt=true;
+  vi.spyOn(s.bucket,'put').mockImplementation(async(key,value,opts)=>{
+    if(interrupt&&key.startsWith(RESEND_ALERT_PREFIX)){interrupt=false;throw Error('transient storage failure');}
+    return normal(key,value,opts);
+  });
+  expect((await receiveResendAlertWebhook(s.env,await webhookRequest(event))).status).toBe(503);
+  expect((await receiveResendAlertWebhook(s.env,await webhookRequest(event))).status).toBe(200);
+  expect(await processOperatingAlert(s.env,episode.dedupe_key,a)).toMatchObject({state:'delivered'});
+  expect(s.posts).toHaveLength(1);
+});
 
 it('legacy fault message bytes, request hash and original ID remain compatible with a54d095',async()=>{
   const s=await fixture();await s.enqueue();const a=(await s.adapter())!;await processOperatingAlert(s.env,episode.dedupe_key,a);

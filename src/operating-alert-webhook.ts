@@ -1,11 +1,11 @@
-// Signed receipt custody only. This receiver never sends, acknowledges, pays,
-// retries a provider operation, or promotes an Outbox/business state.
+// Store signed evidence first. Only sending-only mode also projects known
+// terminal evidence onto the original transport. The consumer owns the Outbox.
 import {sha256,stableJson} from './crypto';
 import {createClaim} from './claims';
 import {createOrderReadSnapshot,readOrderMetadata} from './order-storage';
 import {withinDeadline} from './deadline';
 import {ownerAlertDeliveryConfiguration,type OwnerAlertDeliveryEnv} from './operating-alert-delivery';
-import {readResendAlertWebhookBinding} from './operating-alert-resend';
+import {applyScopedResendEvent,readResendAlertWebhookBinding} from './operating-alert-resend';
 
 export const ALERT_WEBHOOK_PREFIX='operations/alerts/resend-webhooks/';
 export type AlertWebhookEnv=OwnerAlertDeliveryEnv&{OPERATIONS_ALERT_WEBHOOK_ENABLED?:string;OPERATIONS_ALERT_RESEND_WEBHOOK_SECRET?:string};
@@ -65,10 +65,15 @@ export async function receiveResendAlertWebhook(source:AlertWebhookEnv,request:R
       authenticated_source:'resend_svix_hmac' as const,outbox_transition_authority:false as const,recipient_acknowledged:false as const};
     const same=(value:Custody)=>!!value&&typeof value.received_at==='string'&&Number.isFinite(Date.parse(value.received_at))&&Date.parse(value.received_at)<=Date.now()&&
       stableJson(value)===stableJson({...core,received_at:value.received_at});
-    if(previous)return answer(same(previous.record)?200:409,same(previous.record)?'duplicate_recorded':'event_identity_conflict');
+    async function finish(duplicate:boolean){
+      if(config.mode==='sending_only'&&!await applyScopedResendEvent(snapshot.env,config,binding!,event.type))
+        return answer(503,'transport_confirmation_pending');
+      return answer(200,duplicate?'duplicate_recorded':'signed_evidence_recorded');
+    }
+    if(previous)return same(previous.record)?finish(true):answer(409,'event_identity_conflict');
     const row:Custody={...core,received_at:new Date().toISOString()};snapshot.assertActive();
     try{await createClaim(snapshot.env,key,row);}catch{/* same immutable key readback only; no repeat PUT */}
     snapshot.assertActive();const actual=await readOrderMetadata<Custody>(snapshot.env,key,8192);snapshot.assertActive();
-    return actual&&same(actual.record)?answer(200,'signed_evidence_recorded'):answer(503,'custody_unconfirmed');
+    return actual&&same(actual.record)?finish(false):answer(503,'custody_unconfirmed');
   })(),10000,'webhook_deadline',cancel);}catch{return answer(503,'receipt_unavailable');}finally{cancel();}
 }

@@ -39,11 +39,11 @@ describe('independent public release readback with isolated transports', () => {
       expect(init.headers['x-delta-channel']).toBe('internal-ci');
       expect(init.body).toBeUndefined();
     }
-    expect(report.checks.find((x: any) => x.id === 'original_proof_metadata').details).toMatchObject({
+    expect(report.checks.find(x => x.id === 'original_proof_metadata')?.details).toMatchObject({
       original_artifact_hashes_match: true, public_verifier_status: 'legacy_unverifiable',
       cryptographic_bundle_integrity: 'UNKNOWN', raw_artifacts_requested: false,
     });
-    expect(report.checks.find((x: any) => x.id === 'gateway_health').details).toMatchObject({ version: '0.6.1', version_pinned: false });
+    expect(report.checks.find(x => x.id === 'gateway_health')?.details).toMatchObject({ version: '0.6.1', version_pinned: false });
     expect(JSON.stringify(report)).not.toContain('private-looking-but-public-metadata');
     expect(report).toMatchObject({ credentials_used: false, payment_authorization_sent: false, raw_artifacts_requested: false });
   });

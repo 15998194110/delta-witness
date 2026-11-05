@@ -1,5 +1,28 @@
 # P0-2: concrete owner-alert transport and remaining activation gate
 
+### Sending-only credential and signed receipts (candidate)
+
+The default mode is `native_read` and retains native GET readback. For an explicitly isolated sending credential set `OPERATIONS_ALERT_RESEND_MODE=sending_only`. Select `sending_access` and restrict the key to the verified sending subdomain in the provider dashboard. Subscribe the signed endpoint to `email.delivered`, `email.bounced`, `email.failed` and `email.suppressed`. The webhook must be enabled with a valid signing-secret binding. [Resend API key permissions](https://resend.com/docs/api-reference/api-keys/create-api-key) and [signed delivered-event fields](https://resend.com/docs/webhooks/emails/delivered).
+
+The operator retains the provider's observed domain verification, sending capability and key-domain assignment as private release evidence. Write the following JSON snapshot to private R2 only after verifying those facts. Compute `digest = sha256(stableJson(snapshot))` using DELTA’s existing prefixed SHA-256 and sorted-key serializer. Set `OPERATIONS_ALERT_RESEND_DOMAIN_EVIDENCE_DIGEST` to that digest and store the snapshot at `operations/alerts/resend-domain-approvals/<digest without sha256:>.json`. The application checks the snapshot against the digest on every adapter initialization and signed event. The reference also has to match the operator's existing configuration approval reference. The snapshot attests to a past provider observation. Key revocation or a current rejection still surfaces independently at send time.
+
+```json
+{
+  "schema": "delta-resend-sending-domain/v1",
+  "domain": "<exact sender subdomain>",
+  "domain_id": "<actual provider domain UUID>",
+  "status": "verified",
+  "sending": "enabled",
+  "key_permission": "sending_access",
+  "key_domain_id": "<same provider domain UUID from key restriction>",
+  "configuration_digest": "<DELTA sender, recipient and destination digest>",
+  "verified_at": "<actual observation time in ISO UTC including milliseconds>",
+  "evidence_ref": "<private immutable release evidence reference>"
+}
+```
+
+The scoped transport issues only the original POST. An acknowledged POST stores its provider ID as accepted. A Svix-verified terminal event with that exact ID, sender, recipient, subject and tags first saves immutable receipt custody, then conditionally updates the original transport. The next outbox pass reads that durable state. Replaying the same callback can finish an interrupted transition. Provider delivery and recipient acknowledgment remain separate. A lost POST response without an original ID remains unconfirmed and requires provider-side investigation. Do not repost it. If the provider stops retrying before custody/transport convergence, replay the original signed event through provider controls. Opposing terminal outcomes preserve the first transport result and both signed event records for investigation. No domain, key, secret, runtime flag or production evidence is created by the candidate.
+
 `src/operating-alert-resend.ts` implements the real Resend HTTP API behind the existing owner-alert outbox. It does not create an account, register a domain, enable billing, configure a production credential, activate a scheduler, or send an email by importing the module. The existing Watch/customer-webhook contract remains separate.
 
 ## Current audit and external status

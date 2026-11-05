@@ -12,7 +12,7 @@ const API='https://api.resend.com';
 const MAX_BODY=131072,MAX_RECORD=16000,MAX_PAGES=2,REQUEST_MS=2000;
 type Identity=Pick<AlertReceipt,'notification_id'|'payload_hash'|'destination_digest'>;
 type SendOperation=Parameters<AlertAdapter['send']>[0];
-export type ResendAlertConfig={enabled:boolean;api_key:string;from:string;to:string;destination_id:string;
+export type ResendAlertConfig={enabled:boolean;api_key:string;from:string;to:string;destination_id:string;mode?:string;domain_evidence_digest?:string;
   destination_digest:string;approved_configuration_digest:string;approval_evidence_ref:string};
 type Transport={schema:'delta-owner-alert-resend/v1';notification_id:string;payload_hash:string;destination_digest:string;
   configuration_hash:string;alert:AlertObservation;request_hash:string;state:'prepared'|'posting'|'unknown'|'accepted'|'delivered'|'failed'|'rejected';
@@ -29,6 +29,27 @@ const key=(id:string)=>{if(!uuid(id))throw Error('resend_alert_identity_invalid'
 export async function resendAlertConfigurationDigest(config:Pick<ResendAlertConfig,'from'|'to'|'destination_id'>){
   if(!mailbox(config.from)||!mailbox(config.to)||!opaque(config.destination_id))throw Error('resend_alert_configuration_invalid');
   return sha256(stableJson({provider:'resend',from:config.from,to:config.to,destination_id:config.destination_id}));
+}
+// Populated only after an operator inspects the native domain, key restriction
+// and signed webhook in the provider dashboard. Pin the canonical JSON digest.
+// The provider can still reject an individual send or revoke a scoped key.
+async function verifyScopedResendConfiguration(source:RuntimeEnv,config:ResendAlertConfig){
+  if(config.mode!=='sending_only'||!hash(config.domain_evidence_digest)||source.OPERATIONS_ALERT_WEBHOOK_ENABLED!=='true')
+    throw Error('resend_scoped_configuration_unverified');
+  try{
+    const secret=source.OPERATIONS_ALERT_RESEND_WEBHOOK_SECRET??'';
+    if(!/^whsec_[A-Za-z0-9+/]{22,88}={0,2}$/.test(secret))throw Error();
+    const size=atob(secret.slice(6)).length;if(size<16||size>64)throw Error();
+  }catch{throw Error('resend_scoped_webhook_unverified');}
+  const evidence=await readOrderMetadata<Record<string,unknown>>(source,
+    `operations/alerts/resend-domain-approvals/${config.domain_evidence_digest.slice(7)}.json`,4096);
+  const e=evidence?.record;
+  if(!e||await sha256(stableJson(e))!==config.domain_evidence_digest||
+    !exact(e,['schema','domain','domain_id','status','sending','key_permission','key_domain_id','configuration_digest','verified_at','evidence_ref'])||
+    e.schema!=='delta-resend-sending-domain/v1'||e.domain!==config.from.split('@')[1]||!uuid(e.domain_id)||e.status!=='verified'||e.sending!=='enabled'||
+    e.key_permission!=='sending_access'||e.key_domain_id!==e.domain_id||e.configuration_digest!==await resendAlertConfigurationDigest(config)||
+    e.evidence_ref!==config.approval_evidence_ref||!opaque(e.evidence_ref)||!iso(e.verified_at)||Date.parse(e.verified_at)>Date.now())
+    throw Error('resend_scoped_domain_unverified');
 }
 function email(config:ResendAlertConfig,row:Pick<Transport,'notification_id'|'payload_hash'|'destination_digest'|'alert'>){
   const alert=row.alert;
@@ -70,6 +91,8 @@ async function valid(row:Transport,config:ResendAlertConfig,configurationHash:st
 // Native GET readback remains responsible for resolving that unknown outcome.
 export async function readResendAlertWebhookBinding(source:RuntimeEnv,config:ResendAlertConfig,data:unknown){
   if(!config.enabled||!data||typeof data!=='object'||Array.isArray(data))return null;
+  if(config.mode!==undefined&&config.mode!=='native_read'&&config.mode!=='sending_only')return null;
+  if(config.mode==='sending_only')await verifyScopedResendConfiguration(source,config);
   const d=data as Record<string,unknown>,tags=d.tags as Record<string,unknown>;
   if(!tags||!uuid(tags.delta_notification)||!uuid(d.email_id))return null;
   const configurationHash=await resendAlertConfigurationDigest(config);
@@ -84,9 +107,26 @@ export async function readResendAlertWebhookBinding(source:RuntimeEnv,config:Res
     provider_email_id:row.provider_email_id,original_created_at:row.created_at};
 }
 
-// Disabled returns before network/storage. Explicit approval binds the precise
-// sender and destination; live native readback verifies usable full-access key
-// plus a verified sending domain. Quota/acceptance are still checked per POST.
+// Called only after an authenticated exact-original event has durable custody.
+// An accepted POST ID is required. An uncertain POST never gains a new send.
+export async function applyScopedResendEvent(source:RuntimeEnv,config:ResendAlertConfig,
+  binding:NonNullable<Awaited<ReturnType<typeof readResendAlertWebhookBinding>>>,type:string){
+  const state=type==='email.delivered'?'delivered':['email.bounced','email.failed','email.suppressed'].includes(type)?'failed':null;
+  if(!state)return true;
+  const objectKey=key(binding.notification_id);
+  const current=await readOrderMetadata<Transport>(source,objectKey,MAX_RECORD);
+  const matches=(r:Transport)=>sameIdentity(r,binding)&&r.provider_email_id===binding.provider_email_id;
+  if(!current||!await valid(current.record,config,config.destination_digest)||!matches(current.record))return false;
+  if(current.record.state===state)return true;
+  if(current.record.state!=='accepted')return false;
+  const next={...current.record,state,updated_at:new Date().toISOString()} as Transport;
+  try{await commitClaim(source,objectKey,current,next);}catch{/* Require independent exact terminal readback. */}
+  const actual=await readOrderMetadata<Transport>(source,objectKey,MAX_RECORD);
+  return !!actual&&matches(actual.record)&&actual.record.state===state&&await valid(actual.record,config,config.destination_digest);
+}
+
+// Native mode checks provider read access. Scoped mode checks the operator's
+// pinned domain evidence and obtains a terminal result from signed callbacks.
 export async function createResendAlertAdapter(source:RuntimeEnv,config:ResendAlertConfig,
   options:{fetch?:typeof fetch}={}):Promise<AlertAdapter|null>{
   if(config.enabled!==true)return null;
@@ -114,15 +154,20 @@ export async function createResendAlertAdapter(source:RuntimeEnv,config:ResendAl
     })(),REQUEST_MS,'resend_alert_http_unconfirmed',cancel);}catch{throw Error('resend_alert_http_unconfirmed');}
     finally{cancel();signal.removeEventListener('abort',cancel);if(reader){void reader.cancel().catch(()=>{});reader.releaseLock();}}
   }
-  const permissionController=new AbortController();
-  try{
-    const emails=await request('GET','/emails?limit=1',permissionController.signal);
-    if(emails.status!==200||emails.body?.object!=='list'||!Array.isArray(emails.body.data)||emails.body.data.length>1||typeof emails.body.has_more!=='boolean')throw Error('resend_alert_permission_unverified');
-    const domains=await request('GET','/domains?limit=100',permissionController.signal),domain=config.from.split('@')[1];
-    const matching=domains.body?.data?.filter((row:any)=>row?.name===domain);
-    if(domains.status!==200||domains.body?.object!=='list'||!Array.isArray(domains.body.data)||domains.body.data.length>100||
-      !Array.isArray(matching)||matching.length!==1||matching[0].status!=='verified'||matching[0].capabilities?.sending!=='enabled')throw Error('resend_alert_permission_unverified');
-  }finally{permissionController.abort();}
+  const scoped=config.mode==='sending_only';
+  if(config.mode!==undefined&&!scoped&&config.mode!=='native_read')throw Error('resend_alert_mode_invalid');
+  if(scoped)await verifyScopedResendConfiguration(source,config);
+  else {
+    const permissionController=new AbortController();
+    try{
+      const emails=await request('GET','/emails?limit=1',permissionController.signal);
+      if(emails.status!==200||emails.body?.object!=='list'||!Array.isArray(emails.body.data)||emails.body.data.length>1||typeof emails.body.has_more!=='boolean')throw Error('resend_alert_permission_unverified');
+      const domains=await request('GET','/domains?limit=100',permissionController.signal),domain=config.from.split('@')[1];
+      const matching=domains.body?.data?.filter((row:any)=>row?.name===domain);
+      if(domains.status!==200||domains.body?.object!=='list'||!Array.isArray(domains.body.data)||domains.body.data.length>100||
+        !Array.isArray(matching)||matching.length!==1||matching[0].status!=='verified'||matching[0].capabilities?.sending!=='enabled')throw Error('resend_alert_permission_unverified');
+    }finally{permissionController.abort();}
+  }
   const destination={id:config.destination_id,digest:config.destination_digest};
   function receipt(row:Transport,status:AlertReceipt['status']):AlertReceipt{return{notification_id:row.notification_id,payload_hash:row.payload_hash,
     destination_digest:row.destination_digest,status,receipt_id:row.provider_email_id??`resend-rejected-${row.notification_id}`,observed_at:new Date().toISOString()};}
@@ -133,6 +178,11 @@ export async function createResendAlertAdapter(source:RuntimeEnv,config:ResendAl
   }
   async function native(env:RuntimeEnv,current:StoredClaim<Transport>,signal:AbortSignal,check:()=>void):Promise<AlertReceipt|null>{
     const row=current.record;let id=row.provider_email_id;
+    if(scoped){
+      if(!id)return null;
+      if(row.state==='delivered'||row.state==='failed')return receipt(row,row.state);
+      return row.state==='accepted'?receipt(row,'provider_accepted'):null;
+    }
     if(!id){
       // Lost POST ACK: bounded GET only. A missing/truncated list is never
       // evidence that POST was not applied, even beyond Resend's 24h key TTL.
@@ -166,7 +216,7 @@ export async function createResendAlertAdapter(source:RuntimeEnv,config:ResendAl
     const check=()=>{snapshot.assertActive();if(signal.aborted)throw Error('resend_alert_operation_unconfirmed');};
     try{check();return await withinDeadline(operation(snapshot.env,check),9000,'resend_alert_operation_unconfirmed',cancel);}finally{snapshot.cancel();signal.removeEventListener('abort',cancel);}
   }
-  return {destination,permission:{state:'available',observed_at:new Date().toISOString(),evidence_ref:'resend-native-permission-readback'},
+  return {destination,permission:{state:'available',observed_at:new Date().toISOString(),evidence_ref:scoped?config.approval_evidence_ref:'resend-native-permission-readback'},
     readOriginal:async(operation,signal)=>access(signal,async(env,check)=>{
       const current=await readOrderMetadata<Transport>(env,key(operation.notification_id),MAX_RECORD);check();
       if(!current)return null;if(!await valid(current.record,config,configurationHash)||!sameIdentity(current.record,operation))throw Error('resend_alert_original_invalid');
@@ -203,7 +253,7 @@ export async function createResendAlertAdapter(source:RuntimeEnv,config:ResendAl
         if(!rejected){await store(env,current,{...posting,state:'unknown',updated_at:new Date().toISOString()},check);throw Error('resend_alert_post_unconfirmed');}
         current=await store(env,current,{...posting,state:'rejected',rejection_code:name,updated_at:new Date().toISOString()},check);
         const retryHeader=response.headers.get('retry-after'),delay=retryHeader&&/^\d+$/.test(retryHeader)?Number(retryHeader)*1000:1000;
-        if(attempt===1||name!=='rate_limit_exceeded'||delay>1000)return receipt(current.record,'not_applied');
+        if(scoped||attempt===1||name!=='rate_limit_exceeded'||delay>1000)return receipt(current.record,'not_applied');
         // One bounded retry only for a native explicit rate rejection, under
         // the exact original key/body and after original GET readback. Absence
         // is not itself retry authority; the explicit rejection is required.

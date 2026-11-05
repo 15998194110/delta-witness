@@ -26,6 +26,7 @@ function validCheckpoint(r:Cursor){return !!r&&Object.keys(r).sort().join(',')==
   r.schema==='delta-alert-delivery-cursor/v1'&&Number.isSafeInteger(r.version)&&r.version>0&&validCursor(r.cursor)&&UUID(r.run_id)&&ISO(r.updated_at);}
 export function ownerAlertDeliveryConfiguration(source:OwnerAlertDeliveryEnv):ResendAlertConfig{
   return{enabled:source.OPERATIONS_CLOUD_ENABLED==='true'&&source.OPERATIONS_ALERT_OUTBOX_ENABLED==='true'&&source.OPERATIONS_ALERT_DELIVERY_ENABLED==='true',
+    mode:source.OPERATIONS_ALERT_RESEND_MODE,domain_evidence_digest:source.OPERATIONS_ALERT_RESEND_DOMAIN_EVIDENCE_DIGEST,
     api_key:source.OPERATIONS_ALERT_RESEND_API_KEY??'',from:source.OPERATIONS_ALERT_RESEND_FROM??'',to:source.OPERATIONS_ALERT_RESEND_TO??'',
     destination_id:source.OPERATIONS_ALERT_DESTINATION_ID??'',destination_digest:source.OPERATIONS_ALERT_DESTINATION_DIGEST??'',
     approved_configuration_digest:source.OPERATIONS_ALERT_RESEND_APPROVED_CONFIGURATION_DIGEST??'',approval_evidence_ref:source.OPERATIONS_ALERT_RESEND_APPROVAL_EVIDENCE_REF??''};
