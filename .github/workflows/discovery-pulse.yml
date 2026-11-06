@@ -90,6 +90,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
   ping:
+    # Bootstrapping custody is a one-off operator action, never a discovery run.
+    if: github.event_name != 'workflow_dispatch' || inputs.treasury_bootstrap != true
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

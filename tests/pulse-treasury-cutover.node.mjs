@@ -98,6 +98,7 @@ test('one scheduled Pulse, one Treasury consumer and a distinct credential, isol
   const [treasury,business]=workflow.split(/^  ping:/m);
   assert.ok(!treasury.includes('OPERATIONS_ADMIN_SECRET'));
   assert.ok(!business.includes('TREASURY_WRITER_SECRET'));
+  assert.match(business,/if: github\.event_name != 'workflow_dispatch' \|\| inputs\.treasury_bootstrap != true/);
   assert.ok(!business.includes('scripts/reconcile-treasury.mjs'));
   assert.ok(!workflow.includes('/tmp/delta-treasury.json'));
   assert.ok(treasury.includes('persist-credentials: false'));
