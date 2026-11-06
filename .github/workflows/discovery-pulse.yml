@@ -5,6 +5,11 @@ on:
   schedule:
     - cron: '21 * * * *'
   workflow_dispatch:
+    inputs:
+      treasury_bootstrap:
+        description: 'Establish only the reviewed, empty Treasury cutover block'
+        type: boolean
+        default: false
   push:
     branches: ["master"]
     paths:
@@ -23,14 +28,70 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  treasury:
+    # Separate runner in the existing Pulse. Business/adapters never receive its writer credential.
+    if: github.repository == '15998194110/delta-witness' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    environment:
+      name: delta-treasury
+      deployment: false
+    steps:
+      - name: Select reviewed source and scan mode
+        id: gate
+        shell: bash
+        env:
+          CONFIGURED: ${{ vars.DELTA_TREASURY_STATE_MODE }}
+          RELEASE: ${{ vars.DELTA_TREASURY_APPROVED_RELEASE }}
+          BOOTSTRAP: ${{ inputs.treasury_bootstrap == true }}
+        run: |
+          set -euo pipefail
+          mode=window; ref="$GITHUB_SHA"
+          case "$CONFIGURED" in
+            ''|window) [[ "$BOOTSTRAP" != true ]] ;;
+            remote)
+              [[ "$RELEASE" =~ ^[0-9a-f]{40}$ ]]
+              if [[ "$GITHUB_EVENT_NAME" == schedule || "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+                mode=remote; ref="$RELEASE"
+                if [[ "$BOOTSTRAP" == true ]]; then
+                  [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; mode=bootstrap
+                fi
+              fi ;;
+            *) exit 1 ;;
+          esac
+          printf 'mode=%s\nref=%s\n' "$mode" "$ref" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ steps.gate.outputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify Treasury cutover and publication boundaries offline
+        run: node --test tests/pulse-treasury-cutover.node.mjs
+      - name: Check source and reconcile Treasury
+        shell: bash
+        env:
+          EXPECTED: ${{ steps.gate.outputs.ref }}
+          DELTA_PULSE_TREASURY_MODE: ${{ steps.gate.outputs.mode }}
+          DELTA_TREASURY_WRITER_SECRET: ${{ steps.gate.outputs.mode != 'window' && secrets.DELTA_TREASURY_WRITER_SECRET || '' }}
+          DELTA_TREASURY_BASELINE_DIGEST: ${{ vars.DELTA_TREASURY_BASELINE_DIGEST }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED"
+          node scripts/pulse-treasury-custody.mjs | tee "$RUNNER_TEMP/delta-treasury-range.json"
+      - name: Retain public range status only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: delta-treasury-range-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/delta-treasury-range.json
+          if-no-files-found: warn
+          retention-days: 7
   ping:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      DELTA_INDEXNOW_ADMIN_SECRET: ${{ secrets.DELTA_INDEXNOW_ADMIN_SECRET }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
@@ -58,15 +119,17 @@ jobs:
           test "$STATUS" = "402"
           grep -qi '^payment-required:' /tmp/delta-preflight.headers
 
-      # Treasury and paid fulfillment evidence precede external prospect/directory scans.
-      - name: Reconcile Base Treasury
-        id: treasury
-        continue-on-error: true
-        shell: bash
-        run: node scripts/reconcile-treasury.mjs | tee /tmp/delta-treasury.json
+      # The separate Treasury job in this same run owns the sole blockchain scan.
       - name: Audit paid funnel candidates
         shell: bash
-        run: node scripts/query-revenue-candidates.mjs | tee /tmp/delta-revenue-candidates.json
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          # The D1 report includes partner identities. D1 retains the original.
+          GITHUB_STEP_SUMMARY=/dev/null node scripts/query-revenue-candidates.mjs >/dev/null 2>&1
+          printf '%s\n' '{"ok":true,"details":"private_d1"}' > /tmp/delta-revenue-candidates.json
 
       # Revenue-first: buyer demand and settlement run on every pulse.
       - name: Scan PayanAgent funded buyer demand
@@ -133,6 +196,8 @@ jobs:
       - name: Reconcile existing PayanAgent relay listings without duplication
         if: steps.maintenance.outputs.run == 'true'
         continue-on-error: true
+        env:
+          DELTA_PARTNER_SECRET: ${{ secrets.DELTA_PARTNER_SECRET }}
         run: node scripts/reconcile-payan-listings.mjs
       - name: Reconcile AllMCPs listing without duplication
         if: steps.maintenance.outputs.run == 'true'
@@ -142,11 +207,15 @@ jobs:
         if: steps.maintenance.outputs.run == 'true'
         id: indexnow-core
         continue-on-error: true
+        env:
+          DELTA_INDEXNOW_ADMIN_SECRET: ${{ secrets.DELTA_INDEXNOW_ADMIN_SECRET }}
         run: node scripts/indexnow-pulse.mjs core
       - name: Push Base app IndexNow
         if: steps.maintenance.outputs.run == 'true'
         id: indexnow-base-app
         continue-on-error: true
+        env:
+          DELTA_INDEXNOW_ADMIN_SECRET: ${{ secrets.DELTA_INDEXNOW_ADMIN_SECRET }}
         run: node scripts/indexnow-pulse.mjs base-app
       - name: Check PayAI Bazaar visibility
         if: steps.maintenance.outputs.run == 'true'
@@ -188,12 +257,11 @@ jobs:
       - name: Record pulse diagnostics
         if: always()
         env:
-          TREASURY_OUTCOME: ${{ steps.treasury.outcome }}
           MAINTENANCE_RUN: ${{ steps.maintenance.outputs.run }}
         run: |
           {
             echo '### DELTA revenue-first pulse'
-            echo "- Treasury RPC reconciliation: \`$TREASURY_OUTCOME\`"
+              echo '- Treasury range status is recorded in the treasury job of this run.'
             echo "- Distribution maintenance this pulse: \`${MAINTENANCE_RUN:-false}\`"
             echo ''
             echo 'Treasury and paid-funnel checks precede buyer-demand scans. Public repository evidence is exported for exact contact deduplication, not as a replacement for inaccessible local operator state. No purchase or customer revenue is generated by this diagnostic.'
@@ -216,20 +284,8 @@ jobs:
             /tmp/delta-moltjobs-demand.json
             /tmp/delta-workpnp-demand.json
             /tmp/delta-revenue-candidates.json
-            /tmp/delta-treasury.json
             /tmp/delta-operator-records.zip
             /tmp/delta-operator-records-commit.txt
             /tmp/delta-operator-records-sha256.txt
           if-no-files-found: warn
           retention-days: 7
-
-      # Treasury is a revenue-critical check: maintain artifact collection and
-      # unrelated buyer scans, but NEVER surface a green run on a failed scan.
-      - name: Fail pulse visibly when Treasury reconciliation failed
-        if: always() && steps.treasury.outcome != 'success'
-        shell: bash
-        run: |
-          echo '::error::DELTA Treasury reconciliation failed or was skipped. Revenue is UNVERIFIED, not zero; inspect the prior scan logs and retry after recovery.'
-          echo '### Revenue scan failure' >> "$GITHUB_STEP_SUMMARY"
-          echo 'The canonical Treasury scan did not succeed. Do not report zero newly received funds from this run.' >> "$GITHUB_STEP_SUMMARY"
-          exit 1
